@@ -29,6 +29,8 @@ not make it hold.
 | [`a-time-names-its-zone`](a-time-names-its-zone.md) | `nothing-crosses-unasserted` |
 | [`no-nullable-columns`](no-nullable-columns.md) | `absence-is-absence` |
 | [`no-database-defaults`](no-database-defaults.md) | `absence-is-absence` |
+| [`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) | `model-concerns-not-groups` |
+| [`an-entity-is-composed-not-flattened`](an-entity-is-composed-not-flattened.md) | `model-concerns-not-groups` |
 | [`no-lifecycle-callbacks`](no-lifecycle-callbacks.md) | `tell-dont-ask` |
 | [`no-decisions-in-request-handling`](no-decisions-in-request-handling.md) | `tell-dont-ask` |
 | [`no-type-interrogation`](no-type-interrogation.md) | `one-way-to-say-each-thing` |
@@ -36,5 +38,5 @@ not make it hold.
 | [`no-silent-coercion`](no-silent-coercion.md) | `nothing-fails-quietly` |
 | [`a-guard-states-its-limit`](a-guard-states-its-limit.md) | `nothing-fails-quietly` |
 
-Fourteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
+Sixteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
 guard on this list, and the rule that each is tested by removal.

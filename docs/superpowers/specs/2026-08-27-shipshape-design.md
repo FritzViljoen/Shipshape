@@ -48,8 +48,10 @@ canon is not a transcription of either. Distillation is the point of the exercis
 transcription would preserve the divergence instead of resolving it.
 
 **Size is the test.** Between them the two repos hold 48 cops and roughly 25 written
-laws. The target here is **8 principles and 10–15 laws**. A canon that comes out at
-40 laws has failed: what could not earn a line at that size was app-specific, not a
+laws. The target here was **8 principles and 10–15 laws**; it landed at **9 and 16**, the
+extra principle (`model-concerns-not-groups`) added deliberately after the first pass. The
+ceiling is a distillation test, not a budget — a canon that came out at 40 laws would have
+failed, because what cannot earn a line at that size was app-specific rather than a
 principle.
 
 **Every principle and every law states its grounding**, and the grounding is published

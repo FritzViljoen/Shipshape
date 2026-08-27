@@ -126,6 +126,49 @@ practice, and that is a weaker warrant than the paragraph above.
 
 *Produces* `no-nullable-columns`, `no-database-defaults`.
 
+### `model-concerns-not-groups` — A shared noun is not a shared concern
+
+A god object is a **grouping**. Everything that mentions the noun lands on one class,
+because the noun was the filing rule, and after a decade it is a hundred columns wide and
+nobody can say what it is. Nothing decided that. It accreted, one reasonable addition at a
+time.
+
+**Two moves, and they are one idea.**
+
+**Persistence is separated from the thing.** A record maps rows and holds no rules. The
+domain object is built by an operation, composed, and detached from the database — so a
+reader holding one cannot accidentally query or write through it, and the thing's shape
+stops being whatever the table happens to have.
+
+**Objects compose rather than flatten.** A domain object holds another domain object as a
+field; it never copies that object's attributes onto itself. A flattened field is the first
+column of the next god object.
+
+**The tell is in the schema before it is in the class.** Attributes that apply to only some
+rows are two concepts sharing a table, and the nulls mark the seam — which is why
+`absence-is-absence` catches this defect one layer down.
+
+**And a god object comes apart along the concerns that own it**, never by being moved
+wholesale somewhere better. Relocating a grouping produces a grouping.
+
+**Grounding.** Lanza and Marinescu make the defect operational: their God Class detection
+strategy is high foreign-data access, high complexity, **and low cohesion together** —
+cohesion, not size, is the defining term. Khomh et al. then measured the consequence across
+real systems: classes participating in antipatterns are more change- and fault-prone, and
+**size alone cannot explain the difference** (ESE 2012). That is the empirical form of this
+principle — bulk is a symptom, and the disease is unrelated concerns sharing a name.
+Composition over flattening is Evans's entities and value objects.
+
+**The tension, stated rather than avoided.** Fowler's *anemic domain model* is an argument
+against exactly this separation: data over here, behaviour over there, which he calls an
+anti-pattern. In this canon behaviour lives in operations rather than on the record, so the
+objection lands. The answer is that his target is a procedural script with no model at all,
+whereas here the operations are named domain concepts and the values are typed — the model
+exists, it is just not expressed as methods hanging off a table. What decides it in practice
+is whether the operations carry domain names or CRUD names, and no check makes that call.
+
+*Produces* `persistence-holds-no-behaviour`, `an-entity-is-composed-not-flattened`.
+
 ### `tell-dont-ask` — Send the message; do not pull the state out and decide for it
 
 Ask an object a question, branch on the answer, and you have taken a responsibility that
@@ -307,6 +350,11 @@ idempotent and every intermediate state legal — is the saga, from Garcia-Molin
   peer-reviewed. https://www.gitclear.com/ai_assistant_code_quality_2025_research
 - Wulf, Shaw. *Global Variable Considered Harmful.* ACM SIGPLAN Notices 8(2), Feb 1973,
   28–34. https://dl.acm.org/doi/10.1145/953353.953355
+- Lanza, Marinescu. *Object-Oriented Metrics in Practice.* Springer, 2006 — the God Class
+  detection strategy. https://link.springer.com/book/10.1007/3-540-39538-5
+- Khomh, Di Penta, Guéhéneuc, Antoniol. *An exploratory study of the impact of antipatterns
+  on class change- and fault-proneness.* Empirical Software Engineering, 2012.
+  https://link.springer.com/article/10.1007/s10664-011-9171-y
 - Hoare. *Null References: The Billion Dollar Mistake.* QCon London 2009.
   https://www.infoq.com/presentations/Null-References-The-Billion-Dollar-Mistake-Tony-Hoare/
 
@@ -323,8 +371,11 @@ before quoting any of them in print.
   1989 — the Law of Demeter.
 - Liskov, Wing. *A Behavioral Notion of Subtyping.* ACM TOPLAS, 1994.
 - Martin. *The Open-Closed Principle.* C++ Report, 1996.
-- Fowler. *Refactoring* — speculative generality, feature envy; and the *TellDontAsk* and
-  *AnemicDomainModel* bliki entries.
+- Fowler. *Refactoring* — speculative generality, feature envy, large class; and the
+  *TellDontAsk* and *AnemicDomainModel* bliki entries, the latter being the standing
+  objection named under `model-concerns-not-groups`.
+- Evans. *Domain-Driven Design*, 2003 — entities and value objects composed into
+  aggregates.
 - Hunt, Thomas. *The Pragmatic Programmer*, 1999 — tell, don't ask.
 - Shore. *Fail Fast.* IEEE Software, 2004.
 - Garcia-Molina, Salem. *Sagas.* SIGMOD 1987.
