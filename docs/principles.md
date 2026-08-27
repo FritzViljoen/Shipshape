@@ -31,6 +31,12 @@ So "where does this go" has one answer, and "where is this" has one answer. That
 is what makes a change finishable: you can tell you found every site, because there was
 only ever one.
 
+**Reachability has two failure modes, not one.** A rule its callers cannot reach gets
+copied. A rule everything can reach becomes the place unrelated things are put, and then
+it has many reasons to change — the same defect arrived at from the opposite side. One
+home, reachable by exactly the callers that should reach it, which is what the declared
+call graph is for.
+
 Two reasons to edit a file means two things sharing one home. Optional columns piling up
 on a table is the same tell in the schema — several concepts sharing a row, with the
 nulls marking the seam.
@@ -58,6 +64,17 @@ is running.
 That is what makes a rule testable without a database and usable from a second caller.
 It is also what stops a change to one side of a boundary being a change to both.
 
+**And the boundary is symmetric, which is the half usually left out.** Nothing enters
+except through the arguments; nothing changes except what was handed in and what is
+returned. An ambient read — the current time zone, the current user, a setting fetched
+mid-operation — and a distant write — a global mutated, a class attribute set, an event
+whose subscribers are discovered at runtime — are the same defect facing opposite ways:
+a dependency that is not on the call path.
+
+That is what action at a distance is, and why nothing else here catches it. The cause is
+perfectly visible; it is the *effect* that cannot be found by reading. A reader can follow
+what a call does only if what it does is bounded by what it was given.
+
 **And a boundary says which neighbours may talk.** Every class has a kind, and the kinds
 that may call each other are declared, once, as a matrix. Request handling calls an
 operation. An operation calls an operation or a value. A value calls nothing. Anything
@@ -75,8 +92,15 @@ is Postel's robustness principle, "be liberal in what you accept"; the IETF's ow
 assessment is that this hurts, because tolerated variation becomes load-bearing and can
 never be withdrawn (Thomson, *The Harmful Consequences of the Robustness Principle*).
 
+The symmetric half is the oldest result here: Wulf and Shaw nominated the non-local
+variable for abolition on the ground that it is a major contributing factor in programs
+that are difficult to understand (SIGPLAN Notices, 1973). Meyer's command–query separation
+is the same boundary read the other way — asking a question does not change the answer,
+so a reader can tell which calls can move the world by their shape alone (Meyer 1988).
+
 *Produces* `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`,
-`a-time-names-its-zone`, `the-call-graph-is-declared`.
+`a-time-names-its-zone`, `the-call-graph-is-declared`, `no-action-at-a-distance`,
+`no-ambient-reads`.
 
 ### `absence-is-absence` — A gap is not a value
 
@@ -87,6 +111,12 @@ can tell which. Each meaning given to it is a fact nobody declared.
 So a column is NOT NULL, and the way to say "nobody has said" is the absence of a row.
 A nullable foreign key is usually two things sharing one table; a join with a uniqueness
 constraint says the same thing and can be read.
+
+**The mirror defect is a fact stated twice.** A gap given a meaning is a fact nobody
+declared; a column default beside a model default is one fact declared twice, and the two
+drift. Both leave a reader unable to say what the system holds — one because nothing
+states it, the other because two things do and they disagree. A fact is stated once,
+somewhere a reader can name.
 
 **Grounding.** Hoare calls the null reference his billion-dollar mistake, put into ALGOL
 W in 1965 because it was easy to implement, and blames it for innumerable errors and
@@ -115,6 +145,12 @@ reports what happened rather than being interrogated about it.
 
 Branching **is** asking. So a conditional at a call site is usually a rule that has
 escaped its home, and the fix is to move the rule, not to tidy the conditional.
+
+**Which puts an obligation on the other side, and this is the half that gets dropped.**
+A caller forbidden to interrogate is a caller that cannot discover a failure on its own.
+So the callee must report — every outcome the caller is entitled to act on comes back as
+a value, not as a state to be inspected afterwards. Tell-don't-ask without
+`nothing-fails-quietly` is just silence with better manners.
 
 **Grounding.** The formulation is Sharp's, carried by Hunt and Thomas and set out by
 Fowler; the measurable form is the Law of Demeter, whose whole content is that reaching
@@ -241,6 +277,11 @@ state is a legal one.
 **A guard states what it does not cover.** A blind spot nobody wrote down is read as
 coverage, and a green build then means less than nothing.
 
+**This is the other half of `tell-dont-ask`.** A caller that may not interrogate can only
+know what it is told, so every outcome it is entitled to act on has to come back as a
+value. The two principles are one exchange: one forbids the question, the other obliges
+the answer. Drop either and the pair becomes a caller guessing.
+
 **Grounding, and it is the best-evidenced principle here.** Yuan et al. analysed 198
 randomly sampled real-world failures across five distributed systems and found that 92% of
 catastrophic failures came from incorrect handling of errors that had already been
@@ -272,6 +313,8 @@ idempotent and every intermediate state legal — is the saga, from Garcia-Molin
   Analysis Tools at Google.* CACM 61(4), 2018. https://dl.acm.org/doi/10.1145/3188720
 - GitClear. *AI Copilot Code Quality: 2025 Research.* Industry telemetry, not
   peer-reviewed. https://www.gitclear.com/ai_assistant_code_quality_2025_research
+- Wulf, Shaw. *Global Variable Considered Harmful.* ACM SIGPLAN Notices 8(2), Feb 1973,
+  28–34. https://dl.acm.org/doi/10.1145/953353.953355
 - Hoare. *Null References: The Billion Dollar Mistake.* QCon London 2009.
   https://www.infoq.com/presentations/Null-References-The-Billion-Dollar-Mistake-Tony-Hoare/
 
