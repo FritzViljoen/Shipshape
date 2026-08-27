@@ -136,8 +136,8 @@ raises where its sibling returns is a different thing wearing the name.
 
 **A new case is therefore a new class, not another branch.** Not by exhortation: a
 single-method class has nowhere to grow a branch, and the declared call graph gives the
-branch nowhere to reach. Extension without modification falls out of the shape rather
-than being asked for.
+branch nowhere to reach. The open/closed principle falls out of the shape rather than
+being asked for.
 
 **With a stopping rule, because the opposite failure is real.** Where a rule genuinely has
 a fixed, small set of cases — three outcomes, not an open family — a plain conditional
@@ -153,7 +153,7 @@ files holding five judgements is a large one. Count the decisions.
 belief the programmer must hold, the sites contradicting the dominant pattern are the
 defects — real errors found across operating-system code with no specification at all
 (SOSP 2001). Variation is not merely untidy; it is the signal a detector runs on.
-Extension without modification is Meyer's (1988), restated by Martin for dynamic dispatch
+The open/closed principle is Meyer's (1988), restated by Martin for dynamic dispatch
 (1996); the stopping rule is the correction the literature itself supplies, since Fowler
 names *speculative
 generality* as a smell in its own right and a wrong abstraction is harder to remove than a
