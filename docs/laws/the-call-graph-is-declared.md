@@ -157,6 +157,11 @@ reach becomes the place unrelated things are put.
   explicit `inflect` rule — resolves to no file and is skipped. Skipped, again, not
   failed.
 
+  **A glob may name one file rather than a tree** — `app/models/contest.rb` — which is how
+  an application says two kinds share a directory before it has moved anything. Such a glob
+  matches only the constant whose own path it is; it is not a root, because resolving
+  against its directory would classify every neighbour the same way.
+
   **The superclass is read, not parsed** — a regular expression over the file's source,
   matching the first `class X < Y`. A superclass written as an expression, assigned through
   a constant, or produced by a class-generating call is invisible, and the file falls back

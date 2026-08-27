@@ -108,13 +108,33 @@ module Shipshape
 
       settings.kinds.each_value do |globs|
         globs.each do |glob|
-          roots_of(glob).each do |root|
-            candidate = File.join(root, relative)
-            return [for_path(candidate), candidate] if File.file?(candidate)
-          end
+          found = wildcard?(glob) ? under_roots(glob, relative) : named_file(glob, relative)
+          return [for_path(found), found] if found
         end
       end
       nil
+    end
+
+    def under_roots(glob, relative)
+      roots_of(glob).map { |root| File.join(root, relative) }.find { |path| File.file?(path) }
+    end
+
+    # A glob may name one file rather than a tree — `app/models/contest.rb` — which is how
+    # an application says that two kinds share a directory before it has moved anything.
+    #
+    # Such a glob is NOT a root: resolving constants against its directory would classify
+    # every neighbour as the same kind. It matches only the constant whose own path it is.
+    # Treating it as a root is how this silently classified nothing at all, and reported a
+    # controller reaching straight into a record as clean.
+    def named_file(glob, relative)
+      absolute = File.join(base_dir, glob)
+      return nil unless absolute.end_with?("/#{relative}") && File.file?(absolute)
+
+      absolute
+    end
+
+    def wildcard?(glob)
+      glob.include?("*")
     end
 
     def relative_to_base(path)

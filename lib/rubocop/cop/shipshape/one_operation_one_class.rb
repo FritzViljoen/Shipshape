@@ -75,14 +75,26 @@ module RuboCop
           statements.each { |statement| check_reader(statement) }
         end
 
+        # Only the operation's own entry points. A private helper taking positional
+        # arguments is internal and nobody's business — the law is about what a CALLER may
+        # hand an operation, and a caller can hand it only `initialize` and `call`.
+        #
+        # This checked every `def` at first, and on a well-built application it reported
+        # sixteen offences that were all private helpers. A guard that fires on correct
+        # code is not strict, it is wrong, and it is how a cop gets disabled wholesale.
         def on_def(node)
           return unless operation?
+          return unless entry_point?(node)
 
           node.arguments.each { |argument| check_parameter(argument) }
         end
         alias on_defs on_def
 
         private
+
+        def entry_point?(node)
+          node.method_name == :initialize || node.method_name.to_s == expected_name
+        end
 
         def check_methods(statements)
           public_defs = statements.select { |statement| public_method?(statement) }

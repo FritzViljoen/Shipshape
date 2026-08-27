@@ -222,6 +222,52 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
+  # The law is about what a CALLER may hand an operation, and a caller can hand it only
+  # `initialize` and `call`. A private helper's arguments are internal.
+  #
+  # This cop checked every `def` at first, and on a well-built application it reported
+  # sixteen offences that were all private helpers. A guard that fires on correct code is
+  # not strict, it is wrong, and it is how a cop gets disabled wholesale.
+  def test_a_private_helper_may_take_positional_arguments
+    assert_empty check(<<~RUBY)
+      class CreatePerson
+        def initialize(name:)
+          @name = name
+        end
+
+        def call
+          apply(build(@name), 1)
+        end
+
+        private
+
+        def build(name)
+          name
+        end
+
+        def apply(value, count)
+          [value, count]
+        end
+      end
+    RUBY
+  end
+
+  def test_the_entry_points_are_still_checked
+    found = check(<<~RUBY)
+      class CreatePerson
+        def initialize(name)
+          @name = name
+        end
+
+        def call(extra)
+          extra
+        end
+      end
+    RUBY
+
+    assert_equal 2, found.length
+  end
+
   private
 
   def check(source, path = "app/commands/create_person.rb")

@@ -387,6 +387,54 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
+  # A glob may name one file rather than a tree, which is how an application says two kinds
+  # share a directory before it has moved anything. Treating such a glob as a root resolved
+  # constants against its DIRECTORY and matched nothing — so a controller reaching straight
+  # into a record came back clean.
+  def test_a_glob_naming_one_file_classifies_that_constant
+    mixed = {
+      "Kinds" => {
+        "request_handling" => ["app/controllers/**/*_controller.rb"],
+        "entity" => ["app/models/standing.rb"],
+        "record" => ["app/models/contest.rb"],
+      },
+      "Matrix" => { "request_handling" => ["entity"], "entity" => [], "record" => [] },
+    }
+    tree = %w[app/models/contest.rb app/models/standing.rb]
+
+    found = offences(<<~RUBY, cop_class: COP, cop_config: mixed, path: "app/controllers/contests_controller.rb", files: tree)
+      class ContestsController
+        def show
+          Contest.find(1)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A request_handling may not call a record"
+  end
+
+  # And only that one. Resolving against the directory would classify every neighbour the
+  # same way, which is the opposite failure and just as silent.
+  def test_a_glob_naming_one_file_classifies_nothing_else_in_its_directory
+    mixed = {
+      "Kinds" => {
+        "request_handling" => ["app/controllers/**/*_controller.rb"],
+        "record" => ["app/models/contest.rb"],
+      },
+      "Matrix" => { "request_handling" => [], "record" => [] },
+    }
+    tree = %w[app/models/contest.rb app/models/person.rb]
+
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: mixed, path: "app/controllers/contests_controller.rb", files: tree)
+      class ContestsController
+        def index
+          Person.all
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source, path)
