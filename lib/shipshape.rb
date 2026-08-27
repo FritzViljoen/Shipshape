@@ -14,6 +14,7 @@ module Shipshape
 end
 
 require "rubocop/cop/shipshape/call_graph"
+require "rubocop/cop/shipshape/one_operation_one_class"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),

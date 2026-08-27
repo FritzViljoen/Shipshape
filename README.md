@@ -24,10 +24,16 @@ because a blind spot nobody wrote down is read as coverage.
 
 ## Status
 
-**Early. One cop of sixteen is built.**
+**Early. Two cops of sixteen are built.**
 
 - `Shipshape/CallGraph` — holds
   [`the-call-graph-is-declared`](docs/laws/the-call-graph-is-declared.md)
+- `Shipshape/OneOperationOneClass` — holds
+  [`one-operation-one-class`](docs/laws/one-operation-one-class.md)
+
+The layout — which paths hold which kind — is declared **once**, on `Shipshape/CallGraph`,
+and every other cop reads it from there. Repeating it per cop would be a second copy of one
+fact, and the copy is the one that goes stale.
 
 The rest are specified in `docs/laws/` and not yet written. The ratchet and the
 agent-rules generator are not built either. Until a law's guard exists, that law is a

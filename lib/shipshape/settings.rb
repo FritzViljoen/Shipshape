@@ -36,8 +36,17 @@ module Shipshape
       refuse_rows_naming_an_undeclared_kind
     end
 
+    LAYOUT_COP = "Shipshape/CallGraph"
+
     def self.from_cop_config(cop_config)
       new(kinds: cop_config.fetch("Kinds", {}), matrix: cop_config.fetch("Matrix", {}))
+    end
+
+    # The layout — which paths hold which kind — is declared **once**, on the call-graph
+    # cop, and every other cop reads it from there. Repeating it per cop would be a second
+    # copy of one fact, and the copy is the one that goes stale.
+    def self.layout(config)
+      from_cop_config(config.for_cop(LAYOUT_COP))
     end
 
     def reachable_from(kind)

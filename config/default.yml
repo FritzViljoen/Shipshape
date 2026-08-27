@@ -68,3 +68,19 @@ Shipshape/CallGraph:
       - record
     entity: []
     record: []
+
+Shipshape/OneOperationOneClass:
+  Description: >-
+    An operation is a class with one public method, taking keyword arguments. A second
+    public method is a second operation, and it gets a second class.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Which kinds are operations. The layout itself — which paths hold which kind — is
+  # declared once on Shipshape/CallGraph and read from there, so it is not repeated here.
+  OperationKinds:
+    - workflow
+    - command
+    - query
+  PublicMethod: call
