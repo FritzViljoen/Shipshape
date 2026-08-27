@@ -35,8 +35,8 @@ The layout — which paths hold which kind — is declared **once**, on `Shipsha
 and every other cop reads it from there. Repeating it per cop would be a second copy of one
 fact, and the copy is the one that goes stale.
 
-The rest are specified in `docs/laws/` and not yet written. The ratchet and the
-agent-rules generator are not built either. Until a law's guard exists, that law is a
+The rest are specified in `docs/laws/` and not yet written. The agent-rules generator is
+not built either. Until a law's guard exists, that law is a
 convention held by review, and the law file says so.
 
 ## Installing the base classes
@@ -147,6 +147,43 @@ violations fail, and the count is the migration progress. Unlike a register of w
 are "done", it cannot rot.
 
 A constant that resolves to no file under a declared kind is skipped, not failed.
+
+## The ratchet
+
+```sh
+bundle exec shipshape check [--trunk <ref>]
+```
+
+Counts each cop's offences here and at the commit this branch diverged from, and fails only
+where a count **rose**. An inherited pile is not your bill; one new violation is.
+
+**There is no checked-in baseline file.** A snapshot of existing violations has a regenerate
+button, and pressing it on a red build is exactly what erases the signal the guard existed
+to raise. The baseline is derived from git every run.
+
+**Both trees are measured with the head tree's configuration**, which is the one deliberate
+departure from "measure each tree as it was". With the base tree's own config, turning a cop
+on would find its offences in head and none in base — so every one would count as new, and
+enabling a cop would be a five-hundred-offence event on any real application. With the head
+config in both, **enabling a cop is free and holds the line from that moment**, and what is
+measured is the effect of the code change.
+
+Only `Shipshape/*` cops are counted. Your other cops are your business.
+
+The working copy is never checked out, moved or stashed — the baseline is read through a
+detached `git worktree` in a temporary directory, removed afterwards whether or not the run
+raised.
+
+**Stated limits**, because a guard that hides its blind spots reads as coverage:
+
+- It compares **counts, not identities**. Fixing one offence and adding another in the same
+  cop nets to green.
+- A renamed or moved file counts as new offences in head and removed offences in base. A
+  net-zero move passes; a move that also hides a violation is not caught.
+- Only the root `.rubocop.yml` is copied to the base tree. A config that inherits from
+  another file in the repository gets that file from the **base** commit.
+- The merge-base is used rather than the trunk's tip, so an offence somebody else pushed to
+  the trunk after you branched is not billed to you.
 
 ## Tests
 

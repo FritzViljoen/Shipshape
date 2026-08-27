@@ -4,6 +4,7 @@
 require "shipshape"
 require "shipshape/install"
 require "shipshape/wire_typed_params"
+require "shipshape/check"
 
 WIRING = {
   wired: "  wired    %<path>s — includes TypedParams",
@@ -11,10 +12,7 @@ WIRING = {
   no_controller: "  MISSING  %<path>s — nothing includes TypedParams, so nothing is parsed at the seam",
 }.freeze
 
-command = ARGV.shift
-
-case command
-when "install"
+def install
   report = Shipshape::Install.new(root: Dir.pwd).call
 
   report[:written].each { |path| puts "  written  #{path}" }
@@ -26,11 +24,43 @@ when "install"
   puts
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
-  exit 1 if outcome == :no_controller
-when "version", "--version", "-v"
-  puts Shipshape::VERSION
+  outcome == :no_controller ? 1 : 0
+end
+
+def check(trunk)
+  report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
+
+  puts "baseline #{report[:sha][0, 12]} (merge-base with #{report[:trunk]})"
+  puts
+
+  report[:fallen].each { |cop, row| puts "  fell     #{cop}  #{row[:was]} -> #{row[:now]}" }
+  report[:risen].each { |cop, row| puts "  ROSE     #{cop}  #{row[:was]} -> #{row[:now]}" }
+
+  return report_clean(report) if report[:risen].empty?
+
+  puts
+  puts "#{report[:risen].length} cop(s) found more than the baseline. The count may fall, never rise."
+  1
+end
+
+def report_clean(report)
+  total = report[:head].values.sum
+
+  puts "  held     nothing rose"
+  puts
+  puts "#{total} offence(s) remain, and that is the new floor."
+  0
+end
+
+command = ARGV.shift
+
+case command
+when "install" then exit install
+when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
+when "version", "--version", "-v" then puts Shipshape::VERSION
 else
   warn "usage: shipshape install"
+  warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"
   exit 1
 end
