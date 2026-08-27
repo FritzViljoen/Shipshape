@@ -28,11 +28,13 @@ Shipshape/CallGraph:
       - 'app/models/**/*.rb'
   # Who may call whom. A pair absent from this matrix is an offence.
   #
-  # A workflow sequences; it does not nest. A command does ONE write and does not compose
-  # with another command — sequencing writes is the workflow's job, and a command that
-  # calls a command has become a workflow without saying so. A query is ONE read: a query
-  # calling a query is two reads wearing one name, and it is the shape an N+1 arrives in —
-  # compose reads in the caller that wanted both. A record calls nothing.
+  # NO KIND CALLS ITS OWN KIND. That rule lives in the cop, not here: a row that names
+  # itself is refused as a contradiction rather than honoured as a permission. This matrix
+  # says which OTHER kinds are reachable.
+  #
+  # A sister call is how a class quietly becomes the kind above it — a command sequencing
+  # commands is a workflow that never said so, and a query composing queries is the read
+  # that turns into an N+1. Sequence them from the kind above instead.
   #
   # A gateway is a command that crosses the process boundary — it is the only kind that
   # may talk to anything outside. It reaches no record and no query, so the external call
@@ -58,6 +60,5 @@ Shipshape/CallGraph:
       - record
     gateway:
       - entity
-    entity:
-      - entity
+    entity: []
     record: []

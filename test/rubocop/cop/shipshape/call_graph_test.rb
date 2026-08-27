@@ -2,10 +2,14 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires: replacing the matrix check in
-# CallGraph#on_send with an unconditional return reddens four of these — the record, the
-# controller, the leading-`::` and the safe-navigation cases. Restoring it returns them to
-# green. A guard nobody has seen fail reads as coverage.
+# Watched to fail, as `a-guard-states-its-limit` requires. Two checks, proven separately:
+#
+# - Neutering the matrix check in CallGraph#allowed? reddens four — the record, the
+#   controller, the leading-`::` and the safe-navigation cases.
+# - Making the same-kind check permit instead of refuse reddens four others — query,
+#   command, workflow and entity calling their own kind.
+#
+# Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
 class CallGraphTest < Minitest::Test
   include CopRunner
 
@@ -27,7 +31,7 @@ class CallGraphTest < Minitest::Test
       "command" => %w[query gateway entity record],
       "query" => %w[entity record],
       "gateway" => ["entity"],
-      "entity" => ["entity"],
+      "entity" => [],
       "record" => [],
     },
   }.freeze
@@ -142,8 +146,8 @@ class CallGraphTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  # A query is one read. A query calling a query is two reads wearing one name, and the
-  # second is invisible to whoever asked — the shape an N+1 arrives in.
+  # One rule, applied to every kind: no kind calls its own kind. The per-kind reasons
+  # below are consequences of it, not separate rules.
   def test_a_query_may_not_call_a_query
     found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
@@ -155,11 +159,9 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a query"
-    assert_includes found.first.message, "Declared: entity, record."
+    assert_includes found.first.message, "No kind calls its own kind"
   end
 
-  # A command is one write. Sequencing writes is the workflow's job, and a command calling
-  # a command has become a workflow without saying so — with none of the obligations.
   def test_a_command_may_not_call_a_command
     found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
@@ -194,7 +196,6 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  # A workflow's whole content is its sequence. Nesting hides the sequence.
   def test_a_workflow_may_not_call_a_workflow
     found = check(<<~RUBY, "app/workflows/settle_month.rb")
       class SettleMonth
@@ -269,6 +270,37 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A request_handling may not call a gateway"
+  end
+
+  def test_an_entity_may_not_call_an_entity
+    found = check(<<~RUBY, "app/entities/place.rb")
+      class Place
+        def parent
+          Place.new(code: "x")
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "An entity may not call an entity"
+  end
+
+  # The rule lives in the cop, not in the matrix — so no configuration can permit a
+  # sister call, and a row that tries is a contradiction rather than a permission.
+  def test_a_matrix_row_naming_itself_is_refused
+    permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query entity record]))
+
+    error = assert_raises(RuboCop::ValidationError) do
+      offences(<<~RUBY, cop_class: COP, cop_config: permissive, path: "app/queries/list_people.rb", files: TREE)
+        class ListPeople
+          def call
+            PersonRecord.all
+          end
+        end
+      RUBY
+    end
+
+    assert_includes error.message, "Matrix row query lists itself"
   end
 
   private

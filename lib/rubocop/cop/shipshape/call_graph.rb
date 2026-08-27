@@ -11,6 +11,11 @@ module RuboCop
       # other are declared once, as a matrix, in `Matrix`. A call whose (caller kind,
       # callee kind) pair is absent from the matrix is an offence.
       #
+      # NO KIND CALLS ITS OWN KIND, and that rule lives here rather than in the matrix —
+      # a row naming itself stops the run. A sister call is how a class quietly becomes
+      # the kind above it: a command sequencing commands is a workflow that never said so,
+      # a query composing queries is the read that turns into an N+1.
+      #
       # This is the load-bearing guard of the canon: a rule cannot escape its home if there
       # is nowhere reachable to escape to. It is what stops a call sideways into a sibling
       # area, or upward out of a record, becoming the first instance of a convention
@@ -40,11 +45,21 @@ module RuboCop
       #     end
       #   end
       class CallGraph < Base
-        MSG = "A %<caller_kind>s may not call a %<callee_kind>s. " \
-              "Declared: %<allowed>s."
+        MSG = "%<caller>s may not call %<callee>s. Declared: %<allowed>s."
 
-        MSG_NONE = "A %<caller_kind>s may not call anything. " \
+        MSG_NONE = "%<caller>s may not call anything. " \
                    "Move the work to a caller that may."
+
+        # No kind calls its own kind. This is one rule, not a row anyone maintains: a
+        # sister call is the shape by which a class quietly becomes the kind above it —
+        # a command sequencing commands is a workflow that never said so, a query
+        # composing queries is the read that turns into an N+1.
+        MSG_SISTER = "%<caller>s may not call %<callee>s. No kind calls its own kind — " \
+                     "sequence them from the kind above."
+
+        MATRIX_ERROR = "Shipshape/CallGraph: Matrix row %<kind>s lists itself. " \
+                       "No kind calls its own kind, so a row naming itself is a " \
+                       "contradiction rather than a permission."
 
         def on_send(node)
           receiver = node.receiver
@@ -59,19 +74,47 @@ module RuboCop
 
           add_offense(receiver, message: message_for(caller_kind, callee_kind))
         end
+
         alias on_csend on_send
+
+        # The matrix is checked once per run rather than per call site, and a row that
+        # names its own kind stops the run instead of being quietly dropped.
+        def on_new_investigation
+          matrix.each do |kind, reachable|
+            raise ValidationError, format(MATRIX_ERROR, kind: kind) if Array(reachable).include?(kind)
+          end
+        end
 
         private
 
+        # A sister call is refused before the matrix is consulted, so no configuration can
+        # permit one. The matrix says which OTHER kinds are reachable; it is not the place
+        # this rule lives.
         def allowed?(caller_kind, callee_kind)
+          return false if caller_kind == callee_kind
+
           Array(matrix[caller_kind]).include?(callee_kind)
         end
 
         def message_for(caller_kind, callee_kind)
-          allowed = Array(matrix[caller_kind])
-          return format(MSG_NONE, caller_kind: caller_kind) if allowed.empty?
+          caller_phrase = named(caller_kind).capitalize
+          callee_phrase = named(callee_kind)
 
-          format(MSG, caller_kind: caller_kind, callee_kind: callee_kind, allowed: allowed.join(", "))
+          return format(MSG_SISTER, caller: caller_phrase, callee: callee_phrase) if caller_kind == callee_kind
+
+          allowed = Array(matrix[caller_kind])
+          return format(MSG_NONE, caller: caller_phrase) if allowed.empty?
+
+          format(MSG, caller: caller_phrase, callee: callee_phrase, allowed: allowed.join(", "))
+        end
+
+        # A kind is a configured word, so the article is decided here rather than written
+        # into the config beside every name. Vowel-initial only — a kind spelled to defeat
+        # that reads a little wrong in one message and nothing else breaks.
+        def named(kind)
+          article = kind.to_s.start_with?("a", "e", "i", "o", "u") ? "an" : "a"
+
+          "#{article} #{kind}"
         end
 
         def kind_of_inspected_file

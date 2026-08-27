@@ -2,7 +2,8 @@
 
 Every class in the covered trees has a **kind**. The kinds that may call each other are
 declared once, as a matrix, in one file. A call whose (caller kind, callee kind) pair is
-absent from the matrix is an offence.
+absent from the matrix is an offence, and **no kind may call its own kind** — a rule the
+matrix cannot override.
 
 The default kinds, and an application may name its own:
 
@@ -13,7 +14,7 @@ The default kinds, and an application may name its own:
 | command | query, gateway, entity, record |
 | query | entity, record |
 | gateway | entity |
-| entity | entity |
+| entity | nothing |
 | record | nothing |
 
 **Workflow, command, query and gateway are all *operations*** — a class with one public
@@ -25,24 +26,31 @@ database.** A value without identity — a money, a date range — lives in the 
 has the same row, so it is not a separate kind. A kind that forbids nothing is a name, not
 a kind.
 
-**A query may not call a query.** A query is *one* read. A query that calls a query is two
-reads wearing one name, the second invisible to the caller, and that is the shape an N+1
-arrives in. Where a caller needs two reads it asks for two, and the composition is visible
-at the place that wanted it.
+**No kind calls its own kind.** One rule, and it is the whole of what people mean by a
+sister call. It lives in the guard rather than in the matrix: a matrix row that names
+itself is refused as a contradiction, not honoured as a permission, so no configuration
+can allow one.
 
-**A command may not call a command.** A command is *one* write. Sequencing writes is the
-workflow's job, and a command that calls a command has become a workflow without saying so
-— with none of a workflow's obligations, which is the actual cost: nobody made those steps
-idempotent, and nobody checked that stopping between them leaves a legal state.
+A sister call is how a class quietly becomes the kind above it. Everything below is a
+consequence of that one rule, not a separate rule:
 
-**This is the row with a price, and it is worth naming.** A change spanning records can no
-longer be one command wrapping a second in a transaction. It becomes a workflow, and a
-workflow spans transactions — so each step has to be idempotent and each intermediate state
-has to be legal. That is more work, and it is work the transaction was hiding rather than
-doing.
+- **A command is one write.** A command that calls a command is sequencing writes, which
+  is a workflow's job — so it has become a workflow without saying so, and therefore
+  without a workflow's obligations. That is the real cost: nobody made those steps
+  idempotent, and nobody checked that stopping between them leaves a legal state.
+- **A query is one read.** A query that calls a query is two reads wearing one name, the
+  second invisible to whoever asked. It is the shape an N+1 arrives in.
+- **A workflow's whole content is its sequence.** Nesting one inside another hides the
+  sequence, which was the only thing it had to offer.
+- **An entity holds another entity; it does not build one.** Composing is the caller's
+  job, and an entity that constructs its neighbours is deriving — which
+  [`an-entity-is-composed-not-flattened`](an-entity-is-composed-not-flattened.md) forbids
+  for the same reason.
 
-**A workflow does not call a workflow.** A workflow's whole content is its sequence;
-nesting one inside another hides the sequence, which is the only thing it had to offer.
+**The rule has a price, and it is worth naming.** A change spanning records can no longer
+be one command wrapping a second in a transaction. It becomes a workflow, and a workflow
+spans transactions — so each step has to be idempotent and each intermediate state has to
+be legal. That is more work, and it is work the transaction was hiding rather than doing.
 
 **A gateway is a command that crosses the process boundary**, and it is the only kind
 permitted to talk to anything outside. It reaches no record and no query, so the external
@@ -64,9 +72,11 @@ reach becomes the place unrelated things are put.
 
 - **Principle:** `good-boundaries-make-good-neighbours`, and it owns this law outright —
   placement and reachability are one subject, which is why that principle carries both.
-- **Guard:** `Shipshape/CallGraph`. Resolves a class's kind by base class first, then by
-  path. Fails a call to a constant whose kind is not reachable from the calling file's
-  kind. The matrix is data, in one file, and the cop reads it.
+- **Guard:** `Shipshape/CallGraph`. Resolves the inspected file's kind by path, and a
+  called constant's kind by turning its name into the path a loader would expect and
+  looking for that file under each kind's roots. Fails a call whose pair is not in the
+  matrix, and fails any same-kind call before the matrix is consulted. Refuses a matrix
+  row that names itself.
 - **Guard's limit:** it resolves receivers syntactically. A call through a local assigned
   earlier, through a method that returns a collaborator, through `send`, or through any
   metaprogrammed dispatch, is invisible. A class it cannot assign a kind to is skipped
