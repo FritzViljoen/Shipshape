@@ -39,6 +39,36 @@ The rest are specified in `docs/laws/` and not yet written. The ratchet and the
 agent-rules generator are not built either. Until a law's guard exists, that law is a
 convention held by review, and the law file says so.
 
+## Installing the base classes
+
+```sh
+bundle exec shipshape install
+```
+
+Writes the base classes into `app/shipshape/` and includes `TypedParams` into your
+`ApplicationController`. **They are generated, not inherited from this gem** — a base class
+you can open in your own repository beats one buried in a dependency, and shipshape stays a
+development dependency.
+
+Nothing is ever overwritten, and the wiring is idempotent. If there is no
+`ApplicationController` it says so and exits non-zero rather than reporting success: a
+concern nobody includes parses nothing, while the application looks equipped.
+
+They land outside the governed trees because a base class is not an instance of the thing
+it defines — `Command` is not a command.
+
+| Written | What it is |
+|---|---|
+| `Workflow` | sequences commands and queries across several transactions; answers with a `Result` |
+| `Command` | one write, in exactly one transaction; answers with a `Result` |
+| `Query` | one read; answers with an entity or an array of them, no envelope |
+| `LegacyCommand` / `LegacyQuery` | the two doors to the old world, sisters of the pair above |
+| `Entity` | a domain object, detached from the database, with value semantics |
+| `Result` | `success(value)` / `failure(:code)` — an expected failure, never a bug |
+| `TypedArguments` | asserts every keyword where it arrives |
+| `TypedParams` | parses request input at the seam, once |
+| `Boolean` | a name for true-or-false that reopens nothing |
+
 ## Trying it
 
 ```ruby

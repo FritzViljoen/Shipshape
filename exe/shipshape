@@ -3,6 +3,13 @@
 
 require "shipshape"
 require "shipshape/install"
+require "shipshape/wire_typed_params"
+
+WIRING = {
+  wired: "  wired    %<path>s — includes TypedParams",
+  already: "  kept     %<path>s — already includes TypedParams",
+  no_controller: "  MISSING  %<path>s — nothing includes TypedParams, so nothing is parsed at the seam",
+}.freeze
 
 command = ARGV.shift
 
@@ -13,9 +20,13 @@ when "install"
   report[:written].each { |path| puts "  written  #{path}" }
   report[:skipped].each { |path| puts "  kept     #{path}" }
 
+  outcome, path = Shipshape::WireTypedParams.new(root: Dir.pwd).call
+  puts format(WIRING.fetch(outcome), path: path)
+
   puts
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
+  exit 1 if outcome == :no_controller
 when "version", "--version", "-v"
   puts Shipshape::VERSION
 else
