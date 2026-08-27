@@ -48,7 +48,7 @@ measurable by Chidamber and Kemerer, and Basili, Briand and Melo validated those
 as defect predictors across eight C++ systems — low cohesion and high coupling predicted
 faults (Basili et al. 1996).
 
-*Produces* `no-database-defaults`, and the placement laws.
+*Produces* `no-database-defaults`, `the-call-graph-is-declared`.
 
 ### `good-boundaries-make-good-neighbours` — A boundary states what crosses it, and asserts it there
 
@@ -99,8 +99,8 @@ is the same boundary read the other way — asking a question does not change th
 so a reader can tell which calls can move the world by their shape alone (Meyer 1988).
 
 *Produces* `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`,
-`a-time-names-its-zone`, `the-call-graph-is-declared`, `no-action-at-a-distance`,
-`no-ambient-reads`.
+`a-time-names-its-zone`, `the-call-graph-is-declared`,
+`nothing-travels-off-the-call-path`.
 
 ### `absence-is-absence` — A gap is not a value
 
@@ -208,7 +208,7 @@ cannot confirm or refute this. What would falsify it: near-identical bodies appe
 sibling operation classes. If that shows up, the prevention failed and detection has to come
 back.
 
-*Produces* `one-operation-one-class`, `one-shape-per-operation`, `no-type-interrogation`.
+*Produces* `one-operation-one-class`, `no-type-interrogation`.
 
 ### `nothing-is-hidden` — Every rule is written where a reader greps for it
 
