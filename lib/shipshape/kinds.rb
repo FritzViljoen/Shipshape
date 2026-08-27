@@ -46,19 +46,35 @@ module Shipshape
       return nil if name.nil?
 
       typed(name, String)
-      constant_cache.fetch(name) { constant_cache[name] = resolve_constant(name) }
+      file_for_constant(name) && constant_cache[name].first
+    end
+
+    # The file a constant resolves to, so a caller can tell a sister call from a class
+    # referring to itself. `Result.success(...)` inside `Result` is not two entities
+    # talking; it is one entity, and the call graph has nothing to say about it.
+    def file_for_constant(name)
+      return nil if name.nil?
+
+      typed(name, String)
+      resolved = constant_cache.fetch(name) { constant_cache[name] = resolve_constant(name) }
+      resolved && resolved.last
     end
 
     private
 
     attr_reader :settings, :base_dir, :constant_cache, :root_cache
 
+    # Answers [kind, file] or nil. The file is kept because a class referring to itself is
+    # not a call between two of a kind, and only the path can tell the difference.
     def resolve_constant(name)
       relative = "#{underscore(name)}.rb"
 
       settings.kinds.each do |kind, globs|
         globs.each do |glob|
-          return kind if roots_of(glob).any? { |root| File.file?(File.join(root, relative)) }
+          roots_of(glob).each do |root|
+            candidate = File.join(root, relative)
+            return [kind, candidate] if File.file?(candidate)
+          end
         end
       end
       nil

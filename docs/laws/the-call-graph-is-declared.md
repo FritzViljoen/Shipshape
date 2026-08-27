@@ -61,6 +61,10 @@ consequence of that one rule, not a separate rule:
   [`an-entity-is-composed-not-flattened`](an-entity-is-composed-not-flattened.md) forbids
   for the same reason.
 
+**A class naming itself is not a sister call.** `Result.success(...)` written inside
+`Result` is one entity, not two talking, and the guard resolves the constant to a file to
+tell the difference.
+
 **The rule has a price, and it is worth naming.** A change spanning records can no longer
 be one command wrapping a second in a transaction. It becomes a workflow, and a workflow
 spans transactions — so each step has to be idempotent and each intermediate state has to

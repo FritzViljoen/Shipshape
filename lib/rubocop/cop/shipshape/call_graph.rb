@@ -65,7 +65,10 @@ module RuboCop
           caller_kind = kind_of_inspected_file
           return if caller_kind.nil?
 
-          callee_kind = kinds.for_constant(constant_name(receiver))
+          name = constant_name(receiver)
+          return if refers_to_itself?(name)
+
+          callee_kind = kinds.for_constant(name)
           return if callee_kind.nil?
           return if allowed?(caller_kind, callee_kind)
 
@@ -104,6 +107,15 @@ module RuboCop
           article = kind.to_s.start_with?("a", "e", "i", "o", "u") ? "an" : "a"
 
           "#{article} #{kind}"
+        end
+
+        # A class naming itself is not a call between two of a kind. `Result.success(...)`
+        # inside `Result` is one entity, and the call graph has nothing to say about it.
+        def refers_to_itself?(name)
+          resolved = kinds.file_for_constant(name)
+          return false if resolved.nil?
+
+          File.expand_path(resolved) == File.expand_path(processed_source.file_path)
         end
 
         def kind_of_inspected_file

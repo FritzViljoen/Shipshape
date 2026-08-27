@@ -36,6 +36,7 @@ class CallGraphTest < Minitest::Test
 
   TREE = [
     "app/workflows/settle_month.rb",
+    "app/workflows/close_books.rb",
     "app/commands/create_person.rb",
     "app/commands/geography/create_place.rb",
     "app/queries/list_people.rb",
@@ -43,6 +44,7 @@ class CallGraphTest < Minitest::Test
     "app/queries/stripe/fetch_rates.rb",
     "app/commands/stripe/send_invoice.rb",
     "app/entities/place.rb",
+    "app/entities/money.rb",
     "app/records/person_record.rb",
   ].freeze
 
@@ -199,7 +201,7 @@ class CallGraphTest < Minitest::Test
     found = check(<<~RUBY, "app/workflows/settle_month.rb")
       class SettleMonth
         def call
-          SettleMonth.call
+          CloseBooks.call
         end
       end
     RUBY
@@ -260,8 +262,8 @@ class CallGraphTest < Minitest::Test
   def test_an_entity_may_not_call_an_entity
     found = check(<<~RUBY, "app/entities/place.rb")
       class Place
-        def parent
-          Place.new(code: "x")
+        def total
+          Money.new(cents: 1)
         end
       end
     RUBY
@@ -363,6 +365,26 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
+  end
+
+  # A class naming itself is not a call between two of a kind. `Result.success(...)`
+  # inside `Result` is one entity, and the call graph has nothing to say about it.
+  def test_a_class_naming_itself_is_not_a_sister_call
+    assert_empty check(<<~RUBY, "app/entities/place.rb")
+      class Place
+        def self.root
+          Place.new(code: "ROOT")
+        end
+      end
+    RUBY
+  end
+
+  def test_a_workflow_naming_itself_is_not_a_sister_call_either
+    assert_empty check(<<~RUBY, "app/workflows/settle_month.rb")
+      class SettleMonth
+        RETRY = SettleMonth
+      end
+    RUBY
   end
 
   private
