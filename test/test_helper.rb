@@ -16,11 +16,15 @@ require "shipshape"
 module CopRunner
   # `other_cops` carries configuration a cop reads from a sibling — the layout is declared
   # once, on Shipshape/CallGraph, so a cop that needs it reads it from there.
+  # `files` is either a list of paths, written empty, or a Hash of path => source. Write
+  # real bodies whenever the kind is decided by the superclass rather than by the path —
+  # an empty file has no superclass, so it would quietly test the fallback instead.
   def offences(source, cop_class:, cop_config: {}, path:, files: [], other_cops: {})
     Dir.mktmpdir("shipshape") do |root|
-      files.each { |file| touch(File.join(root, file)) }
+      write_tree(root, files)
       inspected = File.join(root, path)
       touch(inspected)
+      File.write(inspected, source)
 
       investigate(cop_class, cop_config, root, source, inspected, other_cops)
     end
@@ -40,6 +44,16 @@ module CopRunner
       .new([cop], [], raise_error: true)
       .investigate(processed)
       .offenses
+  end
+
+  def write_tree(root, files)
+    return files.each { |file| touch(File.join(root, file)) } if files.is_a?(Array)
+
+    files.each do |file, contents|
+      target = File.join(root, file)
+      touch(target)
+      File.write(target, contents)
+    end
   end
 
   def touch(path)

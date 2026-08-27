@@ -34,6 +34,26 @@ Shipshape/CallGraph:
     query:
       - 'app/queries/**/*.rb'
       - 'packs/*/queries/**/*.rb'
+    # The two doors to the old world, and the only classes permitted to speak to it. A
+    # governed class may not reach legacy code directly; it goes through one of these, and
+    # the suffix means the dependency is visible at the call site without opening anything.
+    #
+    # There are two rather than one so that the return shape survives the crossing: a
+    # legacy query answers with entities, a legacy command answers with a Result. A single
+    # door would have to answer both ways, and that is the flag this canon refuses.
+    #
+    # Both share one suffix. The path says "this is a door"; the BASE CLASS says which of
+    # the two it is, because inheritance is the thing that carries the return shape and a
+    # second copy of that fact in the filename would be the copy that goes stale.
+    #
+    # THEIR POPULATION IS THE MIGRATION BACKLOG, and the ratchet makes it a number that
+    # only falls.
+    legacy_query:
+      - 'app/legacy/**/*_legacy.rb'
+      - 'packs/*/legacy/**/*_legacy.rb'
+    legacy_command:
+      - 'app/legacy/**/*_legacy.rb'
+      - 'packs/*/legacy/**/*_legacy.rb'
     entity:
       - 'app/entities/**/*.rb'
       - 'packs/*/entities/**/*.rb'
@@ -51,6 +71,19 @@ Shipshape/CallGraph:
   # A sister call is how a class quietly becomes the kind above it — a command sequencing
   # commands is a workflow that never said so, and a query composing queries is the read
   # that turns into an N+1. Sequence them from the kind above instead.
+  # What each kind's classes inherit from. THE SUPERCLASS DECIDES THE KIND; the paths above
+  # only decide which trees are governed at all. Two kinds may therefore share a glob — the
+  # legacy pair do — and a governed file whose superclass is not listed here falls back to
+  # its path, or to no kind if the path does not say either.
+  BaseClasses:
+    workflow: [Workflow]
+    command: [Command]
+    query: [Query]
+    legacy_query: [LegacyQuery]
+    legacy_command: [LegacyCommand]
+    entity: [Entity]
+    record: [ApplicationRecord, ActiveRecord::Base]
+  # Who may call whom. A pair absent from this matrix is an offence.
   Matrix:
     request_handling:
       - workflow
@@ -59,11 +92,26 @@ Shipshape/CallGraph:
     workflow:
       - command
       - query
+      - legacy_command
+      - legacy_query
+      - entity
     command:
       - query
+      - legacy_query
+      - legacy_command
       - entity
       - record
     query:
+      - legacy_query
+      - entity
+      - record
+    # A door answers with its own kind's shape and reaches nothing governed but the values
+    # it builds. Everything it really talks to — the old world — is unclassified, and an
+    # unclassified constant is skipped, so the old world needs no row here.
+    legacy_query:
+      - entity
+      - record
+    legacy_command:
       - entity
       - record
     entity: []

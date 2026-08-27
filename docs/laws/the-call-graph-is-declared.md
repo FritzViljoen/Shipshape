@@ -13,8 +13,27 @@ The default kinds, and an application may name its own:
 | workflow | command, query |
 | command | query, entity, record |
 | query | entity, record |
+| legacy_query | entity, record |
+| legacy_command | entity, record |
 | entity | nothing |
 | record | nothing |
+
+**The two legacy kinds are the doors to the old world, and the only classes permitted to
+speak to it.** A governed class never reaches legacy code directly; it goes through a door,
+and the `*_legacy.rb` suffix means that dependency is visible at the call site without
+opening anything.
+
+There are two rather than one so the return shape survives the crossing: a legacy query
+answers with entities, a legacy command answers with a Result. A single door would have to
+answer both ways, and a flag deciding which is the shape this canon refuses.
+
+**They share one suffix, and the base class tells them apart.** The path says "this is a
+door"; inheritance carries the return shape, so putting that fact in the filename too would
+be a second copy of it — and the copy is the one that goes stale.
+
+**Their population is the migration backlog made countable**, and the ratchet turns it into
+a number that only falls. A door's own calls into the old world are invisible to the guard,
+because unclassified constants are skipped — which is exactly what a door is for.
 
 **Workflow, command and query are all *operations*** — a class with one public method, as
 [`one-operation-one-class`](one-operation-one-class.md) requires. The kinds differ in what
@@ -85,6 +104,9 @@ reach becomes the place unrelated things are put.
   looking for that file under each kind's roots. Fails a call whose pair is not in the
   matrix, and fails any same-kind call before the matrix is consulted. Refuses a matrix
   row that names itself.
+- **Kind resolution:** the superclass decides; the path only decides whether a file is
+  governed at all. `Shipshape/CallGraph` reads `BaseClasses` for the mapping. A governed
+  file naming no declared base class falls back to its path.
 - **Layout:** a kind is a list of globs, so a conventional `app/` tree and a Packwerk
   `packs/*/` tree are the same mechanism — the glob's trailing wildcards are dropped
   and what remains is expanded on disk, giving one autoload root per pack. Two packs may
@@ -100,6 +122,11 @@ reach becomes the place unrelated things are put.
   application whose constant does not follow its loader's naming — an acronym, an
   explicit `inflect` rule — resolves to no file and is skipped. Skipped, again, not
   failed.
+
+  **The superclass is read, not parsed** — a regular expression over the file's source,
+  matching the first `class X < Y`. A superclass written as an expression, assigned through
+  a constant, or produced by a class-generating call is invisible, and the file falls back
+  to its path. `one-level-of-inheritance` is what keeps that rare.
 
   **The suffixes cut a hole of the same shape.** A file in the records tree not named
   `*_record.rb` matches no kind, so it is skipped rather than failed — the file has quietly

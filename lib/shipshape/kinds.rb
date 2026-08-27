@@ -5,13 +5,15 @@ require "shipshape/typed_arguments"
 module Shipshape
   # Resolves a class's kind, which is what the call matrix is stated in terms of.
   #
-  # Two directions, and they are deliberately different:
+  # **The superclass decides the kind. The path only decides whether a file is governed at
+  # all** — which is what lets two kinds share one glob, as the legacy pair do: `*_legacy.rb`
+  # says "this is a door", and the base class says which of the two. Where a governed file
+  # names no declared base class, its path decides instead.
   #
-  # - **A file** is resolved by matching its path against the kind's globs. The file is in
-  #   front of us, so this is exact.
-  # - **A constant** is resolved by turning its name into the relative path the loader
-  #   would expect and asking whether that file exists under any kind's root. We do not
-  #   load the application, so the filesystem is the only thing that can answer.
+  # A constant is resolved by turning its name into the relative path the loader would
+  # expect and asking whether that file exists under any kind's root; the file it lands on
+  # is then classified exactly as any other file is. We do not load the application, so the
+  # filesystem is the only thing that can answer.
   #
   # Either may answer nil, and nil means "not classified" rather than "allowed". Callers
   # skip on nil and count the skips — a silently unclassified tree is the coverage-shaped
@@ -28,18 +30,24 @@ module Shipshape
       @base_dir = typed(base_dir, String)
       @constant_cache = {}
       @root_cache = {}
+      @superclass_cache = {}
     end
 
+    # The superclass decides the kind; the path only decides whether the file is governed
+    # at all. That is what lets two kinds share one glob — the legacy pair do, because
+    # `*_legacy.rb` says "this is a door" and the base class says which of the two it is.
+    #
+    # Path is the fallback, for a governed file whose superclass names nothing declared.
     def for_path(path)
       return nil if path.nil?
 
       relative = relative_to_base(typed(path, String))
       return nil if relative.nil?
 
-      settings.kinds.each do |kind, globs|
-        return kind if globs.any? { |glob| File.fnmatch?(glob, relative, File::FNM_PATHNAME) }
-      end
-      nil
+      candidates = kinds_matching(relative)
+      return nil if candidates.empty?
+
+      by_base_class(path, candidates) || candidates.first
     end
 
     def for_constant(name)
@@ -62,18 +70,47 @@ module Shipshape
 
     private
 
-    attr_reader :settings, :base_dir, :constant_cache, :root_cache
+    attr_reader :settings, :base_dir, :constant_cache, :root_cache, :superclass_cache
 
-    # Answers [kind, file] or nil. The file is kept because a class referring to itself is
-    # not a call between two of a kind, and only the path can tell the difference.
+    def kinds_matching(relative)
+      settings.kinds.select do |_kind, globs|
+        globs.any? { |glob| File.fnmatch?(glob, relative, File::FNM_PATHNAME) }
+      end.keys
+    end
+
+    def by_base_class(path, candidates)
+      kind = settings.kind_of_base_class(superclass_in(path))
+      return nil if kind.nil?
+
+      candidates.include?(kind) ? kind : nil
+    end
+
+    # Read rather than parsed, and matched on the first `class X < Y` in the file.
+    #
+    # Parsing every referenced file with the full parser would be correct and slow; this is
+    # a regular expression over source, so a superclass written as an expression, assigned
+    # through a constant, or produced by a class-generating call is invisible and the file
+    # falls back to its path. `one-level-of-inheritance` is what keeps that rare.
+    SUPERCLASS = /^\s*class\s+[\w:]+\s*<\s*([\w:]+)/.freeze
+
+    def superclass_in(path)
+      superclass_cache.fetch(path) do
+        superclass_cache[path] = File.file?(path) ? File.read(path)[SUPERCLASS, 1] : nil
+      end
+    end
+
+    # Answers [kind, file] or nil. The file is kept for two reasons: a class referring to
+    # itself is not a call between two of a kind, and the kind itself comes from reading
+    # that file's superclass — so the constant is resolved to a path first and classified
+    # exactly as any other file would be.
     def resolve_constant(name)
       relative = "#{underscore(name)}.rb"
 
-      settings.kinds.each do |kind, globs|
+      settings.kinds.each_value do |globs|
         globs.each do |glob|
           roots_of(glob).each do |root|
             candidate = File.join(root, relative)
-            return [kind, candidate] if File.file?(candidate)
+            return [for_path(candidate), candidate] if File.file?(candidate)
           end
         end
       end
