@@ -20,6 +20,7 @@ Date)` would stop being greppable — see
   guard call. Anything that is not a named keyword is its own offence — `**rest`, `(...)`, a
   positional parameter, a positional Hash default — because a keyword-less initializer
   silently accepts the caller's keywords as one Hash and the call succeeds.
+
 **`Boolean` is a name, not a class.** Ruby has none, and the usual workaround — reopening
 `TrueClass` and `FalseClass` to include a marker module — changes two objects nobody owns,
 from a library, invisibly. That is the defect
