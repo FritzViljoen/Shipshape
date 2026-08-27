@@ -80,57 +80,57 @@ gem "shipshape", require: false
 # .rubocop.yml
 require:
   - shipshape
-
-Shipshape/CallGraph:
-  Kinds:
-    request_handling: ['app/controllers/**/*.rb']
-    workflow:         ['app/workflows/**/*.rb']
-    command:          ['app/commands/**/*.rb']
-    query:            ['app/queries/**/*.rb']
-    gateway:          ['app/gateways/**/*.rb']
-    entity:           ['app/entities/**/*.rb']
-    record:           ['app/records/**/*.rb']
-  Matrix:
-    request_handling: [workflow, command, query]
-    workflow:         [command, query, gateway]
-    command:          [query, gateway, entity, record]
-    query:            [entity, record]
-    gateway:          [entity]
-    entity:           []
-    record:           []
 ```
 
-A class's kind comes from where it is filed. A kind is a list of globs, so a Packwerk
-layout needs no second mechanism — add `packs/*/commands/**/*.rb` beside
-`app/commands/**/*.rb` and each pack becomes its own autoload root.
+The defaults assume `app/commands`, `app/queries`, `app/workflows`, `app/entities`,
+`app/records`, `app/legacy` and their `packs/*/` equivalents. Override `Kinds` to match
+whatever your application already calls things.
 
-**Two kinds carry a filename suffix, for one reason: they are the two that are
-infrastructure rather than domain.** Everything the MVC model used to hold is now split
-across workflows, commands, queries and entities — so what is still called a record is
-only the table, and `*_record.rb` says so out loud.
+**A class's kind comes from what it inherits.** The path only decides whether a file is
+governed at all, which is why two kinds can share one glob — the legacy pair do, and
+`< LegacyQuery` versus `< LegacyCommand` tells them apart.
 
- A call whose (caller kind, callee kind) pair
-is absent from the matrix is an offence. A constant that resolves to no file under a
-declared kind is skipped, not failed.
+| Kind | May call |
+|---|---|
+| request_handling | workflow, command, query, legacy_command, legacy_query |
+| workflow | command, query, legacy_command, legacy_query, entity |
+| command | query, legacy_query, entity, record |
+| query | entity, record |
+| legacy_command | query, legacy_query, entity, record |
+| legacy_query | entity, record |
+| entity | nothing |
+| record | nothing |
 
-**No kind calls its own kind.** That rule lives in the cop, not the matrix — a row naming
-itself is refused as a contradiction rather than honoured as a permission. A sister call is
-how a class quietly becomes the kind above it, and everything below is a consequence of
-that one rule:
+**No kind calls a sister, and every kind is its own sister.** That rule lives in the cop,
+not the matrix — a row naming a sister stops the run rather than being honoured. A sister
+call is how a class quietly becomes the kind above it, and the rest follows from it:
 
-- **A command is one write.** A command calling a command is sequencing writes, which is a
-  workflow's job — so it has become a workflow without saying so, and without a workflow's
-  obligations.
+- **A command is exactly one transaction. A workflow is several.** A command calling a
+  command has either nested a transaction or silently widened one, and nobody decided
+  which. A workflow crossing transactions is *obliged* to make each step idempotent and
+  each intermediate state legal — sequencing writes is its job because it is the thing that
+  accepted that bill. A `legacy_command` is a command that wraps something old, so it is a
+  sister too.
 - **A query is one read.** A query calling a query is two reads wearing one name, the
   second invisible to whoever asked. The shape an N+1 arrives in.
 - **A workflow's whole content is its sequence**, and nesting hides it.
 - **An entity holds another entity; it does not build one.**
+- **A class naming itself is not a sister call** — `Result.success(...)` inside `Result` is
+  one entity, not two talking.
 
-**A gateway is a command that crosses the process boundary**, and the only kind allowed to
-talk to anything outside. It reaches no record and no query, so the external call and the
-write recording its result stay two visible steps — which is what makes the pair retryable.
-Request handling cannot reach one directly: an external call has a domain meaning, and that
-meaning lives in the command or workflow that wanted it.
+**There is no kind for talking to the outside.** A read of somebody else's store is a query;
+a write to it is a command. REST drew that line already, and a kind whose only claim is that
+the store belongs to someone else forbids nothing the existing pair does not.
+
+**Two kinds carry a filename suffix** — `*_controller.rb` and `*_record.rb` — because they
+are the two that are infrastructure rather than domain. Everything the MVC model used to
+hold is now split across workflows, commands, queries and entities, so what is still called
+a record is only the table, and the name says so.
+
+**The two `*_legacy.rb` doors are the only classes permitted to speak to the old world**,
+and their population is the migration backlog made countable.
+
+A constant that resolves to no file under a declared kind is skipped, not failed.
 
 ## Tests
 
