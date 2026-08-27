@@ -13,13 +13,17 @@ Shipshape/CallGraph:
       - 'app/controllers/**/*.rb'
     workflow:
       - 'app/workflows/**/*.rb'
+    # An integration's classes are commands and queries like any others. A remote read is
+    # a query and a remote write is a command, so they are filed in these trees —
+    # app/queries/stripe/fetch_rates.rb, app/commands/stripe/send_invoice.rb.
+    #
+    # A glob's wildcards must all be at the end: the part before the first one is read as
+    # an autoload root, which is how a constant name is turned back into a path. A glob
+    # like 'app/*/queries/**/*.rb' stops the run rather than silently matching nothing.
     command:
       - 'app/commands/**/*.rb'
     query:
       - 'app/queries/**/*.rb'
-    gateway:
-      - 'app/gateways/**/*.rb'
-      - 'app/integrations/**/*.rb'
     entity:
       - 'app/entities/**/*.rb'
       - 'app/values/**/*.rb'
@@ -36,11 +40,9 @@ Shipshape/CallGraph:
   # commands is a workflow that never said so, and a query composing queries is the read
   # that turns into an N+1. Sequence them from the kind above instead.
   #
-  # A gateway is a command that crosses the process boundary — it is the only kind that
-  # may talk to anything outside. It reaches no record and no query, so the external call
-  # and the write that records its result are two visible steps rather than one. Request
-  # handling cannot reach one directly: an external call has a domain meaning, and the
-  # command or workflow that wanted it is where that meaning lives.
+  # There is no separate kind for talking to the outside. A read is a read and a write is
+  # a write; REST drew that line already, and a kind whose only claim is that the store
+  # belongs to somebody else forbids nothing the existing pair does not.
   Matrix:
     request_handling:
       - workflow
@@ -49,16 +51,12 @@ Shipshape/CallGraph:
     workflow:
       - command
       - query
-      - gateway
     command:
       - query
-      - gateway
       - entity
       - record
     query:
       - entity
       - record
-    gateway:
-      - entity
     entity: []
     record: []

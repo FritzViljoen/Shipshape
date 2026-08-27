@@ -19,18 +19,16 @@ class CallGraphTest < Minitest::Test
     "Kinds" => {
       "request_handling" => ["app/controllers/**/*.rb"],
       "workflow" => ["app/workflows/**/*.rb"],
-      "command" => ["app/commands/**/*.rb"],
       "query" => ["app/queries/**/*.rb"],
-      "gateway" => ["app/gateways/**/*.rb"],
+      "command" => ["app/commands/**/*.rb"],
       "entity" => ["app/entities/**/*.rb"],
       "record" => ["app/records/**/*.rb"],
     },
     "Matrix" => {
       "request_handling" => %w[workflow command query],
-      "workflow" => %w[command query gateway],
-      "command" => %w[query gateway entity record],
+      "workflow" => %w[command query],
+      "command" => %w[query entity record],
       "query" => %w[entity record],
-      "gateway" => ["entity"],
       "entity" => [],
       "record" => [],
     },
@@ -42,7 +40,8 @@ class CallGraphTest < Minitest::Test
     "app/commands/geography/create_place.rb",
     "app/queries/list_people.rb",
     "app/queries/geography/list_places.rb",
-    "app/gateways/payment_provider.rb",
+    "app/queries/stripe/fetch_rates.rb",
+    "app/commands/stripe/send_invoice.rb",
     "app/entities/place.rb",
     "app/records/person_record.rb",
   ].freeze
@@ -219,57 +218,43 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_may_call_a_gateway
-    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
+  # Whose store it is changes nothing. A read of somebody else's is a query, so a query
+  # reaching one is the same sister call as a query reaching a local query.
+  def test_a_remote_read_is_a_query
+    found = check(<<~RUBY, "app/queries/list_people.rb")
+      class ListPeople
+        def call
+          Stripe::FetchRates.call
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A query may not call a query"
+  end
+
+  def test_a_remote_write_is_a_command
+    found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
-          PaymentProvider.call(amount: 1)
+          Stripe::SendInvoice.call
         end
       end
     RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A command may not call a command"
   end
 
-  # The external call and the write that records its result are two visible steps. A
-  # gateway that writes leaves a half-written row behind when the remote call fails.
-  def test_a_gateway_may_not_reach_a_record
-    found = check(<<~RUBY, "app/gateways/payment_provider.rb")
-      class PaymentProvider
+  def test_a_workflow_sequences_a_local_write_and_a_remote_one
+    assert_empty check(<<~RUBY, "app/workflows/settle_month.rb")
+      class SettleMonth
         def call
-          PersonRecord.find(1)
+          CreatePerson.call(name: "x")
+          Stripe::SendInvoice.call
         end
       end
     RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "A gateway may not call a record"
-    assert_includes found.first.message, "Declared: entity."
-  end
-
-  def test_a_gateway_may_not_read_through_a_query
-    found = check(<<~RUBY, "app/gateways/payment_provider.rb")
-      class PaymentProvider
-        def call
-          ListPeople.call
-        end
-      end
-    RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "A gateway may not call a query"
-  end
-
-  # An external call has a domain meaning, and the meaning lives in whatever wanted it.
-  def test_request_handling_may_not_reach_a_gateway_directly
-    found = check(<<~RUBY, "app/controllers/people_controller.rb")
-      class PeopleController
-        def create
-          PaymentProvider.call(amount: 1)
-        end
-      end
-    RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "A request_handling may not call a gateway"
   end
 
   def test_an_entity_may_not_call_an_entity
@@ -290,7 +275,7 @@ class CallGraphTest < Minitest::Test
   def test_a_matrix_row_naming_itself_is_refused
     permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query entity record]))
 
-    error = assert_raises(RuboCop::ValidationError) do
+    error = assert_raises(Shipshape::Error) do
       offences(<<~RUBY, cop_class: COP, cop_config: permissive, path: "app/queries/list_people.rb", files: TREE)
         class ListPeople
           def call
@@ -301,6 +286,25 @@ class CallGraphTest < Minitest::Test
     end
 
     assert_includes error.message, "Matrix row query lists itself"
+  end
+
+  # The part before the first wildcard is read as an autoload root, so a glob with a
+  # wildcard in the middle would resolve every constant against the wrong directory and
+  # report nothing. Refused, rather than shipped as a silent hole.
+  def test_a_glob_with_a_wildcard_in_the_middle_is_refused
+    broken = CONFIG.merge("Kinds" => CONFIG["Kinds"].merge("query" => ["app/*/queries/**/*.rb"]))
+
+    error = assert_raises(Shipshape::Error) do
+      offences(<<~RUBY, cop_class: COP, cop_config: broken, path: "app/queries/list_people.rb", files: TREE)
+        class ListPeople
+          def call
+            PersonRecord.all
+          end
+        end
+      RUBY
+    end
+
+    assert_includes error.message, "wildcards are not all at the end"
   end
 
   private

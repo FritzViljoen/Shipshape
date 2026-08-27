@@ -4,12 +4,13 @@ require "pathname"
 require "rubocop"
 
 require "shipshape/version"
+require "shipshape/error"
+require "shipshape/typed_arguments"
+require "shipshape/settings"
 require "shipshape/kinds"
 
 module Shipshape
   CONFIG_DEFAULT = Pathname.new(__dir__).join("..", "config", "default.yml").expand_path
-
-  class Error < StandardError; end
 end
 
 require "rubocop/cop/shipshape/call_graph"

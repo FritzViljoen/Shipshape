@@ -22,9 +22,15 @@ comprehension cost: not shorter code, predictable code.
 
 - **It does not move code.** Cops find; people move. Auto-migration is not v1 and
   may never be honest.
-- **No base classes in v1.** No `Service`, `Command`, `Query`, `TypedArguments`.
-  They are the most opinionated part and the part every team renames. They wait
-  until real consumers say what shape they need.
+- **No base classes in v1.** No `Command`, `Query` or `Workflow` base class — those are
+  the most opinionated part and the part every team renames, so they wait until real
+  consumers say what shape they need.
+
+  **`TypedArguments` is the exception, decided after the first pass.** The gem needs it to
+  hold `arguments-are-typed-at-construction` in its own code, and a thing good enough to
+  dogfood is good enough to ship — a consumer cannot satisfy that law without one, and
+  shipping a law whose only implementation is private would be the coverage-shaped hole
+  this canon warns about.
 - **It is not a package-boundary tool.** Packwerk enforces package boundaries.
   shipshape enforces operation shape — one operation per class, typed at the door,
   parsing at the seam, invariants in the schema. Complementary, and the README says
@@ -69,10 +75,13 @@ serves, the guard that holds it, and what that guard misses.
 ```
 docs/principles.md        the judgements. unchecked, and nothing can check them
 docs/laws/<name>.md       one file per law
-lib/shipshape/cop/…       the guards
-lib/shipshape/baseline.rb the git-derived ratchet
-lib/shipshape/rules.rb    emits CLAUDE.md / AGENTS.md from docs/laws
-exe/shipshape             the CLI
+lib/rubocop/cop/shipshape/  the guards
+lib/shipshape/settings.rb   the seam: the cop config, parsed and asserted once
+lib/shipshape/typed_arguments.rb  the argument guard, shipped and dogfooded
+lib/shipshape/kinds.rb      kind resolution, by path and by constant
+lib/shipshape/baseline.rb   the git-derived ratchet (not built)
+lib/shipshape/rules.rb      emits CLAUDE.md / AGENTS.md from docs/laws (not built)
+exe/shipshape               the CLI (not built)
 test/
 ```
 

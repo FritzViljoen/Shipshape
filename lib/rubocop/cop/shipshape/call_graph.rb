@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/settings"
 require "shipshape/kinds"
 
 module RuboCop
@@ -57,10 +58,6 @@ module RuboCop
         MSG_SISTER = "%<caller>s may not call %<callee>s. No kind calls its own kind — " \
                      "sequence them from the kind above."
 
-        MATRIX_ERROR = "Shipshape/CallGraph: Matrix row %<kind>s lists itself. " \
-                       "No kind calls its own kind, so a row naming itself is a " \
-                       "contradiction rather than a permission."
-
         def on_send(node)
           receiver = node.receiver
           return unless receiver && receiver.const_type?
@@ -77,14 +74,6 @@ module RuboCop
 
         alias on_csend on_send
 
-        # The matrix is checked once per run rather than per call site, and a row that
-        # names its own kind stops the run instead of being quietly dropped.
-        def on_new_investigation
-          matrix.each do |kind, reachable|
-            raise ValidationError, format(MATRIX_ERROR, kind: kind) if Array(reachable).include?(kind)
-          end
-        end
-
         private
 
         # A sister call is refused before the matrix is consulted, so no configuration can
@@ -93,7 +82,7 @@ module RuboCop
         def allowed?(caller_kind, callee_kind)
           return false if caller_kind == callee_kind
 
-          Array(matrix[caller_kind]).include?(callee_kind)
+          settings.reachable_from(caller_kind).include?(callee_kind)
         end
 
         def message_for(caller_kind, callee_kind)
@@ -102,7 +91,7 @@ module RuboCop
 
           return format(MSG_SISTER, caller: caller_phrase, callee: callee_phrase) if caller_kind == callee_kind
 
-          allowed = Array(matrix[caller_kind])
+          allowed = settings.reachable_from(caller_kind)
           return format(MSG_NONE, caller: caller_phrase) if allowed.empty?
 
           format(MSG, caller: caller_phrase, callee: callee_phrase, allowed: allowed.join(", "))
@@ -129,14 +118,14 @@ module RuboCop
         end
 
         def kinds
-          @kinds ||= ::Shipshape::Kinds.new(
-            globs_by_kind: cop_config.fetch("Kinds", {}),
-            base_dir: base_dir,
-          )
+          @kinds ||= ::Shipshape::Kinds.new(settings: settings, base_dir: base_dir)
         end
 
-        def matrix
-          @matrix ||= cop_config.fetch("Matrix", {})
+        # Parsed once, at the seam, and asserted there. Everything past this line is handed
+        # real values — no `fetch` on a raw config hash, no wondering whether a key is
+        # present or spelled right.
+        def settings
+          @settings ||= ::Shipshape::Settings.from_cop_config(cop_config)
         end
 
         # Resolved from the configuration that loaded this cop, never from `Dir.pwd`: a cop

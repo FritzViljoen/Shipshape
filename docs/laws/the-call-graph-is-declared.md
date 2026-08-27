@@ -10,16 +10,21 @@ The default kinds, and an application may name its own:
 | Kind | May call |
 |---|---|
 | request handling | workflow, command, query |
-| workflow | command, query, gateway |
-| command | query, gateway, entity, record |
+| workflow | command, query |
+| command | query, entity, record |
 | query | entity, record |
-| gateway | entity |
 | entity | nothing |
 | record | nothing |
 
-**Workflow, command, query and gateway are all *operations*** — a class with one public
-method, as [`one-operation-one-class`](one-operation-one-class.md) requires. The kinds
-differ in what they may reach, which is the only thing a kind is for.
+**Workflow, command and query are all *operations*** — a class with one public method, as
+[`one-operation-one-class`](one-operation-one-class.md) requires. The kinds differ in what
+they may reach, which is the only thing a kind is for.
+
+**There is no kind for talking to the outside.** A read of somebody else's store is a
+query; a write to it is a command. Whose database it is changes nothing about what the
+operation is, and REST drew that line already. A kind whose only claim is that the store
+belongs to someone else would forbid nothing the existing pair does not — and a kind that
+forbids nothing is a name.
 
 **An *entity* is a domain object: a thing the code reasons about, detached from the
 database.** A value without identity — a money, a date range — lives in the same tree and
@@ -51,16 +56,6 @@ consequence of that one rule, not a separate rule:
 be one command wrapping a second in a transaction. It becomes a workflow, and a workflow
 spans transactions — so each step has to be idempotent and each intermediate state has to
 be legal. That is more work, and it is work the transaction was hiding rather than doing.
-
-**A gateway is a command that crosses the process boundary**, and it is the only kind
-permitted to talk to anything outside. It reaches no record and no query, so the external
-call and the write that records its result are two visible steps rather than one — which
-is what makes the pair retryable, and what stops a failed remote call leaving a half-written
-row behind.
-
-**Request handling cannot reach a gateway directly.** An external call has a domain
-meaning — a payment taken, a booking confirmed — and that meaning lives in the command or
-workflow that wanted it, not in an action.
 
 **This is the load-bearing guard of the canon.** A rule cannot escape its home if there is
 nowhere reachable to escape to. It is what stops a call sideways into a sibling area, and a
