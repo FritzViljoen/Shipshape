@@ -19,7 +19,9 @@ Gem::Specification.new do |spec|
   # Data.define, or endless methods.
   spec.required_ruby_version = ">= 2.7.0"
 
-  spec.files = Dir["lib/**/*.rb", "config/**/*.yml", "docs/**/*.md", "README.md"]
+  spec.files = Dir["lib/**/*.rb", "lib/**/*.tt", "config/**/*.yml", "docs/**/*.md", "README.md", "exe/*"]
+  spec.bindir = "exe"
+  spec.executables = ["shipshape"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "rubocop", ">= 1.0"

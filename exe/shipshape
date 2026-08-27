@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "shipshape"
+require "shipshape/install"
+
+command = ARGV.shift
+
+case command
+when "install"
+  report = Shipshape::Install.new(root: Dir.pwd).call
+
+  report[:written].each { |path| puts "  written  #{path}" }
+  report[:skipped].each { |path| puts "  kept     #{path}" }
+
+  puts
+  puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
+  puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
+when "version", "--version", "-v"
+  puts Shipshape::VERSION
+else
+  warn "usage: shipshape install"
+  warn "       shipshape version"
+  exit 1
+end

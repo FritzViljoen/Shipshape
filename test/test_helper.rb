@@ -4,6 +4,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
 require "fileutils"
 require "tmpdir"
+require "yaml"
 require "minitest/autorun"
 require "rubocop"
 require "shipshape"
