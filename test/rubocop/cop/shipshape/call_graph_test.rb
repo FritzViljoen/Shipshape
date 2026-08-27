@@ -17,12 +17,12 @@ class CallGraphTest < Minitest::Test
 
   CONFIG = {
     "Kinds" => {
-      "request_handling" => ["app/controllers/**/*.rb"],
+      "request_handling" => ["app/controllers/**/*_controller.rb"],
       "workflow" => ["app/workflows/**/*.rb"],
       "query" => ["app/queries/**/*.rb"],
       "command" => ["app/commands/**/*.rb"],
       "entity" => ["app/entities/**/*.rb"],
-      "record" => ["app/records/**/*.rb"],
+      "record" => ["app/records/**/*_record.rb"],
     },
     "Matrix" => {
       "request_handling" => %w[workflow command query],
@@ -293,19 +293,19 @@ class CallGraphTest < Minitest::Test
   def test_a_packwerk_layout_resolves_per_pack
     packs = {
       "Kinds" => {
-        "command" => ["packs/*/app/commands/**/*.rb"],
-        "query" => ["packs/*/app/queries/**/*.rb"],
-        "record" => ["packs/*/app/records/**/*.rb"],
+        "command" => ["packs/*/commands/**/*.rb"],
+        "query" => ["packs/*/queries/**/*.rb"],
+        "record" => ["packs/*/records/**/*_record.rb"],
       },
       "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [] },
     }
     tree = %w[
-      packs/billing/app/commands/charge.rb
-      packs/catalogue/app/queries/list_items.rb
-      packs/catalogue/app/records/item_record.rb
+      packs/billing/commands/charge.rb
+      packs/catalogue/queries/list_items.rb
+      packs/catalogue/records/item_record.rb
     ]
 
-    found = offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/app/queries/list_items.rb", files: tree)
+    found = offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/queries/list_items.rb", files: tree)
       class ListItems
         def call
           Charge.call
@@ -323,20 +323,46 @@ class CallGraphTest < Minitest::Test
   def test_a_record_in_another_pack_is_still_a_record
     packs = {
       "Kinds" => {
-        "query" => ["packs/*/app/queries/**/*.rb"],
-        "record" => ["packs/*/app/records/**/*.rb"],
+        "query" => ["packs/*/queries/**/*.rb"],
+        "record" => ["packs/*/records/**/*_record.rb"],
       },
       "Matrix" => { "query" => ["record"], "record" => [] },
     }
-    tree = %w[packs/catalogue/app/queries/list_items.rb packs/billing/app/records/invoice_record.rb]
+    tree = %w[packs/catalogue/queries/list_items.rb packs/billing/records/invoice_record.rb]
 
-    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/app/queries/list_items.rb", files: tree)
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/queries/list_items.rb", files: tree)
       class ListItems
         def call
           InvoiceRecord.all
         end
       end
     RUBY
+  end
+
+  # The suffix is load-bearing, and this is the hole it cuts: a file in the records tree
+  # that is not named `*_record.rb` has no kind, so it is skipped rather than failed. The
+  # law says so, and `shipshape check` reports the count of unclassified files, because a
+  # tree that silently drops out of coverage is the failure this canon exists to prevent.
+  def test_a_file_missing_the_suffix_its_kind_requires_has_no_kind
+    assert_empty check(<<~RUBY, "app/records/person.rb")
+      class Person
+        def rank
+          CreatePerson.call(name: name)
+        end
+      end
+    RUBY
+  end
+
+  def test_the_same_file_with_the_suffix_is_classified
+    found = check(<<~RUBY, "app/records/person_record.rb")
+      class PersonRecord
+        def rank
+          CreatePerson.call(name: name)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
   end
 
   private

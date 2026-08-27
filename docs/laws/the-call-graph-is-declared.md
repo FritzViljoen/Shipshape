@@ -31,6 +31,15 @@ database.** A value without identity — a money, a date range — lives in the 
 has the same row, so it is not a separate kind. A kind that forbids nothing is a name, not
 a kind.
 
+**Two kinds carry a filename suffix — `*_controller.rb` and `*_record.rb` — and it is the
+same reason both times: they are the two that are infrastructure rather than domain.**
+Everything the MVC model used to hold has been split into workflows, commands, queries and
+entities. What is still called a record is only the table, and the suffix says so out loud,
+so that nobody mistakes it for the thing it used to be. A class named `Person` that is
+really a table is the beginning of the god object;
+[`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) is easier to hold when
+the file name already admits what it is.
+
 **No kind calls its own kind.** One rule, and it is the whole of what people mean by a
 sister call. It lives in the guard rather than in the matrix: a matrix row that names
 itself is refused as a contradiction, not honoured as a permission, so no configuration
@@ -73,7 +82,7 @@ reach becomes the place unrelated things are put.
   matrix, and fails any same-kind call before the matrix is consulted. Refuses a matrix
   row that names itself.
 - **Layout:** a kind is a list of globs, so a conventional `app/` tree and a Packwerk
-  `packs/*/app/` tree are the same mechanism — the glob's trailing wildcards are dropped
+  `packs/*/` tree are the same mechanism — the glob's trailing wildcards are dropped
   and what remains is expanded on disk, giving one autoload root per pack. Two packs may
   hold the same constant name; each resolves inside its own pack.
 - **Guard's limit:** it resolves receivers syntactically. A call through a local assigned
@@ -87,3 +96,8 @@ reach becomes the place unrelated things are put.
   application whose constant does not follow its loader's naming — an acronym, an
   explicit `inflect` rule — resolves to no file and is skipped. Skipped, again, not
   failed.
+
+  **The suffixes cut a hole of the same shape.** A file in the records tree not named
+  `*_record.rb` matches no kind, so it is skipped rather than failed — the file has quietly
+  left coverage. That is why the count of unclassified files is reported rather than
+  assumed to be zero.

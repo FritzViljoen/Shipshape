@@ -8,35 +8,40 @@ Shipshape/CallGraph:
     - '**/*.rb'
   # Which paths hold which kind. Order matters: the first match wins, so put the
   # narrower tree above the wider one.
+  #
+  # A glob's trailing wildcards are dropped and what remains is expanded on disk to get
+  # the autoload roots a constant name is resolved against — so a Packwerk layout needs no
+  # second mechanism, and each pack becomes its own root.
+  #
+  # Two kinds carry a filename suffix, and for one reason: they are the two that are
+  # infrastructure rather than domain. Everything the MVC model used to hold has been split
+  # into workflows, commands, queries and entities, so what is still called a record is
+  # only the table — and it is named to say so.
+  #
+  # An integration's classes are commands and queries like any others. A remote read is a
+  # query and a remote write is a command; whose store it is changes nothing about what the
+  # operation is.
   Kinds:
     request_handling:
-      - 'app/controllers/**/*.rb'
-      - 'packs/*/app/controllers/**/*.rb'
+      - 'app/controllers/**/*_controller.rb'
+      - 'packs/*/controllers/**/*_controller.rb'
     workflow:
       - 'app/workflows/**/*.rb'
-      - 'packs/*/app/workflows/**/*.rb'
-    # An integration's classes are commands and queries like any others. A remote read is
-    # a query and a remote write is a command, so they are filed in these trees —
-    # app/queries/stripe/fetch_rates.rb, app/commands/stripe/send_invoice.rb.
-    #
-    # A glob's trailing wildcards are dropped and what remains is expanded on disk to get
-    # the autoload roots a constant name is resolved against — so a Packwerk layout works
-    # without a second mechanism.
+      - 'packs/*/workflows/**/*.rb'
     command:
       - 'app/commands/**/*.rb'
-      - 'packs/*/app/commands/**/*.rb'
+      - 'packs/*/commands/**/*.rb'
     query:
       - 'app/queries/**/*.rb'
-      - 'packs/*/app/queries/**/*.rb'
+      - 'packs/*/queries/**/*.rb'
     entity:
       - 'app/entities/**/*.rb'
-      - 'app/values/**/*.rb'
-      - 'packs/*/app/entities/**/*.rb'
+      - 'packs/*/entities/**/*.rb'
     record:
-      - 'app/records/**/*.rb'
+      - 'app/records/**/*_record.rb'
       - 'app/models/**/*.rb'
-      - 'packs/*/app/records/**/*.rb'
-      - 'packs/*/app/models/**/*.rb'
+      - 'packs/*/records/**/*_record.rb'
+      - 'packs/*/models/**/*.rb'
   # Who may call whom. A pair absent from this matrix is an offence.
   #
   # NO KIND CALLS ITS OWN KIND. That rule lives in the cop, not here: a row that names
@@ -46,10 +51,6 @@ Shipshape/CallGraph:
   # A sister call is how a class quietly becomes the kind above it — a command sequencing
   # commands is a workflow that never said so, and a query composing queries is the read
   # that turns into an N+1. Sequence them from the kind above instead.
-  #
-  # There is no separate kind for talking to the outside. A read is a read and a write is
-  # a write; REST drew that line already, and a kind whose only claim is that the store
-  # belongs to somebody else forbids nothing the existing pair does not.
   Matrix:
     request_handling:
       - workflow

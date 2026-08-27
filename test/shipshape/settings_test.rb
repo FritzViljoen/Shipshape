@@ -46,7 +46,7 @@ class SettingsTest < Minitest::Test
   # A mid-path wildcard is legitimate — it is how a Packwerk layout is expressed — and
   # Kinds expands it into one autoload root per pack.
   def test_a_glob_with_a_wildcard_in_the_middle_is_accepted
-    kinds = KINDS.merge("query" => ["packs/*/app/queries/**/*.rb"])
+    kinds = KINDS.merge("query" => ["packs/*/queries/**/*.rb"])
 
     assert_equal ["query"], Shipshape::Settings.new(kinds: kinds, matrix: MATRIX).reachable_from("command")
   end

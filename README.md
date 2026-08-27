@@ -65,8 +65,13 @@ Shipshape/CallGraph:
 ```
 
 A class's kind comes from where it is filed. A kind is a list of globs, so a Packwerk
-layout needs no second mechanism — add `packs/*/app/commands/**/*.rb` beside
+layout needs no second mechanism — add `packs/*/commands/**/*.rb` beside
 `app/commands/**/*.rb` and each pack becomes its own autoload root.
+
+**Two kinds carry a filename suffix, for one reason: they are the two that are
+infrastructure rather than domain.** Everything the MVC model used to hold is now split
+across workflows, commands, queries and entities — so what is still called a record is
+only the table, and `*_record.rb` says so out loud.
 
  A call whose (caller kind, callee kind) pair
 is absent from the matrix is an offence. A constant that resolves to no file under a
