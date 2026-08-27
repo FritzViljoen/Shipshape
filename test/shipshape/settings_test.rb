@@ -32,7 +32,7 @@ class SettingsTest < Minitest::Test
       Shipshape::Settings.new(kinds: KINDS, matrix: MATRIX.merge("query" => ["query"]))
     end
 
-    assert_includes error.message, "Matrix row query lists itself"
+    assert_includes error.message, "lists query, which is a sister of it"
   end
 
   def test_a_row_naming_an_undeclared_kind_is_refused

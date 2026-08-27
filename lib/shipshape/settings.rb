@@ -17,9 +17,9 @@ module Shipshape
   class Settings
     include TypedArguments
 
-    SISTER_ERROR = "Shipshape: Matrix row %<kind>s lists itself. No kind calls its own " \
-                   "kind, so a row naming itself is a contradiction rather than a " \
-                   "permission."
+    SISTER_ERROR = "Shipshape: Matrix row %<kind>s lists %<sister>s, which is a sister of " \
+                   "it. No kind calls a sister, so a row naming one is a contradiction " \
+                   "rather than a permission."
 
     UNKNOWN_KIND_ERROR = "Shipshape: Matrix names %<kind>s, which no Kinds entry declares. " \
                          "A matrix row for a kind that does not exist permits nothing and " \
@@ -29,17 +29,28 @@ module Shipshape
                               "declares. A base class mapped to a kind that does not exist " \
                               "classifies nothing and hides a typo."
 
-    attr_reader :kinds, :matrix, :base_classes
+    attr_reader :kinds, :matrix, :base_classes, :sisters
 
-    def initialize(kinds:, matrix:, base_classes: {})
+    def initialize(kinds:, matrix:, base_classes: {}, sisters: [])
       @kinds = typed_hash(kinds, String, Array)
       @matrix = typed_hash(matrix, String, Array)
       @base_classes = typed_hash(base_classes, String, Array)
+      @sisters = typed_array(sisters, Array)
 
       assert_globs_are_strings
-      refuse_rows_that_name_themselves
+      refuse_rows_naming_a_sister
       refuse_rows_naming_an_undeclared_kind
       refuse_base_classes_for_an_undeclared_kind
+    end
+
+    # The kinds a kind may never call. Every kind is its own sister — that is the whole of
+    # "no kind calls its own kind" — and a declared group adds the rest. A legacy command
+    # is a command that wraps something old, so calling one from a command is a write
+    # sequencing a write, which is a workflow that never said so.
+    def sisters_of(kind)
+      group = sisters.find { |names| names.include?(kind) } || []
+
+      ([kind] + group).uniq
     end
 
     # Which kind a superclass names, or nil. The superclass decides the kind; the paths
@@ -58,6 +69,7 @@ module Shipshape
         kinds: cop_config.fetch("Kinds", {}),
         matrix: cop_config.fetch("Matrix", {}),
         base_classes: cop_config.fetch("BaseClasses", {}),
+        sisters: cop_config.fetch("Sisters", []),
       )
     end
 
@@ -77,11 +89,13 @@ module Shipshape
     def assert_globs_are_strings
       kinds.each_value { |globs| typed_array(globs, String) }
       base_classes.each_value { |names| typed_array(names, String) }
+      sisters.each { |group| typed_array(group, String) }
     end
 
-    def refuse_rows_that_name_themselves
+    def refuse_rows_naming_a_sister
       matrix.each do |kind, reachable|
-        raise Error, format(SISTER_ERROR, kind: kind) if reachable.include?(kind)
+        sister = (reachable & sisters_of(kind)).first
+        raise Error, format(SISTER_ERROR, kind: kind, sister: sister) if sister
       end
     end
 

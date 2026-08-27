@@ -62,15 +62,6 @@ Shipshape/CallGraph:
       - 'app/models/**/*.rb'
       - 'packs/*/records/**/*_record.rb'
       - 'packs/*/models/**/*.rb'
-  # Who may call whom. A pair absent from this matrix is an offence.
-  #
-  # NO KIND CALLS ITS OWN KIND. That rule lives in the cop, not here: a row that names
-  # itself is refused as a contradiction rather than honoured as a permission. This matrix
-  # says which OTHER kinds are reachable.
-  #
-  # A sister call is how a class quietly becomes the kind above it — a command sequencing
-  # commands is a workflow that never said so, and a query composing queries is the read
-  # that turns into an N+1. Sequence them from the kind above instead.
   # What each kind's classes inherit from. THE SUPERCLASS DECIDES THE KIND; the paths above
   # only decide which trees are governed at all. Two kinds may therefore share a glob — the
   # legacy pair do — and a governed file whose superclass is not listed here falls back to
@@ -83,12 +74,27 @@ Shipshape/CallGraph:
     legacy_command: [LegacyCommand]
     entity: [Entity]
     record: [ApplicationRecord, ActiveRecord::Base]
+  # Kinds that are the same thing wearing different clothes. NO KIND CALLS A SISTER, and
+  # every kind is its own sister — that rule lives in the cop, not here, so a Matrix row
+  # naming a sister stops the run rather than being honoured.
+  #
+  # A legacy command is a command that wraps something old, so calling one from a command
+  # is a write sequencing a write. THE REASON IS THE TRANSACTION: a command is exactly one
+  # transaction, and a workflow is several. A command that calls a command has either
+  # nested a transaction or silently widened one, and either way nobody decided it —
+  # whereas a workflow crossing transactions is obliged to make each step idempotent and
+  # each intermediate state legal.
+  Sisters:
+    - [command, legacy_command]
+    - [query, legacy_query]
   # Who may call whom. A pair absent from this matrix is an offence.
   Matrix:
     request_handling:
       - workflow
       - command
       - query
+      - legacy_command
+      - legacy_query
     workflow:
       - command
       - query
@@ -98,20 +104,20 @@ Shipshape/CallGraph:
     command:
       - query
       - legacy_query
-      - legacy_command
       - entity
       - record
     query:
+      - entity
+      - record
+    # A door mirrors the row of the kind it is a sister to, because it IS that kind — it
+    # only happens to wrap something old. What it really talks to, the old world, is
+    # unclassified, and an unclassified constant is skipped, so that needs no row here.
+    legacy_command:
+      - query
       - legacy_query
       - entity
       - record
-    # A door answers with its own kind's shape and reaches nothing governed but the values
-    # it builds. Everything it really talks to — the old world — is unclassified, and an
-    # unclassified constant is skipped, so the old world needs no row here.
     legacy_query:
-      - entity
-      - record
-    legacy_command:
       - entity
       - record
     entity: []
@@ -131,4 +137,6 @@ Shipshape/OneOperationOneClass:
     - workflow
     - command
     - query
+    - legacy_command
+    - legacy_query
   PublicMethod: call

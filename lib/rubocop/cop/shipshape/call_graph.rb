@@ -12,10 +12,13 @@ module RuboCop
       # other are declared once, as a matrix, in `Matrix`. A call whose (caller kind,
       # callee kind) pair is absent from the matrix is an offence.
       #
-      # NO KIND CALLS ITS OWN KIND, and that rule lives here rather than in the matrix —
-      # a row naming itself stops the run. A sister call is how a class quietly becomes
-      # the kind above it: a command sequencing commands is a workflow that never said so,
-      # a query composing queries is the read that turns into an N+1.
+      # NO KIND CALLS A SISTER, and that rule lives here rather than in the matrix — a row
+      # naming a sister stops the run. Every kind is its own sister, and `Sisters` declares
+      # the rest: a legacy command is a command that wraps something old.
+      #
+      # A sister call is how a class quietly becomes the kind above it: a command
+      # sequencing commands is a workflow that never said so, a query composing queries is
+      # the read that turns into an N+1.
       #
       # This is the load-bearing guard of the canon: a rule cannot escape its home if there
       # is nowhere reachable to escape to. It is what stops a call sideways into a sibling
@@ -51,12 +54,13 @@ module RuboCop
         MSG_NONE = "%<caller>s may not call anything. " \
                    "Move the work to a caller that may."
 
-        # No kind calls its own kind. This is one rule, not a row anyone maintains: a
-        # sister call is the shape by which a class quietly becomes the kind above it —
-        # a command sequencing commands is a workflow that never said so, a query
-        # composing queries is the read that turns into an N+1.
-        MSG_SISTER = "%<caller>s may not call %<callee>s. No kind calls its own kind — " \
-                     "sequence them from the kind above."
+        # No kind calls a sister, and every kind is its own sister. One rule, not a row
+        # anyone maintains: a sister call is the shape by which a class quietly becomes
+        # the kind above it — a command sequencing commands is a workflow that never said
+        # so, a query composing queries is the read that turns into an N+1. A legacy
+        # command is a command that wraps something old, so it is a sister too.
+        MSG_SISTER = "%<caller>s may not call %<callee>s. They are sisters, and no kind " \
+                     "calls a sister — sequence them from the kind above."
 
         def on_send(node)
           receiver = node.receiver
@@ -80,19 +84,25 @@ module RuboCop
         private
 
         # A sister call is refused before the matrix is consulted, so no configuration can
-        # permit one. The matrix says which OTHER kinds are reachable; it is not the place
-        # this rule lives.
+        # permit one. The matrix says which non-sister kinds are reachable; it is not the
+        # place this rule lives.
         def allowed?(caller_kind, callee_kind)
-          return false if caller_kind == callee_kind
+          return false if sisters?(caller_kind, callee_kind)
 
           settings.reachable_from(caller_kind).include?(callee_kind)
+        end
+
+        def sisters?(caller_kind, callee_kind)
+          settings.sisters_of(caller_kind).include?(callee_kind)
         end
 
         def message_for(caller_kind, callee_kind)
           caller_phrase = named(caller_kind).capitalize
           callee_phrase = named(callee_kind)
 
-          return format(MSG_SISTER, caller: caller_phrase, callee: callee_phrase) if caller_kind == callee_kind
+          if sisters?(caller_kind, callee_kind)
+            return format(MSG_SISTER, caller: caller_phrase, callee: callee_phrase)
+          end
 
           allowed = settings.reachable_from(caller_kind)
           return format(MSG_NONE, caller: caller_phrase) if allowed.empty?

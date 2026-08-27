@@ -28,11 +28,12 @@ class LegacyDoorTest < Minitest::Test
       "legacy_command" => ["LegacyCommand"],
       "entity" => ["Entity"],
     },
+    "Sisters" => [%w[command legacy_command], %w[query legacy_query]],
     "Matrix" => {
-      "command" => %w[query legacy_query legacy_command entity],
-      "query" => %w[legacy_query entity],
+      "command" => %w[query legacy_query entity],
+      "query" => ["entity"],
+      "legacy_command" => %w[query legacy_query entity],
       "legacy_query" => ["entity"],
-      "legacy_command" => ["entity"],
       "entity" => [],
     },
   }.freeze
@@ -45,27 +46,68 @@ class LegacyDoorTest < Minitest::Test
     "app/entities/place.rb" => "class Place < Entity\nend\n",
   }.freeze
 
-  def test_a_command_may_reach_either_door
+  # A command may read through the reading door, exactly as it may read through a query.
+  def test_a_command_may_reach_the_reading_door
     assert_empty check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson < Command
         def call
           FindBookingLegacy.call
-          CancelBookingLegacy.call
         end
       end
     RUBY
   end
 
-  # The whole reason there are two doors: the return shape survives the crossing. A read
-  # may go through the reading door and nothing else.
-  def test_a_query_may_reach_the_reading_door
-    assert_empty check(<<~RUBY, "app/queries/list_people.rb")
+  # A legacy command IS a command — it only wraps something old. So a command calling one
+  # is a write sequencing a write, and the reason is the transaction: a command is exactly
+  # one, and it has just nested or silently widened it without anybody deciding to.
+  def test_a_command_may_not_reach_the_writing_door
+    found = check(<<~RUBY, "app/commands/create_person.rb")
+      class CreatePerson < Command
+        def call
+          CancelBookingLegacy.call
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A command may not call a legacy_command"
+    assert_includes found.first.message, "They are sisters"
+  end
+
+  # A workflow is several transactions, which is exactly why it is the one that may
+  # sequence them.
+  def test_a_workflow_sequences_both_doors
+    workflow = {
+      "Kinds" => CONFIG["Kinds"].merge("workflow" => ["app/workflows/**/*.rb"]),
+      "BaseClasses" => CONFIG["BaseClasses"].merge("workflow" => ["Workflow"]),
+      "Sisters" => CONFIG["Sisters"],
+      "Matrix" => CONFIG["Matrix"].merge("workflow" => %w[command query legacy_command legacy_query entity]),
+    }
+    tree = TREE.merge("app/workflows/settle_month.rb" => "class SettleMonth < Workflow\nend\n")
+
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: workflow, path: "app/workflows/settle_month.rb", files: tree)
+      class SettleMonth < Workflow
+        def call
+          CancelBookingLegacy.call
+          CreatePerson.call(name: "x")
+        end
+      end
+    RUBY
+  end
+
+  # The whole reason there are two doors: the return shape survives the crossing.
+  def test_a_query_may_not_reach_the_reading_door_either_it_is_a_sister
+    found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople < Query
         def call
           FindBookingLegacy.call
         end
       end
     RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A query may not call a legacy_query"
+    assert_includes found.first.message, "They are sisters"
   end
 
   def test_a_query_may_not_reach_the_writing_door
@@ -105,7 +147,7 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "No kind calls its own kind"
+    assert_includes found.first.message, "no kind calls a sister"
   end
 
   # A door's whole job is to speak to the old world, and the old world is unclassified —

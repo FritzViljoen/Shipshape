@@ -10,11 +10,11 @@ The default kinds, and an application may name its own:
 | Kind | May call |
 |---|---|
 | request handling | workflow, command, query |
-| workflow | command, query |
-| command | query, entity, record |
+| workflow | command, query, legacy_command, legacy_query, entity |
+| command | query, legacy_query, entity, record |
 | query | entity, record |
+| legacy_command | query, legacy_query, entity, record |
 | legacy_query | entity, record |
-| legacy_command | entity, record |
 | entity | nothing |
 | record | nothing |
 
@@ -26,6 +26,11 @@ opening anything.
 There are two rather than one so the return shape survives the crossing: a legacy query
 answers with entities, a legacy command answers with a Result. A single door would have to
 answer both ways, and a flag deciding which is the shape this canon refuses.
+
+**A door mirrors the row of the kind it is a sister to, because it *is* that kind** — it
+only happens to wrap something old. A command may read through the reading door exactly as
+it reads through a query, and may not call the writing door at all, exactly as it may not
+call a command.
 
 **They share one suffix, and the base class tells them apart.** The path says "this is a
 door"; inheritance carries the return shape, so putting that fact in the filename too would
@@ -59,18 +64,21 @@ really a table is the beginning of the god object;
 [`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) is easier to hold when
 the file name already admits what it is.
 
-**No kind calls its own kind.** One rule, and it is the whole of what people mean by a
-sister call. It lives in the guard rather than in the matrix: a matrix row that names
-itself is refused as a contradiction, not honoured as a permission, so no configuration
-can allow one.
+**No kind calls a sister, and every kind is its own sister.** One rule, and it is the whole
+of what people mean by a sister call. It lives in the guard rather than in the matrix: a
+matrix row naming a sister is refused as a contradiction, not honoured as a permission, so
+no configuration can allow one. `Sisters` declares the groups — a legacy command is a
+command that wraps something old, so the two are one kind for this purpose.
 
 A sister call is how a class quietly becomes the kind above it. Everything below is a
 consequence of that one rule, not a separate rule:
 
-- **A command is one write.** A command that calls a command is sequencing writes, which
-  is a workflow's job — so it has become a workflow without saying so, and therefore
-  without a workflow's obligations. That is the real cost: nobody made those steps
-  idempotent, and nobody checked that stopping between them leaves a legal state.
+- **A command is exactly one transaction. A workflow is several.** That is the sharpest
+  form of the rule and the reason for it. A command that calls a command has either nested
+  a transaction or silently widened one, and nobody decided which — whereas a workflow
+  crossing transactions is *obliged* to make each step idempotent and each intermediate
+  state legal. Sequencing writes is the workflow's job because a workflow is the thing that
+  has accepted that bill.
 - **A query is one read.** A query that calls a query is two reads wearing one name, the
   second invisible to whoever asked. It is the shape an N+1 arrives in.
 - **A workflow's whole content is its sequence.** Nesting one inside another hides the

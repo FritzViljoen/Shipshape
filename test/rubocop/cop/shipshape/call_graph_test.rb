@@ -160,7 +160,7 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a query"
-    assert_includes found.first.message, "No kind calls its own kind"
+    assert_includes found.first.message, "no kind calls a sister"
   end
 
   def test_a_command_may_not_call_a_command
@@ -287,7 +287,7 @@ class CallGraphTest < Minitest::Test
       RUBY
     end
 
-    assert_includes error.message, "Matrix row query lists itself"
+    assert_includes error.message, "lists query, which is a sister of it"
   end
 
   # A Packwerk layout has no top-level app/. The glob's trailing wildcards are dropped and
