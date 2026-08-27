@@ -48,9 +48,16 @@ canon is not a transcription of either. Distillation is the point of the exercis
 transcription would preserve the divergence instead of resolving it.
 
 **Size is the test.** Between them the two repos hold 48 cops and roughly 25 written
-laws. The target here is **6–8 principles and 10–15 laws**. A canon that comes out at
+laws. The target here is **9 principles and 10–15 laws**. A canon that comes out at
 40 laws has failed: what could not earn a line at that size was app-specific, not a
 principle.
+
+**Every principle and every law states its grounding**, and the grounding is published
+work, not preference. A principle held because someone likes it cannot ask anyone to obey
+it. Where the evidence is mixed or points the other way, the principle says so rather
+than omitting it — `one-way-to-say-each-thing` and `nothing-is-hidden` both do.
+References separate what was checked against the record from what is quoted from standing
+literature.
 
 **A law file states four things and stops:** what must be true, the principle it
 serves, the guard that holds it, and what that guard misses.
