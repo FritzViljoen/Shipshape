@@ -48,7 +48,7 @@ canon is not a transcription of either. Distillation is the point of the exercis
 transcription would preserve the divergence instead of resolving it.
 
 **Size is the test.** Between them the two repos hold 48 cops and roughly 25 written
-laws. The target here is **9 principles and 10–15 laws**. A canon that comes out at
+laws. The target here is **8 principles and 10–15 laws**. A canon that comes out at
 40 laws has failed: what could not earn a line at that size was app-specific, not a
 principle.
 

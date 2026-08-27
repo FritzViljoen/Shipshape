@@ -10,7 +10,8 @@
 > **Each principle states its grounding.** A principle held because someone prefers it is
 > a taste, and a canon of tastes cannot ask anyone to obey it. Where the published
 > evidence is mixed, or points the other way, that is written here rather than left out —
-> see `one-way-to-say-each-thing` and `nothing-is-hidden`, where it does both.
+> see `nothing-is-hidden`, where a respected source disagrees, and
+> `one-way-to-say-each-thing`, which rests on a prediction and states what would falsify it.
 >
 > Each also ends with what it produces. A principle that produces no law is either not
 > true enough to act on, or a law nobody has written yet. Both are defects, and both are
@@ -57,6 +58,15 @@ is running.
 That is what makes a rule testable without a database and usable from a second caller.
 It is also what stops a change to one side of a boundary being a change to both.
 
+**And a boundary says which neighbours may talk.** Every class has a kind, and the kinds
+that may call each other are declared, once, as a matrix. Request handling calls an
+operation. An operation calls an operation or a value. A value calls nothing. Anything
+not on the matrix is an offence, so a call sideways or upward fails rather than becoming
+the first instance of a new convention.
+
+This is the load-bearing guard of the canon. It is what stops a rule escaping its home,
+because there is no reachable place for it to escape to.
+
 **Grounding.** Meyer's Design by Contract states the same thing as an obligation with a
 side: a precondition is the caller's to meet, and the callee is entitled to assume it
 (Meyer 1988). The Law of Demeter is the coupling half — an object talks to its immediate
@@ -66,7 +76,7 @@ assessment is that this hurts, because tolerated variation becomes load-bearing 
 never be withdrawn (Thomson, *The Harmful Consequences of the Robustness Principle*).
 
 *Produces* `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`,
-`a-time-names-its-zone`.
+`a-time-names-its-zone`, `the-call-graph-is-declared`.
 
 ### `absence-is-absence` — A gap is not a value
 
@@ -114,61 +124,54 @@ model" smells (Fowler): behaviour that has migrated away from the data it acts o
 
 *Produces* `no-lifecycle-callbacks`, `no-decisions-in-request-handling`.
 
-### `extend-by-adding` — A new case is a new object, not another branch
+### `one-way-to-say-each-thing` — One operation, one class, one way to call it
 
-A new case should arrive as something the existing code already knows how to call, not as
-a branch inside a method that has to be re-read and re-tested.
+An operation is a class with one public method. It answers the same way everywhere.
+
+A uniform shape is what lets one wrapper serve every call site: logging, instrumentation,
+an audit trail, a migration seam. Four call conventions and none of those can exist. It is
+also the working form of substitutability — anything accepting a type must work with every
+kind of it without asking which one it has (Liskov and Wing 1994), and a variant that
+raises where its sibling returns is a different thing wearing the name.
+
+**A new case is therefore a new class, not another branch.** Not by exhortation: a
+single-method class has nowhere to grow a branch, and the declared call graph gives the
+branch nowhere to reach. The open/closed rule falls out of the shape rather than being
+asked for.
 
 **With a stopping rule, because the opposite failure is real.** Where a rule genuinely has
-a fixed, small set of cases — three outcomes, not an open family — a plain conditional is
-honest, and an abstraction invented to avoid it is not. The test is whether the set is
-expected to grow.
-
-An abstraction earns its place by removing a way to say something. One that adds a way has
-made things worse while looking like architecture.
-
-**Grounding.** Meyer coined open/closed (1988) and Martin restated it for dynamic dispatch
-(1996). The stopping rule is not a hedge — it is the correction the literature itself
-supplies: Fowler names *speculative generality* as a smell in its own right, and the
-premature-abstraction failure is the more expensive of the two in practice, because a
-wrong abstraction is harder to remove than a conditional is to add.
-
-*Produces* `one-operation-one-class`.
-
-### `one-way-to-say-each-thing` — Variation is the defect; repetition is not
-
-Twenty identical lines are greppable and safe to change at once. Two ways of expressing
-one operation mean every rule about that operation must know both — and the third way is
-invisible until it fails.
-
-So an operation answers the same way everywhere. A uniform shape is what lets one wrapper
-serve every call site: logging, instrumentation, an audit trail, a migration seam. Four
-call conventions and none of them can exist.
-
-This is also the working form of substitutability. Anything accepting a type must work
-with every kind of it without asking which one it has (Liskov and Wing 1994); a variant
-that raises where its sibling returns is a different thing wearing the name.
+a fixed, small set of cases — three outcomes, not an open family — a plain conditional
+inside the operation is honest, and an abstraction invented to avoid it is not. The test
+is whether the set is expected to grow. An abstraction earns its place by removing a way
+to say something; one that adds a way has made things worse while looking like
+architecture.
 
 Never scope work by diff size. One transform across a hundred files is a small change; six
 files holding five judgements is a large one. Count the decisions.
 
-**Grounding, and it is the strongest here.** Engler et al. inferred bugs directly from
-*deviation*: where code implies a belief the programmer must hold, the sites that
-contradict the dominant pattern are the defects, and this found real errors across
-operating-system code with no specification at all (SOSP 2001). Variation is not merely
-untidy — it is the signal a bug detector can run on.
+**Grounding.** Engler et al. inferred bugs directly from *deviation*: where code implies a
+belief the programmer must hold, the sites contradicting the dominant pattern are the
+defects — real errors found across operating-system code with no specification at all
+(SOSP 2001). Variation is not merely untidy; it is the signal a detector runs on. Meyer
+coined open/closed (1988) and Martin restated it for dynamic dispatch (1996); the stopping
+rule is the correction the literature itself supplies, since Fowler names *speculative
+generality* as a smell in its own right and a wrong abstraction is harder to remove than a
+conditional is to add.
 
-**The evidence on repetition is genuinely mixed, and it is not settled by this canon.**
-Kapser and Godfrey found cloning is often a principled engineering tool and that several
-clone patterns are benign when managed (ESE 2008). Against that, industry telemetry from
-GitClear reports duplicated blocks rising eightfold in 2024 and moved-and-refactored code
-falling from 24.8% of changed lines in 2021 to 9.5% in 2024 — the first year copy-paste
-exceeded moved code — and links clone density to higher defect rates. Both can hold: the
-distinction this principle draws is between *identical repetition that is swept together*
-and *accreted copies that diverge*. That distinction has not been measured, and saying so
-is the honest position.
+**On duplication, and this is a prediction rather than a finding.** Industry telemetry
+reports duplicated blocks rising eightfold in 2024, with moved-and-refactored code falling
+from 24.8% of changed lines in 2021 to 9.5% (GitClear 2025) — the sprawl this canon exists
+to answer. The claim here is that the shape prevents it structurally: when the unit is a
+one-method class and the call graph is declared, a shared step has nowhere to live except
+its own class that both callers call, and a thousand-line file cannot form at all. No
+clone detector is needed because there is no place for a clone to accumulate.
 
-*Produces* `one-shape-per-operation`, `no-type-interrogation`.
+**That claim is untested.** The telemetry measures codebases with no such constraint, so it
+cannot confirm or refute this. What would falsify it: near-identical bodies appearing across
+sibling operation classes. If that shows up, the prevention failed and detection has to come
+back.
+
+*Produces* `one-operation-one-class`, `one-shape-per-operation`, `no-type-interrogation`.
 
 ### `nothing-is-hidden` — Every rule is written where a reader greps for it
 
@@ -261,14 +264,18 @@ to say one thing.
 | SOLID | Here |
 |---|---|
 | Single responsibility | `one-thing-one-place` |
-| Open/closed | `extend-by-adding`, with an explicit stopping rule |
+| Open/closed | `one-way-to-say-each-thing` — a new case is a new class because the shape leaves nowhere else |
 | Liskov substitution | `one-way-to-say-each-thing` — substitutability is what a uniform shape buys |
 | Interface segregation | `good-boundaries-make-good-neighbours` |
 | Dependency inversion | `good-boundaries-make-good-neighbours` |
 
+Five collapse into two, because open/closed and substitutability are both consequences of
+one shape rather than separate instructions. A principle that has to be *asked* for, when
+the shape already produces it, is a principle nobody can check.
+
 What SOLID does not carry, and this canon does: `absence-is-absence`, `tell-dont-ask`,
 `nothing-is-hidden`, `make-the-wrong-thing-impossible`, `nothing-fails-quietly`. Five of
-nine. SOLID says how objects are shaped. It says nothing about whether the shape can be
+eight. SOLID says how objects are shaped. It says nothing about whether the shape can be
 seen, or held, or what to do about a fact nobody has stated.
 
 ---
@@ -287,9 +294,6 @@ seen, or held, or what to do about a fact nobody has stated.
   https://ieeexplore.ieee.org/document/7997917/
 - Sadowski, Aftandilian, Eagle, Miller-Cushon, Jaspan. *Lessons from Building Static
   Analysis Tools at Google.* CACM 61(4), 2018. https://dl.acm.org/doi/10.1145/3188720
-- Kapser, Godfrey. *"Cloning considered harmful" considered harmful: patterns of cloning
-  in software.* Empirical Software Engineering 13(6), 2008.
-  https://link.springer.com/article/10.1007/s10664-008-9076-6
 - GitClear. *AI Copilot Code Quality: 2025 Research.* Industry telemetry, not
   peer-reviewed. https://www.gitclear.com/ai_assistant_code_quality_2025_research
 - Hoare. *Null References: The Billion Dollar Mistake.* QCon London 2009.
