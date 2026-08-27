@@ -136,8 +136,8 @@ raises where its sibling returns is a different thing wearing the name.
 
 **A new case is therefore a new class, not another branch.** Not by exhortation: a
 single-method class has nowhere to grow a branch, and the declared call graph gives the
-branch nowhere to reach. The open/closed rule falls out of the shape rather than being
-asked for.
+branch nowhere to reach. Extension without modification falls out of the shape rather
+than being asked for.
 
 **With a stopping rule, because the opposite failure is real.** Where a rule genuinely has
 a fixed, small set of cases — three outcomes, not an open family — a plain conditional
@@ -152,9 +152,10 @@ files holding five judgements is a large one. Count the decisions.
 **Grounding.** Engler et al. inferred bugs directly from *deviation*: where code implies a
 belief the programmer must hold, the sites contradicting the dominant pattern are the
 defects — real errors found across operating-system code with no specification at all
-(SOSP 2001). Variation is not merely untidy; it is the signal a detector runs on. Meyer
-coined open/closed (1988) and Martin restated it for dynamic dispatch (1996); the stopping
-rule is the correction the literature itself supplies, since Fowler names *speculative
+(SOSP 2001). Variation is not merely untidy; it is the signal a detector runs on.
+Extension without modification is Meyer's (1988), restated by Martin for dynamic dispatch
+(1996); the stopping rule is the correction the literature itself supplies, since Fowler
+names *speculative
 generality* as a smell in its own right and a wrong abstraction is harder to remove than a
 conditional is to add.
 
@@ -252,31 +253,6 @@ idempotent and every intermediate state legal — is the saga, from Garcia-Molin
 (SIGMOD 1987).
 
 *Produces* `a-guard-states-its-limit`, `no-silent-coercion`.
-
----
-
-## Where SOLID went
-
-Asked for, and worth stating plainly: the five are here, but not one-to-one. Three of them
-are the same idea about dependencies, and keeping them apart would have cost three slots
-to say one thing.
-
-| SOLID | Here |
-|---|---|
-| Single responsibility | `one-thing-one-place` |
-| Open/closed | `one-way-to-say-each-thing` — a new case is a new class because the shape leaves nowhere else |
-| Liskov substitution | `one-way-to-say-each-thing` — substitutability is what a uniform shape buys |
-| Interface segregation | `good-boundaries-make-good-neighbours` |
-| Dependency inversion | `good-boundaries-make-good-neighbours` |
-
-Five collapse into two, because open/closed and substitutability are both consequences of
-one shape rather than separate instructions. A principle that has to be *asked* for, when
-the shape already produces it, is a principle nobody can check.
-
-What SOLID does not carry, and this canon does: `absence-is-absence`, `tell-dont-ask`,
-`nothing-is-hidden`, `make-the-wrong-thing-impossible`, `nothing-fails-quietly`. Five of
-eight. SOLID says how objects are shaped. It says nothing about whether the shape can be
-seen, or held, or what to do about a fact nobody has stated.
 
 ---
 
