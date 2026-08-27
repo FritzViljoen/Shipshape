@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Everything CI runs, and everything a developer runs. One command, one list.
+#
+# `ci-is-one-command`: the workflow calls this file and nothing else, so a green run here
+# is a green build. Nothing reads the workflow to prove that, which makes this a
+# convention rather than a law — see docs/laws/a-guard-states-its-limit.md.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+echo "== tests =="
+bundle exec rake test

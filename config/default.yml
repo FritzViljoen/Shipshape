@@ -1,0 +1,32 @@
+Shipshape/CallGraph:
+  Description: >-
+    Every class has a kind, and which kinds may call which is declared once, as a matrix.
+    A rule cannot escape its home if there is nowhere reachable to escape to.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Which paths hold which kind. Order matters: the first match wins, so put the
+  # narrower tree above the wider one.
+  Kinds:
+    request_handling:
+      - 'app/controllers/**/*.rb'
+    operation:
+      - 'app/operations/**/*.rb'
+      - 'app/domain/**/*.rb'
+    value:
+      - 'app/values/**/*.rb'
+    record:
+      - 'app/records/**/*.rb'
+      - 'app/models/**/*.rb'
+  # Who may call whom. A pair absent from this matrix is an offence.
+  Matrix:
+    request_handling:
+      - operation
+    operation:
+      - operation
+      - value
+      - record
+    value:
+      - value
+    record: []
