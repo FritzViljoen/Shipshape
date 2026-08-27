@@ -48,12 +48,18 @@ require:
 Shipshape/CallGraph:
   Kinds:
     request_handling: ['app/controllers/**/*.rb']
-    operation:        ['app/operations/**/*.rb']
+    workflow:         ['app/workflows/**/*.rb']
+    command:          ['app/commands/**/*.rb']
+    query:            ['app/queries/**/*.rb']
+    gateway:          ['app/gateways/**/*.rb']
     value:            ['app/values/**/*.rb']
     record:           ['app/records/**/*.rb']
   Matrix:
-    request_handling: [operation]
-    operation:        [operation, value, record]
+    request_handling: [workflow, command, query]
+    workflow:         [command, query, gateway]
+    command:          [command, query, gateway, value, record]
+    query:            [value, record]
+    gateway:          [value]
     value:            [value]
     record:           []
 ```
@@ -61,6 +67,20 @@ Shipshape/CallGraph:
 A class's kind comes from where it is filed. A call whose (caller kind, callee kind) pair
 is absent from the matrix is an offence. A constant that resolves to no file under a
 declared kind is skipped, not failed.
+
+The four rows that carry the argument:
+
+- **A query may not call a query.** A query is one read. A query calling a query is two
+  reads wearing one name, the second invisible to whoever asked — the shape an N+1 arrives
+  in.
+- **A command may call a command**, because composing writes is how one change spans
+  records without the caller having to know the order.
+- **A workflow may not call a workflow.** Its whole content is its sequence, and nesting
+  hides the sequence.
+- **A gateway is a command that crosses the process boundary**, and the only kind allowed
+  to talk to anything outside. It reaches no record and no query, so the external call and
+  the write recording its result stay two visible steps — which is what makes the pair
+  retryable.
 
 ## Tests
 

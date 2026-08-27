@@ -11,22 +11,52 @@ Shipshape/CallGraph:
   Kinds:
     request_handling:
       - 'app/controllers/**/*.rb'
-    operation:
-      - 'app/operations/**/*.rb'
-      - 'app/domain/**/*.rb'
+    workflow:
+      - 'app/workflows/**/*.rb'
+    command:
+      - 'app/commands/**/*.rb'
+    query:
+      - 'app/queries/**/*.rb'
+    gateway:
+      - 'app/gateways/**/*.rb'
+      - 'app/integrations/**/*.rb'
     value:
       - 'app/values/**/*.rb'
     record:
       - 'app/records/**/*.rb'
       - 'app/models/**/*.rb'
   # Who may call whom. A pair absent from this matrix is an offence.
+  #
+  # A workflow sequences; it does not nest. A command composes with commands and reads
+  # through queries. A query is ONE read: a query calling a query is two reads wearing one
+  # name, and it is the shape an N+1 arrives in — compose reads in the caller that wanted
+  # both. A record calls nothing.
+  #
+  # A gateway is a command that crosses the process boundary — it is the only kind that
+  # may talk to anything outside. It reaches no record and no query, so the external call
+  # and the write that records its result are two visible steps rather than one. Request
+  # handling cannot reach one directly: an external call has a domain meaning, and the
+  # command or workflow that wanted it is where that meaning lives.
   Matrix:
     request_handling:
-      - operation
-    operation:
-      - operation
+      - workflow
+      - command
+      - query
+    workflow:
+      - command
+      - query
+      - gateway
+    command:
+      - command
+      - query
+      - gateway
       - value
       - record
+    query:
+      - value
+      - record
+    gateway:
+      - value
     value:
       - value
     record: []
