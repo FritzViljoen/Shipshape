@@ -36,8 +36,19 @@ call a command.
 door"; inheritance carries the return shape, so putting that fact in the filename too would
 be a second copy of it — and the copy is the one that goes stale.
 
-**Their population is the migration backlog made countable**, and the ratchet turns it into
-a number that only falls. A door's own calls into the old world are invisible to the guard,
+**Why they are marked, rather than just wrapped:** the new shape only admits its own kinds.
+A workflow may sequence commands and queries and nothing else, so an unwrapped legacy
+service cannot be called from one at all — the graph has no row for it. Wrapping is how old
+code gets in, and the mark is what keeps the crossing visible at the call site instead of
+dissolving into the new code as though it had always belonged.
+
+**Their population is the migration backlog, and it does not only fall.** It rises while the
+old world is being pulled into the new shape, one door at a time, and falls only as each
+wrapped thing is rewritten and its door deleted. That is a curve, not a ratchet — the
+ratchet governs violations, and a door is not a violation. What the mark buys is that the
+number is knowable at all.
+
+A door's own calls into the old world are invisible to the guard,
 because unclassified constants are skipped — which is exactly what a door is for.
 
 **Workflow, command and query are all *operations*** — a class with one public method, as

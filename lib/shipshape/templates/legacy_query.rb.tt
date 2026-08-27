@@ -14,7 +14,18 @@
 # single door would have to answer both ways, and a flag deciding which is exactly what
 # this canon refuses.
 #
-# **This class's population is the migration backlog**, and the count only falls.
+# **Why it is marked, rather than just wrapped:** the new shape only admits its own kinds.
+# A workflow may sequence commands and queries and nothing else, so an unwrapped legacy
+# service simply cannot be called from one — the graph has no row for it. Wrapping is how
+# old code gets in at all, and the mark is what keeps the crossing visible at the call site
+# instead of dissolving into the new code as though it had always belonged there.
+#
+# **Its population is the migration backlog, and the count does NOT only fall.** It rises
+# while the old world is being pulled into the new shape, one wrapper at a time, and falls
+# only as each wrapped thing is rewritten and its door deleted. That is a curve, not a
+# ratchet, and calling it a ratchet would be a claim nothing here can back. What the mark
+# buys is that the number is knowable at all: every door is one named piece of the old
+# world still standing.
 class LegacyQuery
   include TypedArguments
 

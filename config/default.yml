@@ -46,8 +46,13 @@ Shipshape/CallGraph:
     # the two it is, because inheritance is the thing that carries the return shape and a
     # second copy of that fact in the filename would be the copy that goes stale.
     #
-    # THEIR POPULATION IS THE MIGRATION BACKLOG, and the ratchet makes it a number that
-    # only falls.
+    # Why marked rather than just wrapped: the new shape admits only its own kinds, so an
+    # unwrapped legacy service cannot be called from a workflow at all. Wrapping is how old
+    # code gets in, and the mark keeps the crossing visible at the call site.
+    #
+    # Their population is the migration backlog. It RISES while the old world is pulled
+    # into the new shape and falls only as each wrapped thing is rewritten — a curve, not a
+    # ratchet. The ratchet governs violations, and a door is not a violation.
     legacy_query:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'

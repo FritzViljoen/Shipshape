@@ -127,8 +127,14 @@ are the two that are infrastructure rather than domain. Everything the MVC model
 hold is now split across workflows, commands, queries and entities, so what is still called
 a record is only the table, and the name says so.
 
-**The two `*_legacy.rb` doors are the only classes permitted to speak to the old world**,
-and their population is the migration backlog made countable.
+**The two `*_legacy.rb` doors are the only classes permitted to speak to the old world.**
+The new shape admits only its own kinds — a workflow sequences commands and queries and
+nothing else — so an unwrapped legacy service cannot be called from one at all. Wrapping is
+how old code gets in, and the mark keeps the crossing visible at the call site.
+
+Their population is the migration backlog. It **rises** while the old world is being pulled
+into the new shape and falls only as each wrapped thing is rewritten — a curve, not a
+ratchet. The ratchet governs violations, and a door is not a violation.
 
 A constant that resolves to no file under a declared kind is skipped, not failed.
 

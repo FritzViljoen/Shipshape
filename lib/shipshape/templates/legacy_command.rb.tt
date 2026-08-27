@@ -11,9 +11,18 @@
 # sister is what forbids a command from calling one — that would be a write sequencing a
 # write.
 #
-# **This class's population is the migration backlog.** Every door is a piece of the old
-# world still standing, and the count only falls. When the last caller of a legacy service
-# goes through a door, the service can be rewritten behind it and the door deleted.
+# **Why it is marked, rather than just wrapped:** the new shape only admits its own kinds.
+# A workflow may sequence commands and queries and nothing else, so an unwrapped legacy
+# service simply cannot be called from one — the graph has no row for it. Wrapping is how
+# old code gets in at all, and the mark is what keeps the crossing visible at the call site
+# instead of dissolving into the new code as though it had always belonged there.
+#
+# **Its population is the migration backlog, and the count does NOT only fall.** It rises
+# while the old world is being pulled into the new shape, one wrapper at a time, and falls
+# only as each wrapped thing is rewritten and its door deleted. That is a curve, not a
+# ratchet, and calling it a ratchet would be a claim nothing here can back. What the mark
+# buys is that the number is knowable at all: every door is one named piece of the old
+# world still standing.
 #
 # The transaction is opened here, as it is for a command — one door, one write, one
 # transaction. Where the legacy code manages its own, say so in the subclass and skip it.
