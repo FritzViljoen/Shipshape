@@ -13,8 +13,8 @@ initializer behind them would hide both the assignment and the assertion, and `t
 Date)` would stop being greppable — see
 [`code-is-written-not-generated`](code-is-written-not-generated.md).
 
-- **Principle:** `good-boundaries-make-good-neighbours`. `nothing-is-hidden` produces the
-  written-not-generated half; on conflict the boundary principle governs.
+- **Principle:** `nothing-crosses-unasserted`. `nothing-is-hidden` produces the
+  written-not-generated half; on conflict `nothing-crosses-unasserted` governs.
 - **Guard:** `Shipshape/TypedArguments`. Recognises an operation by what it inherits, not by
   where it is filed, so it stays covered wherever it is put. Every keyword must reach a
   guard call. Anything that is not a named keyword is its own offence — `**rest`, `(...)`, a

@@ -11,9 +11,9 @@ This is the mirror of [`no-nullable-columns`](no-nullable-columns.md). One forbi
 being given a meaning; this forbids a fact being stated twice. Both defects end in the same
 place: a value nobody can point at the source of.
 
-- **Principle:** `absence-is-absence` governs. `one-thing-one-place` also produces it — a
-  fact has one home — and on conflict `absence-is-absence` wins, because the reason a
-  default is tempting at all is a column that should have refused the gap.
+- **Principle:** `absence-is-absence` governs. `good-boundaries-make-good-neighbours` also
+  produces it — a fact has one home — and on conflict `absence-is-absence` wins, because
+  the reason a default is tempting at all is a column that should have refused the gap.
 - **Guard:** `Shipshape/NoColumnDefaults`, over migrations.
 - **Guard's limit:** migrations only, with the same consequence as
   [`no-nullable-columns`](no-nullable-columns.md) — a default applied outside them, by a

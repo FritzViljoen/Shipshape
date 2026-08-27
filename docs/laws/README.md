@@ -24,9 +24,9 @@ not make it hold.
 | [`one-operation-one-class`](one-operation-one-class.md) | `one-way-to-say-each-thing` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
 | [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) | `good-boundaries-make-good-neighbours` |
-| [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) | `good-boundaries-make-good-neighbours` |
-| [`input-is-parsed-at-the-seam`](input-is-parsed-at-the-seam.md) | `good-boundaries-make-good-neighbours` |
-| [`a-time-names-its-zone`](a-time-names-its-zone.md) | `good-boundaries-make-good-neighbours` |
+| [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) | `nothing-crosses-unasserted` |
+| [`input-is-parsed-at-the-seam`](input-is-parsed-at-the-seam.md) | `nothing-crosses-unasserted` |
+| [`a-time-names-its-zone`](a-time-names-its-zone.md) | `nothing-crosses-unasserted` |
 | [`no-nullable-columns`](no-nullable-columns.md) | `absence-is-absence` |
 | [`no-database-defaults`](no-database-defaults.md) | `absence-is-absence` |
 | [`no-lifecycle-callbacks`](no-lifecycle-callbacks.md) | `tell-dont-ask` |

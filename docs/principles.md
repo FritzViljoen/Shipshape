@@ -22,85 +22,77 @@ are quoted from memory, is stated there.
 
 ---
 
-### `one-thing-one-place` — One thing, one place, reachable from every caller
+### `good-boundaries-make-good-neighbours` — One home, and which homes may reach which is declared
 
-Every operation, rule and fact has exactly one home, and every caller can reach it. A
-rule a caller cannot reach gets copied, and the copy drifts.
-
-So "where does this go" has one answer, and "where is this" has one answer. That pairing
-is what makes a change finishable: you can tell you found every site, because there was
-only ever one.
+Every operation, rule and fact has exactly one home. A rule a caller cannot reach gets
+copied, and the copy drifts. So "where does this go" has one answer, and "where is this"
+has one answer — the pairing that makes a change finishable, because you can tell you
+found every site.
 
 **Reachability has two failure modes, not one.** A rule its callers cannot reach gets
 copied. A rule everything can reach becomes the place unrelated things are put, and then
-it has many reasons to change — the same defect arrived at from the opposite side. One
-home, reachable by exactly the callers that should reach it, which is what the declared
-call graph is for.
+it has many reasons to change — the same defect arrived at from the opposite side. So the
+kinds that may call each other are **declared**, once, as a matrix: one home, reachable by
+exactly the callers that should reach it.
 
 Two reasons to edit a file means two things sharing one home. Optional columns piling up
-on a table is the same tell in the schema — several concepts sharing a row, with the
-nulls marking the seam.
+on a table is the same tell in the schema — several concepts sharing a row, with the nulls
+marking the seam.
 
-**Grounding.** This is Parnas's decomposition criterion, and it is older than the term
-"single responsibility": modules are drawn around the decisions they hide, so a changed
-decision touches one module (Parnas 1972). Cohesion and coupling were then made
-measurable by Chidamber and Kemerer, and Basili, Briand and Melo validated those metrics
-as defect predictors across eight C++ systems — low cohesion and high coupling predicted
-faults (Basili et al. 1996).
-
-*Produces* `no-database-defaults`, `the-call-graph-is-declared`.
-
-### `good-boundaries-make-good-neighbours` — A boundary states what crosses it, and asserts it there
-
-A boundary is a promise about what may pass. Where the promise is stated, it is checked;
-past that line nothing re-checks, and a failure has a side — before the boundary it is
-the caller's defect, after it the callee's.
-
-An object is handed the values its decision needs, and nothing else. Not a whole record
-to read one field, not a connection so it can find its own collaborators. What it
-depends on arrives as an argument, because the caller is the thing that knows where it
-is running.
-
-That is what makes a rule testable without a database and usable from a second caller.
-It is also what stops a change to one side of a boundary being a change to both.
-
-**And the boundary is symmetric, which is the half usually left out.** Nothing enters
-except through the arguments; nothing changes except what was handed in and what is
-returned. An ambient read — the current time zone, the current user, a setting fetched
+**And reachability is symmetric, which is the half usually left out.** Nothing enters an
+operation except through its arguments; nothing changes except what was handed in and what
+is returned. An ambient read — the current time zone, the current user, a setting fetched
 mid-operation — and a distant write — a global mutated, a class attribute set, an event
-whose subscribers are discovered at runtime — are the same defect facing opposite ways:
-a dependency that is not on the call path.
+whose subscribers are discovered at runtime — are the same defect facing opposite ways: a
+dependency that is not on the call path.
 
 That is what action at a distance is, and why nothing else here catches it. The cause is
 perfectly visible; it is the *effect* that cannot be found by reading. A reader can follow
 what a call does only if what it does is bounded by what it was given.
 
-**And a boundary says which neighbours may talk.** Every class has a kind, and the kinds
-that may call each other are declared, once, as a matrix. Request handling calls an
-operation. An operation calls an operation or a value. A value calls nothing. Anything
-not on the matrix is an offence, so a call sideways or upward fails rather than becoming
-the first instance of a new convention.
+**Grounding.** The placement half is Parnas's decomposition criterion, older than the term
+"single responsibility": modules are drawn around the decisions they hide, so a changed
+decision touches one module (Parnas 1972). Cohesion and coupling were then made measurable
+by Chidamber and Kemerer, and Basili, Briand and Melo validated those metrics as defect
+predictors across eight C++ systems (Basili et al. 1996). The reachability half is the Law
+of Demeter — an object talks to its immediate collaborators, not to their internals
+(Lieberherr and Holland 1989). The symmetric half is the oldest result here: Wulf and Shaw
+nominated the non-local variable for abolition on the ground that it is a major
+contributing factor in programs that are difficult to understand (SIGPLAN Notices, 1973).
+Meyer's command–query separation is the same boundary read once more — asking a question
+does not change the answer, so a reader can tell which calls can move the world by their
+shape alone (Meyer 1988).
 
-This is the load-bearing guard of the canon. It is what stops a rule escaping its home,
-because there is no reachable place for it to escape to.
+*Produces* `the-call-graph-is-declared`, `nothing-travels-off-the-call-path`.
 
-**Grounding.** Meyer's Design by Contract states the same thing as an obligation with a
-side: a precondition is the caller's to meet, and the callee is entitled to assume it
-(Meyer 1988). The Law of Demeter is the coupling half — an object talks to its immediate
-collaborators, not to their internals (Lieberherr and Holland 1989). The counter-tradition
-is Postel's robustness principle, "be liberal in what you accept"; the IETF's own later
-assessment is that this hurts, because tolerated variation becomes load-bearing and can
-never be withdrawn (Thomson, *The Harmful Consequences of the Robustness Principle*).
+### `nothing-crosses-unasserted` — What crosses a boundary is stated there, and checked there
 
-The symmetric half is the oldest result here: Wulf and Shaw nominated the non-local
-variable for abolition on the ground that it is a major contributing factor in programs
-that are difficult to understand (SIGPLAN Notices, 1973). Meyer's command–query separation
-is the same boundary read the other way — asking a question does not change the answer,
-so a reader can tell which calls can move the world by their shape alone (Meyer 1988).
+A boundary is a promise about what may pass. Where the promise is stated, it is checked;
+past that line nothing re-checks, and a failure has a side — before the boundary it is the
+caller's defect, after it the callee's. Re-checking inside is not caution; it is a second
+place deciding the same thing.
+
+An object is handed the values its decision needs, and nothing else. Not a whole record to
+read one field, not a connection so it can find its own collaborators. What it depends on
+arrives as an argument, because the caller is the thing that knows where it is running.
+
+That is what makes a rule testable without a database and usable from a second caller. It
+is also what stops a change to one side of a boundary being a change to both.
+
+**The assertion is written where it happens.** A guard that runs somewhere else, or that a
+macro generated, moves the failure away from the line that caused it — which is the one
+place a reader will look.
+
+**Grounding.** Meyer's Design by Contract states it as an obligation with a side: a
+precondition is the caller's to meet, and the callee is entitled to assume it (Meyer 1988).
+The counter-tradition is Postel's robustness principle, "be liberal in what you accept";
+the IETF's own later assessment is that this hurts, because tolerated variation becomes
+load-bearing and can never be withdrawn (Thomson, *The Harmful Consequences of the
+Robustness Principle*). Where the two conflict here, Meyer wins: an interface that accepts
+what it cannot state has no boundary, only a habit.
 
 *Produces* `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`,
-`a-time-names-its-zone`, `the-call-graph-is-declared`,
-`nothing-travels-off-the-call-path`.
+`a-time-names-its-zone`.
 
 ### `absence-is-absence` — A gap is not a value
 

@@ -17,8 +17,8 @@ answer to a question nobody asked.
 trap: the adapter coerces the string, so `/people/1abc` serves record 1 and nothing
 anywhere fails. The parsers refuse it, but a seam cannot defend a door nobody opened.
 
-- **Principle:** `good-boundaries-make-good-neighbours`, and `nothing-fails-quietly` for the
-  bouncing half. On conflict the boundary principle governs.
+- **Principle:** `nothing-crosses-unasserted`, and `nothing-fails-quietly` for the bouncing
+  half. On conflict `nothing-crosses-unasserted` governs.
 - **Guard:** `Shipshape/NoInlineParamParse` flags parse, strptime, iso8601 on any receiver,
   the raising conversions, and the casts, whenever the value came from request parameters.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an

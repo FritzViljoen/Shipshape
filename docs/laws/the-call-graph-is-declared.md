@@ -18,12 +18,11 @@ nowhere reachable to escape to. It is what stops a call sideways into a sibling 
 call upward from a record into an operation, becoming the first instance of a new
 convention that nothing yet forbids.
 
-It is also what bounds the second failure of `one-thing-one-place`: a rule everything can
+It is also what bounds the second failure of reachability: a rule everything can
 reach becomes the place unrelated things are put.
 
-- **Principle:** `good-boundaries-make-good-neighbours`. `one-thing-one-place` also
-  produces it; on conflict the boundary principle governs, because the matrix decides
-  reachability and placement follows from it.
+- **Principle:** `good-boundaries-make-good-neighbours`, and it owns this law outright —
+  placement and reachability are one subject, which is why that principle carries both.
 - **Guard:** `Shipshape/CallGraph`. Resolves a class's kind by base class first, then by
   path. Fails a call to a constant whose kind is not reachable from the calling file's
   kind. The matrix is data, in one file, and the cop reads it.
