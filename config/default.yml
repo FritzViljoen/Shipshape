@@ -20,17 +20,19 @@ Shipshape/CallGraph:
     gateway:
       - 'app/gateways/**/*.rb'
       - 'app/integrations/**/*.rb'
-    value:
+    entity:
+      - 'app/entities/**/*.rb'
       - 'app/values/**/*.rb'
     record:
       - 'app/records/**/*.rb'
       - 'app/models/**/*.rb'
   # Who may call whom. A pair absent from this matrix is an offence.
   #
-  # A workflow sequences; it does not nest. A command composes with commands and reads
-  # through queries. A query is ONE read: a query calling a query is two reads wearing one
-  # name, and it is the shape an N+1 arrives in — compose reads in the caller that wanted
-  # both. A record calls nothing.
+  # A workflow sequences; it does not nest. A command does ONE write and does not compose
+  # with another command — sequencing writes is the workflow's job, and a command that
+  # calls a command has become a workflow without saying so. A query is ONE read: a query
+  # calling a query is two reads wearing one name, and it is the shape an N+1 arrives in —
+  # compose reads in the caller that wanted both. A record calls nothing.
   #
   # A gateway is a command that crosses the process boundary — it is the only kind that
   # may talk to anything outside. It reaches no record and no query, so the external call
@@ -47,16 +49,15 @@ Shipshape/CallGraph:
       - query
       - gateway
     command:
-      - command
       - query
       - gateway
-      - value
+      - entity
       - record
     query:
-      - value
+      - entity
       - record
     gateway:
-      - value
-    value:
-      - value
+      - entity
+    entity:
+      - entity
     record: []

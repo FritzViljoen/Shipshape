@@ -15,7 +15,7 @@ operation.
 
 - **Principle:** `model-concerns-not-groups` governs. `good-boundaries-make-good-neighbours`
   also produces it — a copied field is a second home for one fact.
-- **Guard:** `Shipshape/EntityIsComposed`, over the value tree. Fails an initializer keyword
+- **Guard:** `Shipshape/EntityIsComposed`, over the entity tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object
   declares the suffix as one of its own.
 - **Guard's limit:** **the prefix rule is a heuristic and the general law is unguarded.**

@@ -18,16 +18,16 @@ class CallGraphTest < Minitest::Test
       "command" => ["app/commands/**/*.rb"],
       "query" => ["app/queries/**/*.rb"],
       "gateway" => ["app/gateways/**/*.rb"],
-      "value" => ["app/values/**/*.rb"],
+      "entity" => ["app/entities/**/*.rb"],
       "record" => ["app/records/**/*.rb"],
     },
     "Matrix" => {
       "request_handling" => %w[workflow command query],
       "workflow" => %w[command query gateway],
-      "command" => %w[command query gateway value record],
-      "query" => %w[value record],
-      "gateway" => ["value"],
-      "value" => ["value"],
+      "command" => %w[query gateway entity record],
+      "query" => %w[entity record],
+      "gateway" => ["entity"],
+      "entity" => ["entity"],
       "record" => [],
     },
   }.freeze
@@ -39,7 +39,7 @@ class CallGraphTest < Minitest::Test
     "app/queries/list_people.rb",
     "app/queries/geography/list_places.rb",
     "app/gateways/payment_provider.rb",
-    "app/values/place.rb",
+    "app/entities/place.rb",
     "app/records/person_record.rb",
   ].freeze
 
@@ -155,14 +155,29 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a query"
-    assert_includes found.first.message, "Declared: value, record."
+    assert_includes found.first.message, "Declared: entity, record."
   end
 
-  def test_a_command_may_call_a_command
-    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
+  # A command is one write. Sequencing writes is the workflow's job, and a command calling
+  # a command has become a workflow without saying so — with none of the obligations.
+  def test_a_command_may_not_call_a_command
+    found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
           Geography::CreatePlace.call
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A command may not call a command"
+  end
+
+  def test_a_command_may_read_through_a_query
+    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
+      class CreatePerson
+        def call
+          ListPeople.call
         end
       end
     RUBY
@@ -226,7 +241,7 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A gateway may not call a record"
-    assert_includes found.first.message, "Declared: value."
+    assert_includes found.first.message, "Declared: entity."
   end
 
   def test_a_gateway_may_not_read_through_a_query

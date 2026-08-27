@@ -52,15 +52,15 @@ Shipshape/CallGraph:
     command:          ['app/commands/**/*.rb']
     query:            ['app/queries/**/*.rb']
     gateway:          ['app/gateways/**/*.rb']
-    value:            ['app/values/**/*.rb']
+    entity:           ['app/entities/**/*.rb']
     record:           ['app/records/**/*.rb']
   Matrix:
     request_handling: [workflow, command, query]
     workflow:         [command, query, gateway]
-    command:          [command, query, gateway, value, record]
-    query:            [value, record]
-    gateway:          [value]
-    value:            [value]
+    command:          [query, gateway, entity, record]
+    query:            [entity, record]
+    gateway:          [entity]
+    entity:           [entity]
     record:           []
 ```
 
@@ -73,8 +73,9 @@ The four rows that carry the argument:
 - **A query may not call a query.** A query is one read. A query calling a query is two
   reads wearing one name, the second invisible to whoever asked — the shape an N+1 arrives
   in.
-- **A command may call a command**, because composing writes is how one change spans
-  records without the caller having to know the order.
+- **A command may not call a command.** A command is one write. Sequencing writes is the
+  workflow's job, and a command calling a command has become a workflow without saying so
+  — with none of a workflow's obligations, which is the real cost.
 - **A workflow may not call a workflow.** Its whole content is its sequence, and nesting
   hides the sequence.
 - **A gateway is a command that crosses the process boundary**, and the only kind allowed

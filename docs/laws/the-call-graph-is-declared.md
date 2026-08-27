@@ -10,19 +10,36 @@ The default kinds, and an application may name its own:
 |---|---|
 | request handling | workflow, command, query |
 | workflow | command, query, gateway |
-| command | command, query, gateway, value, record |
-| query | value, record |
-| gateway | value |
-| value | value |
+| command | query, gateway, entity, record |
+| query | entity, record |
+| gateway | entity |
+| entity | entity |
 | record | nothing |
+
+**Workflow, command, query and gateway are all *operations*** — a class with one public
+method, as [`one-operation-one-class`](one-operation-one-class.md) requires. The kinds
+differ in what they may reach, which is the only thing a kind is for.
+
+**An *entity* is a domain object: a thing the code reasons about, detached from the
+database.** A value without identity — a money, a date range — lives in the same tree and
+has the same row, so it is not a separate kind. A kind that forbids nothing is a name, not
+a kind.
 
 **A query may not call a query.** A query is *one* read. A query that calls a query is two
 reads wearing one name, the second invisible to the caller, and that is the shape an N+1
 arrives in. Where a caller needs two reads it asks for two, and the composition is visible
 at the place that wanted it.
 
-**A command may call a command**, because composing writes is how one change spans records
-without a caller having to know the order.
+**A command may not call a command.** A command is *one* write. Sequencing writes is the
+workflow's job, and a command that calls a command has become a workflow without saying so
+— with none of a workflow's obligations, which is the actual cost: nobody made those steps
+idempotent, and nobody checked that stopping between them leaves a legal state.
+
+**This is the row with a price, and it is worth naming.** A change spanning records can no
+longer be one command wrapping a second in a transaction. It becomes a workflow, and a
+workflow spans transactions — so each step has to be idempotent and each intermediate state
+has to be legal. That is more work, and it is work the transaction was hiding rather than
+doing.
 
 **A workflow does not call a workflow.** A workflow's whole content is its sequence;
 nesting one inside another hides the sequence, which is the only thing it had to offer.

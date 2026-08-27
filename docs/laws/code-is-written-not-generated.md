@@ -17,7 +17,7 @@ writing was the expensive half; the cost is now paid on every read, forever, by 
 are not the writer.
 
 - **Principle:** `nothing-is-hidden`
-- **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, value and record trees.
+- **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, entity and record trees.
   Fails defining methods from data, evaluating a string as code, and missing-method
   dispatch.
 - **Guard's limit:** it names **constructs, not intent**. A helper in a gem doing the same
