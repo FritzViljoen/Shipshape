@@ -17,14 +17,6 @@ module Shipshape
   class Settings
     include TypedArguments
 
-    # A glob's wildcards must all be at the tail. Everything before the first one is read as
-    # an autoload root, which is how a constant name is turned back into a path — so
-    # `app/*/queries/**/*.rb` would resolve constants against `app` and quietly match
-    # nothing.
-    GLOB_ERROR = "Shipshape: kind %<kind>s has glob %<glob>s, whose wildcards are not all " \
-                 "at the end. The part before the first wildcard is read as an autoload " \
-                 "root, so this glob would resolve no constants at all."
-
     SISTER_ERROR = "Shipshape: Matrix row %<kind>s lists itself. No kind calls its own " \
                    "kind, so a row naming itself is a contradiction rather than a " \
                    "permission."
@@ -39,7 +31,7 @@ module Shipshape
       @kinds = typed_hash(kinds, String, Array)
       @matrix = typed_hash(matrix, String, Array)
 
-      refuse_globs_with_a_wildcard_in_the_middle
+      assert_globs_are_strings
       refuse_rows_that_name_themselves
       refuse_rows_naming_an_undeclared_kind
     end
@@ -54,22 +46,8 @@ module Shipshape
 
     private
 
-    def refuse_globs_with_a_wildcard_in_the_middle
-      kinds.each do |kind, globs|
-        typed_array(globs, String).each do |glob|
-          next if wildcards_are_all_at_the_end?(glob)
-
-          raise Error, format(GLOB_ERROR, kind: kind, glob: glob)
-        end
-      end
-    end
-
-    def wildcards_are_all_at_the_end?(glob)
-      segments = glob.split("/")
-      first = segments.index { |segment| segment.include?("*") }
-      return true if first.nil?
-
-      segments[first..-1].all? { |segment| segment.include?("*") }
+    def assert_globs_are_strings
+      kinds.each_value { |globs| typed_array(globs, String) }
     end
 
     def refuse_rows_that_name_themselves

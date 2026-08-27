@@ -72,8 +72,18 @@ reach becomes the place unrelated things are put.
   looking for that file under each kind's roots. Fails a call whose pair is not in the
   matrix, and fails any same-kind call before the matrix is consulted. Refuses a matrix
   row that names itself.
+- **Layout:** a kind is a list of globs, so a conventional `app/` tree and a Packwerk
+  `packs/*/app/` tree are the same mechanism — the glob's trailing wildcards are dropped
+  and what remains is expanded on disk, giving one autoload root per pack. Two packs may
+  hold the same constant name; each resolves inside its own pack.
 - **Guard's limit:** it resolves receivers syntactically. A call through a local assigned
   earlier, through a method that returns a collaborator, through `send`, or through any
   metaprogrammed dispatch, is invisible. A class it cannot assign a kind to is skipped
   rather than failed — and the count of skipped classes is reported, because a silently
   unclassified tree is exactly the coverage-shaped hole this canon warns about.
+
+  Root expansion reads the disk once per glob and caches it, so a directory created
+  mid-run is not seen. It also resolves a constant by **name to path**, which means an
+  application whose constant does not follow its loader's naming — an acronym, an
+  explicit `inflect` rule — resolves to no file and is skipped. Skipped, again, not
+  failed.

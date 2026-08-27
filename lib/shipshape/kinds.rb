@@ -27,6 +27,7 @@ module Shipshape
       @settings = typed(settings, Settings)
       @base_dir = typed(base_dir, String)
       @constant_cache = {}
+      @root_cache = {}
     end
 
     def for_path(path)
@@ -50,14 +51,14 @@ module Shipshape
 
     private
 
-    attr_reader :settings, :base_dir, :constant_cache
+    attr_reader :settings, :base_dir, :constant_cache, :root_cache
 
     def resolve_constant(name)
       relative = "#{underscore(name)}.rb"
 
       settings.kinds.each do |kind, globs|
         globs.each do |glob|
-          return kind if File.file?(File.join(base_dir, root_of(glob), relative))
+          return kind if roots_of(glob).any? { |root| File.file?(File.join(root, relative)) }
         end
       end
       nil
@@ -71,10 +72,24 @@ module Shipshape
       absolute[prefix.length..-1]
     end
 
-    # "app/commands/**/*.rb" -> "app/commands". Settings has already refused a glob whose
-    # wildcards are not all at the tail, so this cannot silently truncate a real segment.
-    def root_of(glob)
-      glob.split("/").take_while { |segment| !segment.include?("*") }.join("/")
+    # The autoload roots a glob covers — what a constant name is resolved against.
+    #
+    # Trailing wildcard segments are dropped, and what remains is expanded on disk, so a
+    # Packwerk layout works: `packs/*/app/commands/**/*.rb` drops `**` and `*.rb`, leaving
+    # `packs/*/app/commands`, which expands to one root per pack. An earlier version took
+    # everything before the FIRST wildcard, which resolved every packs constant against
+    # `packs` and matched nothing at all — silently, which is the worse half.
+    #
+    # Expansion reads the disk, so it is memoised per glob. A pack added mid-run is not
+    # seen; nothing adds one mid-run.
+    def roots_of(glob)
+      root_cache[glob] ||= begin
+        segments = glob.split("/")
+        segments.pop while segments.last && segments.last.include?("*")
+        pattern = File.join(base_dir, segments.join("/"))
+
+        pattern.include?("*") ? Dir.glob(pattern).select { |path| File.directory?(path) } : [pattern]
+      end
     end
 
     # Deliberately not ActiveSupport's: the gem takes no Rails dependency, and the acronym

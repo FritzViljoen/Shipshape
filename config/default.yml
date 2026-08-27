@@ -11,25 +11,32 @@ Shipshape/CallGraph:
   Kinds:
     request_handling:
       - 'app/controllers/**/*.rb'
+      - 'packs/*/app/controllers/**/*.rb'
     workflow:
       - 'app/workflows/**/*.rb'
+      - 'packs/*/app/workflows/**/*.rb'
     # An integration's classes are commands and queries like any others. A remote read is
     # a query and a remote write is a command, so they are filed in these trees —
     # app/queries/stripe/fetch_rates.rb, app/commands/stripe/send_invoice.rb.
     #
-    # A glob's wildcards must all be at the end: the part before the first one is read as
-    # an autoload root, which is how a constant name is turned back into a path. A glob
-    # like 'app/*/queries/**/*.rb' stops the run rather than silently matching nothing.
+    # A glob's trailing wildcards are dropped and what remains is expanded on disk to get
+    # the autoload roots a constant name is resolved against — so a Packwerk layout works
+    # without a second mechanism.
     command:
       - 'app/commands/**/*.rb'
+      - 'packs/*/app/commands/**/*.rb'
     query:
       - 'app/queries/**/*.rb'
+      - 'packs/*/app/queries/**/*.rb'
     entity:
       - 'app/entities/**/*.rb'
       - 'app/values/**/*.rb'
+      - 'packs/*/app/entities/**/*.rb'
     record:
       - 'app/records/**/*.rb'
       - 'app/models/**/*.rb'
+      - 'packs/*/app/records/**/*.rb'
+      - 'packs/*/app/models/**/*.rb'
   # Who may call whom. A pair absent from this matrix is an offence.
   #
   # NO KIND CALLS ITS OWN KIND. That rule lives in the cop, not here: a row that names

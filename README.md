@@ -64,7 +64,11 @@ Shipshape/CallGraph:
     record:           []
 ```
 
-A class's kind comes from where it is filed. A call whose (caller kind, callee kind) pair
+A class's kind comes from where it is filed. A kind is a list of globs, so a Packwerk
+layout needs no second mechanism — add `packs/*/app/commands/**/*.rb` beside
+`app/commands/**/*.rb` and each pack becomes its own autoload root.
+
+ A call whose (caller kind, callee kind) pair
 is absent from the matrix is an offence. A constant that resolves to no file under a
 declared kind is skipped, not failed.
 

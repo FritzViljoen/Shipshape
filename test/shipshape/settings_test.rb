@@ -43,16 +43,10 @@ class SettingsTest < Minitest::Test
     assert_includes error.message, "which no Kinds entry declares"
   end
 
-  def test_a_glob_with_a_wildcard_in_the_middle_is_refused
-    error = assert_raises(Shipshape::Error) do
-      Shipshape::Settings.new(kinds: KINDS.merge("query" => ["app/*/queries/**/*.rb"]), matrix: MATRIX)
-    end
-
-    assert_includes error.message, "wildcards are not all at the end"
-  end
-
-  def test_a_glob_with_no_wildcard_at_all_is_fine
-    kinds = KINDS.merge("query" => ["app/queries/list_people.rb"])
+  # A mid-path wildcard is legitimate — it is how a Packwerk layout is expressed — and
+  # Kinds expands it into one autoload root per pack.
+  def test_a_glob_with_a_wildcard_in_the_middle_is_accepted
+    kinds = KINDS.merge("query" => ["packs/*/app/queries/**/*.rb"])
 
     assert_equal ["query"], Shipshape::Settings.new(kinds: kinds, matrix: MATRIX).reachable_from("command")
   end

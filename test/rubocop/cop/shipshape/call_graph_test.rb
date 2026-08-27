@@ -288,23 +288,55 @@ class CallGraphTest < Minitest::Test
     assert_includes error.message, "Matrix row query lists itself"
   end
 
-  # The part before the first wildcard is read as an autoload root, so a glob with a
-  # wildcard in the middle would resolve every constant against the wrong directory and
-  # report nothing. Refused, rather than shipped as a silent hole.
-  def test_a_glob_with_a_wildcard_in_the_middle_is_refused
-    broken = CONFIG.merge("Kinds" => CONFIG["Kinds"].merge("query" => ["app/*/queries/**/*.rb"]))
+  # A Packwerk layout has no top-level app/. The glob's trailing wildcards are dropped and
+  # what remains is expanded on disk, giving one autoload root per pack.
+  def test_a_packwerk_layout_resolves_per_pack
+    packs = {
+      "Kinds" => {
+        "command" => ["packs/*/app/commands/**/*.rb"],
+        "query" => ["packs/*/app/queries/**/*.rb"],
+        "record" => ["packs/*/app/records/**/*.rb"],
+      },
+      "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [] },
+    }
+    tree = %w[
+      packs/billing/app/commands/charge.rb
+      packs/catalogue/app/queries/list_items.rb
+      packs/catalogue/app/records/item_record.rb
+    ]
 
-    error = assert_raises(Shipshape::Error) do
-      offences(<<~RUBY, cop_class: COP, cop_config: broken, path: "app/queries/list_people.rb", files: TREE)
-        class ListPeople
-          def call
-            PersonRecord.all
-          end
+    found = offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/app/queries/list_items.rb", files: tree)
+      class ListItems
+        def call
+          Charge.call
         end
-      RUBY
-    end
+      end
+    RUBY
 
-    assert_includes error.message, "wildcards are not all at the end"
+    assert_equal 1, found.length
+    assert_includes found.first.message, "A query may not call a command"
+    assert_includes found.first.message, "Declared: record."
+  end
+
+  # Each pack is its own autoload root, so two packs may hold the same constant name and
+  # each resolves within its own tree.
+  def test_a_record_in_another_pack_is_still_a_record
+    packs = {
+      "Kinds" => {
+        "query" => ["packs/*/app/queries/**/*.rb"],
+        "record" => ["packs/*/app/records/**/*.rb"],
+      },
+      "Matrix" => { "query" => ["record"], "record" => [] },
+    }
+    tree = %w[packs/catalogue/app/queries/list_items.rb packs/billing/app/records/invoice_record.rb]
+
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/app/queries/list_items.rb", files: tree)
+      class ListItems
+        def call
+          InvoiceRecord.all
+        end
+      end
+    RUBY
   end
 
   private
