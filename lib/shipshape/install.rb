@@ -35,6 +35,7 @@ module Shipshape
       workflow
       legacy_query
       legacy_command
+      typed_params
     ].freeze
 
     DIRECTORY = "app/shipshape"

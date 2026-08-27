@@ -17,8 +17,16 @@ answer to a question nobody asked.
 trap: the adapter coerces the string, so `/people/1abc` serves record 1 and nothing
 anywhere fails. The parsers refuse it, but a seam cannot defend a door nobody opened.
 
+**Absence is nil or empty, and deliberately not `blank?`.** `false.blank?` is true, so a
+blank guard turns a parameter that says *no* into the default — the request states a fact
+and the application hears nothing. Absence and a value of false are different things, and
+only one of them is absence.
+
 - **Principle:** `nothing-crosses-unasserted`, and `nothing-fails-quietly` for the bouncing
   half. On conflict `nothing-crosses-unasserted` governs.
+- **Implementation:** `shipshape install` writes `TypedParams` into the application, beside
+  the base classes. The law needed something to parse *with*, and a law whose only
+  implementation is private is a law nobody can keep.
 - **Guard:** `Shipshape/NoInlineParamParse` flags parse, strptime, iso8601 on any receiver,
   the raising conversions, and the casts, whenever the value came from request parameters.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an
