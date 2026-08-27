@@ -136,6 +136,16 @@ Their population is the migration backlog. It **rises** while the old world is b
 into the new shape and falls only as each wrapped thing is rewritten — a curve, not a
 ratchet. The ratchet governs violations, and a door is not a violation.
 
+**There is no legacy kind for anything but the two doors.** A kind is for a shape you
+intend to keep; the ratchet is for a shape you intend to remove. A door earns one because
+the old world has to stay reachable; a legacy controller wraps nothing and *is* the thing
+to be rewritten, so blessing it with a kind would leave nothing counting it down.
+
+On a real application that means most existing controllers violate the matrix on day one.
+That is correct and survivable — the baseline comes from the merge-base, only new
+violations fail, and the count is the migration progress. Unlike a register of which files
+are "done", it cannot rot.
+
 A constant that resolves to no file under a declared kind is skipped, not failed.
 
 ## Tests

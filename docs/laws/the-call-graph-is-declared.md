@@ -48,6 +48,21 @@ wrapped thing is rewritten and its door deleted. That is a curve, not a ratchet 
 ratchet governs violations, and a door is not a violation. What the mark buys is that the
 number is knowable at all.
 
+**And there is no legacy kind for anything else — no legacy controller, no legacy entity.**
+The line is this: **a kind is for a shape you intend to keep; the ratchet is for a shape you
+intend to remove.**
+
+A door earns a kind because the old world still exists and has to be reachable from the new
+one; it is a legitimate, useful shape with a job. A legacy controller wraps nothing — it *is*
+the thing to be rewritten — so giving it a kind would bless it, make it legal, and leave
+nothing counting it down.
+
+On a real application that means every existing controller is `request_handling` and most of
+them violate the matrix on day one. That is correct and survivable: the baseline is taken
+from the merge-base, only new violations fail, and **the count is the migration progress**.
+Unlike a register of which controllers are "done", it cannot rot — a controller is migrated
+exactly when it stops violating, and nobody maintains a list.
+
 A door's own calls into the old world are invisible to the guard,
 because unclassified constants are skipped — which is exactly what a door is for.
 
