@@ -5,6 +5,7 @@ require "rubocop"
 
 require "shipshape/version"
 require "shipshape/error"
+require "shipshape/boolean"
 require "shipshape/typed_arguments"
 require "shipshape/settings"
 require "shipshape/kinds"

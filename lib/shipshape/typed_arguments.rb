@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "shipshape/boolean"
+
 module Shipshape
   # Holds `arguments-are-typed-at-construction` for this gem, and is what a consumer uses
   # to hold it for their own code.
@@ -15,7 +17,7 @@ module Shipshape
 
     def typed(value, type, allow_nil: false)
       return value if allow_nil && value.nil?
-      return value if value.is_a?(type)
+      return value if matches?(value, type)
 
       raise ArgumentError, "expected #{type}, got #{value.class}: #{value.inspect}"
     end
@@ -26,6 +28,19 @@ module Shipshape
 
       values.each { |value| typed(value, type) }
       values
+    end
+
+    # `Boolean` is a name, not a class, so it is known by identity rather than by
+    # `is_a?`. The alternative — reopening TrueClass and FalseClass to include a marker —
+    # would change two objects nobody owns, from a gem, invisibly.
+    #
+    # `nil` is not false. A keyword that may be absent says so with `allow_nil:`, because
+    # "not supplied" and "supplied as false" are different facts and
+    # `absence-is-absence` refuses to let one stand for the other.
+    def matches?(value, type)
+      return value == true || value == false if type.equal?(Boolean)
+
+      value.is_a?(type)
     end
 
     # Keys and values are asserted separately, because a Hash whose keys are right and

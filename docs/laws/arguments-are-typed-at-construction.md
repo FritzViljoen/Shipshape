@@ -20,6 +20,14 @@ Date)` would stop being greppable — see
   guard call. Anything that is not a named keyword is its own offence — `**rest`, `(...)`, a
   positional parameter, a positional Hash default — because a keyword-less initializer
   silently accepts the caller's keywords as one Hash and the call succeeds.
+**`Boolean` is a name, not a class.** Ruby has none, and the usual workaround — reopening
+`TrueClass` and `FalseClass` to include a marker module — changes two objects nobody owns,
+from a library, invisibly. That is the defect
+[`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) names, so the
+guard knows the name by identity instead and includes it nowhere. `nil` is not false and a
+truthy value is not true: absence says so with `allow_nil:`, and anything else would be a
+coercion.
+
 - **Guard's limit:** it checks that a keyword **is** guarded, never that the type named is
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
   helper it does not know by name.

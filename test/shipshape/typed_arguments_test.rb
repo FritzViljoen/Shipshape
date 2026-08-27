@@ -2,21 +2,24 @@
 
 require "test_helper"
 
-# Watched to fail: making `typed` return its value unconditionally reddens every raising
-# test here. A guard nobody has seen fail reads as coverage.
+# Watched to fail, twice: making `typed` return its value unconditionally reddens every
+# raising test here, and making `matches?` answer true for Boolean reddens the three
+# Boolean cases. Restoring each returns them to green. A guard nobody has seen fail reads
+# as coverage.
 class TypedArgumentsTest < Minitest::Test
   # A stand-in caller, written the way the law asks: a hand-written initializer, one guard
   # per keyword, no macro.
   class Subject
     include Shipshape::TypedArguments
 
-    attr_reader :name, :count, :tags, :labels
+    attr_reader :name, :count, :tags, :labels, :tie
 
-    def initialize(name:, count:, tags:, labels:)
+    def initialize(name:, count:, tags:, labels:, tie: false)
       @name = typed(name, String)
       @count = typed(count, Integer, allow_nil: true)
       @tags = typed_array(tags, String)
       @labels = typed_hash(labels, String, Integer)
+      @tie = typed(tie, Shipshape::Boolean)
     end
   end
 
@@ -61,6 +64,37 @@ class TypedArgumentsTest < Minitest::Test
     end
 
     assert_raises(ArgumentError) { subject.new([]) }
+  end
+
+  def test_boolean_accepts_both_of_them_and_nothing_else
+    assert_equal true, Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: true).tie
+    assert_equal false, Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: false).tie
+
+    error = assert_raises(ArgumentError) do
+      Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: "true")
+    end
+
+    assert_includes error.message, "expected Boolean, got String"
+  end
+
+  # "Not supplied" and "supplied as false" are different facts, and `absence-is-absence`
+  # refuses to let one stand for the other. A keyword that may be absent says so.
+  def test_nil_is_not_false
+    assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: nil) }
+  end
+
+  # Truthiness is not a Boolean. Anything else accepted here would be a coercion, and this
+  # guard asserts rather than coercing.
+  def test_a_truthy_value_is_not_a_boolean
+    assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: 1) }
+    assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: Object.new) }
+  end
+
+  # A gem that reopened TrueClass and FalseClass would change two objects nobody owns,
+  # from a dev dependency, invisibly. Boolean is a name and is included nowhere.
+  def test_boolean_does_not_reopen_the_core_classes
+    refute_includes true.class.ancestors, Shipshape::Boolean
+    refute_includes false.class.ancestors, Shipshape::Boolean
   end
 
   # The guard is private, so it cannot be reached from outside the object that declared
