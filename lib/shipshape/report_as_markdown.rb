@@ -93,9 +93,15 @@ module Shipshape
     # `class Booking < ApplicationRecord` is the same word twice and a reference to nothing
     # the reader did not have — the stutter moved rather than left. A measure whose findings
     # ARE classes says so, and its examples carry the count instead.
+    # A FINDING NEVER RENDERS AS A BARE PATH. That is the whole rule, and it decides both
+    # ways: where the label already carries the point, the source line is redundant and is
+    # left out; where there is no label, the line is all the reader has and it is shown —
+    # `offered_services_presenter.rb:70` says nothing at all about which of the three
+    # classes in that file is meant.
     def example(finding, source: true)
-      line = ["- `#{finding.relative}:#{finding.line}`#{" #{finding.label}" if finding.label.to_s != ""}"]
-      code = source ? source_line(finding) : nil
+      labelled = finding.label.to_s != ""
+      line = ["- `#{finding.relative}:#{finding.line}`#{" #{finding.label}" if labelled}"]
+      code = source || !labelled ? source_line(finding) : nil
 
       code ? line + ["  `#{code}`"] : line
     end

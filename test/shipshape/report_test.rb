@@ -328,15 +328,32 @@ class ReportTest < Minitest::Test
     assert_equal 1, parsing.count
   end
 
-  # A file and a line number ask the reader to go and look; the code asks nothing. But NOT
-  # under a class declaration — `app/models/booking.rb:3` followed by `class Booking <
-  # ApplicationRecord` is the same word twice, which is the stutter moved rather than left.
-  def test_the_markdown_shows_the_line_where_it_adds_something
+  # A FINDING NEVER RENDERS AS A BARE PATH, and that one rule decides both ways.
+  #
+  # Where the label carries the point — "4 public methods" — the class line repeats what
+  # the path already said, so it is left out. Where there is no label, the line is all the
+  # reader has: `offered_services_presenter.rb:70` says nothing about which of the three
+  # classes in that file is meant.
+  def test_a_finding_never_renders_as_a_bare_path
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_includes text, "`before_save :stamp`"
     assert_includes text, "`if @order.paid?`"
-    refute_includes text, "`class Basket`"
+    assert_includes text, "`class Basket`"
+    refute_includes text, "`class Order < ApplicationRecord`"
+  end
+
+  # The reference and its code sit on two lines, so the invariant is about the pair: a
+  # bullet carrying nothing but a path must be followed by the line it points at.
+  def test_every_example_says_something_the_path_does_not
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+    lines = text.lines.map(&:rstrip)
+
+    bare = lines.each_with_index.select do |line, index|
+      line.match?(/\A- `[^`]+:\d+`\z/) && !lines[index + 1].to_s.match?(/\A  `.+`\z/)
+    end
+
+    assert_empty bare.map(&:first), "a path and a line number on their own tell the reader nothing"
   end
 
   # `Paid@order.call(@order: @order)` is what came out before anybody read the generated

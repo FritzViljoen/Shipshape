@@ -18,6 +18,10 @@ module Shipshape
       LAW = "the-call-graph-is-declared"
       WHY = "Nothing says what these are, so no rule can reach them and no reader can tell " \
             "what they may do."
+      CAVEAT = "A class reopened rather than defined — `class String` in a core extension — " \
+               "has no superclass in the file and is counted here too. The line shown under " \
+               "each makes those quick to skip; a list of core class names would be a copy " \
+               "of somebody else's facts, and it would rot."
       NOUN = "classes"
       # The findings ARE classes, and the path names them. Printing `class Booking <
       # ApplicationRecord` under `app/models/booking.rb` is the same word twice.
