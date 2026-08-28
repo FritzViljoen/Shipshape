@@ -19,7 +19,7 @@ module Shipshape
     EXAMPLES = 5
 
     Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, :population, :noun,
-                     :unit, :exemplars, :headline, :units, keyword_init: true) do
+                     :unit, :exemplars, :headline, :units, :source, keyword_init: true) do
       def count
         findings.length
       end
@@ -39,6 +39,12 @@ module Shipshape
         return nil if population.nil? || population.zero?
 
         population - affected
+      end
+
+      # Whether a source line is worth printing under the reference. False where the finding
+      # IS a class: the path names it already.
+      def source?
+        source != false
       end
 
       def affected
@@ -87,6 +93,7 @@ module Shipshape
           exemplars: ask(instance, :exemplars, sources) || [],
           headline: ask(instance, :headline, sources),
           units: instance.respond_to?(:units) ? instance.units(findings) : nil,
+          source: measure.const_defined?(:SHOW_SOURCE) ? measure::SHOW_SOURCE : true,
         )
       end
     end

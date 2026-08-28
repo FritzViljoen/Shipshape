@@ -20,6 +20,9 @@ module Shipshape
             "the god object counted while it is still small."
 
       NOUN = "classes"
+      # The findings ARE classes, and the path names them. Printing `class Booking <
+      # ApplicationRecord` under `app/models/booking.rb` is the same word twice.
+      SHOW_SOURCE = false
       # Ranked by how many methods, so the widest class is the first one read.
       SELF_RANKED = true
 

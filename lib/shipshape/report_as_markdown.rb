@@ -78,7 +78,7 @@ module Shipshape
     end
 
     def examples_for(row)
-      shown = row.findings.first(examples).flat_map { |finding| example(finding) }
+      shown = row.findings.first(examples).flat_map { |finding| example(finding, source: row.source?) }
       # Saying how many were not shown, rather than trailing off, because a truncated list
       # that does not admit it reads as the whole list.
       shown << "- …and #{row.count - examples} more" if row.count > examples
@@ -89,11 +89,13 @@ module Shipshape
     # The line itself, under the reference. A file and a line number ask the reader to go
     # and look; the code asks nothing and is usually enough to decide whether to.
     #
-    # It also settles the stutter: with the source shown, a label naming the class as well
-    # as the file that is named after it says the same thing three times.
-    def example(finding)
+    # NOT FOR A CLASS DECLARATION, though. `app/models/booking.rb:3` followed by
+    # `class Booking < ApplicationRecord` is the same word twice and a reference to nothing
+    # the reader did not have — the stutter moved rather than left. A measure whose findings
+    # ARE classes says so, and its examples carry the count instead.
+    def example(finding, source: true)
       line = ["- `#{finding.relative}:#{finding.line}`#{" #{finding.label}" if finding.label.to_s != ""}"]
-      code = source_line(finding)
+      code = source ? source_line(finding) : nil
 
       code ? line + ["  `#{code}`"] : line
     end

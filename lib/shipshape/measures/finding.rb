@@ -49,6 +49,41 @@ module Shipshape
         class_node.children.first.source
       end
 
+      # The name as it is actually reachable: `SiteEngine::ProductFactory::ProductCode`,
+      # not `ProductCode`. Reading the bare name off a nested class turns an inner class
+      # into what looks like a stray object with no home.
+      def qualified_name(root, class_node)
+        enclosing = []
+        walk(root) do |node|
+          next unless %i[class module].include?(node.type)
+          next if node.equal?(class_node)
+          next unless contains?(node, class_node)
+
+          enclosing << node.children.first.source
+        end
+
+        (enclosing + [name_of(class_node)]).join("::")
+      end
+
+      # A class nested inside another CLASS is that class's business — an implementation
+      # detail of the thing around it, which is the thing that needs a kind. A class nested
+      # only in modules is namespaced, not owned, and stands on its own.
+      def owned_by_a_class?(root, class_node)
+        found = false
+        walk(root) do |node|
+          next unless node.class_type?
+          next if node.equal?(class_node)
+
+          found = true if contains?(node, class_node)
+        end
+        found
+      end
+
+      def contains?(outer, inner)
+        outer.loc.expression.begin_pos < inner.loc.expression.begin_pos &&
+          outer.loc.expression.end_pos >= inner.loc.expression.end_pos
+      end
+
       def superclass_of(class_node)
         class_node.children[1] && class_node.children[1].source
       end

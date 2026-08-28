@@ -43,8 +43,13 @@ module Shipshape
         finding = findings.first
         return nil if finding.nil? || finding.context.nil?
 
+        # `@order` is not a name a class can carry, and `Paid@order.call(@order: @order)`
+        # is what came out before anybody read the generated line. The sigil is Ruby
+        # punctuation; the word under it is the subject.
         receiver = finding.context[:receiver]
+        subject = receiver.to_s.delete_prefix("@@").delete_prefix("@")
         question = finding.context[:question]
+        name = "#{Naming.camel(question.to_s.delete_suffix("?").delete_suffix("!"))}#{Naming.camel(subject)}"
 
         <<~TEXT
           `#{finding.relative}:#{finding.line}` asks `#{receiver}.#{question}` and decides what to
@@ -53,7 +58,7 @@ module Shipshape
 
           ```ruby
           # instead of asking and branching here
-          result = #{Naming.camel(question.to_s.delete_suffix("?"))}#{Naming.camel(receiver.to_s)}.call(#{receiver}: #{receiver})
+          result = #{name}.call(#{subject}: #{receiver})
 
           return failure(result.error) unless result.success?
           ```

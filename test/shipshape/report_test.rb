@@ -59,6 +59,17 @@ class ReportTest < Minitest::Test
         def add; end
 
         def remove; end
+
+        class Line
+          def total; end
+        end
+      end
+    RUBY
+    "app/models/warehouse/bin.rb" => <<~RUBY,
+      module Warehouse
+        class Bin
+          def label; end
+        end
       end
     RUBY
     "db/schema.rb" => <<~RUBY,
@@ -75,11 +86,22 @@ class ReportTest < Minitest::Test
 
   # No label: the path names the file, the source line shown beneath names the class, and a
   # third copy of the same word is the report stuttering at its reader.
-  def test_it_finds_a_class_that_inherits_from_nothing
+  # A class nested inside another CLASS is that class's own business — an implementation
+  # detail of the thing around it, which is the thing that needs a kind. Counting them put
+  # five entries in the report for one file and stripped the namespace off every one.
+  def test_a_class_owned_by_another_class_is_not_a_stray_object
+    relatives = row("Classes that inherit from nothing").findings.map(&:relative)
+
+    assert_equal 1, relatives.count("app/models/basket.rb")
+  end
+
+  # A class nested only in modules is namespaced, not owned — and its source line reads
+  # `class Bin`, which says nothing about Warehouse. So the label carries the real name.
+  def test_a_namespaced_class_is_named_in_full
     found = row("Classes that inherit from nothing").findings
 
-    assert_equal ["app/models/basket.rb"], found.map(&:relative)
-    assert_equal [""], found.map(&:label)
+    assert_includes found.map(&:label), "Warehouse::Bin"
+    assert_includes found.map(&:label), ""
   end
 
   def test_it_finds_classes_doing_several_things
@@ -306,12 +328,24 @@ class ReportTest < Minitest::Test
     assert_equal 1, parsing.count
   end
 
-  # A file and a line number ask the reader to go and look; the code asks nothing.
-  def test_the_markdown_shows_the_line_itself
+  # A file and a line number ask the reader to go and look; the code asks nothing. But NOT
+  # under a class declaration — `app/models/booking.rb:3` followed by `class Booking <
+  # ApplicationRecord` is the same word twice, which is the stutter moved rather than left.
+  def test_the_markdown_shows_the_line_where_it_adds_something
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
-    assert_includes text, "`class Basket`"
     assert_includes text, "`before_save :stamp`"
+    assert_includes text, "`if @order.paid?`"
+    refute_includes text, "`class Basket`"
+  end
+
+  # `Paid@order.call(@order: @order)` is what came out before anybody read the generated
+  # line. The sigil is Ruby punctuation; the word under it is the subject.
+  def test_a_proposal_strips_the_sigil_from_an_instance_variable
+    proposal = row("Asking, then branching on the answer").proposal
+
+    assert_includes proposal, "PaidOrder.call(order: @order)"
+    refute_includes proposal, "Paid@order"
   end
 
   def test_no_abbreviations_reach_the_reader
