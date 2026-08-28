@@ -462,6 +462,11 @@ class ReportTest < Minitest::Test
     # is behind it, and the scheduler makes the same call.
     assert_includes text, "def close_month"
     assert_includes text, "CloseTheMonth.call(on:"
+
+    # A guard clause reads as "should I proceed", which is deciding. Two arms read as
+    # "which of these", which is placing — and placing is this layer's job.
+    assert_includes text, "CHOOSING WHICH RESPONSE TO SEND IS THIS LAYER'S JOB"
+    refute_includes text, %(return redirect_to invoice_path, notice: "Settled." if result.success?)
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 

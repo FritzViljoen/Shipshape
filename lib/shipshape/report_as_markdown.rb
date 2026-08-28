@@ -256,17 +256,26 @@ module Shipshape
               paid_on: date_param!(:paid_on, time_zone: :time_zone),
             )
 
-            # Choosing what to render IS this layer's job. Asking the invoice a question and
-            # acting on the answer would not be:
+            # CHOOSING WHICH RESPONSE TO SEND IS THIS LAYER'S JOB, and this is the shape to
+            # write it in: two arms, one response each. A guard clause — `return ... if` —
+            # reads as "should I proceed", which is deciding; a two-armed conditional reads
+            # as "which of these", which is placing.
+            #
+            # The decision itself was made by the command and came back as a value. Asking
+            # the invoice would not be allowed:
             #
             #   invoice = FindInvoice.call(id: id)
             #   return redirect_to invoices_path if invoice.settled?   # a rule, escaped
             #
-            # The command already answers that — `failure(:already_settled)` — so the action
-            # reads an outcome it was told rather than one it worked out.
-            return redirect_to invoice_path, notice: "Settled." if result.success?
-
-            render :show, status: :unprocessable_entity
+            # No helper is offered for this. A `respond_to_result(result, success:, failure:)`
+            # would hide the two lines a reader is looking for behind machinery they would
+            # have to learn — and every measure below counts conditionals it cannot tell
+            # apart from this one, which is why the shape is written out rather than wrapped.
+            if result.success?
+              redirect_to invoice_path, notice: "Settled."
+            else
+              render :show, status: :unprocessable_entity
+            end
           end
 
           # A workflow is called exactly like anything else — the action does not know or
@@ -275,9 +284,11 @@ module Shipshape
           def close_month
             result = CloseTheMonth.call(on: date_param!(:on, time_zone: :time_zone))
 
-            return redirect_to invoices_path, notice: "Closed." if result.success?
-
-            redirect_to invoices_path, alert: t(".could_not_close", reason: result.error)
+            if result.success?
+              redirect_to invoices_path, notice: "Closed."
+            else
+              redirect_to invoices_path, alert: t(".could_not_close", reason: result.error)
+            end
           end
         end
 
