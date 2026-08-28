@@ -463,6 +463,11 @@ class ReportTest < Minitest::Test
     assert_includes text, "def close_month"
     assert_includes text, "CloseTheMonth.call(on:"
 
+    # An earlier draft discarded every Result and reported a count that was never true —
+    # the commonest shape of catastrophic failure, in the example meant to teach against it.
+    assert_includes text, "EVERY RESULT IS READ."
+    refute_includes text, "invoices.each { |invoice| SettleInvoice.call"
+
     # A guard clause reads as "should I proceed", which is deciding. Two arms read as
     # "which of these", which is placing — and placing is this layer's job.
     assert_includes text, "CHOOSING WHICH RESPONSE TO SEND IS THIS LAYER'S JOB"

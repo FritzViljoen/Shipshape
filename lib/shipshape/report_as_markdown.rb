@@ -300,13 +300,35 @@ module Shipshape
         # request, and stopping half way has to leave a legal state.
         class CloseTheMonth < Workflow
           def initialize(on:)
-            @on = typed(on, Date)
+            @on = typed(on, Date)                   # a calendar date: no zone, on purpose
           end
 
           def call
-            invoices = ListUnsettledInvoices.call
-            invoices.each { |invoice| SettleInvoice.call(invoice: invoice, paid_on: @on) }
-            success(invoices.length)
+            invoices = ListUnsettledInvoices.call(before: @on)
+            results = invoices.map { |invoice| SettleInvoice.call(invoice: invoice, paid_on: @on) }
+            settled, refused = results.partition(&:success?)
+
+            success(Outcome.new(settled: settled.length, refused: refused.map(&:error)))
+          end
+
+          # EVERY RESULT IS READ. An earlier draft of this example wrote
+          # `invoices.each { SettleInvoice.call(...) }` and then answered
+          # `success(invoices.length)` — which discards every failure and reports a number
+          # that was never true. That is the commonest shape of catastrophic failure in
+          # production systems, and it appeared here, in the example meant to teach against
+          # it. Nothing caught it but a reader.
+          #
+          # ONE BAD INVOICE DOES NOT STOP THE MONTH. Carrying on and reporting is the right
+          # choice here; stopping at the first failure is the right choice elsewhere, and
+          # either way the workflow says which it did. What it may not do is neither.
+          #
+          # NO BRANCH. `partition` sorts results into two piles — it produces a value rather
+          # than choosing a path — so the sequence still reads straight down.
+          class Outcome < Shape
+            def initialize(settled:, refused:)
+              @settled = typed(settled, Integer)
+              @refused = typed_array(refused, Symbol)   # the codes, not sentences
+            end
           end
         end
         ```
