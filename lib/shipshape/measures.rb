@@ -10,6 +10,8 @@ require "shipshape/measures/input_parsed_in_the_action"
 require "shipshape/measures/nullable_columns"
 require "shipshape/measures/god_classes"
 require "shipshape/measures/wide_tables"
+require "shipshape/measures/asking_then_branching"
+require "shipshape/measures/actions_calling_many_classes"
 
 module Shipshape
   # What the report measures, in the order it reads best: the shape of the classes first,
@@ -20,6 +22,8 @@ module Shipshape
       ClassesDoingSeveralThings,
       GodClasses,
       RequestHandlingThatDecides,
+      ActionsCallingManyClasses,
+      AskingThenBranching,
       RequestHandlingThatReachesPersistence,
       PersistenceWithBehaviour,
       LifecycleCallbacks,

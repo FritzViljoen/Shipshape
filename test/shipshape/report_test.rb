@@ -15,7 +15,10 @@ class ReportTest < Minitest::Test
       class OrdersController < ApplicationController
         def show
           @basket = Basket.new
+          @now = Time.now
           @order = Order.find(params[:id].to_i)
+          return head :bad_request if Rails.env.development?
+
           if @order.paid?
             render :paid
           else
@@ -87,7 +90,9 @@ class ReportTest < Minitest::Test
   end
 
   def test_it_finds_a_branch_in_an_action
-    assert_equal 1, row("Branches inside request handling").count
+    # Two now: the `if @order.paid?` and the guard clause added to prove chains rooted in
+    # a constant are not counted as asking.
+    assert_equal 2, row("Branches inside request handling").count
   end
 
   def test_it_finds_request_handling_reaching_persistence
@@ -167,6 +172,27 @@ class ReportTest < Minitest::Test
   # does with it. `Category#to_param` was the first thing this report proposed extracting.
   def test_framework_methods_are_not_rules
     refute_includes labels("Rules living on persistence").join, "to_param"
+  end
+
+  # `if @order.paid?` — the caller taking a decision that belonged to the thing it asked.
+  def test_it_finds_asking_then_branching
+    assert_equal ["@order.paid?"], labels("Asking, then branching on the answer")
+  end
+
+  # THE ROOT OF THE CHAIN IS WHAT MATTERS. `Rails.env.development?` has a send as its
+  # receiver, so checking only the immediate one let every configuration read through.
+  def test_a_chain_rooted_in_a_constant_is_not_asking
+    refute_includes labels("Asking, then branching on the answer").join, "Rails"
+  end
+
+  # Counting `Time`, `Rails` and a local constant made the worst action a list of
+  # libraries rather than a sequence anybody would extract.
+  def test_only_classes_this_repository_declares_count_as_orchestration
+    found = labels("Actions orchestrating several classes")
+
+    assert_equal 1, found.length
+    assert_includes found.first, "Basket, Order"
+    refute_includes found.first, "Time"
   end
 
   def test_the_markdown_names_the_law_and_admits_what_it_truncates
