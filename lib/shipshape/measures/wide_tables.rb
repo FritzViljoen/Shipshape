@@ -22,6 +22,11 @@ module Shipshape
       CAVEAT = "No threshold — the widest are listed in order and the reader decides. A " \
                "line drawn here would be arbitrary."
 
+      # Sorted widest-first in #call. Every finding is in db/schema.rb, so the report's
+      # rank-by-file-frequency has nothing to order by and falls back to line number —
+      # which put a 39-column table above a 145-column one.
+      SELF_RANKED = true
+
       SCHEMA = "db/schema.rb"
       TABLE = /^\s*create_table\s+"([^"]+)"/.freeze
       COLUMN = /^\s*t\.\w+\s+"([^"]+)"/.freeze

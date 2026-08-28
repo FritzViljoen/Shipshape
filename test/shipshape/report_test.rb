@@ -546,6 +546,14 @@ class ReportTest < Minitest::Test
 
   # A measure registered twice renders twice, and the report claims the same finding as two
   # independent ones. Nothing else would have caught it: every count was right.
+  # Every finding is in one file, so the report's rank-by-file-frequency had nothing to
+  # order by and fell back to line number — listing a 39-column table above a 145-column one.
+  def test_the_widest_table_is_listed_first
+    columns = row("Widest tables").findings.map { |finding| finding.label[/(\d+) columns/, 1].to_i }
+
+    assert_equal columns.sort.reverse, columns
+  end
+
   def test_no_measure_is_registered_twice
     titles = Shipshape::Measures::ALL.map { |measure| measure::TITLE }
 
