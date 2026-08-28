@@ -5,6 +5,8 @@ require "shipshape"
 require "shipshape/install"
 require "shipshape/wire_typed_params"
 require "shipshape/check"
+require "shipshape/report"
+require "shipshape/report_as_markdown"
 
 WIRING = {
   wired: "  wired    %<path>s — includes TypedParams",
@@ -52,14 +54,22 @@ def report_clean(report)
   0
 end
 
+def report
+  answer = Shipshape::Report.new(root: Dir.pwd).call
+  puts Shipshape::ReportAsMarkdown.new(report: answer).call
+  0
+end
+
 command = ARGV.shift
 
 case command
 when "install" then exit install
+when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
   warn "usage: shipshape install"
+  warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"
   exit 1

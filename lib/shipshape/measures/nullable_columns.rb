@@ -1,0 +1,60 @@
+# frozen_string_literal: true
+
+require "shipshape/measures/finding"
+
+module Shipshape
+  module Measures
+    # Nullable columns and database defaults, read from `db/schema.rb`.
+    #
+    # The only measure that reads the schema rather than the code, and the one that is
+    # hardest to argue with: a nullable column is a gap given a meaning nobody declared, and
+    # a default is a second place deciding a value.
+    #
+    # It reads the **schema**, not the migrations — so this is what the database actually
+    # holds, however it got that way.
+    class NullableColumns
+      TITLE = "Nullable columns and database defaults"
+      LAW = "no-nullable-columns"
+      WHY = "A nullable column is a gap given a meaning nobody declared; a default is a " \
+            "second place deciding a value."
+
+      SCHEMA = "db/schema.rb"
+      COLUMN = /^\s*t\.(\w+)\s+"([^"]+)"(.*)$/.freeze
+      TIMESTAMPS = %w[created_at updated_at].freeze
+
+      def initialize(root:)
+        @root = root
+      end
+
+      # Takes the parsed sources like every other measure and ignores them: the schema is
+      # not under `app/`. Same shape in, so the report needs no special case.
+      def call(_sources)
+        return [] unless File.file?(path)
+
+        File.readlines(path).each_with_index.flat_map { |line, index| finding(line, index + 1) }.compact
+      end
+
+      private
+
+      attr_reader :root
+
+      def path
+        File.join(root, SCHEMA)
+      end
+
+      def finding(line, number)
+        match = COLUMN.match(line)
+        return nil if match.nil?
+
+        name = match[2]
+        return nil if TIMESTAMPS.include?(name)
+
+        trailing = match[3]
+        return Finding.new(relative: SCHEMA, line: number, label: "#{name} — has a default") if trailing.include?("default:")
+        return nil if trailing.include?("null: false")
+
+        Finding.new(relative: SCHEMA, line: number, label: "#{name} — nullable")
+      end
+    end
+  end
+end
