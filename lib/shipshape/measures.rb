@@ -14,6 +14,7 @@ require "shipshape/measures/god_classes"
 require "shipshape/measures/wide_tables"
 require "shipshape/measures/asking_then_branching"
 require "shipshape/measures/actions_calling_many_classes"
+require "shipshape/measures/actions_branching_on_domain_state"
 require "shipshape/measures/several_classes_in_one_file"
 require "shipshape/measures/inheritance_deeper_than_one_level"
 
@@ -28,6 +29,7 @@ module Shipshape
       ClassesDoingSeveralThings,
       GodClasses,
       RequestHandlingThatDecides,
+      ActionsBranchingOnDomainState,
       ActionsCallingManyClasses,
       AskingThenBranching,
       RequestHandlingThatReachesPersistence,

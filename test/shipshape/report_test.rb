@@ -22,6 +22,7 @@ class ReportTest < Minitest::Test
           @invoiced_on = Date.new(2026, 1, 1)
           @order = Order.find(params[:id].to_i)
           return head :bad_request if Rails.env.development?
+          return head :not_modified if request.xhr?
 
           if @order.paid?
             render :paid
@@ -156,8 +157,8 @@ class ReportTest < Minitest::Test
     branches = row("Branches inside request handling")
 
     assert_equal 1, branches.count
-    assert_equal ["#show — 2 branches"], branches.findings.map(&:label)
-    assert_includes branches.headline, "2 branches in all"
+    assert_equal ["#show — 3 branches"], branches.findings.map(&:label)
+    assert_includes branches.headline, "3 branches in all"
   end
 
   def test_it_finds_request_handling_reaching_persistence
@@ -243,6 +244,12 @@ class ReportTest < Minitest::Test
   # `if @order.paid?` — the caller taking a decision that belonged to the thing it asked.
   def test_it_finds_asking_then_branching
     assert_equal ["@order.paid?"], labels("Asking, then branching on the answer")
+  end
+
+  # `request.xhr?` is a property of the call being served, not an object the caller was
+  # handed. Asking it is placement, which is this layer's job.
+  def test_a_framework_object_is_not_asked
+    refute_includes labels("Asking, then branching on the answer").join, "request"
   end
 
   # THE ROOT OF THE CHAIN IS WHAT MATTERS. `Rails.env.development?` has a send as its
@@ -590,6 +597,23 @@ class ReportTest < Minitest::Test
 
     assert_includes text, "Request handling **decides nothing**"
     refute_includes text, "Request handling calls **one** operation"
+  end
+
+  # The checkable half of "decides nothing": a predicate sent to an instance variable is
+  # the action interrogating what it is about to render.
+  def test_it_finds_an_action_deciding_on_domain_state
+    found = row("Actions deciding on domain state").findings
+
+    assert_equal 1, found.length
+    assert_includes found.first.label, "@order.paid?"
+  end
+
+  # A request property is placement, not deciding, and neither is an outcome it was told.
+  def test_a_request_property_is_not_domain_state
+    label = row("Actions deciding on domain state").findings.first.label
+
+    refute_includes label, "request.xhr?"
+    refute_includes label, "Rails.env"
   end
 
   def test_no_measure_is_registered_twice

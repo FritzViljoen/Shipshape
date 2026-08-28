@@ -109,6 +109,7 @@ module Shipshape
 
         root = root_of(test)
         return false if root.nil? || root.const_type? || root.self_type?
+        return false if root.send_type? && root.receiver.nil? && FRAMEWORK.include?(root.method_name)
 
         test.method_name.to_s.end_with?("?") || test.arguments.empty?
       end
