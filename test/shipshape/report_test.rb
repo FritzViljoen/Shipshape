@@ -269,6 +269,14 @@ class ReportTest < Minitest::Test
     assert_empty silent.map(&:title), "a bare count with no denominator says nothing about scale"
   end
 
+  # An abbreviation asks every reader to have been in the room where it was learned. The
+  # published names stay in the source, where somebody is checking it against the paper.
+  def test_no_abbreviations_reach_the_reader
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    %w[WMC TCC ATFD].each { |jargon| refute_includes text, jargon }
+  end
+
   def test_god_classes_report_no_ratio
     assert_nil row("God classes").population
   end

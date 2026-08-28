@@ -5,10 +5,15 @@ require "shipshape/measures/finding"
 
 module Shipshape
   module Measures
-    # God classes, by Lanza and Marinescu's detection strategy: **high complexity, high
-    # access to foreign data, and low cohesion, together** (*Object-Oriented Metrics in
-    # Practice*, 2006). Their thresholds, from 45 Java projects: WMC >= 47, TCC < 1/3,
-    # ATFD > 5.
+    # God classes, by Lanza and Marinescu's detection strategy: **high complexity, reaching
+    # into many other classes, and low cohesion, all three together** (*Object-Oriented
+    # Metrics in Practice*, 2006). Their thresholds, from 45 Java projects: weighted method
+    # count >= 47, tight class cohesion < 1/3, access to foreign data > 5.
+    #
+    # The published names for those three are WMC, TCC and ATFD. **They do not appear in
+    # the report** — an abbreviation asks every reader to have been in the room where it was
+    # learned, and a report nobody can read is a report nobody acts on. They stay here,
+    # where a reader is checking the implementation against the paper.
     #
     # **Cohesion is the defining term, not size.** A long class that does one thing is long;
     # a class whose methods share no state is several classes sharing a name. Khomh et al.
@@ -25,11 +30,16 @@ module Shipshape
       LAW = "persistence-holds-no-behaviour"
       WHY = "High complexity, reaching into many other classes, and methods that share no " \
             "state — several classes wearing one name."
-      CAVEAT = "No ratio is reported: one god class is a bottleneck the whole team queues " \
-               "behind, so a denominator would make a concentrated harm look diffuse. " \
-               "ATFD is also approximated, by counting external constants — measuring " \
-               "foreign data access properly needs types Ruby does not offer. WMC and TCC " \
-               "are as defined (Lanza & Marinescu, 2006)."
+      CAVEAT = "Three measurements together, and a class is listed only when it exceeds all " \
+               "three thresholds: how complex it is (decisions across every method), how " \
+               "little its methods share state, and how many other classes it reaches into. " \
+               "The third is approximated — knowing what data a class reaches for properly " \
+               "needs type information Ruby does not offer — so it counts the distinct other " \
+               "classes it sends messages to. The first two are computed as Lanza and " \
+               "Marinescu define them (Object-Oriented Metrics in Practice, 2006), whose " \
+               "thresholds these are. No ratio is reported: one god class is a bottleneck " \
+               "the whole team queues behind, so a denominator would make a concentrated " \
+               "harm look diffuse."
 
       # NO RATIO HERE, DELIBERATELY. "98% of your classes are not god classes" reassures,
       # and it is the wrong reading: one god class is a bottleneck the whole team queues
@@ -74,8 +84,13 @@ module Shipshape
         Finding.new(
           relative: source.relative,
           line: node.loc.line,
-          label: format("%<name>s — WMC %<wmc>d, TCC %<tcc>.2f, reaches %<atfd>d other classes",
-                        name: ClassReading.name_of(node), wmc: complexity, tcc: cohesion, atfd: foreign),
+          # Plain words. WMC, TCC and ATFD ask every reader to have been in the room where
+          # they were learned, which is the industry-vocabulary defect one layer out — a
+          # report nobody can read is a report nobody acts on.
+          label: format("%<name>s — complexity %<wmc>d, only %<tcc>d%% of its method pairs " \
+                        "share any state, reaches %<atfd>d other classes",
+                        name: ClassReading.name_of(node), wmc: complexity,
+                        tcc: (cohesion * 100).round, atfd: foreign),
           context: { wmc: complexity },
         )
       end
