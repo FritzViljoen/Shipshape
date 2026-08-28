@@ -290,7 +290,9 @@ module Shipshape
         **The rules that fall out of it**, and which the measures below count departures
         from:
 
-        - Request handling calls **one** operation and decides nothing.
+        - Request handling **decides nothing**. One operation is the common case; several
+          are allowed as long as no result is examined, and a workflow is reached for when a
+          sequence has obligations worth naming rather than because there are two calls.
         - A command is one write and one transaction; sequencing writes is a workflow's job.
         - A query is one read; a query calling a query is the shape an N+1 arrives in.
         - Nothing reaches the outside from inside a transaction.

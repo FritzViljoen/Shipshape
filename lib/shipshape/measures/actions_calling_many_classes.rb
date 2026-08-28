@@ -8,19 +8,28 @@ module Shipshape
   module Measures
     # Controller actions that name several different classes.
     #
-    # An action calling one operation is dispatch. An action calling five is **orchestration
-    # done in the one place that cannot be tested without a request, cannot be reused by a
-    # job, and cannot be read as a sequence** — which is what a workflow is for.
+    # **A ranking, not a violation.** Calling several operations from an action is allowed:
+    # the rule is that request handling does not *decide*, and a count was only ever a proxy
+    # for that. An action that calls three operations and examines none of their results has
+    # decided nothing, and forcing a workflow around it would be ceremony.
     #
-    # This is the measure that says how much of the application's actual behaviour is
-    # spelled out in its controllers. The worst action in a codebase is usually checkout,
-    # registration or import, and it is usually the one nobody wants to touch.
+    # What the number is good for is finding the sequences worth naming. An action reaching
+    # eleven classes is a piece of the business written in the one place that cannot be
+    # tested without a request, cannot be run from a job, and cannot be read as a sequence.
+    # That is when a workflow earns its place — not because there are two calls, but because
+    # the sequence has obligations somebody should own.
+    #
+    # The worst action in a codebase is usually checkout, registration or import, and it is
+    # usually the one nobody wants to touch.
     class ActionsCallingManyClasses
       TITLE = "Actions orchestrating several classes"
       LAW = "no-decisions-in-request-handling"
-      WHY = "An action calling one operation is dispatch. An action calling five is a " \
-            "workflow written where it cannot be tested, reused or read as a sequence."
-      CAVEAT = "Counts only classes this repository declares — a framework or standard " \
+      WHY = "Not a violation — several calls are allowed, and deciding is what is not. " \
+            "This ranks the sequences worth naming: an action reaching eleven classes is a " \
+            "piece of the business that cannot be tested, reused or read as a sequence."
+      CAVEAT = "A ranking rather than a defect count: an action may call several " \
+               "operations, provided it examines none of their results. Counts only classes " \
+               "this repository declares — a framework or standard " \
                "library constant is not the application orchestrating anything. A job and a " \
                "domain class still weigh the same, so the ranking is the signal."
 
@@ -69,7 +78,9 @@ module Shipshape
           `#{finding.relative}` — `##{action}` reaches #{finding.context[:count]} classes:
           #{finding.context[:names].map { |called| "`#{called}`" }.join(", ")}.
 
-          That is a sequence, and a sequence has a home:
+          Several calls are not the problem — deciding would be. What this many says is that
+          the sequence is big enough to deserve a name, and a name it can be tested and run
+          from a job under:
 
           ```ruby
           # app/workflows/#{Naming.snake(name)}.rb
@@ -84,6 +95,10 @@ module Shipshape
           reusable from a job, and readable top to bottom — and because a workflow spans
           transactions, each step has to be idempotent, which is work the controller was
           hiding rather than doing.
+
+          **A workflow is optional and this is when it is worth it.** Two operations called
+          from an action need no workflow: they are visibly two transactions and nobody is
+          pretending otherwise. Eleven are a sequence somebody should own.
         TEXT
       end
 

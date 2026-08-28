@@ -554,6 +554,23 @@ class ReportTest < Minitest::Test
     assert_equal columns.sort.reverse, columns
   end
 
+  # The law is `no-decisions-in-request-handling`, and a count was only ever a proxy for it.
+  # An action calling three operations and examining none of their results has decided
+  # nothing — so this measure ranks sequences worth naming rather than reporting violations.
+  def test_orchestration_is_ranked_not_condemned
+    row = row("Actions orchestrating several classes")
+
+    assert_includes row.why, "Not a violation"
+    assert_includes row.caveat, "A ranking rather than a defect count"
+  end
+
+  def test_the_rules_list_says_deciding_not_counting
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    assert_includes text, "Request handling **decides nothing**"
+    refute_includes text, "Request handling calls **one** operation"
+  end
+
   def test_no_measure_is_registered_twice
     titles = Shipshape::Measures::ALL.map { |measure| measure::TITLE }
 

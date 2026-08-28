@@ -1,7 +1,35 @@
 # `no-decisions-in-request-handling` — Request handling dispatches; it does not decide
 
-An action parses its input at the seam, calls **one** operation, and chooses what to render.
-It does not branch on domain state, reach for data, or work anything out.
+An action parses its input at the seam, calls one or more operations, and chooses what to
+render. It does not branch on domain state, reach for data, or work anything out.
+
+**The rule is deciding, not counting.** One operation is the common case and the best case,
+but an action calling three and examining none of their results has decided nothing. The
+test is mechanical: does a result flow straight into another call, or does the action look
+at it?
+
+```ruby
+CancelBooking.call(booking: FindBooking.call(id: id), reason: reason)   # resolving an
+                                                                       # argument — fine
+
+booking = FindBooking.call(id: id)
+return redirect_to root_path if booking.cancelled?                     # deciding — not
+CancelBooking.call(booking: booking)
+```
+
+**A workflow is optional.** It is what you reach for when a sequence has obligations worth
+naming — it spans transactions deliberately, needs compensation, or runs from a job as well
+as a request. Requiring one for every two calls would mean a `CancelBookingById` whose whole
+body is find-then-cancel, one per action, and nobody writes the second one.
+
+**This does not relax `command` calling `command`.** Two commands called from an action are
+visibly two transactions and nobody is pretending otherwise; a command calling a command
+hides a widened one. The honest case stays allowed and the hidden case stays refused.
+
+**And it is a trade, not a free win.** The count was crude but mechanical. "Decides nothing"
+is the weakest guard here — the limit below says why — so relaxing the count leans harder on
+the guard that cannot fully hold. Taken deliberately, because a rule people route around
+teaches them the whole canon is routable.
 
 **The line is between translating and deriving.** Rendering a value a reader can read —
 formatting, localising, escaping — is translation, and belongs here. Deciding where it goes
