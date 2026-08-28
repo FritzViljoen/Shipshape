@@ -247,6 +247,12 @@ class ReportTest < Minitest::Test
     assert_includes proposal, "It calls `update!`, so it writes: a Command."
   end
 
+  # "98% of your classes are not god classes" reassures, and it is the wrong reading: one
+  # is enough to slow a team down, so a denominator makes a concentrated harm look diffuse.
+  def test_god_classes_report_no_ratio
+    assert_nil row("God classes").population
+  end
+
   def test_the_markdown_names_the_law_and_admits_what_it_truncates
     markdown = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root), examples: 1).call }
 

@@ -19,7 +19,7 @@ module Shipshape
     EXAMPLES = 5
 
     Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, :population, :noun,
-                     :unit, :exemplars, keyword_init: true) do
+                     :unit, :exemplars, :headline, keyword_init: true) do
       def count
         findings.length
       end
@@ -83,6 +83,7 @@ module Shipshape
           noun: instance.class.const_defined?(:NOUN) ? instance.class::NOUN : nil,
           unit: instance.class.const_defined?(:UNIT) ? instance.class::UNIT : :finding,
           exemplars: ask(instance, :exemplars, sources) || [],
+          headline: ask(instance, :headline, sources),
         )
       end
     end

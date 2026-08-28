@@ -59,6 +59,7 @@ module Shipshape
 
     def section(row)
       lines = ["## #{row.title} — #{row.count}", "", row.why, ""]
+      lines += [row.headline, ""] if row.headline
       lines += ["> **What this cannot see:** #{row.caveat}", ""] if row.caveat
       lines += row.count.zero? ? ["Nothing found.", ""] : examples_for(row)
       lines += ["### What it could look like", "", row.proposal, ""] if row.proposal

@@ -29,10 +29,23 @@ module Shipshape
                "foreign data access properly needs types Ruby does not offer. WMC and TCC " \
                "are as defined (Lanza & Marinescu, 2006)."
 
-      NOUN = "classes"
+      # NO RATIO HERE, DELIBERATELY. "98% of your classes are not god classes" reassures,
+      # and it is the wrong reading: one god class is a bottleneck the whole team queues
+      # behind, so a denominator makes a concentrated harm look diffuse. It is the
+      # "99.9% of our queries are fast" of architecture.
+      #
+      # What scales with the harm is CONCENTRATION — how much of the application's
+      # complexity sits in these few classes — so that is what this reports instead.
+      def headline(sources)
+        total = complexity_of_everything(sources)
+        return nil if total.zero?
 
-      def population(sources)
-        sources.sum { |source| ClassReading.classes(source).length }
+        mine = call(sources).sum { |finding| finding.context[:wmc] }
+        return nil if mine.zero?
+
+        "These hold **#{(mine * 100.0 / total).round}% of the application's total complexity**. " \
+          "A ratio of god classes to ordinary ones is not reported: one is enough to slow a " \
+          "team down, and a denominator would make that look diffuse."
       end
 
       WMC = 47
@@ -63,7 +76,16 @@ module Shipshape
           line: node.loc.line,
           label: format("%<name>s — WMC %<wmc>d, TCC %<tcc>.2f, reaches %<atfd>d other classes",
                         name: ClassReading.name_of(node), wmc: complexity, tcc: cohesion, atfd: foreign),
+          context: { wmc: complexity },
         )
+      end
+
+      def complexity_of_everything(sources)
+        sources.sum do |source|
+          ClassReading.classes(source).sum do |node|
+            (ClassReading.public_methods_of(node) + private_methods_of(node)).sum { |method| weight(method) }
+          end
+        end
       end
 
       # Cyclomatic complexity: one, plus a branch for every decision.
