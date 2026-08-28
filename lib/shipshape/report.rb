@@ -18,7 +18,7 @@ module Shipshape
 
     EXAMPLES = 5
 
-    Row = Struct.new(:title, :law, :why, :caveat, :findings, keyword_init: true) do
+    Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, keyword_init: true) do
       def count
         findings.length
       end
@@ -46,15 +46,25 @@ module Shipshape
     def rows_for(sources)
       Measures::ALL.map do |measure|
         instance = build(measure)
+        findings = instance.call(sources)
 
         Row.new(
           title: measure::TITLE,
           law: measure::LAW,
           why: measure::WHY,
           caveat: measure.const_defined?(:CAVEAT) ? measure::CAVEAT : nil,
-          findings: instance.call(sources),
+          findings: findings,
+          proposal: proposal_from(instance, findings),
         )
       end
+    end
+
+    # A measure proposes a better shape only where it can name one from the reader's own
+    # code. Most cannot, and a generic sketch would be a slide rather than a suggestion.
+    def proposal_from(instance, findings)
+      return nil if findings.empty? || !instance.respond_to?(:proposal)
+
+      instance.proposal(findings)
     end
 
     # One measure reads the schema rather than the code and so needs the root. Asked for by

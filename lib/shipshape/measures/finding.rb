@@ -4,7 +4,9 @@ module Shipshape
   module Measures
     # One thing found, somewhere. A count with no examples is an accusation; a count with
     # three file:line references is a conversation.
-    Finding = Struct.new(:relative, :line, :label, keyword_init: true) do
+    # `context` carries whatever the measure needs to propose a better shape later — the
+    # enclosing method, the message being sent. Optional, because most measures need none.
+    Finding = Struct.new(:relative, :line, :label, :context, keyword_init: true) do
       def to_s
         "#{relative}:#{line}  #{label}"
       end
@@ -19,6 +21,20 @@ module Shipshape
       def classes(source)
         found = []
         walk(source.ast) { |node| found << node if node.class_type? }
+        found
+      end
+
+      # The method a node sits inside, or nil. Needed to name a proposal after the action
+      # that would lose the work — `#index` reaching for a record becomes `ListThings`.
+      def enclosing_method(root, target)
+        found = nil
+        walk(root) do |node|
+          next unless node.def_type?
+          next unless node.loc.expression.begin_pos <= target.loc.expression.begin_pos &&
+                      node.loc.expression.end_pos >= target.loc.expression.end_pos
+
+          found = node.method_name
+        end
         found
       end
 

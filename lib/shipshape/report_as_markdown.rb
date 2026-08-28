@@ -55,6 +55,7 @@ module Shipshape
       lines = ["## #{row.title} — #{row.count}", "", row.why, ""]
       lines += ["> **What this cannot see:** #{row.caveat}", ""] if row.caveat
       lines += row.count.zero? ? ["Nothing found.", ""] : examples_for(row)
+      lines += ["### What it could look like", "", row.proposal, ""] if row.proposal
 
       lines.join("\n")
     end

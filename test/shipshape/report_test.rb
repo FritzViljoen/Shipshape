@@ -14,6 +14,7 @@ class ReportTest < Minitest::Test
     "app/controllers/orders_controller.rb" => <<~RUBY,
       class OrdersController < ApplicationController
         def show
+          @basket = Basket.new
           @order = Order.find(params[:id].to_i)
           if @order.paid?
             render :paid
@@ -83,7 +84,7 @@ class ReportTest < Minitest::Test
   end
 
   def test_it_finds_request_handling_reaching_persistence
-    assert_equal ["Order"], labels("Request handling reaching straight into persistence")
+    assert_equal ["Order.find"], labels("Request handling reaching straight into persistence")
   end
 
   # Declarations about the table are not behaviour, and private methods are not public.
@@ -115,6 +116,29 @@ class ReportTest < Minitest::Test
     found = labels("Nullable columns and database defaults")
 
     assert_equal ["note — nullable", "count — has a default"], found
+  end
+
+  # A suggestion written in the reader's own nouns is one they can argue with; one written
+  # in `YourCommand` and `SomeModel` is a slide.
+  def test_it_proposes_a_shape_named_from_their_own_code
+    proposal = row("Request handling reaching straight into persistence").proposal
+
+    assert_includes proposal, "class FindOrder < Query"
+    assert_includes proposal, "app/queries/find_order.rb"
+    assert_includes proposal, "@id = typed(id, Integer)"
+  end
+
+  def test_a_proposal_with_no_inputs_has_no_empty_initializer
+    proposal = row("Rules living on persistence").proposal
+
+    assert_includes proposal, "class TotalOrder < Query"
+    refute_includes proposal, "initialize()"
+  end
+
+  # A controller building a value object is the one thing a controller is entitled to do,
+  # and counting it would inflate the number that matters most in this report.
+  def test_a_value_object_in_app_models_is_not_persistence
+    refute_includes labels("Request handling reaching straight into persistence").join, "Basket"
   end
 
   def test_the_markdown_names_the_law_and_admits_what_it_truncates

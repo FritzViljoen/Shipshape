@@ -1,0 +1,63 @@
+# frozen_string_literal: true
+
+module Shipshape
+  module Measures
+    # Names a proposed operation after the work it would take over.
+    #
+    # A suggestion written in the reader's own nouns is a suggestion they can argue with;
+    # one written in `YourCommand` and `SomeModel` is a slide. So `#index` reaching for
+    # `Contest` proposes `ListContests`, and `#create` proposes `CreateContest` — their
+    # words, their file, a name they could commit today.
+    #
+    # **The verb table is a guess and it is a shallow one.** Rails' seven actions are what
+    # it knows; anything else falls back to the action's own name. That is stated on the
+    # report rather than hidden, because a proposal presented as an answer is worse than no
+    # proposal at all.
+    module Naming
+      module_function
+
+      VERBS = {
+        index: "List", show: "Find", new: "Build", edit: "Find",
+        create: "Create", update: "Update", destroy: "Remove"
+      }.freeze
+
+      READS = %i[index show new edit].freeze
+
+      def operation_for(action:, subject:)
+        return nil if action.nil?
+
+        verb = VERBS[action.to_sym] || camel(action.to_s)
+        noun = READS.include?(action.to_sym) && action.to_sym == :index ? plural(subject) : subject
+
+        "#{verb}#{noun}"
+      end
+
+      def kind_for(action)
+        READS.include?(action.to_sym) ? "Query" : "Command"
+      end
+
+      def path_for(name, kind)
+        directory = kind == "Query" ? "queries" : "commands"
+
+        "app/#{directory}/#{snake(name)}.rb"
+      end
+
+      def camel(word)
+        word.split("_").map { |part| part.sub(/\A./, &:upcase) }.join
+      end
+
+      def snake(name)
+        name.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+      end
+
+      # Deliberately crude, and only ever used to name a suggestion. An application whose
+      # plural is irregular gets a slightly wrong name in a sketch it was going to edit.
+      def plural(word)
+        return "#{word[0..-2]}ies" if word.end_with?("y")
+        return "#{word}es" if word.end_with?("s", "x", "ch", "sh")
+
+        "#{word}s"
+      end
+    end
+  end
+end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "shipshape/measures/finding"
+require "shipshape/measures/naming"
 
 module Shipshape
   module Measures
@@ -23,10 +24,46 @@ module Shipshape
         models(sources).flat_map do |source|
           ClassReading.classes(source).select { |node| persistence?(node) }.flat_map do |node|
             ClassReading.public_methods_of(node).map do |method|
-              Finding.new(relative: source.relative, line: method.loc.line, label: "##{method.method_name}")
+              Finding.new(
+                relative: source.relative,
+                line: method.loc.line,
+                label: "##{method.method_name}",
+                context: { record: ClassReading.name_of(node), method: method.method_name },
+              )
             end
           end
         end
+      end
+
+      def proposal(findings)
+        finding = findings.first
+        return nil if finding.nil? || finding.context.nil?
+
+        record = finding.context[:record]
+        method = finding.context[:method]
+        name = "#{Naming.camel(method.to_s.delete_suffix("?"))}#{record}"
+
+        <<~TEXT
+          `#{record}##{method}` is a rule living on the thing that stores it, reachable from
+          anywhere a `#{record}` is — which is everywhere. Moved, it becomes callable by name
+          and testable without a row:
+
+          ```ruby
+          # app/queries/#{Naming.snake(name)}.rb
+          class #{name} < Query
+            def initialize(#{Naming.snake(record)}:)
+              @#{Naming.snake(record)} = typed(#{Naming.snake(record)}, #{record})
+            end
+
+            def call
+              # the body of #{record}##{method} today
+            end
+          end
+          ```
+
+          Whether it is a Query or a Command depends on whether it reads or writes, and that
+          is a judgement this report does not make.
+        TEXT
       end
 
       private
