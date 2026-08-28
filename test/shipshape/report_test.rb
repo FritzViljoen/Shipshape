@@ -430,7 +430,11 @@ class ReportTest < Minitest::Test
              "class SettleInvoice < Command", "class CloseTheMonth < Workflow"]
 
     assert_equal order, order.sort_by { |declaration| text.index(declaration) }
-    assert_includes text, "class InvoiceLine < Shape"
+    # A part, nested inside the thing it belongs to — there is no top-level InvoiceLine
+    # for anybody to build alone.
+    assert_includes text, "class Line < Shape"
+    refute_includes text, "class InvoiceLine < Shape"
+    assert_includes text, "A LINE IS NESTED BECAUSE IT IS A PART, NOT A PEER."
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 

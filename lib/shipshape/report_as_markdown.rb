@@ -116,21 +116,62 @@ module Shipshape
           belongs_to :invoice_record
         end
 
-        # A SHAPE holds a shape and computes nothing. It is detached: a view holding one
-        # cannot lazily load, cannot write, and cannot be an N+1.
+        # A SHAPE holds values and is detached — no database, no associations, no reach. A
+        # view holding one cannot lazily load, cannot write, and cannot be an N+1.
+        #
+        # It may carry the sundry methods that used to sit on the model, under one test:
+        # DOES THE METHOD NEED ANYTHING IT WAS NOT HANDED? If it only rearranges its own
+        # fields it belongs here. If it needs a row, a rule or today's date, it cannot be
+        # here at all — a shape has nothing to reach with.
         class Invoice < Shape
+          attr_reader :id, :customer, :lines, :settled_on
+
           def initialize(id:, customer:, lines:, settled_on:)
             @id = typed(id, Integer)
             @customer = typed(customer, Customer)              # composed, not flattened:
-            @lines = typed_array(lines, InvoiceLine)           # no customer_name here, and
+            @lines = typed_array(lines, Line)                  # no customer_name here, and
             @settled_on = typed(settled_on, Date, allow_nil: true)
           end                                                  # no line_1_total either
-        end
 
-        class InvoiceLine < Shape
-          def initialize(description:, amount:)
-            @description = typed(description, String)
-            @amount = typed(amount, Money)
+          def reference                       # its own field, rearranged
+            format("INV-%06d", @id)
+          end
+
+          def total                           # its own lines, added up
+            @lines.sum(&:amount)
+          end
+
+          def settled?                        # a question about what it holds
+            !@settled_on.nil?
+          end
+
+          # NOT here: `overdue?`. It needs today's date, which this was not handed — so the
+          # query that builds the invoice works it out and passes `overdue:` in as a field.
+          # One read, while the database is already open, instead of a query fired later by
+          # whoever happened to ask.
+
+          # A LINE IS NESTED BECAUSE IT IS A PART, NOT A PEER.
+          #
+          # Nothing looks up a line, shows a line, or means anything by one on its own — a
+          # line is a fact about an invoice. Nesting says exactly that: there is no
+          # top-level `InvoiceLine` for anybody to build alone, and the only way to hold one
+          # is to hold the invoice it belongs to.
+          #
+          # It is also the honest answer to the call graph. A shape may not call a shape —
+          # two peers building each other is the sister call this canon refuses — but a part
+          # is not a sister. It belongs to the thing around it, which is the thing that
+          # already has a kind.
+          class Line < Shape
+            attr_reader :description, :amount
+
+            def initialize(description:, amount:)
+              @description = typed(description, String)
+              @amount = typed(amount, Money)
+            end
+
+            def to_s                          # translation, not derivation
+              "\#{@description} — \#{@amount.format}"
+            end
           end
         end
 
@@ -147,7 +188,7 @@ module Shipshape
             Invoice.new(
               id: record.id,
               customer: FindCustomer.call(id: record.customer_record_id),
-              lines: record.invoice_line_records.map { |line| InvoiceLine.new(**line.slice(:description, :amount)) },
+              lines: record.invoice_line_records.map { |line| Invoice::Line.new(**line.slice(:description, :amount)) },
               settled_on: record.settled_on,
             )
           end
@@ -194,6 +235,8 @@ module Shipshape
           operation that read it.
         - A shape holds other shapes rather than copying their fields — a flattened
           `customer_name` is the first column of the next god object.
+        - A shape may carry methods that rearrange its own fields, and cannot carry one that
+          needs anything else. A part is nested inside the thing it belongs to.
         - Every class inherits exactly one of these, one level deep, so its kind — and
           therefore what it may reach — is knowable without reading it.
       TEXT
