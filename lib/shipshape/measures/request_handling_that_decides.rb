@@ -24,6 +24,8 @@ module Shipshape
                "an invitation to read rather than a defect count."
 
       NOUN = "actions"
+      # Sorted by severity in #call; the report must not re-sort by file frequency.
+      SELF_RANKED = true
       BRANCHES = %i[if case case_match while until].freeze
 
       def population(sources)

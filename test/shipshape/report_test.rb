@@ -263,6 +263,14 @@ class ReportTest < Minitest::Test
     assert_equal 0, branches.clean
   end
 
+  # The file-frequency sort was quietly undoing the branch-count sort underneath it, so the
+  # worst action sat below the fold while a one-branch action from the same file showed.
+  def test_a_measure_that_ranks_itself_is_not_re_sorted
+    counts = row("Branches inside request handling").findings.map { |finding| finding.context[:branches] }
+
+    assert_equal counts.sort.reverse, counts
+  end
+
   # Findings arrive in directory order, so the first five examples were five lines from
   # whichever file sorts first alphabetically. That is a sample of the file system, not of
   # the problem.

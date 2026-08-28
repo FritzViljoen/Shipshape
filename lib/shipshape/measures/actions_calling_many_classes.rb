@@ -25,6 +25,8 @@ module Shipshape
                "domain class still weigh the same, so the ranking is the signal."
 
       NOUN = "actions"
+      # Sorted by severity in #call; the report must not re-sort by file frequency.
+      SELF_RANKED = true
       LIMIT = 1
 
       def population(sources)

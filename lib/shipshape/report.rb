@@ -79,7 +79,7 @@ module Shipshape
           law: measure::LAW,
           why: measure::WHY,
           caveat: measure.const_defined?(:CAVEAT) ? measure::CAVEAT : nil,
-          findings: ranked(findings),
+          findings: ranked(findings, measure),
           proposal: proposal_from(instance, findings),
           population: ask(instance, :population, sources),
           noun: instance.class.const_defined?(:NOUN) ? instance.class::NOUN : nil,
@@ -96,9 +96,11 @@ module Shipshape
     # one action. That is not a sample of the problem, it is a sample of the file system.
     #
     # A measure that has already ranked its own findings is left alone: it knows something
-    # about severity that a file count does not.
-    def ranked(findings)
-      return findings if findings.empty?
+    # about severity that a file count does not. This was a comment before it was code, and
+    # the file-frequency sort was quietly undoing the branch-count sort underneath it —
+    # showing `#new — 1 branch` while `#create — 14 branches` sat below the fold.
+    def ranked(findings, measure)
+      return findings if findings.empty? || measure.const_defined?(:SELF_RANKED)
 
       weight = findings.group_by(&:relative).transform_values(&:length)
 
