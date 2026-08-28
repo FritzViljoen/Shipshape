@@ -446,6 +446,11 @@ class ReportTest < Minitest::Test
     assert_includes text, "module Sales"
     assert_includes text, "module Finance"
     assert_includes text, "the naming collision paying off"
+
+    # The example taught the opposite of the rule: FindInvoice called FindCustomer, which is
+    # query -> query, the sister call this canon calls load-bearing.
+    refute_includes text, "FindCustomer.call"
+    assert_includes text, "A QUERY OWNS ITS ENTIRE READ"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 

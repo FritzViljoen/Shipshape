@@ -168,6 +168,18 @@ module Shipshape
           # One read, while the database is already open, instead of a query fired later by
           # whoever happened to ask.
 
+          # WHO THIS WAS BILLED TO, AS PRINTED — two fields, because that is what an
+          # invoice shows. Not the `Customer` the customers page uses: that one has
+          # contact details, credit terms and a history, none of which belong here.
+          class Customer < Shape
+            attr_reader :name, :address
+
+            def initialize(name:, address:)
+              @name = typed(name, String)
+              @address = typed(address, String)
+            end
+          end
+
           # A LINE IS NESTED BECAUSE IT IS A PART, NOT A PEER.
           #
           # Nothing looks up a line, shows a line, or means anything by one on its own — a
@@ -201,11 +213,14 @@ module Shipshape
           end
 
           def call
-            record = InvoiceRecord.includes(:invoice_line_records).find(@id)
+            # A QUERY OWNS ITS ENTIRE READ. It reads every table it needs and builds every
+            # part it returns — which is what "one read" means, rather than a restriction
+            # on top of it. Calling FindCustomer here would be two reads wearing one name.
+            record = InvoiceRecord.includes(:invoice_line_records, :customer_record).find(@id)
 
             Invoice.new(
               id: record.id,
-              customer: FindCustomer.call(id: record.customer_record_id),
+              customer: Invoice::Customer.new(**record.customer_record.slice(:name, :address)),
               lines: record.invoice_line_records.map { |line| Invoice::Line.new(**line.slice(:description, :amount)) },
               settled_on: record.settled_on,
             )
@@ -284,7 +299,13 @@ module Shipshape
         - A shape holds other shapes rather than copying their fields — a flattened
           `customer_name` is the first column of the next god object.
         - A shape may carry methods that rearrange its own fields, and cannot carry one that
-          needs anything else. A part is nested inside the thing it belongs to.
+          needs anything else. A part is nested inside the thing it belongs to, and a shape
+          never holds a record — a shape that could reach the database is not detached, and
+          being detached is the whole of what it is for.
+        - **A query owns its entire read.** It reads every table it needs and builds every
+          part it returns. If two queries want the same sub-shape, that is the signal it is
+          not a part but a peer: promote it, give it its own query, and let whoever wanted
+          both do the combining.
         - A shape is not a table. It is assembled from as many as it takes, and one table
           may feed several shapes.
         - Every class inherits exactly one of these, one level deep, so its kind — and

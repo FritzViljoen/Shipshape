@@ -118,8 +118,15 @@ consequence of that one rule, not a separate rule:
   crossing transactions is *obliged* to make each step idempotent and each intermediate
   state legal. Sequencing writes is the workflow's job because a workflow is the thing that
   has accepted that bill.
-- **A query is one read.** A query that calls a query is two reads wearing one name, the
-  second invisible to whoever asked. It is the shape an N+1 arrives in.
+- **A query is one read**, and it owns that read entirely: it reads every table it needs
+  and builds every part it returns. A query that calls a query is two reads wearing one
+  name, the second invisible to whoever asked, and it is the shape an N+1 arrives in —
+  whether the second read fetches a list or fetches one customer.
+
+  **Where two queries want the same sub-shape, that is the signal it is not a part but a
+  peer.** Promote it, give it its own query, and let whoever wanted both do the combining —
+  a workflow or a command may call two queries, and deciding to combine two reads is a
+  decision, which belongs with a caller rather than inside a read.
 - **A workflow's whole content is its sequence.** Nesting one inside another hides the
   sequence, which was the only thing it had to offer.
 - **A shape holds another shape; it does not build one.** Composing is the caller's
