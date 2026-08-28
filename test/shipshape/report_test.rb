@@ -16,6 +16,10 @@ class ReportTest < Minitest::Test
         def show
           @basket = Basket.new
           @now = Time.now
+          @today = Date.today
+          @configured = Time.current
+          @proper = Time.find_zone!("Africa/Johannesburg").now
+          @invoiced_on = Date.new(2026, 1, 1)
           @order = Order.find(params[:id].to_i)
           return head :bad_request if Rails.env.development?
 
@@ -437,6 +441,33 @@ class ReportTest < Minitest::Test
   # them buried the finding — nine hundred, of which most were one error file.
   def test_an_error_hierarchy_is_not_accreted_behaviour
     assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Error/)
+  end
+
+  # A point in time carries its zone; a calendar date does not.
+  def test_it_finds_moments_built_without_a_zone
+    labels = row("Times built without naming a zone").findings.map(&:label)
+
+    assert_includes labels.join, "Time.now — takes whatever offset the process has"
+    assert_includes labels.join, "Date.today"
+  end
+
+  # Unzoned first: `Time.now` produces a booking an hour out, `Time.current` produces one
+  # zone for an application serving two countries. Different sizes of the same mistake.
+  def test_the_worse_tier_is_listed_first
+    labels = row("Times built without naming a zone").findings.map(&:label)
+
+    assert_operator labels.index { |label| label.start_with?("Time.now") },
+                    :<,
+                    labels.index { |label| label.start_with?("Time.current") }
+  end
+
+  # A calendar date carries no zone on purpose — converting one moves it a day.
+  def test_a_calendar_date_is_not_a_moment
+    assert_empty row("Times built without naming a zone").findings.map(&:label).grep(/Date\.new/)
+  end
+
+  def test_a_named_zone_is_held_up_as_already_right
+    assert_includes row("Times built without naming a zone").exemplars.map(&:label).join, "find_zone!"
   end
 
   def test_it_says_where_to_start

@@ -7,6 +7,7 @@ require "shipshape/measures/request_handling_that_reaches_persistence"
 require "shipshape/measures/persistence_with_behaviour"
 require "shipshape/measures/lifecycle_callbacks"
 require "shipshape/measures/input_parsed_in_the_action"
+require "shipshape/measures/times_that_assume_a_zone"
 require "shipshape/measures/nullable_columns"
 require "shipshape/measures/god_classes"
 require "shipshape/measures/wide_tables"
@@ -32,6 +33,7 @@ module Shipshape
       PersistenceWithBehaviour,
       LifecycleCallbacks,
       InputParsedInTheAction,
+      TimesThatAssumeAZone,
       NullableColumns,
       WideTables,
     ].freeze
