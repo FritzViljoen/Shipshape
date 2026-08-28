@@ -73,24 +73,29 @@ class ReportTest < Minitest::Test
     RUBY
   }.freeze
 
+  # No label: the path names the file, the source line shown beneath names the class, and a
+  # third copy of the same word is the report stuttering at its reader.
   def test_it_finds_a_class_that_inherits_from_nothing
-    assert_equal ["Basket"], labels("Classes that inherit from nothing")
+    found = row("Classes that inherit from nothing").findings
+
+    assert_equal ["app/models/basket.rb"], found.map(&:relative)
+    assert_equal [""], found.map(&:label)
   end
 
   def test_it_finds_classes_doing_several_things
-    found = labels("Classes doing several things")
+    found = row("Classes doing several things").findings
 
-    # Three, not two: this measure counts public surface, and `to_param` is surface. The
-    # persistence measure asks a different question — which of them are business rules —
-    # and answers two. Different questions, different numbers, on purpose.
-    assert_includes found.join, "Order — 4 public methods"
-    assert_includes found.join, "Basket — 2 public methods"
+    # Four, not two, for Order: this measure counts public surface, and `to_param` is
+    # surface. The persistence measure asks which of them are business rules and answers
+    # differently. Different questions, different numbers, on purpose.
+    assert_equal ["app/models/order.rb", "app/models/basket.rb"], found.map(&:relative)
+    assert_equal ["4 public methods (worth a look)", "2 public methods"], found.map(&:label)
   end
 
   # Controllers are excluded from that measure: a controller's actions are one job spelled
   # once per route, and counting them would drown the number that matters.
   def test_a_controller_is_not_counted_as_doing_several_things
-    refute_includes labels("Classes doing several things").join, "OrdersController"
+    refute_includes row("Classes doing several things").findings.map(&:relative).join, "controllers"
   end
 
   # One line per ACTION, not per branch: fifteen hundred branch locations is a list nobody
@@ -299,6 +304,14 @@ class ReportTest < Minitest::Test
 
     assert_equal 1, parsing.population
     assert_equal 1, parsing.count
+  end
+
+  # A file and a line number ask the reader to go and look; the code asks nothing.
+  def test_the_markdown_shows_the_line_itself
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    assert_includes text, "`class Basket`"
+    assert_includes text, "`before_save :stamp`"
   end
 
   def test_no_abbreviations_reach_the_reader

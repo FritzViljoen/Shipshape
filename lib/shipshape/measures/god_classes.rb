@@ -87,10 +87,9 @@ module Shipshape
           # Plain words. WMC, TCC and ATFD ask every reader to have been in the room where
           # they were learned, which is the industry-vocabulary defect one layer out — a
           # report nobody can read is a report nobody acts on.
-          label: format("%<name>s — complexity %<wmc>d, only %<tcc>d%% of its method pairs " \
-                        "share any state, reaches %<atfd>d other classes",
-                        name: ClassReading.name_of(node), wmc: complexity,
-                        tcc: (cohesion * 100).round, atfd: foreign),
+          label: format("complexity %<wmc>d, only %<tcc>d%% of its method pairs share any " \
+                        "state, reaches %<atfd>d other classes",
+                        wmc: complexity, tcc: (cohesion * 100).round, atfd: foreign),
           context: { wmc: complexity },
         )
       end

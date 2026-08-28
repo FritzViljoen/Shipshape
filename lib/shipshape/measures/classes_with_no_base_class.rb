@@ -27,7 +27,9 @@ module Shipshape
       def call(sources)
         sources.flat_map do |source|
           ClassReading.classes(source).reject { |node| ClassReading.superclass_of(node) }.map do |node|
-            Finding.new(relative: source.relative, line: node.loc.line, label: ClassReading.name_of(node))
+            # No label: the path names the file and the source line names the class, so a
+            # third copy of the same word is the report stuttering at its reader.
+            Finding.new(relative: source.relative, line: node.loc.line, label: "")
           end
         end
       end

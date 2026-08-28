@@ -20,6 +20,8 @@ module Shipshape
             "the god object counted while it is still small."
 
       NOUN = "classes"
+      # Ranked by how many methods, so the widest class is the first one read.
+      SELF_RANKED = true
 
       def population(sources)
         sources.reject { |source| excluded?(source) }.sum { |source| ClassReading.classes(source).length }
@@ -28,8 +30,7 @@ module Shipshape
       def exemplars(sources)
         sources.reject { |source| excluded?(source) }.flat_map do |source|
           ClassReading.classes(source).select { |node| ClassReading.public_methods_of(node).length == 1 }.map do |node|
-            Finding.new(relative: source.relative, line: node.loc.line,
-                        label: "#{ClassReading.name_of(node)} — one public method")
+            Finding.new(relative: source.relative, line: node.loc.line, label: "one public method")
           end
         end
       end
@@ -40,7 +41,7 @@ module Shipshape
       def call(sources)
         sources.reject { |source| excluded?(source) }.flat_map do |source|
           ClassReading.classes(source).map { |node| finding(source, node) }.compact
-        end
+        end.sort_by { |finding| -finding.context[:methods] }
       end
 
       private
@@ -52,7 +53,8 @@ module Shipshape
         Finding.new(
           relative: source.relative,
           line: node.loc.line,
-          label: "#{ClassReading.name_of(node)} — #{count} public methods#{" (worth a look)" if count > NOISE}",
+          label: "#{count} public methods#{" (worth a look)" if count > NOISE}",
+          context: { methods: count },
         )
       end
 

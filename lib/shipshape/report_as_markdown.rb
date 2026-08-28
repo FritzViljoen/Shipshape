@@ -78,12 +78,35 @@ module Shipshape
     end
 
     def examples_for(row)
-      shown = row.findings.first(examples).map { |finding| "- `#{finding.relative}:#{finding.line}` #{finding.label}" }
+      shown = row.findings.first(examples).flat_map { |finding| example(finding) }
       # Saying how many were not shown, rather than trailing off, because a truncated list
       # that does not admit it reads as the whole list.
       shown << "- …and #{row.count - examples} more" if row.count > examples
 
       shown + [""]
+    end
+
+    # The line itself, under the reference. A file and a line number ask the reader to go
+    # and look; the code asks nothing and is usually enough to decide whether to.
+    #
+    # It also settles the stutter: with the source shown, a label naming the class as well
+    # as the file that is named after it says the same thing three times.
+    def example(finding)
+      line = ["- `#{finding.relative}:#{finding.line}`#{" #{finding.label}" if finding.label.to_s != ""}"]
+      code = source_line(finding)
+
+      code ? line + ["  `#{code}`"] : line
+    end
+
+    def source_line(finding)
+      path = File.join(report[:root], finding.relative)
+      return nil unless File.file?(path)
+
+      @lines ||= {}
+      @lines[path] ||= File.readlines(path)
+      @lines[path][finding.line - 1]&.strip
+    rescue StandardError
+      nil
     end
   end
 end
