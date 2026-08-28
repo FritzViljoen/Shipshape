@@ -44,6 +44,48 @@ module Shipshape
       WRITES = %i[create create! update update! destroy destroy_all delete delete_all save
                   save! insert insert_all upsert upsert_all increment! decrement! touch].freeze
 
+      # Writes sent to an instance rather than to the class. `order.save!` and
+      # `Order.create!` are both writes; they are simply spelled at different receivers, and
+      # a measure reading a method body sees these.
+      INSTANCE_WRITES = %i[save save! update update! update_attribute update_attributes
+                           update_column update_columns destroy destroy! delete touch
+                           increment! decrement! toggle! assign_attributes reload
+                           insert append push concat].freeze
+
+      # The write vocabulary, whichever receiver it is sent to. Used to read a method body
+      # and answer whether it changes anything.
+      def writes?(body)
+        return false unless body.is_a?(RuboCop::AST::Node)
+
+        found = false
+        walk(body) do |node|
+          next unless node.send_type?
+
+          found = true if WRITES.include?(node.method_name) || INSTANCE_WRITES.include?(node.method_name)
+          found = true if node.method_name.to_s.end_with?("=") && node.receiver&.self_type?
+        end
+        found
+      end
+
+      def walk(node, &block)
+        return unless node.is_a?(RuboCop::AST::Node)
+
+        block.call(node)
+        node.children.each { |child| walk(child, &block) }
+      end
+
+      def first_write_in(body)
+        return nil unless body.is_a?(RuboCop::AST::Node)
+
+        found = nil
+        walk(body) do |node|
+          next unless node.send_type? && found.nil?
+
+          found = node.method_name if WRITES.include?(node.method_name) || INSTANCE_WRITES.include?(node.method_name)
+        end
+        found
+      end
+
       def kind_for(action, message: nil)
         return "Command" if message && WRITES.include?(message.to_sym)
         return "Query" if message

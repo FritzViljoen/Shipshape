@@ -55,7 +55,12 @@ module Shipshape
                 relative: source.relative,
                 line: method.loc.line,
                 label: "##{method.method_name}",
-                context: { record: ClassReading.name_of(node), method: method.method_name },
+                context: {
+                  record: ClassReading.name_of(node),
+                  method: method.method_name,
+                  writes: Naming.writes?(method.body),
+                  write: Naming.first_write_in(method.body),
+                },
               )
             end
           end
@@ -68,16 +73,19 @@ module Shipshape
 
         record = finding.context[:record]
         method = finding.context[:method]
-        name = "#{Naming.camel(method.to_s.delete_suffix("?"))}#{record}"
+        # `settle!` must not become `Settle!Order`. Predicate and bang suffixes are Ruby
+        # punctuation, not part of the name a class can carry.
+        name = "#{Naming.camel(method.to_s.delete_suffix("?").delete_suffix("!"))}#{record}"
+        kind = finding.context[:writes] ? "Command" : "Query"
 
         <<~TEXT
-          `#{record}##{method}` is a rule living on the thing that stores it, reachable from
-          anywhere a `#{record}` is — which is everywhere. Moved, it becomes callable by name
+          `#{record}##{method}` is a rule living on the thing that stores it, reachable
+          everywhere `#{record}` is — which is everywhere. Moved, it becomes callable by name
           and testable without a row:
 
           ```ruby
-          # app/queries/#{Naming.snake(name)}.rb
-          class #{name} < Query
+          # #{Naming.path_for(name, kind)}
+          class #{name} < #{kind}
             def initialize(#{Naming.snake(record)}:)
               @#{Naming.snake(record)} = typed(#{Naming.snake(record)}, #{record})
             end
@@ -88,12 +96,21 @@ module Shipshape
           end
           ```
 
-          Whether it is a Query or a Command depends on whether it reads or writes, and that
-          is a judgement this report does not make.
+          #{reasoning(finding, kind)}
         TEXT
       end
 
       private
+
+      # The gem can see which it is, so it says so rather than handing the reader a
+      # judgement it was perfectly able to make. Where a method writes, the write itself is
+      # named — showing the evidence is what separates a measurement from an assertion.
+      def reasoning(finding, kind)
+        return "It calls `#{finding.context[:write]}`, so it writes: a Command." if finding.context[:writes]
+
+        "Nothing in it writes, so it is a Query. A method that only derives a value from " \
+          "what it was handed may not need a class at all — it may belong on the shape."
+      end
 
       def behaviour_of(node)
         ClassReading.public_methods_of(node).reject { |method| FRAMEWORK.include?(method.method_name) }

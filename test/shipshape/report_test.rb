@@ -45,6 +45,10 @@ class ReportTest < Minitest::Test
           "x"
         end
 
+        def settle!
+          update!(paid: true)
+        end
+
         private
 
         def stamp; end
@@ -79,7 +83,7 @@ class ReportTest < Minitest::Test
     # Three, not two: this measure counts public surface, and `to_param` is surface. The
     # persistence measure asks a different question — which of them are business rules —
     # and answers two. Different questions, different numbers, on purpose.
-    assert_includes found.join, "Order — 3 public methods"
+    assert_includes found.join, "Order — 4 public methods"
     assert_includes found.join, "Basket — 2 public methods"
   end
 
@@ -101,7 +105,7 @@ class ReportTest < Minitest::Test
 
   # Declarations about the table are not behaviour, and private methods are not public.
   def test_it_finds_rules_on_persistence_and_not_declarations
-    assert_equal ["#total", "#paid?"], labels("Rules living on persistence")
+    assert_equal ["#total", "#paid?", "#settle!"], labels("Rules living on persistence")
   end
 
   def test_it_finds_lifecycle_callbacks
@@ -220,6 +224,29 @@ class ReportTest < Minitest::Test
     assert_includes row("Lifecycle callbacks").exemplars.map(&:relative), "app/models/basket.rb"
   end
 
+  # The gem can see which it is, so it says so rather than handing the reader a judgement
+  # it was perfectly able to make — and it names the write it found as the evidence.
+  def test_it_infers_command_or_query_from_what_the_method_does
+    proposals = row("Rules living on persistence").findings.map { |finding| finding.context }
+
+    settle = proposals.find { |context| context[:method] == :settle! }
+    total = proposals.find { |context| context[:method] == :total }
+
+    assert settle[:writes]
+    assert_equal :update!, settle[:write]
+    refute total[:writes]
+  end
+
+  def test_the_proposal_names_the_evidence
+    write = Shipshape::Measures::PersistenceWithBehaviour.new
+    finding = write.call(sources_for_app).find { |candidate| candidate.context[:method] == :settle! }
+    proposal = write.proposal([finding])
+
+    assert_includes proposal, "class SettleOrder < Command"
+    assert_includes proposal, "app/commands/settle_order.rb"
+    assert_includes proposal, "It calls `update!`, so it writes: a Command."
+  end
+
   def test_the_markdown_names_the_law_and_admits_what_it_truncates
     markdown = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root), examples: 1).call }
 
@@ -236,6 +263,11 @@ class ReportTest < Minitest::Test
 
   def labels(title)
     row(title).findings.map(&:label)
+  end
+
+  # The measure under test, given the fixture's sources directly.
+  def sources_for_app
+    in_app { |root| Shipshape::Sources.new(root: root).call }
   end
 
   def report_for(root)
