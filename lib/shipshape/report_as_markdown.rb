@@ -98,6 +98,23 @@ module Shipshape
         `Invoice` is the thing, `SettleInvoice` is what you do to it, `FindInvoice` is how
         you get it.
 
+        **And it breaks the assumption Rails is built on, deliberately.** Rails takes a model
+        and a table to be the same thing: `Invoice` is `invoices`, one to one, and the
+        framework fills in everything else from that. Renaming to `InvoiceRecord` costs one
+        line — `self.table_name = "invoices"` — and that line is the whole price of getting
+        the name back.
+
+        **What it buys is the end of one-to-one.** `Invoice` the shape is assembled from two
+        tables, `invoices` and `invoice_lines`, and nothing about it says otherwise; a
+        customer's name could come from a third. The shape is what the business means, and
+        the tables are how it happens to be stored — which is the split Rails never made and
+        the reason a model ends up with a hundred columns and everybody's concerns on it.
+
+        It runs the other way too. **One table can feed several shapes**: the invoice a
+        customer sees and the invoice finance reconciles are different objects with different
+        fields, both read from the same rows, neither pretending to be the other. Under one
+        model those are conditionals; here they are two queries and two shapes.
+
         **A naming collision is signal, not an obstacle.** If a query and a shape both want
         to be called `Invoice`, they are the same concept and one of them is wrong. If
         `SettleInvoice` already exists, the write you are about to add is that write. The
@@ -108,11 +125,13 @@ module Shipshape
         # A RECORD is the table and nothing else — no rules, no callbacks, no decisions.
         # It never leaves the operation that read it.
         class InvoiceRecord < ApplicationRecord
+          self.table_name = "invoices"      # the one line the rename costs
           belongs_to :customer_record
           has_many :invoice_line_records
         end
 
         class InvoiceLineRecord < ApplicationRecord
+          self.table_name = "invoice_lines"
           belongs_to :invoice_record
         end
 
@@ -237,6 +256,8 @@ module Shipshape
           `customer_name` is the first column of the next god object.
         - A shape may carry methods that rearrange its own fields, and cannot carry one that
           needs anything else. A part is nested inside the thing it belongs to.
+        - A shape is not a table. It is assembled from as many as it takes, and one table
+          may feed several shapes.
         - Every class inherits exactly one of these, one level deep, so its kind — and
           therefore what it may reach — is knowable without reading it.
       TEXT

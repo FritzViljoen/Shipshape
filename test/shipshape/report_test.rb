@@ -435,6 +435,11 @@ class ReportTest < Minitest::Test
     assert_includes text, "class Line < Shape"
     refute_includes text, "class InvoiceLine < Shape"
     assert_includes text, "A LINE IS NESTED BECAUSE IT IS A PART, NOT A PEER."
+
+    # The rename breaks Rails' one-model-one-table assumption on purpose, and the section
+    # has to say so — a Rails reader will hit it in the first hour otherwise.
+    assert_includes text, %(self.table_name = "invoices")
+    assert_includes text, "the end of one-to-one"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 
