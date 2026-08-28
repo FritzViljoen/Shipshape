@@ -242,8 +242,40 @@ module Shipshape
           end
         end
 
+        # REQUEST HANDLING dispatches and chooses what to render. It decides nothing.
+        class InvoicesController < ApplicationController
+          def show
+            @invoice = FindInvoice.call(id: integer_param!(:id))   # one call, no decision
+          end
+
+          def settle
+            # Two calls, and this is allowed: the read resolves an argument for the write
+            # and its result is never looked at. The rule is deciding, not counting.
+            result = SettleInvoice.call(
+              invoice: FindInvoice.call(id: integer_param!(:id)),
+              paid_on: date_param!(:paid_on, time_zone: :time_zone),
+            )
+
+            # Choosing what to render IS this layer's job. Asking the invoice a question and
+            # acting on the answer would not be:
+            #
+            #   invoice = FindInvoice.call(id: id)
+            #   return redirect_to invoices_path if invoice.settled?   # a rule, escaped
+            #
+            # The command already answers that — `failure(:already_settled)` — so the action
+            # reads an outcome it was told rather than one it worked out.
+            return redirect_to invoice_path, notice: "Settled." if result.success?
+
+            render :show, status: :unprocessable_entity
+          end
+        end
+
         # A WORKFLOW sequences commands and queries. It never branches, and it spans several
         # transactions — so every step is idempotent and every stop leaves a legal state.
+        #
+        # It is OPTIONAL. Two calls from an action need none — they are visibly two
+        # transactions. This one earns its place: it is run from a scheduler as well as a
+        # request, and stopping half way has to leave a legal state.
         class CloseTheMonth < Workflow
           def initialize(on:)
             @on = typed(on, Date)

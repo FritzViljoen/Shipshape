@@ -451,6 +451,12 @@ class ReportTest < Minitest::Test
     # query -> query, the sister call this canon calls load-bearing.
     refute_includes text, "FindCustomer.call"
     assert_includes text, "A QUERY OWNS ITS ENTIRE READ"
+
+    # The layer the whole report is about has to appear in the example of what good looks
+    # like — including the two-call case, which is the one people ask about.
+    assert_includes text, "class InvoicesController < ApplicationController"
+    assert_includes text, "The rule is deciding, not counting."
+    assert_includes text, "It is OPTIONAL."
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 
