@@ -440,6 +440,12 @@ class ReportTest < Minitest::Test
     # has to say so — a Rails reader will hit it in the first hour otherwise.
     assert_includes text, %(self.table_name = "invoices")
     assert_includes text, "the end of one-to-one"
+
+    # Two shapes from the same rows, and the collision rule paying off rather than being
+    # worked around.
+    assert_includes text, "module Sales"
+    assert_includes text, "module Finance"
+    assert_includes text, "the naming collision paying off"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 

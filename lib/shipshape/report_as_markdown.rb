@@ -110,10 +110,9 @@ module Shipshape
         the tables are how it happens to be stored — which is the split Rails never made and
         the reason a model ends up with a hundred columns and everybody's concerns on it.
 
-        It runs the other way too. **One table can feed several shapes**: the invoice a
-        customer sees and the invoice finance reconciles are different objects with different
-        fields, both read from the same rows, neither pretending to be the other. Under one
-        model those are conditionals; here they are two queries and two shapes.
+        It runs the other way too. **One table can feed several shapes** — the invoice a
+        customer sees and the invoice finance reconciles are different objects read from the
+        same rows. There is a worked pair below the main example.
 
         **A naming collision is signal, not an obstacle.** If a query and a shape both want
         to be called `Invoice`, they are the same concept and one of them is wrong. If
@@ -242,6 +241,36 @@ module Shipshape
           end
         end
         ```
+
+        **Two shapes, same rows.** Now that a shape is not a table, the invoice a customer is
+        shown and the invoice finance reconciles can be different objects — which they always
+        were, and which one model could only express as a flag or as columns half the callers
+        ignore:
+
+        ```ruby
+        # What a customer is shown. No cost price, no ledger, no margin.
+        module Sales
+          class Invoice < Shape
+            def initialize(reference:, lines:, total:, settled_on:)
+        end end end
+
+        # What reconciliation needs. Same rows, and not one field in common with the above.
+        module Finance
+          class Invoice < Shape
+            def initialize(id:, gross:, tax:, cost:, ledger_reference:, settled_on:)
+        end end end
+
+        FindInvoice.call(id: id)              # -> Sales::Invoice
+        FindInvoiceForSettlement.call(id: id) # -> Finance::Invoice, same two tables
+        ```
+
+        **This is the naming collision paying off.** Two things wanted to be called `Invoice`,
+        and that was not a problem to work around — it was the design saying there are two
+        contexts here. Under one model they are the same object with a `for_finance` flag,
+        or twenty columns that only half the callers use, and every reader has to know which
+        half they are in. Here they are two shapes, and a caller holding one cannot reach the
+        other's fields by accident.
+
 
         **The rules that fall out of it**, and which the measures below count departures
         from:
