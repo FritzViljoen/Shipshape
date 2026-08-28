@@ -365,6 +365,25 @@ class ReportTest < Minitest::Test
     refute_includes proposal, "Paid@order"
   end
 
+  # Twelve lists tell a reader who knows the codebase what they knew. What they cannot see
+  # by reading down the page is that one file appears in eight of the twelve.
+  def test_it_says_where_to_start
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    assert_includes text, "## Where to start"
+    assert_match(/- `app\/models\/order\.rb` — \d+ of 12:/, text)
+  end
+
+  # Ranked by breadth, not volume: a thousand findings of one kind is one problem, and six
+  # kinds is six.
+  def test_where_to_start_ranks_by_how_many_measures_not_how_many_findings
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+    listed = text[/## Where to start.*?\n\n## /m].to_s.scan(/- `([^`]+)` — (\d+) of/)
+    counts = listed.map { |_path, count| count.to_i }
+
+    assert_equal counts.sort.reverse, counts
+  end
+
   def test_no_abbreviations_reach_the_reader
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 

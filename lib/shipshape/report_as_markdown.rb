@@ -20,7 +20,7 @@ module Shipshape
     end
 
     def call
-      ([heading] + [summary] + detail).join("\n")
+      ([heading] + [summary] + [where_to_start] + detail).join("\n")
     end
 
     private
@@ -51,6 +51,38 @@ module Shipshape
       return "—" if row.share.nil?
 
       "#{row.clean} of #{row.population} #{row.noun} (#{row.share}%)"
+    end
+
+    # THE ONE SECTION A READER WHO ALREADY KNOWS THE CODEBASE NEEDS.
+    #
+    # Twelve lists of findings tell a CTO what they knew: the big files are big. What they
+    # cannot see by reading down the page is that one file appears in eight of the twelve —
+    # and that is the whole answer to "what do we do first", sitting in the report unsaid.
+    #
+    # Ranked by how many DIFFERENT measures a file appears in rather than by how many
+    # findings it has, because breadth is what makes a file expensive: a thousand similar
+    # findings is one problem, and eight kinds of finding is eight.
+    def where_to_start
+      worst = concentration.first(10)
+      return "" if worst.empty?
+
+      lines = ["## Where to start", "", <<~TEXT.chomp, ""]
+        These files appear in the most measures. Ranked by how many different kinds of
+        finding they carry, not how many findings — a thousand of one kind is one problem,
+        and six kinds is six.
+      TEXT
+
+      (lines + worst.map { |path, measures| "- `#{path}` — #{measures.length} of #{report[:rows].length}: #{measures.join(", ").downcase}" } + [""]).join("\n")
+    end
+
+    def concentration
+      found = Hash.new { |hash, key| hash[key] = [] }
+
+      report[:rows].each do |row|
+        row.findings.map(&:relative).uniq.each { |path| found[path] << row.title }
+      end
+
+      found.sort_by { |path, measures| [-measures.length, path] }
     end
 
     def detail
