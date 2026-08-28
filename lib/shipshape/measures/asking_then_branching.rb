@@ -33,6 +33,12 @@ module Shipshape
       end
       IGNORED = %i[nil? present? blank? empty? any? none? zero? nil].freeze
 
+      # The framework's own objects. `request.xhr?` and `params[:format]` are properties of
+      # the call being served, not an object the caller was handed — asking them is
+      # placement, which is request handling's actual job.
+      FRAMEWORK = %i[request response params session flash cookies headers env
+                     controller helpers view_context].freeze
+
       def call(sources)
         sources.flat_map do |source|
           conditions(source).map { |node| finding(source, node) }.compact
