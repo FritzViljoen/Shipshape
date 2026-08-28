@@ -414,8 +414,14 @@ class ReportTest < Minitest::Test
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_includes text, "## What the shape is"
-    assert_includes text, "class SettleInvoice < Command"
-    assert_includes text, "class CloseTheMonth < Workflow"
+
+    # Record, shape, query, command, workflow — the order the rename makes possible, and
+    # the order a reader can follow: the table lets go of the name, then the name is used.
+    order = ["class InvoiceRecord", "class Invoice < Shape", "class FindInvoice < Query",
+             "class SettleInvoice < Command", "class CloseTheMonth < Workflow"]
+
+    assert_equal order, order.sort_by { |declaration| text.index(declaration) }
+    assert_includes text, "class InvoiceLine < Shape"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 

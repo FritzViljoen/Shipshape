@@ -84,71 +84,118 @@ module Shipshape
 
         ## What the shape is
 
-        Five kinds of class, and every proposal further down becomes one of them. The point
-        is not the names — it is that each kind may only reach certain others, so a rule
-        cannot end up somewhere nobody would look for it.
+        **It starts with a rename.** `Invoice` today is a table — an Active Record class
+        holding columns, associations, scopes, callbacks and whatever rules settled there
+        over the years. Rename it `InvoiceRecord`, and the name `Invoice` is free for the
+        thing the business actually talks about.
+
+        That one move is what makes the rest possible. Until the table lets go of the name,
+        there is nowhere for the domain object to live.
+
+        **The suffix says infrastructure.** `InvoiceRecord` and `InvoicesController` carry one
+        because they are plumbing — a table and a door. Everything else is unsuffixed,
+        because everything else is the old model split into the parts it was always made of:
+        `Invoice` is the thing, `SettleInvoice` is what you do to it, `FindInvoice` is how
+        you get it.
+
+        **A naming collision is signal, not an obstacle.** If a query and a shape both want
+        to be called `Invoice`, they are the same concept and one of them is wrong. If
+        `SettleInvoice` already exists, the write you are about to add is that write. The
+        names running out is the design telling you something, and reaching for
+        `InvoiceService2` is refusing to hear it.
 
         ```ruby
-        # A COMMAND is one write, in one transaction. It answers with a Result.
-        class SettleInvoice < Command
-          def initialize(invoice:, paid_on:)
-            @invoice = typed(invoice, Invoice)     # asserted here, and nowhere else
-            @paid_on = typed(paid_on, Date)
-          end
+        # A RECORD is the table and nothing else — no rules, no callbacks, no decisions.
+        # It never leaves the operation that read it.
+        class InvoiceRecord < ApplicationRecord
+          belongs_to :customer_record
+          has_many :invoice_line_records
+        end
 
-          def call
-            return failure(:already_settled) if @invoice.settled_on          # an expected outcome
-            InvoiceRecord.find(@invoice.id).update!(settled_on: @paid_on)    # the one write
-            success(FindInvoice.call(id: @invoice.id))
+        class InvoiceLineRecord < ApplicationRecord
+          belongs_to :invoice_record
+        end
+
+        # A SHAPE holds a shape and computes nothing. It is detached: a view holding one
+        # cannot lazily load, cannot write, and cannot be an N+1.
+        class Invoice < Shape
+          def initialize(id:, customer:, lines:, settled_on:)
+            @id = typed(id, Integer)
+            @customer = typed(customer, Customer)              # composed, not flattened:
+            @lines = typed_array(lines, InvoiceLine)           # no customer_name here, and
+            @settled_on = typed(settled_on, Date, allow_nil: true)
+          end                                                  # no line_1_total either
+        end
+
+        class InvoiceLine < Shape
+          def initialize(description:, amount:)
+            @description = typed(description, String)
+            @amount = typed(amount, Money)
           end
         end
 
-        # A QUERY is one read. No envelope: finding nothing is an answer, not a failure.
+        # A QUERY is one read, and answers with shapes. No envelope: finding nothing is an
+        # answer, not a failure.
         class FindInvoice < Query
           def initialize(id:)
             @id = typed(id, Integer)
           end
 
           def call
-            Invoice.new(**InvoiceRecord.find(@id).slice(:id, :total, :settled_on))
+            record = InvoiceRecord.includes(:invoice_line_records).find(@id)
+
+            Invoice.new(
+              id: record.id,
+              customer: FindCustomer.call(id: record.customer_record_id),
+              lines: record.invoice_line_records.map { |line| InvoiceLine.new(**line.slice(:description, :amount)) },
+              settled_on: record.settled_on,
+            )
           end
         end
 
-        # A SHAPE holds a shape and computes nothing. It travels; the record never does.
-        class Invoice < Shape
-          def initialize(id:, total:, settled_on:)
-            @id = typed(id, Integer)
-            @total = typed(total, Money)
-            @settled_on = typed(settled_on, Date, allow_nil: true)
+        # A COMMAND is one write, in one transaction, and answers with a Result.
+        class SettleInvoice < Command
+          def initialize(invoice:, paid_on:)
+            @invoice = typed(invoice, Invoice)     # asserted here, and nowhere after
+            @paid_on = typed(paid_on, Date)
+          end
+
+          def call
+            return failure(:already_settled) if @invoice.settled_on   # an expected outcome,
+                                                                      # not an exception
+            InvoiceRecord.find(@invoice.id).update!(settled_on: @paid_on)
+            success(FindInvoice.call(id: @invoice.id))
           end
         end
 
-        # A WORKFLOW sequences commands and queries. It never branches, and it spans
-        # several transactions — so every step is idempotent and every stop is a legal state.
+        # A WORKFLOW sequences commands and queries. It never branches, and it spans several
+        # transactions — so every step is idempotent and every stop leaves a legal state.
         class CloseTheMonth < Workflow
+          def initialize(on:)
+            @on = typed(on, Date)
+          end
+
           def call
             invoices = ListUnsettledInvoices.call
             invoices.each { |invoice| SettleInvoice.call(invoice: invoice, paid_on: @on) }
             success(invoices.length)
           end
         end
-
-        # A RECORD is the table and nothing else. No rules, no callbacks, no decisions.
-        class InvoiceRecord < ApplicationRecord
-          belongs_to :customer_record
-        end
         ```
 
-        **The rules that fall out of it**, and which the measures below are counting
-        departures from:
+        **The rules that fall out of it**, and which the measures below count departures
+        from:
 
         - Request handling calls **one** operation and decides nothing.
         - A command is one write and one transaction; sequencing writes is a workflow's job.
         - A query is one read; a query calling a query is the shape an N+1 arrives in.
         - Nothing reaches the outside from inside a transaction.
-        - A record holds no rules, so no concern can settle on it.
-        - Every class inherits exactly one of these, so its kind — and therefore what it may
-          reach — is knowable without reading it.
+        - A record holds no rules, so no concern can settle on it, and it never leaves the
+          operation that read it.
+        - A shape holds other shapes rather than copying their fields — a flattened
+          `customer_name` is the first column of the next god object.
+        - Every class inherits exactly one of these, one level deep, so its kind — and
+          therefore what it may reach — is knowable without reading it.
       TEXT
     end
 
@@ -175,6 +222,8 @@ module Shipshape
     # Ranked by how many DIFFERENT measures a file appears in rather than by how many
     # findings it has, because breadth is what makes a file expensive: a thousand similar
     # findings is one problem, and eight kinds of finding is eight.
+    #
+    # Compared within its own kind, because half the measures only look at controllers.
     def where_to_start
       groups = GROUPS.map { |title, prefix| [title, concentration.select { |path, _| in?(path, prefix) }.first(3)] }
                      .reject { |_title, worst| worst.empty? }
