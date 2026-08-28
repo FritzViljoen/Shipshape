@@ -539,6 +539,15 @@ class ReportTest < Minitest::Test
     assert_includes proposal, "nobody would write it twice"
   end
 
+  # A measure registered twice renders twice, and the report claims the same finding as two
+  # independent ones. Nothing else would have caught it: every count was right.
+  def test_no_measure_is_registered_twice
+    titles = Shipshape::Measures::ALL.map { |measure| measure::TITLE }
+
+    assert_equal titles.uniq, titles
+    assert_equal Shipshape::Measures::ALL.uniq, Shipshape::Measures::ALL
+  end
+
   def test_it_says_where_to_start
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 

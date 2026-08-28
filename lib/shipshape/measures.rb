@@ -6,7 +6,6 @@ require "shipshape/measures/request_handling_that_decides"
 require "shipshape/measures/request_handling_that_reaches_persistence"
 require "shipshape/measures/persistence_with_behaviour"
 require "shipshape/measures/methods_that_could_move_to_a_shape"
-require "shipshape/measures/methods_that_could_move_to_a_shape"
 require "shipshape/measures/lifecycle_callbacks"
 require "shipshape/measures/input_parsed_in_the_action"
 require "shipshape/measures/times_that_assume_a_zone"
@@ -33,7 +32,6 @@ module Shipshape
       AskingThenBranching,
       RequestHandlingThatReachesPersistence,
       PersistenceWithBehaviour,
-      MethodsThatCouldMoveToAShape,
       MethodsThatCouldMoveToAShape,
       LifecycleCallbacks,
       InputParsedInTheAction,
