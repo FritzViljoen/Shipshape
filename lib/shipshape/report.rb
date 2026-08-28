@@ -18,13 +18,37 @@ module Shipshape
 
     EXAMPLES = 5
 
-    Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, keyword_init: true) do
+    Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, :population, :noun,
+                     :unit, :exemplars, keyword_init: true) do
       def count
         findings.length
       end
 
       def files
         findings.map(&:relative).uniq.length
+      end
+
+      # The share that is already right. A report with no denominator is an accusation; one
+      # that says four in five of your actions are already dispatch is a measurement, and it
+      # is the sentence that makes the other fifth believable.
+      #
+      # SUBTRACT UNITS, NOT FINDINGS. Some measures find one thing per class and some find
+      # many sites across a file — 186 sites in 45 controllers is not −141 clean controllers,
+      # which is what this said before anybody looked at the arithmetic.
+      def clean
+        return nil if population.nil? || population.zero?
+
+        population - affected
+      end
+
+      def affected
+        unit == :file ? files : count
+      end
+
+      def share
+        return nil if clean.nil?
+
+        (clean * 100.0 / population).round
       end
     end
 
@@ -55,8 +79,16 @@ module Shipshape
           caveat: measure.const_defined?(:CAVEAT) ? measure::CAVEAT : nil,
           findings: findings,
           proposal: proposal_from(instance, findings),
+          population: ask(instance, :population, sources),
+          noun: instance.class.const_defined?(:NOUN) ? instance.class::NOUN : nil,
+          unit: instance.class.const_defined?(:UNIT) ? instance.class::UNIT : :finding,
+          exemplars: ask(instance, :exemplars, sources) || [],
         )
       end
+    end
+
+    def ask(instance, message, sources)
+      instance.respond_to?(message) ? instance.public_send(message, sources) : nil
     end
 
     # A measure proposes a better shape only where it can name one from the reader's own

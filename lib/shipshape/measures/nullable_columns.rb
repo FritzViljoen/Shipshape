@@ -18,6 +18,14 @@ module Shipshape
       WHY = "A nullable column is a gap given a meaning nobody declared; a default is a " \
             "second place deciding a value."
 
+      NOUN = "columns"
+
+      def population(_sources)
+        return 0 unless File.file?(path)
+
+        File.readlines(path).count { |line| COLUMN.match?(line) }
+      end
+
       SCHEMA = "db/schema.rb"
       COLUMN = /^\s*t\.(\w+)\s+"([^"]+)"(.*)$/.freeze
       TIMESTAMPS = %w[created_at updated_at].freeze

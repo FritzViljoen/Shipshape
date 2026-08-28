@@ -19,6 +19,26 @@ module Shipshape
       LAW = "persistence-holds-no-behaviour"
       WHY = "A rule on a record is reachable from everywhere the record is, which is how " \
             "one concern after another settles on the same class."
+      NOUN = "records"
+      # Findings are sites, and many land in one file, so the clean count subtracts files.
+      UNIT = :file
+
+      def population(sources)
+        records(sources).length
+      end
+
+      def exemplars(sources)
+        records(sources).select { |_source, node| behaviour_of(node).empty? }.map do |source, node|
+          Finding.new(relative: source.relative, line: node.loc.line,
+                      label: "#{ClassReading.name_of(node)} — declarations only, no rules")
+        end
+      end
+
+      def records(sources)
+        models(sources).flat_map do |source|
+          ClassReading.classes(source).select { |node| persistence?(node) }.map { |node| [source, node] }
+        end
+      end
 
       # Methods the framework asks a record to provide. They describe how the object is
       # addressed and rendered, not what the business does with it — and counting them both

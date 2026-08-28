@@ -19,6 +19,24 @@ module Shipshape
       WHY = "The caller reads one method and gets several, in an order nothing states. A " \
             "codebase with these cannot be read by following calls."
 
+      NOUN = "files under app/models"
+      # Findings are sites, and many land in one file, so the clean count subtracts files.
+      UNIT = :file
+
+      def population(sources)
+        models(sources).length
+      end
+
+      def exemplars(sources)
+        models(sources).reject { |source| registrations(source).any? }.map do |source|
+          Finding.new(relative: source.relative, line: 1, label: "no callbacks")
+        end
+      end
+
+      def models(sources)
+        sources.select { |source| source.relative.start_with?("app/models/") }
+      end
+
       HOOKS = %i[
         before_validation after_validation
         before_save around_save after_save

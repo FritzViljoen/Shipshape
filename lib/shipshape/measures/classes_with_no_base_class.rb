@@ -18,6 +18,11 @@ module Shipshape
       LAW = "the-call-graph-is-declared"
       WHY = "Nothing says what these are, so no rule can reach them and no reader can tell " \
             "what they may do."
+      NOUN = "classes"
+
+      def population(sources)
+        sources.sum { |source| ClassReading.classes(source).length }
+      end
 
       def call(sources)
         sources.flat_map do |source|

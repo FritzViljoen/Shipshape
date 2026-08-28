@@ -19,6 +19,21 @@ module Shipshape
       LAW = "the-call-graph-is-declared"
       WHY = "Each of these is a place where a rule could live and does not, and where " \
             "changing the controller means understanding the schema."
+      NOUN = "controllers"
+      # Findings are sites, and many land in one file, so the clean count subtracts files.
+      UNIT = :file
+
+      def population(sources)
+        controllers(sources).length
+      end
+
+      def exemplars(sources)
+        models = model_names(sources)
+
+        controllers(sources).reject { |source| touches?(source, models) }.map do |source|
+          Finding.new(relative: source.relative, line: 1, label: "reaches no record at all")
+        end
+      end
 
       def call(sources)
         models = model_names(sources)
@@ -107,6 +122,10 @@ module Shipshape
         return false if superclass.nil?
 
         BASES.any? { |pattern| pattern.match?(superclass) }
+      end
+
+      def touches?(source, models)
+        sends_in(source).any? { |node| models.include?(node.receiver.source.split("::").last) }
       end
 
       def sends_in(source)

@@ -19,6 +19,21 @@ module Shipshape
       WHY = "Every extra public method is a second reason for the class to change. This is " \
             "the god object counted while it is still small."
 
+      NOUN = "classes"
+
+      def population(sources)
+        sources.reject { |source| excluded?(source) }.sum { |source| ClassReading.classes(source).length }
+      end
+
+      def exemplars(sources)
+        sources.reject { |source| excluded?(source) }.flat_map do |source|
+          ClassReading.classes(source).select { |node| ClassReading.public_methods_of(node).length == 1 }.map do |node|
+            Finding.new(relative: source.relative, line: node.loc.line,
+                        label: "#{ClassReading.name_of(node)} — one public method")
+          end
+        end
+      end
+
       EXCLUDED = %w[controllers mailers mailboxes channels jobs].freeze
       NOISE = 3
 

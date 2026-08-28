@@ -29,6 +29,12 @@ module Shipshape
                "foreign data access properly needs types Ruby does not offer. WMC and TCC " \
                "are as defined (Lanza & Marinescu, 2006)."
 
+      NOUN = "classes"
+
+      def population(sources)
+        sources.sum { |source| ClassReading.classes(source).length }
+      end
+
       WMC = 47
       TCC = 1.0 / 3
       ATFD = 5

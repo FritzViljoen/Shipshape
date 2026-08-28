@@ -195,6 +195,31 @@ class ReportTest < Minitest::Test
     refute_includes found.first, "Time"
   end
 
+  # A report with no denominator is an accusation. One that says four in five of your
+  # actions are already dispatch is a measurement.
+  def test_it_reports_the_share_that_is_already_right
+    orchestration = row("Actions orchestrating several classes")
+
+    assert_equal 1, orchestration.count
+    assert_equal 1, orchestration.population
+    assert_equal 0, orchestration.clean
+  end
+
+  # SUBTRACT UNITS, NOT FINDINGS. 186 sites across 45 controllers is not −141 clean
+  # controllers, which is what this said before anybody looked at the arithmetic.
+  def test_a_site_based_measure_counts_clean_units_not_clean_findings
+    rules = row("Rules living on persistence")
+
+    assert_operator rules.count, :>, rules.affected
+    assert_operator rules.clean, :>=, 0
+  end
+
+  # Their own code, doing it right. Every codebase has some, and holding it up turns a
+  # diagnostic from a verdict into a direction.
+  def test_it_holds_up_their_own_clean_examples
+    assert_includes row("Lifecycle callbacks").exemplars.map(&:relative), "app/models/basket.rb"
+  end
+
   def test_the_markdown_names_the_law_and_admits_what_it_truncates
     markdown = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root), examples: 1).call }
 

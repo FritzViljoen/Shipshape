@@ -24,7 +24,29 @@ module Shipshape
                "library constant is not the application orchestrating anything. A job and a " \
                "domain class still weigh the same, so the ranking is the signal."
 
+      NOUN = "actions"
       LIMIT = 1
+
+      def population(sources)
+        controllers(sources).sum { |source| actions(source, Set.new).length }
+      end
+
+      # Their own actions, already dispatching. Every codebase has some, and holding them up
+      # is what turns a diagnostic from a verdict into a direction: the shape being asked for
+      # is already here, written by the same people.
+      def exemplars(sources)
+        theirs = declared_in(sources)
+
+        controllers(sources).flat_map do |source|
+          actions(source, theirs).select { |_action, names| names.length == 1 }.map do |action, names|
+            Finding.new(
+              relative: source.relative,
+              line: action.loc.line,
+              label: "##{action.method_name} calls #{names.first} and nothing else",
+            )
+          end
+        end
+      end
 
       def call(sources)
         theirs = declared_in(sources)

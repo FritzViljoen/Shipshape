@@ -41,10 +41,16 @@ module Shipshape
 
     def summary
       rows = report[:rows].map do |row|
-        "| #{row.title} | #{row.count} | #{row.files} | `#{row.law}` |"
+        "| #{row.title} | #{row.count} | #{ratio(row)} | `#{row.law}` |"
       end
 
-      (["| What | Found | In files | Law |", "|---|---:|---:|---|"] + rows).join("\n") + "\n"
+      (["| What | Found | Already right | Law |", "|---|---:|---:|---|"] + rows).join("\n") + "\n"
+    end
+
+    def ratio(row)
+      return "—" if row.share.nil?
+
+      "#{row.clean} of #{row.population} #{row.noun} (#{row.share}%)"
     end
 
     def detail
@@ -56,8 +62,18 @@ module Shipshape
       lines += ["> **What this cannot see:** #{row.caveat}", ""] if row.caveat
       lines += row.count.zero? ? ["Nothing found.", ""] : examples_for(row)
       lines += ["### What it could look like", "", row.proposal, ""] if row.proposal
+      lines += already_right(row) if row.exemplars.any?
 
       lines.join("\n")
+    end
+
+    # Their own code, doing it right. Every codebase has some, and holding it up is what
+    # turns a diagnostic from a verdict into a direction — the shape being asked for is
+    # already in the repository, written by the same people.
+    def already_right(row)
+      ["### Where it is already right", ""] +
+        row.exemplars.first(2).map { |finding| "- `#{finding.relative}:#{finding.line}` #{finding.label}" } +
+        [""]
     end
 
     def examples_for(row)
