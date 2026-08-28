@@ -20,7 +20,7 @@ module Shipshape
     end
 
     def call
-      ([heading] + [summary] + [where_to_start] + detail).join("\n")
+      ([heading] + [situation] + [summary] + [where_to_start] + [the_shape] + detail).join("\n")
     end
 
     private
@@ -32,10 +32,123 @@ module Shipshape
         # shipshape report
 
         `#{report[:root]}` — #{report[:files]} Ruby files read under `app/` and `lib/`.
+      TEXT
+    end
 
-        Nothing here is a bug. Every row is a place where a rule has no home, or has one
-        nobody can reach — which is what makes a codebase expensive to change rather than
-        wrong.
+    # WHY ANY OF THIS IS BEING COUNTED.
+    #
+    # Twelve lists of findings with no argument around them is a tool showing off. A reader
+    # who already knows the codebase needs the claim first — what these have in common, what
+    # it costs, and what the alternative looks like — or every number reads as a complaint
+    # about a decision somebody made for a good reason in 2016.
+    def situation
+      <<~TEXT
+
+        ## What this is measuring, and why
+
+        **Nothing here is a bug.** Every application below ships, passes its tests and earns
+        money. What is being counted is something else: how many places a rule lives where
+        nobody would look for it.
+
+        A Rails application starts with three homes — a controller, a model, a view — and
+        every rule that does not obviously belong in one of them goes in whichever is
+        nearest. A price calculation lands in the controller because that is where the form
+        posted. A booking check lands on the record because that is where the data is. Each
+        of those is a reasonable decision on the day. **What they add up to is a codebase
+        where the answer to "where does this go" is "wherever you are standing", and the
+        answer to "where is this" is "read everything".**
+
+        That is what makes a change expensive. Not the size of the codebase — the number of
+        places you must read before you can be sure a change is finished.
+
+        **It is worse now than it was, and for a reason that has nothing to do with anybody
+        here.** Writing code stopped being the expensive part. Reading it did not. A
+        codebase where the rules have no homes is one where neither a new developer nor an
+        agent can be handed a task and trusted with it, because neither can tell what a
+        change touches. The cost was always there; it used to be paid slowly.
+
+        **Every measure below is one shape of the same thing:** a rule with no home, or a
+        home nobody can reach. The counts are not a score. They are a map of where the
+        reading is expensive, and the ratio beside each one says how much of the codebase is
+        already fine — which is usually most of it.
+      TEXT
+    end
+
+    # THE DESTINATION, in code.
+    #
+    # A report that only says what is wrong leaves the reader to invent the alternative, and
+    # they will invent the one they already know. Five small classes are enough to show the
+    # whole shape, and every proposal further down lands in one of them.
+    def the_shape
+      <<~TEXT
+
+        ## What the shape is
+
+        Five kinds of class, and every proposal further down becomes one of them. The point
+        is not the names — it is that each kind may only reach certain others, so a rule
+        cannot end up somewhere nobody would look for it.
+
+        ```ruby
+        # A COMMAND is one write, in one transaction. It answers with a Result.
+        class SettleInvoice < Command
+          def initialize(invoice:, paid_on:)
+            @invoice = typed(invoice, Invoice)     # asserted here, and nowhere else
+            @paid_on = typed(paid_on, Date)
+          end
+
+          def call
+            return failure(:already_settled) if @invoice.settled_on          # an expected outcome
+            InvoiceRecord.find(@invoice.id).update!(settled_on: @paid_on)    # the one write
+            success(FindInvoice.call(id: @invoice.id))
+          end
+        end
+
+        # A QUERY is one read. No envelope: finding nothing is an answer, not a failure.
+        class FindInvoice < Query
+          def initialize(id:)
+            @id = typed(id, Integer)
+          end
+
+          def call
+            Invoice.new(**InvoiceRecord.find(@id).slice(:id, :total, :settled_on))
+          end
+        end
+
+        # A SHAPE holds a shape and computes nothing. It travels; the record never does.
+        class Invoice < Shape
+          def initialize(id:, total:, settled_on:)
+            @id = typed(id, Integer)
+            @total = typed(total, Money)
+            @settled_on = typed(settled_on, Date, allow_nil: true)
+          end
+        end
+
+        # A WORKFLOW sequences commands and queries. It never branches, and it spans
+        # several transactions — so every step is idempotent and every stop is a legal state.
+        class CloseTheMonth < Workflow
+          def call
+            invoices = ListUnsettledInvoices.call
+            invoices.each { |invoice| SettleInvoice.call(invoice: invoice, paid_on: @on) }
+            success(invoices.length)
+          end
+        end
+
+        # A RECORD is the table and nothing else. No rules, no callbacks, no decisions.
+        class InvoiceRecord < ApplicationRecord
+          belongs_to :customer_record
+        end
+        ```
+
+        **The rules that fall out of it**, and which the measures below are counting
+        departures from:
+
+        - Request handling calls **one** operation and decides nothing.
+        - A command is one write and one transaction; sequencing writes is a workflow's job.
+        - A query is one read; a query calling a query is the shape an N+1 arrives in.
+        - Nothing reaches the outside from inside a transaction.
+        - A record holds no rules, so no concern can settle on it.
+        - Every class inherits exactly one of these, so its kind — and therefore what it may
+          reach — is knowable without reading it.
       TEXT
     end
 

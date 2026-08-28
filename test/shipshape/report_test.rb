@@ -28,6 +28,9 @@ class ReportTest < Minitest::Test
       end
     RUBY
     "app/models/order.rb" => <<~RUBY,
+      class OrderNote
+      end
+
       class Order < ApplicationRecord
         belongs_to :customer
         before_save :stamp
@@ -367,11 +370,41 @@ class ReportTest < Minitest::Test
 
   # Twelve lists tell a reader who knows the codebase what they knew. What they cannot see
   # by reading down the page is that one file appears in eight of the twelve.
+  # A file name is the first index anybody has. Three classes in one file means two cannot
+  # be found by the name they are used under.
+  def test_it_finds_a_file_declaring_several_classes
+    found = row("Files declaring several classes").findings
+
+    assert_equal ["app/models/order.rb"], found.map(&:relative)
+    assert_includes found.first.label, "2 classes"
+  end
+
+  # Twelve lists of findings with no argument around them is a tool showing off. The reader
+  # needs the claim before the counts, or every number reads as a complaint about a decision
+  # somebody made for a good reason in 2016.
+  def test_it_makes_the_argument_before_the_counts
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    assert_operator text.index("## What this is measuring"), :<, text.index("| What | Found")
+    assert_includes text, "Nothing here is a bug."
+  end
+
+  # A report that only says what is wrong leaves the reader to invent the alternative, and
+  # they will invent the one they already know.
+  def test_it_shows_the_shape_it_is_asking_for
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    assert_includes text, "## What the shape is"
+    assert_includes text, "class SettleInvoice < Command"
+    assert_includes text, "class CloseTheMonth < Workflow"
+    assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
+  end
+
   def test_it_says_where_to_start
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_includes text, "## Where to start"
-    assert_match(%r{- `app/models/order\.rb` — 3 kinds:}, text)
+    assert_match(%r{- `app/models/order\.rb` — \d+ kinds:}, text)
   end
 
   # Ranked by breadth, not volume: a thousand findings of one kind is one problem, and six

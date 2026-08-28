@@ -12,6 +12,7 @@ require "shipshape/measures/god_classes"
 require "shipshape/measures/wide_tables"
 require "shipshape/measures/asking_then_branching"
 require "shipshape/measures/actions_calling_many_classes"
+require "shipshape/measures/several_classes_in_one_file"
 
 module Shipshape
   # What the report measures, in the order it reads best: the shape of the classes first,
@@ -19,6 +20,7 @@ module Shipshape
   module Measures
     ALL = [
       ClassesWithNoBaseClass,
+      SeveralClassesInOneFile,
       ClassesDoingSeveralThings,
       GodClasses,
       RequestHandlingThatDecides,
