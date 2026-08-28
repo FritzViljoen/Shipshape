@@ -268,6 +268,17 @@ module Shipshape
 
             render :show, status: :unprocessable_entity
           end
+
+          # A workflow is called exactly like anything else — the action does not know or
+          # care that a sequence is behind it. The same call runs from the scheduler at
+          # midnight, and neither caller has a copy of the steps.
+          def close_month
+            result = CloseTheMonth.call(on: date_param!(:on, time_zone: :time_zone))
+
+            return redirect_to invoices_path, notice: "Closed." if result.success?
+
+            redirect_to invoices_path, alert: t(".could_not_close", reason: result.error)
+          end
         end
 
         # A WORKFLOW sequences commands and queries. It never branches, and it spans several

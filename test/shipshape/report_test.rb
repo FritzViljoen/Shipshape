@@ -457,6 +457,11 @@ class ReportTest < Minitest::Test
     assert_includes text, "class InvoicesController < ApplicationController"
     assert_includes text, "The rule is deciding, not counting."
     assert_includes text, "It is OPTIONAL."
+
+    # A workflow is called exactly like anything else — the action does not know a sequence
+    # is behind it, and the scheduler makes the same call.
+    assert_includes text, "def close_month"
+    assert_includes text, "CloseTheMonth.call(on:"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 
