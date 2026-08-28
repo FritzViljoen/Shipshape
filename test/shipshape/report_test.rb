@@ -68,6 +68,14 @@ class ReportTest < Minitest::Test
         end
       end
     RUBY
+    "app/models/application_record.rb" => <<~RUBY,
+      class ApplicationRecord
+      end
+    RUBY
+    "app/models/paid_order.rb" => <<~RUBY,
+      class PaidOrder < Order
+      end
+    RUBY
     "app/models/warehouse/bin.rb" => <<~RUBY,
       module Warehouse
         class Bin
@@ -398,6 +406,24 @@ class ReportTest < Minitest::Test
     assert_includes text, "class SettleInvoice < Command"
     assert_includes text, "class CloseTheMonth < Workflow"
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
+  end
+
+  # A BASE CLASS IS NOT A STRAY OBJECT. `ApplicationRecord` inherits from nothing on
+  # purpose, and it is the answer to that measure rather than an instance of it. Derived
+  # from the code — a class is a base if something else here inherits from it.
+  def test_a_base_class_is_not_counted_as_inheriting_from_nothing
+    relatives = row("Classes that inherit from nothing").findings.map(&:relative)
+
+    refute_includes relatives, "app/models/application_record.rb"
+    assert_includes relatives, "app/models/basket.rb"
+  end
+
+  # Ruby has single inheritance, so "more than one" means depth: a chain of three, where
+  # the middle class is a place somebody keeps things.
+  def test_it_finds_inheritance_deeper_than_one_level
+    found = row("Inheritance deeper than one level").findings
+
+    assert_equal ["PaidOrder < Order < ApplicationRecord"], found.map(&:label)
   end
 
   def test_it_says_where_to_start
