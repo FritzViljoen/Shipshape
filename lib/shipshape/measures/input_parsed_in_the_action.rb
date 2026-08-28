@@ -23,7 +23,7 @@ module Shipshape
       def population(sources)
         sources.sum do |source|
           count = 0
-          ClassReading.walk(source.ast) { |node| count += 1 if node.send_type? && touches_params?(node) }
+          ClassReading.walk(source.ast) { |node| count += 1 if param_read?(node) }
           count
         end
       end
@@ -45,19 +45,33 @@ module Shipshape
         ClassReading.walk(source.ast) do |node|
           next unless node.send_type? && CASTS.include?(node.method_name)
 
-          found << node if touches_params?(node.receiver) || touches_params?(node.arguments.first)
+          found << node if param_read?(node.receiver) || param_read?(node.arguments.first)
         end
         found
       end
 
-      # `params[:x]`, `params.fetch(:x)`, and one level of helper such as `person_params[:x]`.
-      # A parameter assigned to a local first is invisible, which is stated rather than
-      # quietly hoped about.
-      def touches_params?(node)
-        return false unless node.is_a?(RuboCop::AST::Node)
+      ACCESS = %i[[] fetch dig require permit].freeze
 
-        source = node.source
-        source.include?("params[") || source.include?("params.fetch") || source =~ /\bparams\b/ ? true : false
+      # One read of a parameter: `params[:x]`, `params.fetch(:x)`, `params.dig(...)`, or the
+      # same through a `*_params` helper.
+      #
+      # AN EARLIER VERSION MATCHED THE NODE'S SOURCE TEXT for the word `params`, which meant
+      # every expression enclosing a parameter read counted as another read — the denominator
+      # came out at 8,311 on an application with a few hundred, and the share it produced was
+      # meaningless. Structure, not text.
+      def param_read?(node)
+        return false unless node.is_a?(RuboCop::AST::Node) && node.send_type?
+        return false unless ACCESS.include?(node.method_name)
+
+        params?(node.receiver)
+      end
+
+      # `params`, or a `*_params` helper — both are a bare method call with no receiver.
+      def params?(node)
+        return false unless node.is_a?(RuboCop::AST::Node) && node.send_type?
+        return false unless node.receiver.nil? && node.arguments.empty?
+
+        node.method_name == :params || node.method_name.to_s.end_with?("_params")
       end
     end
   end

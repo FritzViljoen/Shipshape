@@ -271,6 +271,16 @@ class ReportTest < Minitest::Test
 
   # An abbreviation asks every reader to have been in the room where it was learned. The
   # published names stay in the source, where somebody is checking it against the paper.
+  # An earlier version matched the node's SOURCE TEXT for the word `params`, so every
+  # expression enclosing a parameter read counted as another read. The denominator came out
+  # at 8,311 on an application with a few hundred, and the share it produced was meaningless.
+  def test_a_parameter_read_is_counted_once_however_deeply_it_is_nested
+    parsing = row("Request input cast where it is used")
+
+    assert_equal 1, parsing.population
+    assert_equal 1, parsing.count
+  end
+
   def test_no_abbreviations_reach_the_reader
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
