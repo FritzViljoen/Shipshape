@@ -63,16 +63,38 @@ module Shipshape
     # findings it has, because breadth is what makes a file expensive: a thousand similar
     # findings is one problem, and eight kinds of finding is eight.
     def where_to_start
-      worst = concentration.first(10)
-      return "" if worst.empty?
+      groups = GROUPS.map { |title, prefix| [title, concentration.select { |path, _| in?(path, prefix) }.first(3)] }
+                     .reject { |_title, worst| worst.empty? }
+      return "" if groups.empty?
 
       lines = ["## Where to start", "", <<~TEXT.chomp, ""]
-        These files appear in the most measures. Ranked by how many different kinds of
-        finding they carry, not how many findings — a thousand of one kind is one problem,
-        and six kinds is six.
+        Ranked by how many different kinds of finding a file carries, not how many findings —
+        a thousand of one kind is one problem, and six kinds is six.
+
+        **Compared within its own kind, deliberately.** Half the measures only look at
+        controllers, so ranking every file on one list puts controllers at the top and keeps
+        them there — which says more about the measures than about the code.
       TEXT
 
-      (lines + worst.map { |path, measures| "- `#{path}` — #{measures.length} of #{report[:rows].length}: #{measures.join(", ").downcase}" } + [""]).join("\n")
+      (lines + groups.flat_map { |title, worst| group(title, worst) }).join("\n")
+    end
+
+    GROUPS = [
+      ["Request handling", "app/controllers/"],
+      ["Persistence", "app/models/"],
+      ["Everywhere else", nil],
+    ].freeze
+
+    def in?(path, prefix)
+      return !GROUPS.any? { |_title, other| other && path.start_with?(other) } if prefix.nil?
+
+      path.start_with?(prefix)
+    end
+
+    def group(title, worst)
+      ["### #{title}", ""] +
+        worst.map { |path, measures| "- `#{path}` — #{measures.length} #{measures.length == 1 ? "kind" : "kinds"}: #{measures.join(", ").downcase}" } +
+        [""]
     end
 
     def concentration

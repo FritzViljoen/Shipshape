@@ -371,17 +371,25 @@ class ReportTest < Minitest::Test
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_includes text, "## Where to start"
-    assert_match(/- `app\/models\/order\.rb` — \d+ of 12:/, text)
+    assert_match(%r{- `app/models/order\.rb` — 3 kinds:}, text)
   end
 
   # Ranked by breadth, not volume: a thousand findings of one kind is one problem, and six
   # kinds is six.
   def test_where_to_start_ranks_by_how_many_measures_not_how_many_findings
-    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
-    listed = text[/## Where to start.*?\n\n## /m].to_s.scan(/- `([^`]+)` — (\d+) of/)
-    counts = listed.map { |_path, count| count.to_i }
+    persistence = section_of("Persistence").scan(/- `([^`]+)` — (\d+) kind/)
+    counts = persistence.map { |_path, count| count.to_i }
 
     assert_equal counts.sort.reverse, counts
+  end
+
+  # Half the measures only look at controllers, so one list ranks every controller above
+  # every model — which says more about the measures than about the code. `booking.rb` at
+  # 186 methods and 113 columns did not appear on that list at all.
+  def test_files_are_compared_within_their_own_kind
+    assert_includes section_of("Request handling"), "app/controllers/orders_controller.rb"
+    assert_includes section_of("Persistence"), "app/models/order.rb"
+    refute_includes section_of("Persistence"), "controllers"
   end
 
   def test_no_abbreviations_reach_the_reader
@@ -403,6 +411,12 @@ class ReportTest < Minitest::Test
   end
 
   private
+
+  def section_of(title)
+    text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
+
+    text[/### #{title}\n(.*?)\n\n/m].to_s
+  end
 
   def report_rows
     in_app { |root| report_for(root)[:rows] }
