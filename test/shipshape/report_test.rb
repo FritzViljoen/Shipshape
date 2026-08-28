@@ -76,6 +76,13 @@ class ReportTest < Minitest::Test
       class PaidOrder < Order
       end
     RUBY
+    "app/models/order_error.rb" => <<~RUBY,
+      class OrderError < StandardError
+      end
+
+      class OrderMissingError < OrderError
+      end
+    RUBY
     "app/models/warehouse/bin.rb" => <<~RUBY,
       module Warehouse
         class Bin
@@ -383,7 +390,7 @@ class ReportTest < Minitest::Test
   def test_it_finds_a_file_declaring_several_classes
     found = row("Files declaring several classes").findings
 
-    assert_equal ["app/models/order.rb"], found.map(&:relative)
+    assert_equal ["app/models/order.rb", "app/models/order_error.rb"], found.map(&:relative)
     assert_includes found.first.label, "2 classes"
   end
 
@@ -424,6 +431,12 @@ class ReportTest < Minitest::Test
     found = row("Inheritance deeper than one level").findings
 
     assert_equal ["PaidOrder < Order < ApplicationRecord"], found.map(&:label)
+  end
+
+  # An error taxonomy has no behaviour to accrete, and Ruby requires the depth. Counting
+  # them buried the finding — nine hundred, of which most were one error file.
+  def test_an_error_hierarchy_is_not_accreted_behaviour
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Error/)
   end
 
   def test_it_says_where_to_start
