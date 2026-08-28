@@ -25,7 +25,9 @@ module Shipshape
       LAW = "persistence-holds-no-behaviour"
       WHY = "High complexity, reaching into many other classes, and methods that share no " \
             "state — several classes wearing one name."
-      CAVEAT = "ATFD is approximated by counting external constants, because measuring " \
+      CAVEAT = "No ratio is reported: one god class is a bottleneck the whole team queues " \
+               "behind, so a denominator would make a concentrated harm look diffuse. " \
+               "ATFD is also approximated, by counting external constants — measuring " \
                "foreign data access properly needs types Ruby does not offer. WMC and TCC " \
                "are as defined (Lanza & Marinescu, 2006)."
 
@@ -43,9 +45,7 @@ module Shipshape
         mine = call(sources).sum { |finding| finding.context[:wmc] }
         return nil if mine.zero?
 
-        "These hold **#{(mine * 100.0 / total).round}% of the application's total complexity**. " \
-          "A ratio of god classes to ordinary ones is not reported: one is enough to slow a " \
-          "team down, and a denominator would make that look diffuse."
+        "These hold **#{(mine * 100.0 / total).round}% of the application's total complexity**."
       end
 
       WMC = 47

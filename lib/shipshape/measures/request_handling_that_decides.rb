@@ -23,7 +23,31 @@ module Shipshape
       CAVEAT = "Counts every conditional, including presentation ones. An upper bound, and " \
                "an invitation to read rather than a defect count."
 
+      NOUN = "actions"
       BRANCHES = %i[if case case_match while until].freeze
+
+      def population(sources)
+        controllers(sources).sum do |source|
+          ClassReading.classes(source).sum { |node| ClassReading.public_methods_of(node).length }
+        end
+      end
+
+      # Many branches land in one action, so the clean count is actions without any — not
+      # actions minus branches, which is not a number about anything.
+      def units(findings)
+        findings.map { |finding| [finding.relative, finding.context[:action]] }.uniq.length
+      end
+
+      def exemplars(sources)
+        controllers(sources).flat_map do |source|
+          ClassReading.classes(source).flat_map do |node|
+            ClassReading.public_methods_of(node).reject { |action| branches_in(source, action).any? }.map do |action|
+              Finding.new(relative: source.relative, line: action.loc.line,
+                          label: "##{action.method_name} decides nothing")
+            end
+          end
+        end
+      end
 
       def call(sources)
         controllers(sources).flat_map do |source|
@@ -44,7 +68,8 @@ module Shipshape
         ClassReading.walk(action.body) do |node|
           next unless BRANCHES.include?(node.type)
 
-          found << Finding.new(relative: source.relative, line: node.loc.line, label: "in ##{action.method_name}")
+          found << Finding.new(relative: source.relative, line: node.loc.line,
+                               label: "in ##{action.method_name}", context: { action: action.method_name })
         end
         found
       end

@@ -18,6 +18,16 @@ module Shipshape
       WHY = "`params[:id].to_i` is 1 for \"1abc\", and the lookup then serves record 1 " \
             "while nothing anywhere fails."
 
+      NOUN = "reads of a parameter"
+
+      def population(sources)
+        sources.sum do |source|
+          count = 0
+          ClassReading.walk(source.ast) { |node| count += 1 if node.send_type? && touches_params?(node) }
+          count
+        end
+      end
+
       CASTS = %i[to_i to_f to_d to_date to_datetime to_time in_time_zone parse strptime iso8601].freeze
 
       def call(sources)

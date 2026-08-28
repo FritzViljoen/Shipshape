@@ -249,6 +249,26 @@ class ReportTest < Minitest::Test
 
   # "98% of your classes are not god classes" reassures, and it is the wrong reading: one
   # is enough to slow a team down, so a denominator makes a concentrated harm look diffuse.
+  # Many branches land in one action, so clean actions are actions without any — not
+  # actions minus branches, which is not a number about anything.
+  def test_branches_count_clean_actions_not_clean_branches
+    branches = row("Branches inside request handling")
+
+    assert_equal 2, branches.count
+    assert_equal 1, branches.affected
+    assert_equal 1, branches.population
+    assert_equal 0, branches.clean
+  end
+
+  # A bare count says nothing about scale. Two measures decline a denominator on purpose —
+  # god classes, because one is enough to hurt, and widest tables, because a threshold there
+  # would be invented — and both have to SAY so in text that always renders.
+  def test_every_row_reports_a_share_or_states_why_it_will_not
+    silent = report_rows.reject { |candidate| candidate.share || candidate.caveat }
+
+    assert_empty silent.map(&:title), "a bare count with no denominator says nothing about scale"
+  end
+
   def test_god_classes_report_no_ratio
     assert_nil row("God classes").population
   end
@@ -262,6 +282,10 @@ class ReportTest < Minitest::Test
   end
 
   private
+
+  def report_rows
+    in_app { |root| report_for(root)[:rows] }
+  end
 
   def row(title)
     in_app { |root| report_for(root)[:rows].find { |candidate| candidate.title == title } }

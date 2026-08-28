@@ -25,7 +25,12 @@ module Shipshape
       CAVEAT = "A nil guard and a presence check read the same way to a parser. Predicate " \
                "methods are the strong signal; the rest is an invitation to look."
 
+      NOUN = "conditionals"
       CONDITIONS = %i[if case].freeze
+
+      def population(sources)
+        sources.sum { |source| conditions(source).length }
+      end
       IGNORED = %i[nil? present? blank? empty? any? none? zero? nil].freeze
 
       def call(sources)
