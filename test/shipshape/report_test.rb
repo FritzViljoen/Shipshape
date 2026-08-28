@@ -56,6 +56,14 @@ class ReportTest < Minitest::Test
           update!(paid: true)
         end
 
+        def activity_date
+          ordered_on.to_date
+        end
+
+        def auto_settled?
+          payments.exists?
+        end
+
         private
 
         def stamp; end
@@ -133,7 +141,7 @@ class ReportTest < Minitest::Test
     # surface. The persistence measure asks which of them are business rules and answers
     # differently. Different questions, different numbers, on purpose.
     assert_equal ["app/models/order.rb", "app/models/basket.rb"], found.map(&:relative)
-    assert_equal ["4 public methods (worth a look)", "2 public methods"], found.map(&:label)
+    assert_equal ["6 public methods (worth a look)", "2 public methods"], found.map(&:label)
   end
 
   # Controllers are excluded from that measure: a controller's actions are one job spelled
@@ -158,7 +166,8 @@ class ReportTest < Minitest::Test
 
   # Declarations about the table are not behaviour, and private methods are not public.
   def test_it_finds_rules_on_persistence_and_not_declarations
-    assert_equal ["#total", "#paid?", "#settle!"], labels("Rules living on persistence")
+    assert_equal ["#total", "#paid?", "#settle!", "#activity_date", "#auto_settled?"],
+                 labels("Rules living on persistence")
   end
 
   def test_it_finds_lifecycle_callbacks
@@ -474,6 +483,45 @@ class ReportTest < Minitest::Test
 
   def test_a_named_zone_is_held_up_as_already_right
     assert_includes row("Times built without naming a zone").exemplars.map(&:label).join, "find_zone!"
+  end
+
+  # The extraction list, not a complaint: these move with no new operation and no decision.
+  def test_it_finds_methods_that_move_to_a_shape_unchanged
+    labels = row("Rules that could move to a shape as they are").findings.map(&:label)
+
+    assert_includes labels.join, "#activity_date"
+  end
+
+  # A database call means it needs something it was not handed.
+  def test_a_method_that_reaches_the_database_does_not_move
+    labels = row("Rules that could move to a shape as they are").findings.map(&:label)
+
+    refute_includes labels.join, "#auto_settled?"
+    refute_includes labels.join, "#settle!"
+  end
+
+  # The extraction list, not a complaint: these move with no new operation and no decision.
+  def test_it_finds_rules_that_move_to_a_shape_unchanged
+    labels = row("Rules that could move to a shape as they are").findings.map(&:label)
+
+    assert_includes labels.join, "#activity_date"
+    assert_includes labels.join, "#paid?"
+  end
+
+  # Not a matter of taste: a shape has no database, so a method needing one cannot exist on
+  # it. `auto_settled?` becomes a field the query fills, not a Query class of its own.
+  def test_a_method_that_reaches_the_database_cannot_move
+    labels = row("Rules that could move to a shape as they are").findings.map(&:label)
+
+    refute_includes labels.join, "#auto_settled?"
+    refute_includes labels.join, "#settle!"
+  end
+
+  def test_the_proposal_says_what_happens_to_the_ones_that_cannot_move
+    proposal = row("Rules that could move to a shape as they are").proposal
+
+    assert_includes proposal, "A derived value becomes a field"
+    assert_includes proposal, "nobody would write it twice"
   end
 
   def test_it_says_where_to_start
