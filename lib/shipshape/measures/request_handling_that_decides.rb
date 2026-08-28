@@ -49,18 +49,45 @@ module Shipshape
         end
       end
 
+      # ONE LINE PER ACTION, not per branch. Fifteen hundred branch locations is a list
+      # nobody reads; "#create — 23 branches" names the action to open first, and the total
+      # is in the headline where it belongs.
       def call(sources)
         controllers(sources).flat_map do |source|
           ClassReading.classes(source).flat_map do |node|
-            ClassReading.public_methods_of(node).flat_map { |action| branches_in(source, action) }
+            ClassReading.public_methods_of(node).map { |action| branchiest(source, action) }.compact
           end
-        end
+        end.sort_by { |finding| -finding.context[:branches] }
+      end
+
+      def headline(sources)
+        total = call(sources).sum { |finding| finding.context[:branches] }
+        return nil if total.zero?
+
+        "#{total} branches in all, and the ten worst actions hold " \
+          "#{call(sources).first(10).sum { |finding| finding.context[:branches] }} of them."
+      end
+
+      def units(findings)
+        findings.length
       end
 
       private
 
       def controllers(sources)
         sources.select { |source| source.relative.split("/")[1] == "controllers" }
+      end
+
+      def branchiest(source, action)
+        found = branches_in(source, action)
+        return nil if found.empty?
+
+        Finding.new(
+          relative: source.relative,
+          line: action.loc.line,
+          label: "##{action.method_name} — #{found.length} #{found.length == 1 ? "branch" : "branches"}",
+          context: { action: action.method_name, branches: found.length },
+        )
       end
 
       def branches_in(source, action)

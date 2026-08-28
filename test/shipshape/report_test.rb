@@ -93,10 +93,14 @@ class ReportTest < Minitest::Test
     refute_includes labels("Classes doing several things").join, "OrdersController"
   end
 
-  def test_it_finds_a_branch_in_an_action
-    # Two now: the `if @order.paid?` and the guard clause added to prove chains rooted in
-    # a constant are not counted as asking.
-    assert_equal 2, row("Branches inside request handling").count
+  # One line per ACTION, not per branch: fifteen hundred branch locations is a list nobody
+  # reads. The fixture has one action holding two branches.
+  def test_it_reports_the_branchiest_actions_not_every_branch
+    branches = row("Branches inside request handling")
+
+    assert_equal 1, branches.count
+    assert_equal ["#show — 2 branches"], branches.findings.map(&:label)
+    assert_includes branches.headline, "2 branches in all"
   end
 
   def test_it_finds_request_handling_reaching_persistence
@@ -254,10 +258,18 @@ class ReportTest < Minitest::Test
   def test_branches_count_clean_actions_not_clean_branches
     branches = row("Branches inside request handling")
 
-    assert_equal 2, branches.count
     assert_equal 1, branches.affected
     assert_equal 1, branches.population
     assert_equal 0, branches.clean
+  end
+
+  # Findings arrive in directory order, so the first five examples were five lines from
+  # whichever file sorts first alphabetically. That is a sample of the file system, not of
+  # the problem.
+  def test_examples_are_ranked_worst_first
+    relatives = row("Rules living on persistence").findings.map(&:relative)
+
+    assert_equal relatives.sort_by { |path| -relatives.count(path) }, relatives
   end
 
   # A bare count says nothing about scale. Two measures decline a denominator on purpose —

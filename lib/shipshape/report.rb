@@ -79,7 +79,7 @@ module Shipshape
           law: measure::LAW,
           why: measure::WHY,
           caveat: measure.const_defined?(:CAVEAT) ? measure::CAVEAT : nil,
-          findings: findings,
+          findings: ranked(findings),
           proposal: proposal_from(instance, findings),
           population: ask(instance, :population, sources),
           noun: instance.class.const_defined?(:NOUN) ? instance.class::NOUN : nil,
@@ -89,6 +89,20 @@ module Shipshape
           units: instance.respond_to?(:units) ? instance.units(findings) : nil,
         )
       end
+    end
+
+    # Worst first, always. Findings arrive in directory order, so the first five examples
+    # were five lines from whichever file sorts first alphabetically — three of them from
+    # one action. That is not a sample of the problem, it is a sample of the file system.
+    #
+    # A measure that has already ranked its own findings is left alone: it knows something
+    # about severity that a file count does not.
+    def ranked(findings)
+      return findings if findings.empty?
+
+      weight = findings.group_by(&:relative).transform_values(&:length)
+
+      findings.sort_by { |finding| [-weight.fetch(finding.relative), finding.relative, finding.line] }
     end
 
     def ask(instance, message, sources)
