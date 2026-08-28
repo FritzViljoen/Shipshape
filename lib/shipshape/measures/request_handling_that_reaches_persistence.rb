@@ -31,7 +31,11 @@ module Shipshape
               relative: source.relative,
               line: node.loc.line,
               label: "#{node.receiver.source}.#{node.method_name}",
-              context: { action: action, subject: node.receiver.source.split("::").last },
+              context: {
+                action: action,
+                subject: node.receiver.source.split("::").last,
+                message: node.method_name,
+              },
             )
           end
         end
@@ -45,11 +49,11 @@ module Shipshape
 
         action = finding.context[:action]
         name = Naming.operation_for(action: action, subject: finding.context[:subject])
-        kind = Naming.kind_for(action)
+        kind = Naming.kind_for(action, message: finding.context[:message])
 
         <<~TEXT
           `#{finding.relative}:#{finding.line}` calls `#{finding.label}` inside `##{action}`.
-          That read belongs in an operation the action can call and a test can run without a
+          That belongs in an operation the action can call and a test can run without a
           controller:
 
           ```ruby

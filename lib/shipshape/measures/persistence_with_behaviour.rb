@@ -20,10 +20,17 @@ module Shipshape
       WHY = "A rule on a record is reachable from everywhere the record is, which is how " \
             "one concern after another settles on the same class."
 
+      # Methods the framework asks a record to provide. They describe how the object is
+      # addressed and rendered, not what the business does with it — and counting them both
+      # inflates the number and picks a poor worked example. `Category#to_param` was the
+      # first thing this report proposed extracting, which is not advice anybody wants.
+      FRAMEWORK = %i[to_param to_partial_path to_key to_model to_s to_str persisted?
+                     cache_key cache_key_with_version model_name].freeze
+
       def call(sources)
         models(sources).flat_map do |source|
           ClassReading.classes(source).select { |node| persistence?(node) }.flat_map do |node|
-            ClassReading.public_methods_of(node).map do |method|
+            behaviour_of(node).map do |method|
               Finding.new(
                 relative: source.relative,
                 line: method.loc.line,
@@ -67,6 +74,10 @@ module Shipshape
       end
 
       private
+
+      def behaviour_of(node)
+        ClassReading.public_methods_of(node).reject { |method| FRAMEWORK.include?(method.method_name) }
+      end
 
       # Being filed in `app/models` is not the same as being a table. Rails put plain
       # objects there for a decade because there was nowhere else, and counting those here

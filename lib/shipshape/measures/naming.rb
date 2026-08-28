@@ -23,16 +23,31 @@ module Shipshape
 
       READS = %i[index show new edit].freeze
 
+      # A known action becomes verb + noun: `#index` on `Contest` is `ListContests`.
+      #
+      # ANYTHING ELSE KEEPS ITS OWN NAME AND GAINS NOTHING. `#find_user_from_rss_token`
+      # already says what it does, and appending the subject produced
+      # `FindUserFromRssTokenUser` — a stutter that makes the whole suggestion look
+      # generated, which it is, and which is the one thing that must not show.
       def operation_for(action:, subject:)
         return nil if action.nil?
 
-        verb = VERBS[action.to_sym] || camel(action.to_s)
-        noun = READS.include?(action.to_sym) && action.to_sym == :index ? plural(subject) : subject
+        verb = VERBS[action.to_sym]
+        return camel(action.to_s) if verb.nil?
 
-        "#{verb}#{noun}"
+        "#{verb}#{action.to_sym == :index ? plural(subject) : subject}"
       end
 
-      def kind_for(action)
+      # The MESSAGE is better evidence than the action name. `User.where` inside a method
+      # called anything at all is a read, and an action outside Rails' seven says nothing
+      # about direction — guessing Command from silence is how a report gets laughed at.
+      WRITES = %i[create create! update update! destroy destroy_all delete delete_all save
+                  save! insert insert_all upsert upsert_all increment! decrement! touch].freeze
+
+      def kind_for(action, message: nil)
+        return "Command" if message && WRITES.include?(message.to_sym)
+        return "Query" if message
+
         READS.include?(action.to_sym) ? "Query" : "Command"
       end
 

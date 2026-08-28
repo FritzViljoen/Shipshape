@@ -38,6 +38,10 @@ class ReportTest < Minitest::Test
           true
         end
 
+        def to_param
+          "x"
+        end
+
         private
 
         def stamp; end
@@ -69,7 +73,10 @@ class ReportTest < Minitest::Test
   def test_it_finds_classes_doing_several_things
     found = labels("Classes doing several things")
 
-    assert_includes found.join, "Order — 2 public methods"
+    # Three, not two: this measure counts public surface, and `to_param` is surface. The
+    # persistence measure asks a different question — which of them are business rules —
+    # and answers two. Different questions, different numbers, on purpose.
+    assert_includes found.join, "Order — 3 public methods"
     assert_includes found.join, "Basket — 2 public methods"
   end
 
@@ -139,6 +146,27 @@ class ReportTest < Minitest::Test
   # and counting it would inflate the number that matters most in this report.
   def test_a_value_object_in_app_models_is_not_persistence
     refute_includes labels("Request handling reaching straight into persistence").join, "Basket"
+  end
+
+  # `#find_user_from_rss_token` already says what it does. Appending the subject produced
+  # `FindUserFromRssTokenUser`, a stutter that made the whole suggestion look generated.
+  def test_an_action_outside_the_seven_keeps_its_own_name
+    assert_equal "ArchiveOrder", Shipshape::Measures::Naming.operation_for(action: :archive_order, subject: "Order")
+    assert_equal "ListOrders", Shipshape::Measures::Naming.operation_for(action: :index, subject: "Order")
+  end
+
+  # The message is better evidence than the action name: `User.where` is a read whatever
+  # the method around it is called, and guessing Command from silence is how a report gets
+  # laughed at.
+  def test_the_message_decides_read_or_write_where_the_action_cannot
+    assert_equal "Query", Shipshape::Measures::Naming.kind_for(:archive_order, message: :where)
+    assert_equal "Command", Shipshape::Measures::Naming.kind_for(:index, message: :create!)
+  end
+
+  # Framework contract methods describe how the object is addressed, not what the business
+  # does with it. `Category#to_param` was the first thing this report proposed extracting.
+  def test_framework_methods_are_not_rules
+    refute_includes labels("Rules living on persistence").join, "to_param"
   end
 
   def test_the_markdown_names_the_law_and_admits_what_it_truncates
