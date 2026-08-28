@@ -19,22 +19,22 @@ class LegacyDoorTest < Minitest::Test
       "query" => ["app/queries/**/*.rb"],
       "legacy_query" => ["app/legacy/**/*_legacy.rb"],
       "legacy_command" => ["app/legacy/**/*_legacy.rb"],
-      "entity" => ["app/entities/**/*.rb"],
+      "shape" => ["app/shapes/**/*.rb"],
     },
     "BaseClasses" => {
       "command" => ["Command"],
       "query" => ["Query"],
       "legacy_query" => ["LegacyQuery"],
       "legacy_command" => ["LegacyCommand"],
-      "entity" => ["Entity"],
+      "shape" => ["Shape"],
     },
     "Sisters" => [%w[command legacy_command], %w[query legacy_query]],
     "Matrix" => {
-      "command" => %w[query legacy_query entity],
-      "query" => ["entity"],
-      "legacy_command" => %w[query legacy_query entity],
-      "legacy_query" => ["entity"],
-      "entity" => [],
+      "command" => %w[query legacy_query shape],
+      "query" => ["shape"],
+      "legacy_command" => %w[query legacy_query shape],
+      "legacy_query" => ["shape"],
+      "shape" => [],
     },
   }.freeze
 
@@ -43,7 +43,7 @@ class LegacyDoorTest < Minitest::Test
     "app/queries/list_people.rb" => "class ListPeople < Query\nend\n",
     "app/legacy/find_booking_legacy.rb" => "class FindBookingLegacy < LegacyQuery\nend\n",
     "app/legacy/cancel_booking_legacy.rb" => "class CancelBookingLegacy < LegacyCommand\nend\n",
-    "app/entities/place.rb" => "class Place < Entity\nend\n",
+    "app/shapes/place.rb" => "class Place < Shape\nend\n",
   }.freeze
 
   # A command may read through the reading door, exactly as it may read through a query.
@@ -81,7 +81,7 @@ class LegacyDoorTest < Minitest::Test
       "Kinds" => CONFIG["Kinds"].merge("workflow" => ["app/workflows/**/*.rb"]),
       "BaseClasses" => CONFIG["BaseClasses"].merge("workflow" => ["Workflow"]),
       "Sisters" => CONFIG["Sisters"],
-      "Matrix" => CONFIG["Matrix"].merge("workflow" => %w[command query legacy_command legacy_query entity]),
+      "Matrix" => CONFIG["Matrix"].merge("workflow" => %w[command query legacy_command legacy_query shape]),
     }
     tree = TREE.merge("app/workflows/settle_month.rb" => "class SettleMonth < Workflow\nend\n")
 

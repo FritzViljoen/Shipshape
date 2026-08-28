@@ -7,7 +7,7 @@ require "test_helper"
 # - Neutering the matrix check in CallGraph#allowed? reddens four — the record, the
 #   controller, the leading-`::` and the safe-navigation cases.
 # - Making the same-kind check permit instead of refuse reddens four others — query,
-#   command, workflow and entity calling their own kind.
+#   command, workflow and shape calling their own kind.
 #
 # Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
 class CallGraphTest < Minitest::Test
@@ -21,15 +21,15 @@ class CallGraphTest < Minitest::Test
       "workflow" => ["app/workflows/**/*.rb"],
       "query" => ["app/queries/**/*.rb"],
       "command" => ["app/commands/**/*.rb"],
-      "entity" => ["app/entities/**/*.rb"],
+      "shape" => ["app/shapes/**/*.rb"],
       "record" => ["app/records/**/*_record.rb"],
     },
     "Matrix" => {
       "request_handling" => %w[workflow command query],
       "workflow" => %w[command query],
-      "command" => %w[query entity record],
-      "query" => %w[entity record],
-      "entity" => [],
+      "command" => %w[query shape record],
+      "query" => %w[shape record],
+      "shape" => [],
       "record" => [],
     },
   }.freeze
@@ -43,8 +43,8 @@ class CallGraphTest < Minitest::Test
     "app/queries/geography/list_places.rb",
     "app/queries/stripe/fetch_rates.rb",
     "app/commands/stripe/send_invoice.rb",
-    "app/entities/place.rb",
-    "app/entities/money.rb",
+    "app/shapes/place.rb",
+    "app/shapes/money.rb",
     "app/records/person_record.rb",
   ].freeze
 
@@ -260,7 +260,7 @@ class CallGraphTest < Minitest::Test
   end
 
   def test_an_entity_may_not_call_an_entity
-    found = check(<<~RUBY, "app/entities/place.rb")
+    found = check(<<~RUBY, "app/shapes/place.rb")
       class Place
         def total
           Money.new(cents: 1)
@@ -269,13 +269,13 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "An entity may not call an entity"
+    assert_includes found.first.message, "A shape may not call a shape"
   end
 
   # The rule lives in the cop, not in the matrix — so no configuration can permit a
   # sister call, and a row that tries is a contradiction rather than a permission.
   def test_a_matrix_row_naming_itself_is_refused
-    permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query entity record]))
+    permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query shape record]))
 
     error = assert_raises(Shipshape::Error) do
       offences(<<~RUBY, cop_class: COP, cop_config: permissive, path: "app/queries/list_people.rb", files: TREE)
@@ -368,9 +368,9 @@ class CallGraphTest < Minitest::Test
   end
 
   # A class naming itself is not a call between two of a kind. `Result.success(...)`
-  # inside `Result` is one entity, and the call graph has nothing to say about it.
+  # inside `Result` is one shape, and the call graph has nothing to say about it.
   def test_a_class_naming_itself_is_not_a_sister_call
-    assert_empty check(<<~RUBY, "app/entities/place.rb")
+    assert_empty check(<<~RUBY, "app/shapes/place.rb")
       class Place
         def self.root
           Place.new(code: "ROOT")
@@ -395,10 +395,10 @@ class CallGraphTest < Minitest::Test
     mixed = {
       "Kinds" => {
         "request_handling" => ["app/controllers/**/*_controller.rb"],
-        "entity" => ["app/models/standing.rb"],
+        "shape" => ["app/models/standing.rb"],
         "record" => ["app/models/contest.rb"],
       },
-      "Matrix" => { "request_handling" => ["entity"], "entity" => [], "record" => [] },
+      "Matrix" => { "request_handling" => ["shape"], "shape" => [], "record" => [] },
     }
     tree = %w[app/models/contest.rb app/models/standing.rb]
 

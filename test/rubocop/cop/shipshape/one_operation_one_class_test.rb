@@ -19,16 +19,16 @@ class OneOperationOneClassTest < Minitest::Test
       "Kinds" => {
         "command" => ["app/commands/**/*.rb"],
         "query" => ["app/queries/**/*.rb"],
-        "entity" => ["app/entities/**/*.rb"],
+        "shape" => ["app/shapes/**/*.rb"],
         "record" => ["app/records/**/*_record.rb"],
       },
-      "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [], "entity" => [] },
+      "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [], "shape" => [] },
     },
   }.freeze
 
   CONFIG = { "OperationKinds" => %w[command query], "PublicMethod" => "call" }.freeze
 
-  TREE = ["app/commands/create_person.rb", "app/queries/list_people.rb", "app/entities/place.rb"].freeze
+  TREE = ["app/commands/create_person.rb", "app/queries/list_people.rb", "app/shapes/place.rb"].freeze
 
   def test_one_public_call_with_keywords_is_the_shape
     assert_empty check(<<~RUBY)
@@ -178,9 +178,9 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
-  # The cop only speaks to operations. An entity or a record is governed by its own laws.
+  # The cop only speaks to operations. A shape or a record is governed by its own laws.
   def test_a_file_of_another_kind_is_left_alone
-    assert_empty check(<<~RUBY, "app/entities/place.rb")
+    assert_empty check(<<~RUBY, "app/shapes/place.rb")
       class Place
         attr_reader :code
 

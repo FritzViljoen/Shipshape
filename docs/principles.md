@@ -157,7 +157,7 @@ cohesion, not size, is the defining term. Khomh et al. then measured the consequ
 real systems: classes participating in antipatterns are more change- and fault-prone, and
 **size alone cannot explain the difference** (ESE 2012). That is the empirical form of this
 principle — bulk is a symptom, and the disease is unrelated concerns sharing a name.
-Composition over flattening is Evans's entities and value objects.
+Composition over flattening is Evans's shapes and value objects.
 
 **The tension, stated rather than avoided.** Fowler's *anemic domain model* is an argument
 against exactly this separation: data over here, behaviour over there, which he calls an
@@ -167,7 +167,7 @@ whereas here the operations are named domain concepts and the values are typed �
 exists, it is just not expressed as methods hanging off a table. What decides it in practice
 is whether the operations carry domain names or CRUD names, and no check makes that call.
 
-*Produces* `persistence-holds-no-behaviour`, `an-entity-is-composed-not-flattened`.
+*Produces* `persistence-holds-no-behaviour`, `a-shape-is-composed-not-flattened`.
 
 ### `tell-dont-ask` — Send the message; do not pull the state out and decide for it
 
@@ -374,7 +374,7 @@ before quoting any of them in print.
 - Fowler. *Refactoring* — speculative generality, feature envy, large class; and the
   *TellDontAsk* and *AnemicDomainModel* bliki entries, the latter being the standing
   objection named under `model-concerns-not-groups`.
-- Evans. *Domain-Driven Design*, 2003 — entities and value objects composed into
+- Evans. *Domain-Driven Design*, 2003 — shapes and value objects composed into
   aggregates.
 - Hunt, Thomas. *The Pragmatic Programmer*, 1999 — tell, don't ask.
 - Shore. *Fail Fast.* IEEE Software, 2004.

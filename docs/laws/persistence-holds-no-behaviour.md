@@ -13,7 +13,7 @@ says what it is. `SupplierRecord` never leaves the operation tree; `Supplier` is
 travels.
 
 This is the first half of taking a god object apart. The second is
-[`an-entity-is-composed-not-flattened`](an-entity-is-composed-not-flattened.md), and doing
+[`a-shape-is-composed-not-flattened`](a-shape-is-composed-not-flattened.md), and doing
 one without the other just moves the pile.
 
 - **Principle:** `model-concerns-not-groups` governs. `tell-dont-ask` also produces it — a

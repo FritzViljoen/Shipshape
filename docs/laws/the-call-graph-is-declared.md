@@ -9,14 +9,33 @@ The default kinds, and an application may name its own:
 
 | Kind | May call |
 |---|---|
-| request handling | workflow, command, query |
-| workflow | command, query, legacy_command, legacy_query, entity |
-| command | query, legacy_query, entity, record |
-| query | entity, record |
-| legacy_command | query, legacy_query, entity, record |
-| legacy_query | entity, record |
-| entity | nothing |
+| request handling | workflow, command, query, io_command, io_query, legacy_command, legacy_query |
+| workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
+| command | query, legacy_query, shape, record |
+| query | shape, record |
+| io_command | query, shape |
+| io_query | shape |
+| legacy_command | query, legacy_query, shape, record |
+| legacy_query | shape, record |
+| shape | nothing |
 | record | nothing |
+
+**The `io_` pair reads and changes state outside this process**, and the prefix means the
+crossing is visible at every call site. They are **sisters** of the internal pair — an
+`io_command` is a command whose store belongs to somebody else — so a command may not call
+one.
+
+**The reason is the transaction, and it is the only one that matters.** A command is exactly
+one transaction. An external call inside one holds a database transaction open across a
+network round trip, which is how a slow third party takes a database down, and the remote
+write cannot be rolled back by it in any case. **A read is no better:** it holds the
+transaction open just as long. So neither a command nor a query does IO — the external call
+and the local write that records its result are two steps, sequenced by a workflow, which is
+the only kind that has accepted the bill for spanning them.
+
+**An `io_command` touches no record**, for the same reason: a failed remote call then leaves
+no half-written row behind, and the pair is retryable. Assume retries — a workflow's only
+recovery is to run the sequence again.
 
 **The two legacy kinds are the doors to the old world, and the only classes permitted to
 speak to it.** A governed class never reaches legacy code directly; it goes through a door,
@@ -24,7 +43,7 @@ and the `*_legacy.rb` suffix means that dependency is visible at the call site w
 opening anything.
 
 There are two rather than one so the return shape survives the crossing: a legacy query
-answers with entities, a legacy command answers with a Result. A single door would have to
+answers with shapes, a legacy command answers with a Result. A single door would have to
 answer both ways, and a flag deciding which is the shape this canon refuses.
 
 **A door mirrors the row of the kind it is a sister to, because it *is* that kind** — it
@@ -48,7 +67,7 @@ wrapped thing is rewritten and its door deleted. That is a curve, not a ratchet 
 ratchet governs violations, and a door is not a violation. What the mark buys is that the
 number is knowable at all.
 
-**And there is no legacy kind for anything else — no legacy controller, no legacy entity.**
+**And there is no legacy kind for anything else — no legacy controller, no legacy shape.**
 The line is this: **a kind is for a shape you intend to keep; the ratchet is for a shape you
 intend to remove.**
 
@@ -70,13 +89,7 @@ because unclassified constants are skipped — which is exactly what a door is f
 [`one-operation-one-class`](one-operation-one-class.md) requires. The kinds differ in what
 they may reach, which is the only thing a kind is for.
 
-**There is no kind for talking to the outside.** A read of somebody else's store is a
-query; a write to it is a command. Whose database it is changes nothing about what the
-operation is, and REST drew that line already. A kind whose only claim is that the store
-belongs to someone else would forbid nothing the existing pair does not — and a kind that
-forbids nothing is a name.
-
-**An *entity* is a domain object: a thing the code reasons about, detached from the
+**An *shape* is a domain object: a thing the code reasons about, detached from the
 database.** A value without identity — a money, a date range — lives in the same tree and
 has the same row, so it is not a separate kind. A kind that forbids nothing is a name, not
 a kind.
@@ -84,7 +97,7 @@ a kind.
 **Two kinds carry a filename suffix — `*_controller.rb` and `*_record.rb` — and it is the
 same reason both times: they are the two that are infrastructure rather than domain.**
 Everything the MVC model used to hold has been split into workflows, commands, queries and
-entities. What is still called a record is only the table, and the suffix says so out loud,
+shapes. What is still called a record is only the table, and the suffix says so out loud,
 so that nobody mistakes it for the thing it used to be. A class named `Person` that is
 really a table is the beginning of the god object;
 [`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) is easier to hold when
@@ -109,13 +122,13 @@ consequence of that one rule, not a separate rule:
   second invisible to whoever asked. It is the shape an N+1 arrives in.
 - **A workflow's whole content is its sequence.** Nesting one inside another hides the
   sequence, which was the only thing it had to offer.
-- **An entity holds another entity; it does not build one.** Composing is the caller's
-  job, and an entity that constructs its neighbours is deriving — which
-  [`an-entity-is-composed-not-flattened`](an-entity-is-composed-not-flattened.md) forbids
+- **A shape holds another shape; it does not build one.** Composing is the caller's
+  job, and a shape that constructs its neighbours is deriving — which
+  [`a-shape-is-composed-not-flattened`](a-shape-is-composed-not-flattened.md) forbids
   for the same reason.
 
 **A class naming itself is not a sister call.** `Result.success(...)` written inside
-`Result` is one entity, not two talking, and the guard resolves the constant to a file to
+`Result` is one shape, not two talking, and the guard resolves the constant to a file to
 tell the difference.
 
 **The rule has a price, and it is worth naming.** A change spanning records can no longer

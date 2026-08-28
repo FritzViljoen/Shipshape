@@ -48,7 +48,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  class Place < Entity
+  class Place < Shape
     def initialize(code:)
       @code = typed(code, String)
     end
@@ -93,7 +93,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { Charge.call(amount: "5") }
   end
 
-  def test_a_query_answers_with_entities_and_no_envelope
+  def test_a_query_answers_with_shapes_and_no_envelope
     answer = ListPlaces.call
 
     assert_equal [Place.new(code: "ZA")], answer
@@ -104,7 +104,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_a_query_that_answers_with_anything_else_stops_the_run
     error = assert_raises(TypeError) { LeakyQuery.call }
 
-    assert_includes error.message, "must answer with entities"
+    assert_includes error.message, "must answer with shapes"
   end
 
   def test_an_empty_answer_is_an_answer
@@ -113,9 +113,9 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_empty empty.call
   end
 
-  # Value semantics without a macro: two entities of a class holding the same values are
-  # the same entity, so they compare, deduplicate and assert equal.
-  def test_entities_compare_by_value
+  # Value semantics without a macro: two shapes of a class holding the same values are
+  # the same shape, so they compare, deduplicate and assert equal.
+  def test_shapes_compare_by_value
     assert_equal Place.new(code: "ZA"), Place.new(code: "ZA")
     refute_equal Place.new(code: "ZA"), Place.new(code: "GB")
     assert_equal 1, [Place.new(code: "ZA"), Place.new(code: "ZA")].uniq.length

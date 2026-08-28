@@ -61,9 +61,10 @@ it defines — `Command` is not a command.
 |---|---|
 | `Workflow` | sequences commands and queries across several transactions; answers with a `Result` |
 | `Command` | one write, in exactly one transaction; answers with a `Result` |
-| `Query` | one read; answers with an entity or an array of them, no envelope |
+| `Query` | one read; answers with a shape or an array of them, no envelope |
+| `IoCommand` / `IoQuery` | changing and reading state outside this process, sisters of the pair above |
 | `LegacyCommand` / `LegacyQuery` | the two doors to the old world, sisters of the pair above |
-| `Entity` | a domain object, detached from the database, with value semantics |
+| `Shape` | a domain object, detached from the database, with value semantics |
 | `Result` | `success(value)` / `failure(:code)` — an expected failure, never a bug |
 | `TypedArguments` | asserts every keyword where it arrives |
 | `TypedParams` | parses request input at the seam, once |
@@ -82,7 +83,7 @@ require:
   - shipshape
 ```
 
-The defaults assume `app/commands`, `app/queries`, `app/workflows`, `app/entities`,
+The defaults assume `app/commands`, `app/queries`, `app/workflows`, `app/shapes`,
 `app/records`, `app/legacy` and their `packs/*/` equivalents. Override `Kinds` to match
 whatever your application already calls things.
 
@@ -92,13 +93,15 @@ governed at all, which is why two kinds can share one glob — the legacy pair d
 
 | Kind | May call |
 |---|---|
-| request_handling | workflow, command, query, legacy_command, legacy_query |
-| workflow | command, query, legacy_command, legacy_query, entity |
-| command | query, legacy_query, entity, record |
-| query | entity, record |
-| legacy_command | query, legacy_query, entity, record |
-| legacy_query | entity, record |
-| entity | nothing |
+| request_handling | workflow, command, query, io_command, io_query, legacy_command, legacy_query |
+| workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
+| command | query, legacy_query, shape, record |
+| query | shape, record |
+| io_command | query, shape |
+| io_query | shape |
+| legacy_command | query, legacy_query, shape, record |
+| legacy_query | shape, record |
+| shape | nothing |
 | record | nothing |
 
 **No kind calls a sister, and every kind is its own sister.** That rule lives in the cop,
@@ -114,17 +117,20 @@ call is how a class quietly becomes the kind above it, and the rest follows from
 - **A query is one read.** A query calling a query is two reads wearing one name, the
   second invisible to whoever asked. The shape an N+1 arrives in.
 - **A workflow's whole content is its sequence**, and nesting hides it.
-- **An entity holds another entity; it does not build one.**
+- **A shape holds another shape; it does not build one.**
 - **A class naming itself is not a sister call** — `Result.success(...)` inside `Result` is
-  one entity, not two talking.
+  one shape, not two talking.
 
-**There is no kind for talking to the outside.** A read of somebody else's store is a query;
-a write to it is a command. REST drew that line already, and a kind whose only claim is that
-the store belongs to someone else forbids nothing the existing pair does not.
+**The `io_` pair reads and changes state outside this process**, and the prefix makes the
+crossing visible at every call site. They are sisters of the internal pair, so **a command
+may not do IO** — and the reason is the transaction: a command is exactly one, and an
+external call inside it holds a database transaction open across a network round trip. A
+read is no better. The external call and the local write recording it are two steps, and a
+workflow sequences them.
 
 **Two kinds carry a filename suffix** — `*_controller.rb` and `*_record.rb` — because they
 are the two that are infrastructure rather than domain. Everything the MVC model used to
-hold is now split across workflows, commands, queries and entities, so what is still called
+hold is now split across workflows, commands, queries and shapes, so what is still called
 a record is only the table, and the name says so.
 
 **The two `*_legacy.rb` doors are the only classes permitted to speak to the old world.**

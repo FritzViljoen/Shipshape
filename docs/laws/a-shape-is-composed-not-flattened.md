@@ -1,4 +1,4 @@
-# `an-entity-is-composed-not-flattened` — A domain object holds another; it never copies its fields
+# `a-shape-is-composed-not-flattened` — A domain object holds another; it never copies its fields
 
 Where one domain object needs another, it holds that object as a **field**. It does not copy
 that object's attributes onto itself.
@@ -10,12 +10,12 @@ object** — this is the mechanism by which a hundred-column table happens, one 
 addition at a time.
 
 **A domain object validates its own shape and computes nothing.** Holding a shape and
-deriving a value are different jobs; deriving is an operation's, and an entity is not an
+deriving a value are different jobs; deriving is an operation's, and a shape is not an
 operation.
 
 - **Principle:** `model-concerns-not-groups` governs. `good-boundaries-make-good-neighbours`
   also produces it — a copied field is a second home for one fact.
-- **Guard:** `Shipshape/EntityIsComposed`, over the entity tree. Fails an initializer keyword
+- **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object
   declares the suffix as one of its own.
 - **Guard's limit:** **the prefix rule is a heuristic and the general law is unguarded.**

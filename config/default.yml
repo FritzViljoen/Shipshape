@@ -15,12 +15,9 @@ Shipshape/CallGraph:
   #
   # Two kinds carry a filename suffix, and for one reason: they are the two that are
   # infrastructure rather than domain. Everything the MVC model used to hold has been split
-  # into workflows, commands, queries and entities, so what is still called a record is
+  # into workflows, commands, queries and shapes, so what is still called a record is
   # only the table — and it is named to say so.
   #
-  # An integration's classes are commands and queries like any others. A remote read is a
-  # query and a remote write is a command; whose store it is changes nothing about what the
-  # operation is.
   Kinds:
     request_handling:
       - 'app/controllers/**/*_controller.rb'
@@ -34,12 +31,30 @@ Shipshape/CallGraph:
     query:
       - 'app/queries/**/*.rb'
       - 'packs/*/queries/**/*.rb'
+    # Reading and changing state OUTSIDE this process. Same two operations, marked, and the
+    # `Io` prefix on the class name means the crossing is visible at every call site.
+    #
+    # THE REASON THEY ARE SEPARATE KINDS IS THE TRANSACTION. A command is exactly one
+    # transaction; an external call inside one holds a database transaction open across a
+    # network round trip, and a remote write cannot be rolled back by it in any case. So a
+    # command may not do IO — the external call and the local write that records it are two
+    # steps, sequenced by a workflow, which is the only kind that has accepted the bill for
+    # spanning them.
+    #
+    # They are SISTERS of the internal pair, not new concepts: an io_command is a command
+    # whose store belongs to somebody else. Which is why a command may not call one.
+    io_query:
+      - 'app/io/**/*.rb'
+      - 'packs/*/io/**/*.rb'
+    io_command:
+      - 'app/io/**/*.rb'
+      - 'packs/*/io/**/*.rb'
     # The two doors to the old world, and the only classes permitted to speak to it. A
     # governed class may not reach legacy code directly; it goes through one of these, and
     # the suffix means the dependency is visible at the call site without opening anything.
     #
     # There are two rather than one so that the return shape survives the crossing: a
-    # legacy query answers with entities, a legacy command answers with a Result. A single
+    # legacy query answers with shapes, a legacy command answers with a Result. A single
     # door would have to answer both ways, and that is the flag this canon refuses.
     #
     # Both share one suffix. The path says "this is a door"; the BASE CLASS says which of
@@ -59,9 +74,9 @@ Shipshape/CallGraph:
     legacy_command:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'
-    entity:
-      - 'app/entities/**/*.rb'
-      - 'packs/*/entities/**/*.rb'
+    shape:
+      - 'app/shapes/**/*.rb'
+      - 'packs/*/shapes/**/*.rb'
     record:
       - 'app/records/**/*_record.rb'
       - 'app/models/**/*.rb'
@@ -75,9 +90,11 @@ Shipshape/CallGraph:
     workflow: [Workflow]
     command: [Command]
     query: [Query]
+    io_query: [IoQuery]
+    io_command: [IoCommand]
     legacy_query: [LegacyQuery]
     legacy_command: [LegacyCommand]
-    entity: [Entity]
+    shape: [Shape]
     record: [ApplicationRecord, ActiveRecord::Base]
   # Kinds that are the same thing wearing different clothes. NO KIND CALLS A SISTER, and
   # every kind is its own sister — that rule lives in the cop, not here, so a Matrix row
@@ -90,42 +107,57 @@ Shipshape/CallGraph:
   # whereas a workflow crossing transactions is obliged to make each step idempotent and
   # each intermediate state legal.
   Sisters:
-    - [command, legacy_command]
-    - [query, legacy_query]
+    - [command, io_command, legacy_command]
+    - [query, io_query, legacy_query]
   # Who may call whom. A pair absent from this matrix is an offence.
   Matrix:
     request_handling:
       - workflow
       - command
       - query
+      - io_command
+      - io_query
       - legacy_command
       - legacy_query
     workflow:
       - command
       - query
+      - io_command
+      - io_query
       - legacy_command
       - legacy_query
-      - entity
+      - shape
+    # NO IO IN A COMMAND OR A QUERY. A command is one transaction, and an external call
+    # inside one holds it open across a network round trip; a query is one read, and an
+    # external read is a second one nobody can see. Both are sisters besides.
     command:
       - query
       - legacy_query
-      - entity
+      - shape
       - record
     query:
-      - entity
+      - shape
       - record
+    # An io operation talks to the outside, which is unclassified and therefore skipped, so
+    # its row only names what it may reach INSIDE. It touches no record: the external call
+    # and the local write that records it are two steps, and a workflow sequences them.
+    io_command:
+      - query
+      - shape
+    io_query:
+      - shape
     # A door mirrors the row of the kind it is a sister to, because it IS that kind — it
     # only happens to wrap something old. What it really talks to, the old world, is
     # unclassified, and an unclassified constant is skipped, so that needs no row here.
     legacy_command:
       - query
       - legacy_query
-      - entity
+      - shape
       - record
     legacy_query:
-      - entity
+      - shape
       - record
-    entity: []
+    shape: []
     record: []
 
 Shipshape/OneOperationOneClass:
@@ -142,6 +174,8 @@ Shipshape/OneOperationOneClass:
     - workflow
     - command
     - query
+    - io_command
+    - io_query
     - legacy_command
     - legacy_query
   PublicMethod: call

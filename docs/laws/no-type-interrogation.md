@@ -17,7 +17,7 @@ to raise rather than to branch — see
 difference is what happens next: an assertion has one outcome, a dispatch has two.
 
 - **Principle:** `one-way-to-say-each-thing` governs. `tell-dont-ask` also produces it.
-- **Guard:** `Shipshape/NoTypeInterrogation`, over the operation and entity trees. Exempts the
+- **Guard:** `Shipshape/NoTypeInterrogation`, over the operation and shape trees. Exempts the
   argument-assertion helper by name, and nothing else.
 - **Guard's limit:** a genuine boundary check written outside that helper is a **false
   positive**, and it is meant to be argued in review rather than suppressed in silence — a

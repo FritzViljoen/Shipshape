@@ -58,8 +58,8 @@ module Shipshape
     end
 
     # The file a constant resolves to, so a caller can tell a sister call from a class
-    # referring to itself. `Result.success(...)` inside `Result` is not two entities
-    # talking; it is one entity, and the call graph has nothing to say about it.
+    # referring to itself. `Result.success(...)` inside `Result` is not two shapes
+    # talking; it is one shape, and the call graph has nothing to say about it.
     def file_for_constant(name)
       return nil if name.nil?
 

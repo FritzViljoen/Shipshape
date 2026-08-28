@@ -7,16 +7,16 @@
 # tree.
 #
 # **It holds a shape and validates that shape. It computes nothing.** Deriving a value is
-# an operation's job, and an entity is not an operation.
+# an operation's job, and a shape is not an operation.
 #
-# **It holds other entities; it never copies their fields.** `Booking` carrying
+# **It holds other shapes; it never copies their fields.** `Booking` carrying
 # `supplier_name` and `supplier_email` has taken two of `Supplier`'s columns and made them
 # its own, and a flattened field is the first column of the next god object.
-class Entity
+class Shape
   include TypedArguments
 
-  # Value semantics, without a macro. Two entities of the same class holding the same
-  # values are the same entity — which is what lets one be compared, deduplicated and
+  # Value semantics, without a macro. Two shapes of the same class holding the same
+  # values are the same shape — which is what lets one be compared, deduplicated and
   # asserted on in a test without anybody writing `==` per class.
   def ==(other)
     other.class == self.class && other.state == state

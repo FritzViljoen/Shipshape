@@ -28,11 +28,13 @@ module Shipshape
     FILES = %w[
       boolean
       typed_arguments
-      entity
+      shape
       result
       query
       command
       workflow
+      io_query
+      io_command
       legacy_query
       legacy_command
       typed_params

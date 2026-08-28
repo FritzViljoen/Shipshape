@@ -61,7 +61,7 @@ class InstallTest < Minitest::Test
   def test_it_writes_every_class_the_default_config_names
     defaults = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s)
     named = defaults.fetch("Shipshape/CallGraph").fetch("BaseClasses").values.flatten
-    generated = %w[Workflow Command Query LegacyQuery LegacyCommand Entity]
+    generated = %w[Workflow Command Query IoQuery IoCommand LegacyQuery LegacyCommand Shape]
 
     (named - ["ApplicationRecord", "ActiveRecord::Base"]).each do |name|
       assert_includes generated, name, "BaseClasses names #{name} but nothing generates it"

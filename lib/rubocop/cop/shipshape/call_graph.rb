@@ -120,7 +120,7 @@ module RuboCop
         end
 
         # A class naming itself is not a call between two of a kind. `Result.success(...)`
-        # inside `Result` is one entity, and the call graph has nothing to say about it.
+        # inside `Result` is one shape, and the call graph has nothing to say about it.
         def refers_to_itself?(name)
           resolved = kinds.file_for_constant(name)
           return false if resolved.nil?
