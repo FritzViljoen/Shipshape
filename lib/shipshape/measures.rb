@@ -8,6 +8,8 @@ require "shipshape/measures/persistence_with_behaviour"
 require "shipshape/measures/lifecycle_callbacks"
 require "shipshape/measures/input_parsed_in_the_action"
 require "shipshape/measures/nullable_columns"
+require "shipshape/measures/god_classes"
+require "shipshape/measures/wide_tables"
 
 module Shipshape
   # What the report measures, in the order it reads best: the shape of the classes first,
@@ -16,12 +18,14 @@ module Shipshape
     ALL = [
       ClassesWithNoBaseClass,
       ClassesDoingSeveralThings,
+      GodClasses,
       RequestHandlingThatDecides,
       RequestHandlingThatReachesPersistence,
       PersistenceWithBehaviour,
       LifecycleCallbacks,
       InputParsedInTheAction,
       NullableColumns,
+      WideTables,
     ].freeze
   end
 end

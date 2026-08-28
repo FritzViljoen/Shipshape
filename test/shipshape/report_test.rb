@@ -99,6 +99,16 @@ class ReportTest < Minitest::Test
     assert_equal ["to_i"], labels("Request input cast where it is used")
   end
 
+  # Cohesion is the defining term, not size. A class whose methods share no state is
+  # several classes wearing one name — and one that shares state is just long.
+  def test_a_long_but_cohesive_class_is_not_a_god_class
+    assert_empty labels("God classes")
+  end
+
+  def test_the_widest_tables_are_listed_in_order
+    assert_equal ["orders — 4 columns"], labels("Widest tables")
+  end
+
   # Timestamps are exempt; a column with a default is reported as a default rather than
   # counted twice.
   def test_it_reads_the_schema
