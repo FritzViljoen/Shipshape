@@ -63,7 +63,11 @@ class InstallTest < Minitest::Test
     named = defaults.fetch("Shipshape/CallGraph").fetch("BaseClasses").values.flatten
     generated = %w[Workflow Command Query IoQuery IoCommand LegacyQuery LegacyCommand Shape]
 
-    (named - ["ApplicationRecord", "ActiveRecord::Base"]).each do |name|
+    # The application's own bases and the framework's. Shipshape names them so kinds can be
+    # resolved; it does not write them, because they already exist.
+    theirs = ["ApplicationRecord", "ActiveRecord::Base", "ApplicationViewComponent", "ViewComponent::Base"]
+
+    (named - theirs).each do |name|
       assert_includes generated, name, "BaseClasses names #{name} but nothing generates it"
     end
   end
