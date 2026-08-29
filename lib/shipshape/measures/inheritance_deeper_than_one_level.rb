@@ -82,8 +82,15 @@ module Shipshape
         parent = ClassReading.superclass_of(node)
         return nil if parent.nil?
 
-        grandparent = chains[parent.split("::").last] || chains[parent]
+        grandparent = chains[parent] || chains[parent.split("::").last]
         return nil if grandparent.nil?
+
+        # A NAME COLLISION IS NOT A CHAIN. The map is keyed by simple name, so a class
+        # inheriting from a namespaced class of the same name — `Gateways::Response <
+        # Mercator::Response` — looks the parent up and finds ITSELF, reporting
+        # `Response < Mercator::Response < Mercator::Response`. Two different classes
+        # sharing a word is not depth.
+        return nil if grandparent == parent || grandparent == ClassReading.name_of(node)
         return nil if exception?(ClassReading.name_of(node), chains) || exception?(parent, chains)
         return nil if FRAMEWORK_BASE.match?(parent.split("::").last)
 

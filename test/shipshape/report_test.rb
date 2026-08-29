@@ -106,6 +106,12 @@ class ReportTest < Minitest::Test
         end
       end
     RUBY
+    "app/services/gateway.rb" => <<~RUBY,
+      module Gateways
+        class Response < Mercator::Response
+        end
+      end
+    RUBY
     "app/models/order_error.rb" => <<~RUBY,
       class OrderError < StandardError
       end
@@ -527,6 +533,13 @@ class ReportTest < Minitest::Test
   # The chain was invisible because the map skipped nested classes.
   def test_an_error_base_named_base_is_still_an_error_hierarchy
     assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/PollUnsupported/)
+  end
+
+  # The map is keyed by simple name, so a class inheriting from a namespaced class of the
+  # same name looked the parent up and found itself — `Response < Mercator::Response <
+  # Mercator::Response`. Two classes sharing a word is not depth.
+  def test_a_name_collision_is_not_a_chain
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Mercator/)
   end
 
   # Rails asks for one Application* base per framework class, so that depth is the
