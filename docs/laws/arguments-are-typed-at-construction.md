@@ -34,6 +34,14 @@ coercion.
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
   helper it does not know by name.
 
+  **An operation with no initializer at all is invisible**, because the cop hangs off
+  `def initialize` and there is nothing to hang off. Found by running this over a repository
+  whose operations declare their inputs with an attribute macro: 24 of 24 had no
+  initializer, and the cop reported clean over the exact shape this law was written against.
+  A macro declaring the inputs is
+  [`code-is-written-not-generated`](code-is-written-not-generated.md)'s business, and its
+  cop only knows the constructs it names — a house DSL is not one of them.
+
   **A tree nobody declared is not inspected at all.** An operation in `app/services/` — the
   usual home of exactly the untyped operations this law is for — is silent until that path
   is added to the layout. The superclass decides the kind; the globs decide whether the file
