@@ -103,6 +103,80 @@ class NoNullableColumnsTest < Minitest::Test
     assert_includes found.first.message, "`supplier` is nullable"
   end
 
+  # The case the cop missed entirely at first: a column with no `null:` is nullable, and
+  # that is how nearly every nullable column arrives.
+  def test_a_column_that_says_nothing_is_nullable
+    found = check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        def change
+          create_table :people do |t|
+            t.string :nickname
+            t.integer :age
+          end
+          add_column :people, :note, :string
+        end
+      end
+    RUBY
+
+    assert_equal 3, found.length
+    assert_includes found.first.message, "says nothing about `null:`, which means nullable"
+  end
+
+  def test_declarations_that_are_not_columns_are_left_alone
+    assert_empty check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        def change
+          create_table :people do |t|
+            t.timestamps
+            t.index :reference
+          end
+        end
+      end
+    RUBY
+  end
+
+  def test_change_column_names_the_column_not_the_table
+    found = check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        def change
+          change_column :people, :state, :string, null: true
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`state` is nullable"
+  end
+
+  def test_change_column_is_promoted_by_the_same_method
+    assert_empty check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        def up
+          change_column :people, :state, :string, null: true
+          change_column_null :people, :state, false
+        end
+      end
+    RUBY
+  end
+
+  # A promotion built in a loop cannot be read, so the addition beside it is not reported
+  # either. A guard that cannot see the promotion must not fail the addition.
+  def test_a_non_literal_column_is_skipped_rather_than_crashed_on
+    assert_empty check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        COLUMNS = %i[nickname alias_name].freeze
+
+        def up
+          COLUMNS.each do |column|
+            add_column :people, column, :string, null: true
+            PersonRecord.update_all(column => "")
+            change_column_null :people, column, false
+          end
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

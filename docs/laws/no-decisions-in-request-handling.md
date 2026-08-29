@@ -42,11 +42,17 @@ that answers with the decision already made.
 
 - **Principle:** `tell-dont-ask` governs. `good-boundaries-make-good-neighbours` also
   produces it — a decision made here is a rule outside its one home.
-- **Guard:** `Shipshape/NoDecisionsInRequestHandling`, over the request-handling tree. Fails
-  data access outright, and fails a conditional whose test reads a domain object.
+- **Guard:** `Shipshape/NoDecisionsInRequestHandling`, over the request-handling tree, fails
+  a conditional whose test asks something of an instance variable — what the action is about
+  to render — while allowing `result.success?` and its siblings, which is the decision
+  arriving as a value. The **data-access half is held separately**, by
+  `Shipshape/CallGraph`: request handling may not reach a record, because the matrix does not
+  give it that edge.
 - **Guard's limit:** **this is the weakest guard in the canon and it should be read as
   partial.** Telling a presentation conditional from a domain one is a judgement in the
-  general case; the cop can only hold a closed list of receivers it recognises as domain
-  objects, so a decision made on a plain value it cannot trace is invisible. Views are not
-  covered at all. Until that changes, the branching half of this law is held by review, and
-  the data-access half is the part the build actually holds.
+  general case, and the cop does not attempt it: it fires on **any** message sent to an
+  instance variable inside a condition, so `render :empty if @report.rows.empty?` is an
+  offence and must be argued in review. In the other direction, a decision on a local, a
+  method call, or a plain value it cannot trace is invisible, and views are not covered at
+  all. `CallGraph` holds data access only for a **constant** receiver — `@person.update!`
+  inside an action is caught by nothing.

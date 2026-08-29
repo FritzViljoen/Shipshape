@@ -7,8 +7,9 @@ module RuboCop
     module Shipshape
       # Holds the cast half of `no-silent-coercion`.
       #
-      # `"1abc".to_i` is `1`. `"banana".to_i` is `0`. Neither raises, so rubbish becomes a
-      # plausible number and the request is answered with something nobody asked for.
+      # `"1abc".to_i` is `1`. `"banana".to_i` is `0`. `nil.to_s` is `""`. None raises, so
+      # rubbish becomes a plausible value and the request is answered with something nobody
+      # asked for.
       #
       # WHAT IT DOES NOT CATCH: a cast on a value already asserted as the right type is
       # harmless and **syntactically identical** to the forbidden one. So the cop covers only
@@ -34,7 +35,14 @@ module RuboCop
           to_r: "decimal_param!(:amount)",
           to_c: "decimal_param!(:amount)",
           to_d: "decimal_param!(:amount)",
+          to_s: "text_param!(:name)",
+          to_a: "enum_param!(:state, %w[held sold])",
         }.freeze
+
+        # `nil.to_s` is `""` and `nil.to_a` is `[]`, so absence becomes a present-looking
+        # value. The numeric casts invent a number; these invent a *shape*, which is worse,
+        # because nothing downstream can tell an empty answer from an absent one.
+        SHAPES = %i[to_s to_a].freeze
 
         UNTRUSTED = %i[params request env session cookies].freeze
 
@@ -60,10 +68,19 @@ module RuboCop
           node.send_type? && node.receiver.nil? && UNTRUSTED.include?(node.method_name)
         end
 
+        def harm_of(cast)
+          if SHAPES.include?(cast)
+            "`nil.#{cast}` is empty rather than missing, so absence arrives downstream " \
+              "wearing the shape of a real answer"
+          else
+            "`\"banana\".#{cast}` is 0 and `\"1abc\".#{cast}` is 1"
+          end
+        end
+
         def message_for(source, cast, suggestion)
           explain(
             "`#{source}` turns whatever arrived into a number that cannot fail.",
-            because: "`\"banana\".#{cast}` is 0 and `\"1abc\".#{cast}` is 1 — no exception, " \
+            because: "#{harm_of(cast)} — no exception, " \
                      "no log line, no failing test. The request was wrong and the answer " \
                      "looked right, so the defect is found by a customer rather than by " \
                      "the build. An operation completes, or it says why it did not; what " \

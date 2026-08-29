@@ -132,6 +132,37 @@ class NoTypeInterrogationTest < Minitest::Test
     RUBY
   end
 
+  # Four spellings of one ask. The law names the act, not the syntax.
+  def test_comparing_the_class_is_the_same_ask
+    found = check(<<~RUBY)
+      class PriceParty
+        def call
+          a = @party.class == Group
+          b = @party.class.name == "Group"
+          c = Group === @party
+          [a, b, c]
+        end
+      end
+    RUBY
+
+    assert_equal 3, found.length
+  end
+
+  # A value constant in a `when` is a comparison, not a dispatch on type. Failing these was
+  # the cop firing on every state machine in the codebase.
+  def test_a_case_over_value_constants_is_not_a_dispatch
+    assert_empty check(<<~RUBY)
+      class PriceParty
+        def call
+          case @state
+          when Booking::HELD then 0
+          when Booking::SOLD then 1
+          end
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

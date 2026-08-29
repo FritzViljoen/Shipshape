@@ -14,9 +14,13 @@ module RuboCop
       # `if result.success?` is allowed: the decision was made by the operation and came back
       # as a value. `if request.xhr?` is allowed: a property of the call being served.
       #
-      # WHAT IT DOES NOT CATCH: a decision on a local rather than an instance variable, and a
-      # branch on something the action computed itself. It is the mechanical part of a rule
-      # that is otherwise a judgement — the rest is held by review, and the law says so.
+      # WHAT IT DOES NOT CATCH — in both directions, and this is the canon's weakest guard:
+      # it fires on **any** message sent to an instance variable in a condition, not only a
+      # predicate, so `render :empty if @report.rows.empty?` is an offence to be argued in
+      # review rather than a defect. And a decision on a local, on a method call, or on a
+      # plain value it cannot trace is invisible. Data access is a different cop:
+      # `Shipshape/CallGraph` refuses request handling an edge to a record, and only for a
+      # constant receiver.
       #
       # @example
       #   # bad

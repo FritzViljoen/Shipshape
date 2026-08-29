@@ -111,10 +111,18 @@ module RuboCop
           )
         end
 
-        # Both markers, and something after each of them. `explain` puts them there; a
-        # hand-written message is welcome to, and passes on the same terms.
+        # Both markers, and something after each of them. Checking only that the two
+        # substrings appear accepted `"Nope. WHY: INSTEAD:"` — the one cop policing message
+        # quality taking a message with no reason and no example.
         def documents?(text)
-          text.include?(Explains::WHY) && text.include?(Explains::INSTEAD)
+          says_something_after?(text, Explains::WHY) && says_something_after?(text, Explains::INSTEAD)
+        end
+
+        def says_something_after?(text, marker)
+          index = text.index(marker)
+          return false unless index
+
+          !text[(index + marker.length)..].to_s.strip.empty?
         end
 
         def message_constant?(name)

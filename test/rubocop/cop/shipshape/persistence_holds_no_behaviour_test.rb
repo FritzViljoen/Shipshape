@@ -121,6 +121,16 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
   end
 
+  # A constant used as a value is a filter on this table's own column, which the law
+  # explicitly permits. Failing it was this cop's worst false positive.
+  def test_a_scope_filtering_on_a_value_constant_is_allowed
+    assert_empty check(<<~RUBY)
+      class BookingRecord < ApplicationRecord
+        scope :active, -> { where(state: Booking::ACTIVE) }
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

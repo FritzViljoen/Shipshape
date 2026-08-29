@@ -90,6 +90,20 @@ class NoCallbacksTest < Minitest::Test
     RUBY
   end
 
+  # The law forbids "after-commit or any of their siblings" by name.
+  def test_the_commit_shorthands_are_siblings_and_are_caught
+    found = check(<<~RUBY)
+      class BookingRecord < ApplicationRecord
+        after_create_commit :a
+        after_update_commit :b
+        after_destroy_commit :c
+        after_save_commit :d
+      end
+    RUBY
+
+    assert_equal 4, found.length
+  end
+
   private
 
   def check(source)

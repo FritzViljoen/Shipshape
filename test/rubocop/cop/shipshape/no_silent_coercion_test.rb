@@ -98,6 +98,21 @@ class NoSilentCoercionTest < Minitest::Test
     RUBY
   end
 
+  # The law says numeric AND string casts, and it meant it: `nil.to_s` is "", so absence
+  # arrives downstream wearing the shape of a real answer.
+  def test_the_shape_casts_are_caught_too
+    found = check(<<~RUBY)
+      class BookingsController
+        def index
+          [params[:name].to_s, params[:tags].to_a]
+        end
+      end
+    RUBY
+
+    assert_equal 2, found.length
+    assert_includes found.first.message, "is empty rather than missing"
+  end
+
   private
 
   def check(source)

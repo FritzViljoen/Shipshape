@@ -116,6 +116,11 @@ Shipshape/CallGraph:
       - 'app/models/**/*.rb'
       - 'packs/*/records/**/*_record.rb'
       - 'packs/*/models/**/*.rb'
+      # A concern mixed into a record is the record, and the callback law says so by name.
+      # The `*_record.rb` suffix above would otherwise cover concerns in the legacy tree and
+      # not in the one this canon migrates toward.
+      - 'app/records/concerns/**/*.rb'
+      - 'packs/*/records/concerns/**/*.rb'
   # What each kind's classes inherit from. THE SUPERCLASS DECIDES THE KIND; the paths above
   # only decide which trees are governed at all. Two kinds may therefore share a glob — the
   # legacy pair do — and a governed file whose superclass is not listed here falls back to

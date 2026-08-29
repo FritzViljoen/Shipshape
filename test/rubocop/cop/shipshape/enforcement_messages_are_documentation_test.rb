@@ -130,6 +130,38 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
     RUBY
   end
 
+  # Checking only that the markers appear accepted a message with no reason and no example
+  # — the one cop policing message quality taking exactly what it forbids.
+  def test_markers_with_nothing_after_them_are_not_a_message
+    found = check(<<~RUBY)
+      class NoShouting < Base
+        MSG = "Do not use lifecycle callbacks. WHY: INSTEAD:"
+
+        def on_send(node)
+          add_offense(node)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
+  # Checking only that the markers appear accepted a message with no reason and no example
+  # — the one cop policing message quality taking exactly what it forbids.
+  def test_markers_with_nothing_after_them_are_not_a_message
+    found = check(<<~RUBY)
+      class NoShouting < Base
+        MSG = "Do not use lifecycle callbacks. WHY: INSTEAD:"
+
+        def on_send(node)
+          add_offense(node)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
   private
 
   def check(source)

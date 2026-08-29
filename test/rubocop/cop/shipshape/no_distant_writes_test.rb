@@ -121,6 +121,21 @@ class NoDistantWritesTest < Minitest::Test
     RUBY
   end
 
+  # Ruby spells comparison with a trailing `=` too. Reporting these was the cop firing on
+  # every guard clause in the codebase.
+  def test_comparing_against_a_constant_is_not_a_write
+    assert_empty check(<<~RUBY)
+      class SwitchTenant
+        def call
+          return failure(:held) if Booking::HELD == @state
+          return failure(:sold) if Booking::SOLD != @state
+          return failure(:free) if Money::ZERO <= @amount
+          success(@state)
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

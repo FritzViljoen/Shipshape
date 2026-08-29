@@ -16,7 +16,8 @@ module RuboCop
       #
       # WHAT IT DOES NOT CATCH: migrations only, so a default applied by hand or by a
       # database-side trigger is invisible. It also cannot see a default expressed as a
-      # column's generated-value clause rather than as a default.
+      # column's generated-value clause rather than as a default, or one whose column is not
+      # a literal — built in a loop, or from a constant.
       #
       # @example
       #   # bad — two declarations of one fact, and they drift
@@ -28,19 +29,46 @@ module RuboCop
         include Explains
 
         TIMESTAMPS = %w[created_at updated_at].freeze
-        ADDERS = %i[add_column add_reference add_belongs_to].freeze
+
+        # Table first, column second.
+        TABLE_FIRST = %i[
+          add_column add_reference add_belongs_to change_column change_column_default
+        ].freeze
 
         def on_send(node)
+          # `change_column_default :people, :state, "held"` states the default positionally,
+          # with no `default:` key to find. It is the direct API for exactly what this
+          # forbids, so it is read on its own terms.
+          return positional_default(node) if node.method_name == :change_column_default
+
           default = default_option(node)
           return unless default
 
           column = column_of(node)
-          return if TIMESTAMPS.include?(column)
+          return if column.nil? || TIMESTAMPS.include?(column)
 
           add_offense(default, message: message_for(column, default.value.source))
         end
 
         private
+
+        def positional_default(node)
+          column = column_of(node)
+          return if column.nil? || TIMESTAMPS.include?(column)
+
+          stated = node.arguments[2]
+          return unless stated
+
+          # `change_column_default :people, :rank, from: nil, to: 0` — the default is `to:`.
+          if stated.hash_type?
+            pair = stated.pairs.find { |candidate| candidate.key.value == :to }
+            return unless pair
+
+            stated = pair.value
+          end
+
+          add_offense(node, message: message_for(column, stated.source))
+        end
 
         def default_option(node)
           options = node.arguments.last
@@ -50,10 +78,11 @@ module RuboCop
         end
 
         def column_of(node)
-          argument = ADDERS.include?(node.method_name) ? node.arguments[1] : node.arguments.first
-          return "" unless argument
+          argument = TABLE_FIRST.include?(node.method_name) ? node.arguments[1] : node.arguments.first
+          return unless argument.respond_to?(:type)
+          return unless %i[sym str].include?(argument.type)
 
-          argument.respond_to?(:value) ? argument.value.to_s : argument.source
+          argument.value.to_s
         end
 
         def message_for(column, value)

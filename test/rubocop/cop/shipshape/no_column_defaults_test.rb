@@ -91,6 +91,35 @@ class NoColumnDefaultsTest < Minitest::Test
     RUBY
   end
 
+  # The direct API for the thing this law forbids. It states the default positionally, so
+  # there is no `default:` key to find.
+  def test_change_column_default_is_the_direct_api_and_is_caught
+    found = check(<<~RUBY)
+      class AddStateToBookings < ActiveRecord::Migration[7.0]
+        def change
+          change_column_default :bookings, :state, "held"
+          change_column_default :bookings, :rank, from: nil, to: 0
+        end
+      end
+    RUBY
+
+    assert_equal 2, found.length
+    assert_includes found.first.message, '`state` carries a database default of `"held"`'
+    assert_includes found.last.message, "`rank` carries a database default of `0`"
+  end
+
+  def test_change_column_names_the_column_not_the_table
+    found = check(<<~RUBY)
+      class AddStateToBookings < ActiveRecord::Migration[7.0]
+        def change
+          change_column :bookings, :state, :string, default: "held"
+        end
+      end
+    RUBY
+
+    assert_includes found.first.message, "`state` carries a database default"
+  end
+
   private
 
   def check(source)

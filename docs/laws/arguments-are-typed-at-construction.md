@@ -15,8 +15,9 @@ Date)` would stop being greppable — see
 
 - **Principle:** `nothing-crosses-unasserted`. `nothing-is-hidden` produces the
   written-not-generated half; on conflict `nothing-crosses-unasserted` governs.
-- **Guard:** `Shipshape/TypedArguments`. Recognises an operation by what it inherits, not by
-  where it is filed, so it stays covered wherever it is put. Every keyword must reach a
+- **Guard:** `Shipshape/TypedArguments`. Within a governed tree the **superclass decides
+  the kind**, so an operation stays covered wherever it is filed inside one. Every keyword
+  must reach a
   guard call. Anything that is not a named keyword is its own offence — `**rest`, `(...)`, a
   positional parameter, a positional Hash default — because a keyword-less initializer
   silently accepts the caller's keywords as one Hash and the call succeeds.
@@ -32,3 +33,8 @@ coercion.
 - **Guard's limit:** it checks that a keyword **is** guarded, never that the type named is
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
   helper it does not know by name.
+
+  **A tree nobody declared is not inspected at all.** An operation in `app/services/` — the
+  usual home of exactly the untyped operations this law is for — is silent until that path
+  is added to the layout. The superclass decides the kind; the globs decide whether the file
+  is looked at, and a file outside every glob is left alone rather than judged.

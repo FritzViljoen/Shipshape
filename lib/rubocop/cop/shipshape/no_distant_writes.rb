@@ -39,10 +39,18 @@ module RuboCop
           offend(node, "`#{node.children.first}` is a class variable shared with every subclass.")
         end
 
+        # Ruby spells comparison with a trailing `=` too, so a name ending in `=` is not
+        # enough to mean assignment. `Booking::HELD == @state` reads nothing and writes
+        # nothing, and reporting it was how this cop fired on every guard clause in the
+        # codebase.
+        COMPARISONS = %i[== != <= >= === =~ !~].freeze
+
         # `SETTINGS[:rate] = 1` and `SETTINGS << row` — mutating a constant in place.
         def on_send(node)
+          return if COMPARISONS.include?(node.method_name)
           return unless %i[[]= <<].include?(node.method_name) || node.method_name.to_s.end_with?("=")
           return unless node.receiver&.const_type?
+
           offend(node, "`#{node.receiver.source}` is a constant, and this changes it in place.")
         end
 

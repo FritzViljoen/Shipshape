@@ -14,17 +14,20 @@ module RuboCop
       # happens next: an assertion has one outcome, a dispatch has two. So the argument guard
       # is exempt by name, and nothing else is.
       #
-      # WHAT IT DOES NOT CATCH: a genuine boundary check written outside that helper is a
+      # WHAT IT DOES NOT CATCH: a `when` naming a SCREAMING_CASE constant is read as a
+      # value rather than a class, so a class named that way is missed. A genuine boundary
+      # check written outside that helper is a
       # false positive, and it is meant to be argued in review rather than suppressed in
       # silence — a disable comment on this cop should be rare enough to notice.
       # Deserialisation and adapter code at a real edge often need the ask, which is why
       # those trees sit outside the cop's scope rather than being exempted inside it.
       #
       # @example
-      #   # bad — two outcomes, so it is a dispatch
-      #   def rate
-      #     @party.is_a?(Group) ? group_rate : single_rate
-      #   end
+      #   # bad — two outcomes, so it is a dispatch. All four spell the same ask.
+      #   @party.is_a?(Group) ? group_rate : single_rate
+      #   @party.class == Group
+      #   @party.class.name == "Group"
+      #   Group === @party
       #
       #   # good — the variants answer for themselves
       #   @party.rate
@@ -35,11 +38,15 @@ module RuboCop
         ASSERTS = %i[typed typed_array typed_hash].freeze
 
         def on_send(node)
-          return unless ASKS.include?(node.method_name)
           return unless one_of?(governed_kinds)
-          return if asserting?(node)
 
-          add_offense(node, message: message_for(node))
+          if ASKS.include?(node.method_name)
+            return if asserting?(node)
+
+            add_offense(node, message: message_for(node))
+          elsif compares_class?(node)
+            add_offense(node, message: message_for(node))
+          end
         end
 
         # `case supplier when Contract then ... end` — a dispatch spelled as a case.
@@ -48,13 +55,38 @@ module RuboCop
           return unless one_of?(governed_kinds)
 
           node.when_branches.each do |branch|
-            branch.conditions.select(&:const_type?).each do |const|
+            branch.conditions.select { |condition| dispatches_on_a_class?(condition) }.each do |const|
               add_offense(const, message: case_message(const))
             end
           end
         end
 
         private
+
+        # `when Group` dispatches on a class. `when Booking::HELD` compares against a value
+        # that happens to be a constant — Ruby's own convention separates them, and failing
+        # the second was this cop firing on every state machine in the codebase.
+        # `@party.class == Group`, `@party.class.name == "Group"` and `Group === @party` ask
+        # exactly what `is_a?` asks. The law names the act, not the spelling.
+        def compares_class?(node)
+          return true if node.method_name == :=== && node.receiver&.const_type?
+          return false unless %i[== !=].include?(node.method_name)
+
+          [node.receiver, node.arguments.first].compact.any? { |side| reads_the_class?(side) }
+        end
+
+        def reads_the_class?(side)
+          return false unless side.respond_to?(:send_type?) && side.send_type?
+
+          side.method_name == :class || (side.method_name == :name && side.receiver&.send_type? &&
+            side.receiver.method_name == :class)
+        end
+
+        def dispatches_on_a_class?(condition)
+          return false unless condition.const_type?
+
+          condition.source.split("::").last !~ /\A[A-Z0-9_]+\z/
+        end
 
         def message_for(node)
           explain(

@@ -11,9 +11,9 @@ module RuboCop
       # reachable from everywhere a record is, which is how one concern after another settles
       # on the same class until it has 113 columns and nobody can say what it is for.
       #
-      # WHAT IT DOES NOT CATCH: it cannot tell a filtering scope from a rule-bearing one
-      # beyond a syntactic check on the block, so a scope reaching another class inside a
-      # lambda passes. It sees the record tree only — behaviour moved into a helper, a module
+      # WHAT IT DOES NOT CATCH: it separates a filtering scope from a rule-bearing one by
+      # one syntactic test — whether the block *calls* another class. A constant used as a
+      # value is a filter and passes; a rule expressed without naming a class passes too. It sees the record tree only — behaviour moved into a helper, a module
       # included from outside, or a query object filed elsewhere is not covered. And it says
       # nothing about whether the record's columns belong together, which is the actual
       # god-object question and the one no check answers.
@@ -61,11 +61,15 @@ module RuboCop
 
         private
 
+        # Reaching *into* another class means calling it: `SupplierRecord.active`. A
+        # constant used as a value — `where(state: Booking::ACTIVE)` — is a filter on this
+        # table's own column, which the law explicitly permits, and failing it was this
+        # cop's worst false positive.
         def reaches_another_class?(node)
           block = node.each_descendant(:block).first
           return false unless block
 
-          block.each_descendant(:const).any?
+          block.each_descendant(:send).any? { |send| send.receiver&.const_type? }
         end
 
         def message_for(name)
