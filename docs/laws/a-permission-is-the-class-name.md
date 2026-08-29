@@ -24,6 +24,30 @@ omitted, and an omitted permission check fails *open* — the most expensive def
 software, and the one that is only discovered from the outside. Here the default is no, and
 every exception to it is a row somebody wrote.
 
+## This is what makes operations auth-sized, by construction
+
+An operation has exactly one permission because it has exactly one class name. **There is no
+way to express a command that spans two permitted acts** — no list, no second constant,
+nowhere to put the second name. The sizing rule in
+[`one-operation-one-class`](one-operation-one-class.md) stops being advice and becomes the
+shape of the thing.
+
+The pressure arrives the first time someone needs to grant half of an operation. There is no
+half to grant, so the only available move is to split the class — which is the move that was
+correct anyway, arriving at the moment the requirement proves it.
+
+**A workflow is the escape hatch, and it is the only one.** Work that genuinely spans several
+permitted acts is a sequence, declares its `STEPS`, and is refused whole
+([`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md)). One
+permission means a command or a query; several means a workflow. The typology is not a
+convention here — it is what the permission model can and cannot say.
+
+**What this does not settle** is whether the single act you named should have been two. A
+`SettleAndNotifyInvoice` has one permission, `:settle_and_notify_invoice`, and granting it
+grants both halves. Nothing refuses that. What the design does is put the conflation in the
+name, where a reader meets it — an operation whose name needs an "and" is usually two
+operations, and now it says so on every call site.
+
 ## The catalogue is derived, never maintained
 
 Every operation answers `permission`; every workflow answers `permissions`, from its `STEPS`.
