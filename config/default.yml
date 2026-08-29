@@ -22,16 +22,18 @@ Shipshape/CallGraph:
     request_handling:
       - 'app/controllers/**/*_controller.rb'
       - 'packs/*/controllers/**/*_controller.rb'
-    # The other doors. A job, a mailer, a subscriber and a channel are request handling
-    # through a different entrance: each parses its input, calls an operation and decides
-    # nothing. Same row, different glob.
+    # The other doors. A job, a subscriber and a channel are request handling through a
+    # different entrance: each parses its input, calls operations and decides nothing.
+    #
+    # MAILERS ARE NOT HERE. Sending mail leaves the process, so a send is an io_command;
+    # the body it renders is a template like any other. In the shape being asked for there
+    # is no mailer directory at all — during migration there is, and it is classified below
+    # as what it does rather than where it sits.
     entry_point:
       - 'app/jobs/**/*.rb'
-      - 'app/mailers/**/*.rb'
       - 'app/subscribers/**/*.rb'
       - 'app/channels/**/*.rb'
       - 'packs/*/jobs/**/*.rb'
-      - 'packs/*/mailers/**/*.rb'
     # What renders. A view component holds shapes and asserts them with the same `typed`
     # guard as everything else — it is the one place presentation is allowed to live, and
     # there is no presenter, decorator or helper kind because those dissolve: their methods
@@ -65,7 +67,9 @@ Shipshape/CallGraph:
       - 'packs/*/io/**/*.rb'
     io_command:
       - 'app/io/**/*.rb'
+      - 'app/mailers/**/*.rb'
       - 'packs/*/io/**/*.rb'
+      - 'packs/*/mailers/**/*.rb'
     # The two doors to the old world, and the only classes permitted to speak to it. A
     # governed class may not reach legacy code directly; it goes through one of these, and
     # the suffix means the dependency is visible at the call site without opening anything.
@@ -139,6 +143,9 @@ Shipshape/CallGraph:
       - legacy_query
       - view_component
       - shape
+    # The same row as request handling, exactly. A job is a controller with a different
+    # doorbell: it parses its input, calls operations, decides nothing, and a mailer renders
+    # at the end of it just as an action does.
     entry_point:
       - workflow
       - command
@@ -147,6 +154,7 @@ Shipshape/CallGraph:
       - io_query
       - legacy_command
       - legacy_query
+      - view_component
       - shape
     # It renders what it was handed and reads nothing. A component that can reach an
     # operation is a controller with a template.

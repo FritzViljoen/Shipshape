@@ -660,6 +660,34 @@ class ReportTest < Minitest::Test
     refute_includes label, "Rails.env"
   end
 
+  # "Just like a controller" — a job is a controller with a different doorbell, so the row
+  # is identical rather than nearly identical. A distinction with no reason behind it is one
+  # somebody has to learn for nothing.
+  def test_an_entry_point_has_the_same_row_as_request_handling
+    matrix = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s)
+                 .fetch("Shipshape/CallGraph").fetch("Matrix")
+
+    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point")
+  end
+
+  # "Just like a controller" — a job is a controller with a different doorbell, so the row
+  # is identical rather than nearly identical. A distinction with no reason behind it is one
+  # somebody has to learn for nothing.
+  def test_an_entry_point_has_the_same_row_as_request_handling
+    matrix = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s).fetch("Shipshape/CallGraph").fetch("Matrix")
+
+    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point")
+  end
+
+  # Sending mail leaves the process, so a mailer is a write to the outside rather than a
+  # door into the application. In the target shape there is no mailer directory at all.
+  def test_a_mailer_is_an_outbound_write_not_an_entry_point
+    kinds = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s).fetch("Shipshape/CallGraph").fetch("Kinds")
+
+    assert_includes kinds.fetch("io_command").join, "app/mailers"
+    refute_includes kinds.fetch("entry_point").join, "app/mailers"
+  end
+
   def test_no_measure_is_registered_twice
     titles = Shipshape::Measures::ALL.map { |measure| measure::TITLE }
 
