@@ -44,7 +44,7 @@ class IoTest < Minitest::Test
       "workflow" => %w[command query io_command io_query shape],
       "command" => %w[query shape record],
       "query" => %w[shape record],
-      "io_command" => %w[query shape],
+      "io_command" => %w[io_query shape],
       "io_query" => ["shape"],
       "shape" => [],
       "record" => [],
@@ -144,6 +144,33 @@ class IoTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "An io_command may not call a record"
+  end
+
+  # A write may read first — fetching a token before posting. The read it may do is the one
+  # in its own world, mirroring `command -> query`.
+  def test_an_io_command_may_read_from_the_outside
+    assert_empty check(<<~RUBY, "app/io/io_send_invoice.rb")
+      class IoSendInvoice < IoCommand
+        def call
+          IoFetchRates.call
+        end
+      end
+    RUBY
+  end
+
+  # Reaching back across the boundary it just crossed. Anything it needs from here should
+  # have been handed to it, like every other input.
+  def test_an_io_command_may_not_read_the_local_store
+    found = check(<<~RUBY, "app/io/io_send_invoice.rb")
+      class IoSendInvoice < IoCommand
+        def call
+          ListPeople.call
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "An io_command may not call a query"
   end
 
   def test_an_io_operation_may_build_shapes

@@ -13,7 +13,7 @@ The default kinds, and an application may name its own:
 | workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
 | command | query, legacy_query, shape, record |
 | query | shape, record |
-| io_command | query, shape |
+| io_command | io_query, shape |
 | io_query | shape |
 | legacy_command | query, legacy_query, shape, record |
 | legacy_query | shape, record |
@@ -36,6 +36,12 @@ the only kind that has accepted the bill for spanning them.
 **An `io_command` touches no record**, for the same reason: a failed remote call then leaves
 no half-written row behind, and the pair is retryable. Assume retries — a workflow's only
 recovery is to run the sequence again.
+
+**And it reads in its own world, not in ours.** `io_command → io_query` mirrors
+`command → query` — a write may read first, and fetching a token before posting is that
+shape. What it may not do is reach a `query`: an external write pulling from the local store
+is reaching back across the boundary it just crossed, and anything it needs from here should
+have been handed to it like every other input.
 
 **The two legacy kinds are the doors to the old world, and the only classes permitted to
 speak to it.** A governed class never reaches legacy code directly; it goes through a door,

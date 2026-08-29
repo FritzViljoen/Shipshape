@@ -193,10 +193,19 @@ Shipshape/CallGraph:
       - shape
       - record
     # An io operation talks to the outside, which is unclassified and therefore skipped, so
-    # its row only names what it may reach INSIDE. It touches no record: the external call
-    # and the local write that records it are two steps, and a workflow sequences them.
+    # its row only names what it may reach among the kinds. It touches no record: the
+    # external call and the local write that records it are two steps, and a workflow
+    # sequences them.
+    #
+    # `io_command -> io_query` mirrors `command -> query`: a write may read first, and
+    # fetching a token before posting is that shape. The read it may do is the one in its
+    # own world.
+    #
+    # It may NOT reach `query`, which it could before this was looked at. An external write
+    # pulling from the local store is reaching back across the boundary it just crossed —
+    # and anything it needs from here should have been handed to it, like every other input.
     io_command:
-      - query
+      - io_query
       - shape
     io_query:
       - shape
