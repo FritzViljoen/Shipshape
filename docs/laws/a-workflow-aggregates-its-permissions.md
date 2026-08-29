@@ -29,6 +29,22 @@ an operation does, by implementing `anonymous_call`. A signup sequence — creat
 log in, send the welcome — runs before anyone is identified, and demanding an actor for it
 would make the sequence inexpressible.
 
+## Granting the workflow as a unit is a read problem, not an authorisation one
+
+The urge is real — an administrator thinks in "may they close the month", not in seven step
+permissions. But a workflow that **overrode** its steps would need an unchecked path into
+each command, and a command reachable unchecked is reachable unchecked by anyone who finds
+that path. That is the same hole `anonymous_call` exists to avoid giving callers, so
+authorisation stays the AND of the steps, with no override.
+
+What is actually wanted is two reads:
+
+- **"May this actor run it?"** — `SettleMonth.permits?(actor)`, asked by a view to decide
+  whether to offer the button. One predicate, asked twice: the view asks it to offer, and
+  `call` asks it to refuse. There is no second answer to get out of step with the first.
+- **"What is in this bucket?"** — the coarse thing an administrator grants is data, mapped
+  to the step permissions. A query and a view, not a change to the model.
+
 ## The check is feasibility, not authorisation
 
 Each operation is still checked on its own way in, by its own base class — an operation is

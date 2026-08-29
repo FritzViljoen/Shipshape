@@ -358,6 +358,51 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { flow.call }
   end
 
+  # The method a view reaches for. Inherited from Permission it asked the workflow's OWN
+  # name, which is never granted, so it answered false for an actor who may run every step
+  # — the button hidden from everybody.
+  def test_a_workflow_answers_whether_the_actor_may_run_it
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [LogIn, Charge].freeze)
+      def self.name
+        "Onboard"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:done)
+      end
+    end
+
+    assert flow.permits?(Anyone.new([LogIn.permission])), "an anonymous step must not gate the view"
+    refute flow.permits?(Anyone.new([Charge.permission]))
+  end
+
+  def test_the_view_predicate_and_the_refusal_are_one_question
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [Charge].freeze)
+      def self.name
+        "SettleMonth"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:done)
+      end
+    end
+
+    refuser = Anyone.new([Charge.permission])
+
+    refute flow.permits?(refuser)
+    refute_predicate flow.call(actor: refuser), :success?
+  end
+
   def test_an_empty_answer_is_an_answer
     empty = Class.new(Query) do
       def self.name

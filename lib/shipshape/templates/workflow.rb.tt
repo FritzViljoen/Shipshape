@@ -59,14 +59,22 @@ class Workflow
     const_get(:STEPS, false).reject(&:anonymous?).map(&:permission).uniq
   end
 
+  # **One predicate, asked twice.** A view asks it to decide whether to offer the button;
+  # `call` asks it to refuse. Overriding the inherited singular check matters: that one
+  # asks for this workflow's OWN name, which is never granted, so a view using it would
+  # hide the button from everybody.
+  def self.permits?(actor)
+    return true if anonymous?
+    raise ArgumentError, "#{name} requires an actor" if actor.nil?
+
+    permissions.all? { |permission| actor.may?(permission) }
+  end
+
   # A workflow every one of whose steps is anonymous is itself anonymous — a signup
   # sequence runs before anyone is identified — and says so the same way an operation does,
   # by implementing `anonymous_call`.
   def self.call(actor: nil, **arguments)
-    unless anonymous?
-      raise ArgumentError, "#{name} requires an actor" if actor.nil?
-      return Result.failure(:forbidden) unless permissions.all? { |permission| actor.may?(permission) }
-    end
+    return Result.failure(:forbidden) unless permits?(actor)
 
     operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
     result = anonymous? ? operation.anonymous_call : operation.call
