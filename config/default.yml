@@ -29,6 +29,19 @@ Shipshape/CallGraph:
     # the body it renders is a template like any other. In the shape being asked for there
     # is no mailer directory at all — during migration there is, and it is classified below
     # as what it does rather than where it sits.
+    #
+    # SUBSCRIBERS AND CHANNELS ARE, and it is a close call. Both are reached from outside
+    # their own call path, which is what makes them feel like IO. But io_command's row is
+    # `query, shape` — a subscriber classified there would be a violation for doing the one
+    # thing subscribers do, which is call a domain operation.
+    #
+    # What is actually wrong with them is not their kind. A subscriber is invoked by an
+    # event whose listeners are discovered at runtime, and that is a distant write —
+    # `nothing-travels-off-the-call-path` names it. A law it breaks, not a kind it is.
+    #
+    # In the target shape neither directory exists: a subscriber becomes an explicit step in
+    # a workflow, and a channel's broadcast becomes an io_command while its subscribe stays
+    # a door. Until then the row here is the one that fits what they do.
     entry_point:
       - 'app/jobs/**/*.rb'
       - 'app/subscribers/**/*.rb'
