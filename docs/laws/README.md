@@ -10,10 +10,11 @@ four things and stops:
 - **the guard** that holds it
 - **the guard's limit** — what a passing run does not prove
 
-> **Every law here names a cop that exists**, and `CanonTest` fails the build if one does
-> not. That is a narrower claim than it looks: it holds that the guard is *there*, never
-> that it covers everything the law describes. Each law's **guard's limit** is where that
-> gap is written down, and it is the part worth reading.
+> **Every law here names a guard, and `CanonTest` fails the build if it does not** — a cop
+> that exists, one of two guards that ship with this gem's own suite, or the words *not
+> built yet*, which make it a convention. That is a narrower claim than it looks: it holds
+> that a guard is *named*, never that it covers everything the law describes. Each law's
+> **guard's limit** is where that gap is written down, and it is the part worth reading.
 
 A law with no guard says so, permanently, and is called a convention. Calling it a law does
 not make it hold.

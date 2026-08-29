@@ -120,6 +120,30 @@ class NoColumnDefaultsTest < Minitest::Test
     assert_includes found.first.message, "`state` carries a database default"
   end
 
+  # Removing a default is the canonical spelling of the fix this cop demands. It was
+  # reported as adding one.
+  def test_removing_a_default_is_not_adding_one
+    assert_empty check(<<~RUBY)
+      class AddStateToBookings < ActiveRecord::Migration[7.0]
+        def change
+          change_column_default :bookings, :state, from: "held", to: nil
+          change_column_default :bookings, :rank, nil
+        end
+      end
+    RUBY
+  end
+
+  # A cop that raises leaves the file reported as clean — worse than failing loudly.
+  def test_a_non_literal_hash_key_does_not_crash_the_cop
+    assert_empty check(<<~RUBY)
+      class AddStateToBookings < ActiveRecord::Migration[7.0]
+        def change
+          add_column :bookings, :state, :string, NULL => false
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

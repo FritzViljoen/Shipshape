@@ -17,7 +17,9 @@ module RuboCop
       # from the list. So the guard derives the set from what `call` actually calls, and
       # where the two disagree the list is wrong.
       #
-      # WHAT IT DOES NOT CATCH: it reads constants the body **names syntactically**. A step
+      # WHAT IT DOES NOT CATCH: it reads constants the body **names syntactically**, and it
+      # reads `STEPS` only when it is an array literal in this class's own body — a list
+      # built any other way is not read, and the workflow is reported as declaring nothing. A step
       # reached through a variable, one whose constant does not resolve to a file, or an
       # operation called by another operation a level down is invisible — the derived set is
       # a floor, not a ceiling. It does not check that `call` consults `PERMISSIONS`, only
@@ -27,21 +29,21 @@ module RuboCop
       # @example
       #   # bad — a step was added and the list was not
       #   class SettleMonth < Workflow
-      #     PERMISSIONS = [SettleInvoice::PERMISSION].freeze
+      #     STEPS = [SettleInvoice].freeze
       #
       #     def call
-      #       SettleInvoice.call(...)
-      #       NotifyCustomer.call(...)
+      #       SettleInvoice.call(actor: @actor)
+      #       NotifyCustomer.call(actor: @actor)
       #     end
       #   end
       #
-      #   # good
+      #   # good — the base class refuses every step's permission before the first runs
       #   class SettleMonth < Workflow
-      #     PERMISSIONS = [SettleInvoice::PERMISSION, NotifyCustomer::PERMISSION].freeze
+      #     STEPS = [SettleInvoice, NotifyCustomer].freeze
       #
       #     def call
-      #       return failure(:forbidden) unless @actor.may_all?(PERMISSIONS)
-      #       ...
+      #       SettleInvoice.call(actor: @actor)
+      #       NotifyCustomer.call(actor: @actor)
       #     end
       #   end
       class WorkflowAggregatesPermissions < Base
@@ -72,13 +74,32 @@ module RuboCop
           assignment = constant_node(node)
           return unless assignment
 
-          assignment.each_descendant(:const).map { |const| const.source.sub(/\A::/, "") }.uniq
+          array = unwrap(assignment.children[2])
+          return [] unless array
+
+          # The element itself, never its namespace segments: `Billing::SettleInvoice`
+          # names one step, and collecting descendants also yielded `Billing` as surplus.
+          array.values.select(&:const_type?).map { |const| const.source.sub(/\A::/, "") }.uniq
+        end
+
+        # Only this class's own body. A `STEPS` on a nested class used to satisfy the outer
+        # workflow, which then ran with the base class's empty list and refused nobody —
+        # the cop reporting green over the exact defect it exists to prevent.
+        # `STEPS = [...].freeze` is a send wrapping the array, not the array.
+        def unwrap(value)
+          return unless value.respond_to?(:type)
+
+          value = value.receiver if value.send_type? && value.method_name == :freeze
+
+          value if value.respond_to?(:array_type?) && value.array_type?
         end
 
         def constant_node(node)
           return unless node.body
 
-          node.body.each_node(:casgn).find { |assignment| assignment.children[1].to_s == list_constant }
+          statements = node.body.begin_type? ? node.body.children : [node.body]
+
+          statements.find { |statement| statement.casgn_type? && statement.children[1].to_s == list_constant }
         end
 
         # Every operation the body calls, resolved through the layout so a constant that

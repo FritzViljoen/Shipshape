@@ -163,6 +163,20 @@ class NoTypeInterrogationTest < Minitest::Test
     RUBY
   end
 
+  # `VALID_CODE === @code` was an offence while `case @code when VALID_CODE` was not.
+  # One diff, two answers to the same question.
+  def test_a_value_constant_matcher_is_not_type_interrogation
+    assert_empty check(<<~RUBY)
+      class PriceParty
+        def call
+          return failure(:bad_code) unless VALID_CODE === @code
+
+          success(@code)
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

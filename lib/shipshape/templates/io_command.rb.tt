@@ -29,14 +29,15 @@ class IoCommand
   extend Permission
 
   # The check runs here, once, for every command — not in each `call`, where it would be a
-  # line every operation has to remember. The transaction below is here for the same
-  # reason: a law held by the base class is true by construction, not by convention.
+  # line every operation has to remember and one operation would forget. It opens no transaction of its own.
   #
-  # It runs BEFORE the transaction opens, so a refusal costs no lock.
-  def self.call(actor:, **arguments)
-    return Result.failure(:forbidden) unless actor.may?(permission)
+  # An operation implementing `anonymous_call` instead of `call` runs before anyone is
+  # identified and is not checked. That is a property of the class, never of the caller.
+  def self.call(actor: nil, **arguments)
+    return Result.failure(:forbidden) unless permits?(actor)
 
-    result = new(actor: actor, **arguments).call
+    operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
+    result = anonymous? ? operation.anonymous_call : operation.call
 
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 

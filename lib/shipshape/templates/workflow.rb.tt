@@ -30,24 +30,32 @@
 # and visible, with no rollback. Before the first step is the only moment refusing is free.
 #
 # `STEPS` is the one thing a workflow must declare, because the base class cannot see what
-# `call` will do until it does it. `Shipshape/WorkflowDeclaresItsSteps` fails the build when
-# it disagrees with what the body actually calls, so the list cannot rot in the direction
-# that grants.
+# `call` will do until it does it. `Shipshape/WorkflowAggregatesPermissions` fails the build
+# when it disagrees with what the body actually calls, so the list cannot rot in the
+# direction that grants.
+#
+# **There is no default `STEPS`.** An inherited empty list would mean a workflow that forgot
+# to declare one checked nothing and ran for everybody — a fail-open reached by omission,
+# which is the one thing this model must never allow. Forgetting raises instead.
 class Workflow
   include TypedArguments
-
-  STEPS = [].freeze
 
   # Ask a workflow what it needs without running it: hide a button the actor cannot use,
   # populate an admin screen, seed the permission table. Derived from STEPS, so it cannot
   # disagree with what the workflow actually does.
+  #
+  # `false` refuses the ancestor chain: a subclass declares its own or this raises. An
+  # inherited empty list would mean a workflow that forgot to declare one checked nothing
+  # and ran for everybody.
   def self.permissions
-    self::STEPS.map(&:permission).uniq
+    raise NotImplementedError, "#{name} must declare STEPS" unless const_defined?(:STEPS, false)
+
+    const_get(:STEPS, false).map(&:permission).uniq
   end
 
-  def self.call(actor:, **arguments)
-    refused = permissions.reject { |permission| actor.may?(permission) }
-    return Result.failure(:forbidden) if refused.any?
+  def self.call(actor: nil, **arguments)
+    raise ArgumentError, "#{name} requires an actor" if actor.nil?
+    return Result.failure(:forbidden) unless permissions.all? { |permission| actor.may?(permission) }
 
     result = new(actor: actor, **arguments).call
 

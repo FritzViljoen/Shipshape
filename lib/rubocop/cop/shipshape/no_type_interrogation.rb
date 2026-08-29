@@ -69,7 +69,7 @@ module RuboCop
         # `@party.class == Group`, `@party.class.name == "Group"` and `Group === @party` ask
         # exactly what `is_a?` asks. The law names the act, not the spelling.
         def compares_class?(node)
-          return true if node.method_name == :=== && node.receiver&.const_type?
+          return true if node.method_name == :=== && dispatches_on_a_class?(node.receiver)
           return false unless %i[== !=].include?(node.method_name)
 
           [node.receiver, node.arguments.first].compact.any? { |side| reads_the_class?(side) }

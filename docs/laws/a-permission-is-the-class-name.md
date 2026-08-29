@@ -1,7 +1,10 @@
 # `a-permission-is-the-class-name` — The operation's class name is the permission; there is no second name
 
-`SettleInvoice` needs `:settle_invoice`. Not because a constant says so — because the class
-name is derived at the one point the check runs.
+`SettleInvoice` needs `:SettleInvoice`. The permission **is** the name, not a transform of
+it — every transform is lossy, and a lossy transform collides. `FooBar` and `Foo::Bar` both
+underscore to `:foo_bar`, so a grant issued for one silently runs the other. Review caught
+that in code that had shipped this shape. Using the constant name is injective by
+construction, which is what makes the next paragraph true.
 
 **A `PERMISSION` constant beside the class is a second name for one thing.** Two names that
 *can* diverge eventually do: one gets renamed, the other does not, and nothing fails. That is
@@ -18,11 +21,25 @@ written, which is what an abstraction earning its place looks like.
 A new command's permission exists the moment the class does, and nobody holds a grant for it.
 It is denied until someone grants it deliberately.
 
-**There is no constant to forget, so there is no way to write an operation that requires
-nothing.** That is the difference between this and a declaration: a declaration can be
-omitted, and an omitted permission check fails *open* — the most expensive default in
-software, and the one that is only discovered from the outside. Here the default is no, and
-every exception to it is a row somebody wrote.
+**There is no constant to forget, so requiring nothing cannot happen by omission.** That is
+the difference between this and a declaration: a declaration can be left out, and an omitted
+permission check fails *open* — the most expensive default in software, and the one only
+discovered from outside.
+
+**An operation with no actor says so by implementing `anonymous_call`.** Login, bootstrap and
+an unauthenticated upload run before anyone is identified, so there is nothing to check
+against. The base class dispatches to `anonymous_call` when the class defines it, which makes
+publicness a property of **the class, never of the caller** — there is deliberately no
+`public_call` a caller could reach for on a guarded operation, because that would give every
+privileged command an unauthenticated entry point eight characters away.
+`grep -rn "def anonymous_call"` is the whole set, and it should only shrink.
+
+An actor who is *known* but needs no grant is a different case and is not this: give it an
+ordinary permission granted to everyone, so it stays in the catalogue and can still be
+revoked for a suspended account.
+
+**A nil actor raises.** It is a caller's defect, and a nil taken to mean "public" would be
+the exact fail-open this law exists to prevent.
 
 ## This is what makes operations auth-sized, by construction
 
@@ -106,16 +123,20 @@ in doubt.
 
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
-- **Guard:** **none, and none is needed.** The base class runs the check for every operation,
-  so there is nothing to declare and nothing to forget; the wrong thing is not discouraged,
-  it is unavailable. A cop here would guard a constant that no longer exists. This is not the
-  "convention, held by review" case that
-  [`a-guard-states-its-limit`](a-guard-states-its-limit.md) names — it is the case that law's
-  companion principle is aiming at, where the design removed the failure instead of watching
-  for it.
+- **Guard:** **no cop, by construction rather than by omission.** The base class runs the
+  check for every operation, so there is nothing to declare and nothing to forget — the
+  failure was removed rather than watched for, which is what
+  `make-the-wrong-thing-impossible` asks. It is held instead by
+  `test/shipshape/generated_base_classes_test.rb`, which exercises the generated classes:
+  refusal, the nil-actor raise, `anonymous_call`, and the legacy doors. That is a test, not a
+  cop, for the same bounded reason
+  [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
+  it ships with the gem's own suite and never runs in a consuming build.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real
   one, and nothing checks that request handling passes the requester rather than a system
-  actor. It also cannot see an operation invoked with `new(...).call` directly, going around
-  `self.call` and therefore around the check —
-  [`one-operation-one-class`](one-operation-one-class.md) makes `call` the only entry point,
-  but nothing forbids the constructor being reached by a determined caller.
+  actor. It cannot see an operation invoked with `new(...).call` directly, going around
+  `self.call` and therefore around the check. And **`shipshape install` never overwrites a
+  file** — once written, `app/shipshape/command.rb` is the application's, so deleting one
+  line from it disables authorisation for every command in the app and no cop, test or
+  report notices. The guard is the shape of the generated code, which means it holds exactly
+  as long as nobody edits it.

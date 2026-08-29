@@ -50,6 +50,10 @@ module RuboCop
           suggestion = CASTS[node.method_name]
           return unless suggestion
           return unless untrusted?(node.receiver)
+          # A shape cast is only a coercion when applied DIRECTLY to the parameter.
+          # `url_for(params.permit(:q)).to_s` is a String being made a String, and scanning
+          # the whole receiver for a `params` anywhere inside made that an offence.
+          return if SHAPES.include?(node.method_name) && !reads_a_parameter?(node.receiver)
 
           add_offense(node, message: message_for(node.source, node.method_name, suggestion))
         end
@@ -64,8 +68,22 @@ module RuboCop
           receiver.each_node(:send).any? { |inner| source?(inner) } || source?(receiver)
         end
 
+        # `params[:name]`, `session.fetch(:x)` — the read itself, not any expression that
+        # happens to contain one.
+        def reads_a_parameter?(node)
+          return false unless node.respond_to?(:send_type?) && node.send_type?
+          return false unless %i[[] fetch require dig].include?(node.method_name)
+
+          source?(node.receiver)
+        end
+
         def source?(node)
-          node.send_type? && node.receiver.nil? && UNTRUSTED.include?(node.method_name)
+          node.respond_to?(:send_type?) && node.send_type? && node.receiver.nil? &&
+            UNTRUSTED.include?(node.method_name)
+        end
+
+        def produced(cast)
+          SHAPES.include?(cast) ? "a value" : "a number"
         end
 
         def harm_of(cast)
@@ -79,7 +97,7 @@ module RuboCop
 
         def message_for(source, cast, suggestion)
           explain(
-            "`#{source}` turns whatever arrived into a number that cannot fail.",
+            "`#{source}` turns whatever arrived into #{produced(cast)} that cannot fail.",
             because: "#{harm_of(cast)} — no exception, " \
                      "no log line, no failing test. The request was wrong and the answer " \
                      "looked right, so the defect is found by a customer rather than by " \

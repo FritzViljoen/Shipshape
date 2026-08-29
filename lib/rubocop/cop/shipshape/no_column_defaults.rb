@@ -61,11 +61,15 @@ module RuboCop
 
           # `change_column_default :people, :rank, from: nil, to: 0` — the default is `to:`.
           if stated.hash_type?
-            pair = stated.pairs.find { |candidate| candidate.key.value == :to }
+            pair = stated.pairs.find { |candidate| named?(candidate, :to) }
             return unless pair
 
             stated = pair.value
           end
+
+          # `change_column_default :people, :state, nil` and `..., to: nil` REMOVE a
+          # default. They are the canonical spelling of the fix this cop asks for.
+          return if stated.nil_type?
 
           add_offense(node, message: message_for(column, stated.source))
         end
@@ -74,7 +78,13 @@ module RuboCop
           options = node.arguments.last
           return unless options.respond_to?(:hash_type?) && options.hash_type?
 
-          options.pairs.find { |candidate| candidate.key.value == :default }
+          options.pairs.find { |candidate| named?(candidate, :default) }
+        end
+
+        # `NULL => false` is legal Ruby. `candidate.key.value` raises on it, and a cop that
+        # raises leaves the file reported as clean.
+        def named?(pair, key)
+          pair.key.respond_to?(:value) && pair.key.value == key
         end
 
         def column_of(node)

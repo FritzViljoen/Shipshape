@@ -69,6 +69,8 @@ module RuboCop
           column = column_of(node)
           return if column.nil? || promoted?(column)
 
+          return if options_cannot_be_read?(node)
+
           nullable = null_option(node)
           return if nullable == false
 
@@ -83,6 +85,16 @@ module RuboCop
           COLUMN_TYPES.include?(node.method_name) && node.receiver&.lvar_type? && node.arguments.any?
         end
 
+        # A key this cop cannot read — `NULL => false` — means it cannot tell what was
+        # said. Unreadable is not absent, and reporting it as "says nothing" would fail a
+        # column that is declared NOT NULL.
+        def options_cannot_be_read?(node)
+          options = node.arguments.last
+          return false unless options.respond_to?(:hash_type?) && options.hash_type?
+
+          options.pairs.any? { |pair| !pair.key.respond_to?(:value) }
+        end
+
         # Answers the `null:` pair node when it is `true`, `false` when the column is
         # declared NOT NULL, and nil when nothing was said — which is also nullable, and is
         # the case worth catching.
@@ -90,10 +102,17 @@ module RuboCop
           options = node.arguments.last
           return unless options.respond_to?(:hash_type?) && options.hash_type?
 
-          pair = options.pairs.find { |candidate| candidate.key.value == :null }
+          pair = options.pairs.find { |candidate| named?(candidate, :null) }
           return unless pair
 
           pair.value.true_type? ? pair : false
+        end
+
+
+        # `NULL => false` is legal Ruby. `candidate.key.value` raises on it, and a cop that
+        # raises leaves the file reported as clean.
+        def named?(pair, key)
+          pair.key.respond_to?(:value) && pair.key.value == key
         end
 
         # `change_column_null :people, :nickname, false` — the promotions this method makes.

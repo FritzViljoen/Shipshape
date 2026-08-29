@@ -129,9 +129,25 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_includes error.message, "must answer with shapes"
   end
 
-  # The permission is the class name. No constant, so none can be forgotten or diverge.
-  def test_a_permission_is_derived_from_the_class_name
-    assert_equal :"generated_base_classes_test_charge", Charge.permission
+  # The permission IS the class name — no transform, because every transform is lossy and
+  # a lossy one collides. `FooBar` and `Foo::Bar` both underscored to `:foo_bar`.
+  def test_a_permission_is_the_class_name
+    assert_equal :"GeneratedBaseClassesTest::Charge", Charge.permission
+  end
+
+  def test_two_classes_that_would_underscore_alike_keep_distinct_permissions
+    flat = Class.new(Command) do
+      def self.name
+        "FooBar"
+      end
+    end
+    nested = Class.new(Command) do
+      def self.name
+        "Foo::Bar"
+      end
+    end
+
+    refute_equal flat.permission, nested.permission
   end
 
   # The whole point: a new operation is denied until someone grants it deliberately.
@@ -199,6 +215,79 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_predicate result, :success?
     assert_equal :forbidden, result.error
     refute ran, "the workflow body ran despite a refused step"
+  end
+
+  # Publicness is a property of the class — which method it implements — never of the
+  # caller. There is no `public_call` a caller could reach for on a guarded operation.
+  class LogIn < Command
+    def initialize(email:)
+      @email = typed(email, String)
+    end
+
+    def anonymous_call
+      success(@email)
+    end
+  end
+
+  def test_an_operation_implementing_anonymous_call_runs_unchecked
+    result = LogIn.call(email: "a@b.c")
+
+    assert_predicate result, :success?
+    assert_equal "a@b.c", result.value
+  end
+
+  def test_an_anonymous_operation_needs_no_actor_at_all
+    refuses_everything = Anyone.new([LogIn.permission])
+
+    assert_predicate LogIn.call(actor: refuses_everything, email: "a@b.c"), :success?
+  end
+
+  # A nil actor taken to mean "public" would be the fail-open the whole model prevents.
+  def test_a_guarded_operation_with_no_actor_raises
+    error = assert_raises(ArgumentError) { Charge.call(amount: 5) }
+
+    assert_includes error.message, "requires an actor"
+  end
+
+  # These wrap the highest-risk code in a consuming app and had no check at all.
+  def test_a_legacy_door_is_guarded_like_everything_else
+    wipe = Class.new(LegacyCommand) do
+      def self.name
+        "WipeEverything"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:wiped)
+      end
+    end
+
+    assert_raises(ArgumentError) { wipe.call }
+    refute_predicate wipe.call(actor: Anyone.new([wipe.permission])), :success?
+  end
+
+  # An inherited empty STEPS meant a workflow that forgot to declare one refused nobody.
+  def test_a_workflow_that_forgets_steps_raises_rather_than_running
+    forgetful = Class.new(Workflow) do
+      def self.name
+        "Forgetful"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:done)
+      end
+    end
+
+    error = assert_raises(NotImplementedError) { forgetful.call(actor: ANYONE) }
+
+    assert_includes error.message, "must declare STEPS"
   end
 
   def test_an_empty_answer_is_an_answer

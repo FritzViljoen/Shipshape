@@ -29,8 +29,18 @@
 class LegacyQuery
   include TypedArguments
 
-  def self.call(**arguments)
-    answer = new(**arguments).call
+  extend Permission
+
+  # A query has no Result to carry a refusal, and wrapping one would make every caller
+  # unwrap a value that was never in doubt. So it raises, like every other query failure.
+  #
+  # An operation implementing `anonymous_call` instead of `call` runs before anyone is
+  # identified and is not checked. That is a property of the class, never of the caller.
+  def self.call(actor: nil, **arguments)
+    raise Permission::Refused, permission unless permits?(actor)
+
+    operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
+    answer = anonymous? ? operation.anonymous_call : operation.call
 
     raise TypeError, "#{name}#call must answer with shapes, got #{answer.class}" unless shapes?(answer)
 

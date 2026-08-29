@@ -177,6 +177,19 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
   end
 
+  # A cop that raises leaves the file reported as clean. And once it stopped raising it
+  # reported "says nothing about null:" over a column that says `null: false` — unreadable
+  # is not absent.
+  def test_a_non_literal_hash_key_does_not_crash_the_cop
+    assert_empty check(<<~RUBY)
+      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+        def change
+          add_column :people, :nickname, :string, NULL => false
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)

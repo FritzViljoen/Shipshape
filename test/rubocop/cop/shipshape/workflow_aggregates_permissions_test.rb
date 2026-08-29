@@ -30,6 +30,21 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
 
   WORKFLOW = "app/workflows/settle_month.rb"
 
+  NAMESPACED_LAYOUT = {
+    "Shipshape/CallGraph" => {
+      "Kinds" => {
+        "workflow" => ["app/workflows/**/*.rb"],
+        "command" => ["app/commands/**/*.rb"],
+      },
+      "Matrix" => { "workflow" => ["command"], "command" => [] },
+    },
+  }.freeze
+
+  NAMESPACED = {
+    "app/commands/billing/settle_invoice.rb" =>
+      "module Billing\n  class SettleInvoice < Command\n  end\nend\n",
+  }.freeze
+
   # The kinds are decided by the superclass, so the steps need real bodies on disk. They
   # declare no permission of their own: the class name is the permission.
   TREE = {
@@ -166,6 +181,40 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
 
         def call
           SettleInvoice.call(actor: @actor)
+        end
+      end
+    RUBY
+  end
+
+  # A STEPS on a NESTED class used to satisfy the outer workflow, which then ran with the
+  # base class's empty list and refused nobody — green over the defect the cop exists for.
+  def test_a_nested_classs_steps_does_not_satisfy_the_workflow
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        class Report
+          STEPS = [SettleInvoice, NotifyCustomer].freeze
+        end
+
+        def call
+          SettleInvoice.call(actor: @actor)
+          NotifyCustomer.call(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "does not name its steps"
+  end
+
+  # `Billing::SettleInvoice` names one step. Collecting descendants also yielded `Billing`,
+  # so a correct declaration failed — and a cop that fails correct code gets disabled.
+  def test_a_namespaced_step_is_not_also_its_namespace
+    assert_empty offences(<<~RUBY, cop_class: COP, path: WORKFLOW, files: NAMESPACED, other_cops: NAMESPACED_LAYOUT)
+      class SettleMonth < Workflow
+        STEPS = [Billing::SettleInvoice].freeze
+
+        def call
+          Billing::SettleInvoice.call(actor: @actor)
         end
       end
     RUBY

@@ -23,6 +23,12 @@ class CanonTest < Minitest::Test
   GUARD_LINE = /^- \*\*Guard:\*\* (.+?)(?:\n(?!  )|\z)/m
   COP_NAME = %r{`Shipshape/(\w+)`}
 
+  # The guards that are deliberately not cops, each argued in the law that names it and
+  # each shipping with this gem's own suite rather than running in a consuming build.
+  # Being on this list is what makes a non-cop guard legitimate; the list cannot go stale
+  # because nothing else grants that status.
+  SUITE_GUARDS = ["CanonTest", "generated_base_classes_test.rb"].freeze
+
   def test_every_law_names_a_cop_that_exists_or_says_it_does_not
     missing = laws.reject do |law|
       law[:cops].all? { |cop| registered?(cop) } || law[:guard].downcase.include?(UNBUILT)
@@ -31,6 +37,21 @@ class CanonTest < Minitest::Test
     assert_empty missing.map { |law| "#{law[:name]} names #{law[:cops].join(', ')}" },
                  "A law naming a cop that does not exist reads as coverage. Build the cop, " \
                  "or write \"#{UNBUILT}\" in its Guard line and call it a convention."
+  end
+
+  # `[].all?` is true, so a law naming no cop at all used to pass this suite without
+  # anybody deciding it should. A guard has to be named — a cop, a listed suite guard, or
+  # the words that make it a convention.
+  def test_every_law_names_some_guard
+    silent = laws.reject do |law|
+      law[:cops].any? ||
+        law[:guard].downcase.include?(UNBUILT) ||
+        SUITE_GUARDS.any? { |guard| law[:guard].include?(guard) }
+    end
+
+    assert_empty silent.map { |law| law[:name] },
+                 "A law whose Guard line names nothing passes every other check here " \
+                 "vacuously. Name a cop, name a suite guard, or say \"#{UNBUILT}\"."
   end
 
   def test_every_cop_is_named_by_a_law

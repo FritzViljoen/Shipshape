@@ -113,6 +113,31 @@ class NoSilentCoercionTest < Minitest::Test
     assert_includes found.first.message, "is empty rather than missing"
   end
 
+  # `url_for(params.permit(:q)).to_s` is a String being made a String. Scanning the whole
+  # receiver for a `params` anywhere inside made idiomatic Rails an offence.
+  def test_a_shape_cast_on_something_built_from_a_parameter_is_not_a_coercion
+    assert_empty check(<<~RUBY)
+      class BookingsController
+        def index
+          redirect_to url_for(params.permit(:q)).to_s
+          render json: { id: params[:id] }.to_s
+        end
+      end
+    RUBY
+  end
+
+  def test_the_headline_names_what_the_cast_produces
+    message = check(<<~RUBY).first.message
+      class BookingsController
+        def index
+          params[:name].to_s
+        end
+      end
+    RUBY
+
+    refute_includes message, "into a number"
+  end
+
   private
 
   def check(source)
