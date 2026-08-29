@@ -2,6 +2,7 @@
 
 require "shipshape/settings"
 require "shipshape/kinds"
+require "rubocop/cop/shipshape/explains"
 
 module RuboCop
   module Cop
@@ -49,18 +50,31 @@ module RuboCop
       #     end
       #   end
       class CallGraph < Base
-        MSG = "%<caller>s may not call %<callee>s. Declared: %<allowed>s."
-
-        MSG_NONE = "%<caller>s may not call anything. " \
-                   "Move the work to a caller that may."
-
+        include Explains
         # No kind calls a sister, and every kind is its own sister. One rule, not a row
         # anyone maintains: a sister call is the shape by which a class quietly becomes
         # the kind above it — a command sequencing commands is a workflow that never said
         # so, a query composing queries is the read that turns into an N+1. A legacy
         # command is a command that wraps something old, so it is a sister too.
-        MSG_SISTER = "%<caller>s may not call %<callee>s. They are sisters, and no kind " \
-                     "calls a sister — sequence them from the kind above."
+        SISTERS = <<~RUBY
+          # the kind above sequences them, and the sequence is readable in one place
+          class SettleMonth < Workflow
+            def call
+              CloseInvoices.call(month: @month)
+              NotifyCustomers.call(month: @month)
+            end
+          end
+        RUBY
+
+        REACH = <<~RUBY
+          # the caller reaches down a level, never sideways or up
+          class SettleInvoice < Command
+            def call
+              invoice = FindInvoice.call(id: @id).value   # a query, one level down
+              InvoiceRecord.find(invoice.id).update!(...) # a record, the level below that
+            end
+          end
+        RUBY
 
         def on_send(node)
           receiver = node.receiver
@@ -101,13 +115,36 @@ module RuboCop
           callee_phrase = named(callee_kind)
 
           if sisters?(caller_kind, callee_kind)
-            return format(MSG_SISTER, caller: caller_phrase, callee: callee_phrase)
+            return explain(
+              "#{caller_phrase} may not call #{callee_phrase}. They are sisters.",
+              because: "A sister call is how a class quietly becomes the kind above it. " \
+                       "A command sequencing commands is a workflow that never said so, " \
+                       "and a query composing queries is the read that turns into an N+1. " \
+                       "The sequence belongs one level up, where it can be read at once.",
+              instead: SISTERS,
+            )
           end
 
           allowed = settings.reachable_from(caller_kind)
-          return format(MSG_NONE, caller: caller_phrase) if allowed.empty?
 
-          format(MSG, caller: caller_phrase, callee: callee_phrase, allowed: allowed.join(", "))
+          if allowed.empty?
+            return explain(
+              "#{caller_phrase} may not call anything.",
+              because: "It is the bottom of the graph — a shape holds data and a record " \
+                       "is a table. Behaviour here is reachable from everywhere the " \
+                       "object is, which is how one concern after another settles on it.",
+              instead: REACH,
+            )
+          end
+
+          explain(
+            "#{caller_phrase} may not call #{callee_phrase}. " \
+            "Declared: #{allowed.join(', ')}.",
+            because: "The call graph is declared, so what reaches what can be read off " \
+                     "one file instead of traced through the codebase. An undeclared edge " \
+                     "is the one nobody knows about until it forms a cycle.",
+            instead: REACH,
+          )
         end
 
         # A kind is a configured word, so the article is decided here rather than written

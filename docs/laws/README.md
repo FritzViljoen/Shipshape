@@ -37,6 +37,7 @@ not make it hold.
 | [`code-is-written-not-generated`](code-is-written-not-generated.md) | `nothing-is-hidden` |
 | [`no-silent-coercion`](no-silent-coercion.md) | `nothing-fails-quietly` |
 | [`a-guard-states-its-limit`](a-guard-states-its-limit.md) | `nothing-fails-quietly` |
+| [`enforcement-messages-are-documentation`](enforcement-messages-are-documentation.md) | `nothing-is-hidden` |
 
-Sixteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
+Seventeen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
 guard on this list, and the rule that each is tested by removal.

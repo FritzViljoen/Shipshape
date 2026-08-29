@@ -160,7 +160,7 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a query"
-    assert_includes found.first.message, "no kind calls a sister"
+    assert_includes found.first.message, "They are sisters."
   end
 
   def test_a_command_may_not_call_a_command

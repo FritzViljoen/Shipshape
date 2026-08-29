@@ -2,6 +2,7 @@
 
 require "shipshape/settings"
 require "shipshape/kinds"
+require "rubocop/cop/shipshape/explains"
 
 module RuboCop
   module Cop
@@ -44,18 +45,24 @@ module RuboCop
       #   end
       class OneOperationOneClass < Base
         include VisibilityHelp
+        include Explains
 
-        MSG_SECOND = "An operation has one public method. `%<name>s` is a second — " \
-                     "a second operation gets its own class."
+        SHAPE = <<~RUBY
+          class SettleInvoice < Command
+            def initialize(invoice_id:, settled_on:)   # named keywords, asserted here
+              @invoice_id = invoice_id
+              @settled_on = settled_on
+            end
 
-        MSG_NAME = "An operation's public method is `%<expected>s`, not `%<name>s`. " \
-                   "One shape, so one wrapper can serve every call site."
+            def call                                   # one public method, always `call`
+              success(...)
+            end
 
-        MSG_READER = "An operation exposes no state. `%<macro>s` here is a public method " \
-                     "in all but name; declare it under `private`."
+            private                                    # everything else, including readers
 
-        MSG_PARAMETER = "An operation takes named keywords. `%<source>s` is %<why>s, " \
-                        "which is a hole in every rule that inspects the signature."
+            attr_reader :invoice_id, :settled_on
+          end
+        RUBY
 
         READERS = %i[attr_reader attr_accessor attr_writer].freeze
 
@@ -92,6 +99,49 @@ module RuboCop
 
         private
 
+        def second_operation(definition)
+          explain(
+            "An operation has one public method. `#{definition.method_name}` is a second.",
+            because: "Two public methods are two operations sharing one constructor, and " \
+                     "the constructor ends up carrying the union of what both need. The " \
+                     "class then has no arguments that are always required, so nothing " \
+                     "about it can be asserted at construction.",
+            instead: SHAPE,
+          )
+        end
+
+        def wrong_name(definition)
+          explain(
+            "An operation's public method is `#{expected_name}`, " \
+            "not `#{definition.method_name}`.",
+            because: "One shape means one wrapper can serve every call site — logging, " \
+                     "transactions, instrumentation, the test harness. A second verb " \
+                     "means every one of those has to know about both.",
+            instead: SHAPE,
+          )
+        end
+
+        def exposed_state(node)
+          explain(
+            "An operation exposes no state. `#{node.method_name}` here is a public " \
+            "method in all but name.",
+            because: "A reader invites a caller to ask instead of tell: it reaches in, " \
+                     "gets a value and decides something the operation should have " \
+                     "decided. What the operation has to say, it answers from `call`.",
+            instead: SHAPE,
+          )
+        end
+
+        def untyped_parameter(argument, why)
+          explain(
+            "An operation takes named keywords. `#{argument.source}` is #{why}.",
+            because: "A positional or splatted argument is a hole in every rule that " \
+                     "inspects the signature — nothing can assert what it holds, and the " \
+                     "call site reads as a tuple whose meaning lives somewhere else.",
+            instead: SHAPE,
+          )
+        end
+
         def entry_point?(node)
           node.method_name == :initialize || node.method_name.to_s == expected_name
         end
@@ -100,10 +150,10 @@ module RuboCop
           public_defs = statements.select { |statement| public_method?(statement) }
 
           public_defs.each_with_index do |definition, index|
-            next add_offense(definition, message: format(MSG_SECOND, name: definition.method_name)) if index.positive?
+            next add_offense(definition, message: second_operation(definition)) if index.positive?
             next if definition.method_name.to_s == expected_name
 
-            add_offense(definition, message: format(MSG_NAME, expected: expected_name, name: definition.method_name))
+            add_offense(definition, message: wrong_name(definition))
           end
         end
 
@@ -119,7 +169,7 @@ module RuboCop
           return unless node.receiver.nil? && READERS.include?(node.method_name)
           return unless node_visibility(node) == :public
 
-          add_offense(node, message: format(MSG_READER, macro: node.method_name))
+          add_offense(node, message: exposed_state(node))
         end
 
         # Every input is a named keyword. Anything else is refused with the reason spelled
@@ -128,7 +178,7 @@ module RuboCop
           why = reason_to_refuse(argument)
           return if why.nil?
 
-          add_offense(argument, message: format(MSG_PARAMETER, source: argument.source, why: why))
+          add_offense(argument, message: untyped_parameter(argument, why))
         end
 
         def reason_to_refuse(argument)

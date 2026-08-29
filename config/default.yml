@@ -242,3 +242,37 @@ Shipshape/OneOperationOneClass:
     - legacy_command
     - legacy_query
   PublicMethod: call
+
+Shipshape/NoDecisionsInRequestHandling:
+  Description: >-
+    Request handling places what an operation answered. It does not decide anything on the
+    payload's behalf — a rule asked in a controller has two owners and they will disagree.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # The layout is declared once on Shipshape/CallGraph and read from there.
+  Kinds:
+    - request_handling
+    - entry_point
+
+Shipshape/NoCallbacks:
+  Description: >-
+    A record holds no lifecycle callbacks. The caller reads one method and gets several, in
+    an order nothing states, and a failure in any of them is attributed to the save.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - record
+
+Shipshape/EnforcementMessagesAreDocumentation:
+  Description: >-
+    An offence message states what is wrong, why the rule exists, and a correct example.
+    The failure is where a rule is delivered, and for an agent it is the whole context.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  # No path list: a file is a cop because it calls add_offense, which nothing else does.
+  Include:
+    - '**/*.rb'

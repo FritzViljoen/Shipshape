@@ -147,7 +147,7 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "no kind calls a sister"
+    assert_includes found.first.message, "They are sisters."
   end
 
   # A door's whole job is to speak to the old world, and the old world is unclassified —

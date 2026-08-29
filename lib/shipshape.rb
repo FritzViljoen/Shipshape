@@ -16,6 +16,9 @@ end
 
 require "rubocop/cop/shipshape/call_graph"
 require "rubocop/cop/shipshape/one_operation_one_class"
+require "rubocop/cop/shipshape/no_decisions_in_request_handling"
+require "rubocop/cop/shipshape/no_callbacks"
+require "rubocop/cop/shipshape/enforcement_messages_are_documentation"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),
