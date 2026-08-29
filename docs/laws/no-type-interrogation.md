@@ -19,6 +19,9 @@ difference is what happens next: an assertion has one outcome, a dispatch has tw
 - **Principle:** `one-way-to-say-each-thing` governs. `tell-dont-ask` also produces it.
 - **Guard:** `Shipshape/NoTypeInterrogation`, over the operation and shape trees. Exempts the
   argument-assertion helper by name, and nothing else.
+  **Not built yet** — so this is a convention today, held by review. The law is
+  written anyway: a rule nobody wrote down cannot be built later.
+
 - **Guard's limit:** a genuine boundary check written outside that helper is a **false
   positive**, and it is meant to be argued in review rather than suppressed in silence — a
   suppression comment on this cop should be rare enough to notice. Deserialisation and

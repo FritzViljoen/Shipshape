@@ -31,6 +31,9 @@ only one of them is absence.
   the raising conversions, and the casts, whenever the value came from request parameters.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an
   argument, in a hash, or nested any depth down.
+  **Not built yet** — so this is a convention today, held by review. The law is
+  written anyway: a rule nobody wrote down cannot be built later.
+
 - **Guard's limit:** both hold **closed method lists**, so a finder or a parser they do not
   name is uncovered. The parameter must be reached syntactically inside the call, so a local
   assigned from it earlier is invisible. `to_i` and `to_f` cannot raise, so they are left to

@@ -20,6 +20,9 @@ are not the writer.
 - **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, shape and record trees.
   Fails defining methods from data, evaluating a string as code, and missing-method
   dispatch.
+  **Not built yet** — so this is a convention today, held by review. The law is
+  written anyway: a rule nobody wrote down cannot be built later.
+
 - **Guard's limit:** it names **constructs, not intent**. A helper in a gem doing the same
   thing on your behalf is invisible; so is anything generated at build time and committed,
   which reads as ordinary code because by then it is. It cannot judge whether a given macro

@@ -21,10 +21,13 @@ from version control on every run.
 
 - **Principle:** `nothing-fails-quietly` governs. `make-the-wrong-thing-impossible` produces
   the tested-by-removal half.
-- **Guard:** `Shipshape/LawsDeclareGuards` — a test over these files. Fails when a law file
+- **Guard:** `CanonTest`, in this gem's own suite — see
+  [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md), which explains why
+  this one check is not itself a cop. Fails when a law file
   has no guard section or no limit section, when it names a cop that does not exist, or when
   a cop exists that no law names. Each cop's own removal test is the second half, and the
   suite fails if a cop has no such test.
+
 - **Guard's limit:** it checks that the limit section **exists**, never that what it says is
   true, complete, or current. A stale blind-spot paragraph passes. That judgement is the
   author's and no check will ever make it — which is the honest reason this law is written
