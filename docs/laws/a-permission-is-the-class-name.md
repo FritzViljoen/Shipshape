@@ -91,11 +91,25 @@ is the join, populated once, and it is data: the admin UI still shows the bucket
 tenant is still configured at the grain it thinks in.
 
 **The failure mode this creates is worth guarding.** An operation contained by no capability
-is unreachable — fail-closed, correct, and invisible. Today a miswired capability surfaces as
-a refusal nobody can explain; with the join it is checkable, because both sides are
-enumerable: `Command.descendants.map(&:permission)` against the join's contents. A coverage
-report listing operations no capability contains is the thing that pays for the scheme, and
-it belongs in the application, because the join is the application's table.
+is unreachable — fail-closed, correct, and invisible, surfacing as a refusal nobody can
+explain. Both sides are enumerable, so the check is a comparison:
+
+```ruby
+Rails.application.eager_load!   # or `descendants` answers only what has been autoloaded
+
+missing = Permission.catalogue(Command, Query, IoCommand, IoQuery, Workflow) -
+          CapabilityRecord.permissions
+raise "not in any capability: #{missing.join(', ')}" if missing.any?
+```
+
+`Permission.catalogue` ships with the base classes and supplies the half shipshape can
+know — every grantable permission, read off the classes, with anonymous operations left out
+because they are never granted. The other half is the application's table, so the comparison
+lives there.
+
+It raises on a workflow that declares no `STEPS`, deliberately: that workflow would otherwise
+refuse nothing at its first real call, in production, and walking the catalogue at boot is
+the cheapest place to find it.
 
 ## The catalogue is derived, never maintained
 

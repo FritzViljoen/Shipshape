@@ -34,6 +34,42 @@
 # granted to everyone, so it stays in the catalogue and can still be revoked for a
 # suspended account.
 module Permission
+  # Every permission this application recognises, read off the classes.
+  #
+  # **Pass the doors you installed**, because a module cannot know which of them your
+  # application uses:
+  #
+  #   Permission.catalogue(Command, Query, IoCommand, IoQuery, Workflow)
+  #
+  # Eager-load first outside production, or `descendants` answers only what has been
+  # autoloaded so far and the catalogue comes back short — which is the one failure mode
+  # that would make a coverage check pass while covering nothing:
+  #
+  #   Rails.application.eager_load!
+  #
+  # **What this is for.** An operation contained by no capability is unreachable —
+  # fail-closed, correct, and invisible, surfacing as a refusal nobody can explain. Both
+  # sides are enumerable, so the check is a comparison:
+  #
+  #   missing = Permission.catalogue(Command, Query, Workflow) - CapabilityRecord.permissions
+  #   raise "not in any capability: #{missing.join(', ')}" if missing.any?
+  #
+  # Anonymous operations are left out: they are never granted, so demanding a capability
+  # contain one would fail every check for ever. So are nameless classes — a `Class.new`
+  # subclass has no constant, so it has no permission, and asking for one raises.
+  #
+  # **It raises on a workflow that declares no STEPS, deliberately.** That workflow would
+  # otherwise refuse nothing at its first real call, in production; walking the catalogue at
+  # boot is the cheapest place to find it.
+  def self.catalogue(*doors)
+    doors.flat_map { |door| door.descendants }
+         .select(&:name)
+         .reject(&:anonymous?)
+         .flat_map { |operation| operation.respond_to?(:permissions) ? operation.permissions : [operation.permission] }
+         .uniq
+         .sort
+  end
+
   def permission
     name.to_sym
   end

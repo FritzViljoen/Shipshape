@@ -18,7 +18,16 @@ class GeneratedBaseClassesTest < Minitest::Test
     Shipshape::Install.new(root: root, auth: true).call
 
     stub_active_record
+    stub_descendants
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }
+  end
+
+  def self.stub_descendants
+    Class.instance_eval do
+      define_method(:descendants) do
+        ObjectSpace.each_object(Class).select { |klass| klass < self }
+      end
+    end
   end
 
   def self.stub_active_record
@@ -404,6 +413,44 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     refute flow.permits?(refuser)
     refute_predicate flow.call(actor: refuser), :success?
+  end
+
+  # The catalogue is read off the classes, so it cannot fall behind them. An operation in no
+  # capability is unreachable — fail-closed, correct, and invisible — and this is the half
+  # shipshape can supply: the other half is the application's own table.
+  def test_the_catalogue_is_every_grantable_permission
+    catalogue = Permission.catalogue(Command, Query)
+
+    assert_includes catalogue, Charge.permission
+    assert_includes catalogue, ListPlaces.permission
+  end
+
+  # Never granted, so demanding a capability contain one would fail every check for ever.
+  def test_the_catalogue_leaves_out_anonymous_operations
+    refute_includes Permission.catalogue(Command), LogIn.permission
+  end
+
+  # A door of its own, so the catalogue under test is this file's classes and not every
+  # subclass any other test in the process happened to create.
+  class CataloguedFlow < Workflow; end
+
+  class SettleMonthFlow < CataloguedFlow
+    STEPS = [Charge].freeze
+  end
+
+  def test_a_workflow_contributes_its_steps_not_its_own_name
+    catalogue = Permission.catalogue(CataloguedFlow)
+
+    assert_includes catalogue, Charge.permission
+    refute_includes catalogue, SettleMonthFlow.permission
+  end
+
+  # Not a wart: that workflow would otherwise refuse nothing at its first real call, in
+  # production. Walking the catalogue at boot is the cheapest place to find it.
+  def test_the_catalogue_raises_on_a_workflow_that_declares_no_steps
+    error = assert_raises(NotImplementedError) { Permission.catalogue(Workflow) }
+
+    assert_includes error.message, "must declare STEPS"
   end
 
   def test_an_empty_answer_is_an_answer
