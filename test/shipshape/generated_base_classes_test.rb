@@ -290,6 +290,74 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_includes error.message, "must declare STEPS"
   end
 
+  # An anonymous step is never granted — that is what anonymous means — so aggregating its
+  # name demanded a grant nobody could hold and made the whole workflow permanently
+  # forbidden.
+  def test_an_anonymous_step_contributes_no_permission
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [LogIn, Charge].freeze)
+      def self.name
+        "Onboard"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:onboarded)
+      end
+    end
+
+    assert_equal [Charge.permission], flow.permissions
+    # Refuses only `:LogIn` — the permission an anonymous step must never contribute.
+    assert_predicate flow.call(actor: Anyone.new([LogIn.permission])), :success?
+  end
+
+  # A signup sequence runs before anyone is identified, and says so the same way an
+  # operation does.
+  def test_a_workflow_may_be_anonymous
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [LogIn].freeze)
+      def self.name
+        "SignUp"
+      end
+
+      def initialize(email:)
+        @email = email
+      end
+
+      def anonymous_call
+        success(@email)
+      end
+    end
+
+    result = flow.call(email: "a@b.c")
+
+    assert_predicate result, :success?
+    assert_equal "a@b.c", result.value
+  end
+
+  # The guarded path still demands one, so anonymity stays a property of the class.
+  def test_a_guarded_workflow_still_requires_an_actor
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [Charge].freeze)
+      def self.name
+        "SettleMonth"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:done)
+      end
+    end
+
+    assert_raises(ArgumentError) { flow.call }
+  end
+
   def test_an_empty_answer_is_an_answer
     empty = Class.new(Query) do
       def self.name

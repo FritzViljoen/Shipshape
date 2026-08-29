@@ -18,6 +18,17 @@ two done, committed, and visible. There is no rollback: the transactions closed.
 moment refusal is free is before the first step, which is why the check is there and not
 distributed through the sequence.
 
+## An anonymous step contributes nothing
+
+An operation implementing `anonymous_call` is never granted — that is what anonymous means —
+so aggregating its name would demand a grant nobody can hold, and the workflow containing it
+would be permanently forbidden. `permissions` skips them.
+
+**A workflow all of whose steps are anonymous is itself anonymous**, and says so the same way
+an operation does, by implementing `anonymous_call`. A signup sequence — create the account,
+log in, send the welcome — runs before anyone is identified, and demanding an actor for it
+would make the sequence inexpressible.
+
 ## The check is feasibility, not authorisation
 
 Each operation is still checked on its own way in, by its own base class — an operation is
@@ -70,6 +81,11 @@ end
 - **Guard's limit:** it reads the constants the body **names syntactically**. A step reached
   through a variable, a constant it cannot resolve to a file, or an operation called by
   another operation one level down is invisible — so the derived set is a floor, not a
-  ceiling, and a workflow can still need a permission this cannot see. Ordering is not
-  checked: `STEPS` may list the operations in an order the body does not run them in. It says
-  nothing about whether the actor is threaded through to each step.
+  ceiling, and a workflow can still need a permission this cannot see. `STEPS` is read only
+  as an array literal in the workflow's own body — a list built any other way reads as absent.
+  Ordering is not checked: `STEPS` may list the operations in an order the body does not run
+  them in. It says nothing about whether the actor is threaded through to each step.
+
+  **A workflow's own `permission` exists but is never consulted** — the steps are what get
+  granted. Granting `:SettleMonth` therefore does nothing, and nothing warns you; the coarse
+  bucket an administrator grants is data, and it maps to the step permissions.

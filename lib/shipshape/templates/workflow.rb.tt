@@ -40,9 +40,15 @@
 class Workflow
   include TypedArguments
 
+  extend Permission
+
   # Ask a workflow what it needs without running it: hide a button the actor cannot use,
   # populate an admin screen, seed the permission table. Derived from STEPS, so it cannot
   # disagree with what the workflow actually does.
+  #
+  # **Anonymous steps contribute nothing.** An anonymous operation is never granted — that
+  # is what anonymous means — so aggregating its name would demand a grant nobody can hold
+  # and make the whole workflow permanently forbidden.
   #
   # `false` refuses the ancestor chain: a subclass declares its own or this raises. An
   # inherited empty list would mean a workflow that forgot to declare one checked nothing
@@ -50,14 +56,20 @@ class Workflow
   def self.permissions
     raise NotImplementedError, "#{name} must declare STEPS" unless const_defined?(:STEPS, false)
 
-    const_get(:STEPS, false).map(&:permission).uniq
+    const_get(:STEPS, false).reject(&:anonymous?).map(&:permission).uniq
   end
 
+  # A workflow every one of whose steps is anonymous is itself anonymous — a signup
+  # sequence runs before anyone is identified — and says so the same way an operation does,
+  # by implementing `anonymous_call`.
   def self.call(actor: nil, **arguments)
-    raise ArgumentError, "#{name} requires an actor" if actor.nil?
-    return Result.failure(:forbidden) unless permissions.all? { |permission| actor.may?(permission) }
+    unless anonymous?
+      raise ArgumentError, "#{name} requires an actor" if actor.nil?
+      return Result.failure(:forbidden) unless permissions.all? { |permission| actor.may?(permission) }
+    end
 
-    result = new(actor: actor, **arguments).call
+    operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
+    result = anonymous? ? operation.anonymous_call : operation.call
 
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 
