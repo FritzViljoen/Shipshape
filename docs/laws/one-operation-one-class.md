@@ -18,6 +18,25 @@ wearing one name.
 grow a branch, and [`the-call-graph-is-declared`](the-call-graph-is-declared.md) gives the
 branch nowhere to reach.
 
+**Size an operation so it can be permitted or refused whole.** This is the sizing test, and
+it is the one judgement the rest of the model leans on: when deciding what a command or
+query should cover, ask who is allowed to do it. If one actor may do half of what it does
+and not the other half, it is two operations, and the seam runs exactly where permission
+runs.
+
+Getting this wrong is not a naming problem. An operation that spans two permissions has
+nowhere to put the refusal: it either checks halfway through and leaves the first half
+done, or it takes the widest permission of the two and quietly grants the narrow one. Both
+are found in production, and both are re-sizing work by then.
+
+The reverse is just as wrong — splitting one permitted act into three operations means the
+caller sequences them, and a caller that can sequence them can stop after the first. **A
+permission boundary is a transaction boundary is an operation boundary**, and where those
+three disagree the design is not finished.
+
+This is a judgement and no check makes it. It is written here because the sizing question
+has no other home, and an unwritten judgement gets made differently by every reader.
+
 - **Principle:** `one-way-to-say-each-thing`
 - **Guard:** `Shipshape/OneOperationOneClass`, over classes of a kind listed in
   `OperationKinds`. Fails a second public method, a public method not named `call`, a

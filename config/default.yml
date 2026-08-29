@@ -464,3 +464,21 @@ Shipshape/NoGeneratedInterfaces:
     - legacy_query
     - shape
     - record
+
+Shipshape/OperationDeclaresPermission:
+  Description: >-
+    Every command and query names the permission it needs, in the file. Not derived from
+    the class name, not supplied by a base class.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  ConstantName: PERMISSION
+  # Workflows are out: a workflow sequences operations that each declare their own, and
+  # requiring one here would state a fact twice. An application with genuinely
+  # unauthenticated operations narrows this list rather than suppressing the cop per file.
+  Kinds:
+    - command
+    - query
+    - io_command
+    - io_query

@@ -10,9 +10,10 @@ four things and stops:
 - **the guard** that holds it
 - **the guard's limit** — what a passing run does not prove
 
-> **Every guard here is specified, not built.** The cops arrive in phase 3. Until then
-> every law on this list is a convention, held by review, and saying otherwise would be the
-> exact failure `a-guard-states-its-limit` exists to prevent.
+> **Every law here names a cop that exists**, and `CanonTest` fails the build if one does
+> not. That is a narrower claim than it looks: it holds that the guard is *there*, never
+> that it covers everything the law describes. Each law's **guard's limit** is where that
+> gap is written down, and it is the part worth reading.
 
 A law with no guard says so, permanently, and is called a convention. Calling it a law does
 not make it hold.
@@ -39,6 +40,7 @@ not make it hold.
 | [`a-guard-states-its-limit`](a-guard-states-its-limit.md) | `nothing-fails-quietly` |
 | [`enforcement-messages-are-documentation`](enforcement-messages-are-documentation.md) | `nothing-is-hidden` |
 | [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) | `one-way-to-say-each-thing` |
+| [`an-operation-declares-its-permission`](an-operation-declares-its-permission.md) | `nothing-crosses-unasserted` |
 
-Eighteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
+Nineteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
 guard on this list, and the rule that each is tested by removal.

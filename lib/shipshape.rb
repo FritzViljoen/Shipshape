@@ -32,6 +32,7 @@ require "rubocop/cop/shipshape/no_silent_coercion"
 require "rubocop/cop/shipshape/persistence_holds_no_behaviour"
 require "rubocop/cop/shipshape/shape_is_composed"
 require "rubocop/cop/shipshape/no_generated_interfaces"
+require "rubocop/cop/shipshape/operation_declares_permission"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),
