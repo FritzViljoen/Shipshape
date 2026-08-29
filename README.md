@@ -175,6 +175,25 @@ what, every guard with its own one-line description, and — only if you install
 authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
 is a second copy of it, and the copy is the one that goes stale.
 
+## Knowing how much of your code the guards can reach
+
+```sh
+bundle exec shipshape coverage
+```
+
+A file that resolves to no kind is skipped by every kind-scoped cop — silently, and
+indistinguishably from a file they approved of. **A clean run means nothing until you know
+what fraction of the tree was inspected at all.**
+
+Run over six public Rails codebases with the default layout, the governed fraction was 12%,
+20%, 26%, 29%, 37% and 44% — and **0% for an engine monorepo**, where every path is
+`core/app/models/…` rather than `app/models/…`. That one reported nineteen offences across
+1203 files it never opened, and looked healthy.
+
+The fix is always the same: declare the trees your repository actually uses in
+`Shipshape/CallGraph`'s `Kinds`. `shipshape canaries` proves a cop *can* fire; this proves
+the cops can *reach your code*. Both questions have to be asked.
+
 ## Proving the guards are running
 
 A guard that does not run reports the same thing as a guard that finds nothing: zero. That

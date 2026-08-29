@@ -5,6 +5,7 @@ require "shipshape"
 require "shipshape/install"
 require "shipshape/rules"
 require "shipshape/canaries"
+require "shipshape/coverage"
 require "shipshape/wire_typed_params"
 require "shipshape/check"
 require "shipshape/report"
@@ -99,6 +100,33 @@ def canaries
   1
 end
 
+# A file that resolves to no kind is skipped by every kind-scoped cop, silently and
+# indistinguishably from a file they approved of. A clean run means nothing until you know
+# how much of the tree was inspected at all.
+def coverage
+  result = Shipshape::Coverage.new(config: RuboCop::ConfigStore.new.for_pwd, root: Dir.pwd).call
+
+  puts "  #{result.governed} of #{result.total} files resolve to a kind (#{result.percentage}%)."
+  result.by_kind.each { |kind, n| puts format("    %-18s %5d", kind, n) }
+
+  if result.ungoverned.any?
+    puts
+    puts "  Reached by no kind-scoped cop:"
+    result.ungoverned.first(10).each { |path| puts "    #{path}" }
+    puts "    …and #{result.ungoverned.length - 10} more" if result.ungoverned.length > 10
+  end
+
+  puts
+  if result.percentage >= 90
+    puts "Nearly everything is governed."
+  else
+    puts "Add the trees this repository actually uses to Shipshape/CallGraph's Kinds. An"
+    puts "engine monorepo keeping code at core/app/models needs that path declared, or every"
+    puts "kind-scoped cop reads it as clean without opening it."
+  end
+  0
+end
+
 def check(trunk)
   report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
 
@@ -136,11 +164,12 @@ case command
 when "install" then exit install(ARGV.include?("--auth"))
 when "rules" then exit rules
 when "canaries" then exit canaries
+when "coverage" then exit coverage
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | check | report | version"
+  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | coverage | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"
