@@ -21,8 +21,6 @@ that outlives its migration is what this law forbids.
 - **Guard:** `Shipshape/NoNullableColumns`, over migrations. Covers creation and alteration,
   resolves a reference to the column it really creates, exempts the reverse direction, and
   holds the same-method promotion rule.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** it reads **migrations, not the live schema**. A column made nullable by
   anything else — a hand-run statement, a tool, a vendored migration — is invisible, and a

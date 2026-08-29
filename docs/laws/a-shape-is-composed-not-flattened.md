@@ -18,8 +18,6 @@ operation.
 - **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object
   declares the suffix as one of its own.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** **the prefix rule is a heuristic and the general law is unguarded.**
   It catches the naming convention that flattening usually arrives in, and nothing else — a

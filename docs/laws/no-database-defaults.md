@@ -15,8 +15,6 @@ place: a value nobody can point at the source of.
   produces it — a fact has one home — and on conflict `absence-is-absence` wins, because
   the reason a default is tempting at all is a column that should have refused the gap.
 - **Guard:** `Shipshape/NoColumnDefaults`, over migrations.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** migrations only, with the same consequence as
   [`no-nullable-columns`](no-nullable-columns.md) — a default applied outside them, by a

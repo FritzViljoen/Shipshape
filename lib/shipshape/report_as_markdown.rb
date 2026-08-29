@@ -533,8 +533,13 @@ module Shipshape
       @lines ||= {}
       @lines[path] ||= File.readlines(path)
       @lines[path][finding.line - 1]&.strip
+    # rubocop:disable Shipshape/NoEmptyRescue
+    # A swallow, and a deliberate one: this reads a source line to decorate an exemplar.
+    # The report describes and fails nothing, so a file that cannot be read costs one
+    # snippet. Crashing the whole report over it would be the worse answer.
     rescue StandardError
       nil
     end
+    # rubocop:enable Shipshape/NoEmptyRescue
   end
 end

@@ -276,3 +276,186 @@ Shipshape/EnforcementMessagesAreDocumentation:
   # No path list: a file is a cop because it calls add_offense, which nothing else does.
   Include:
     - '**/*.rb'
+
+# The three cops below share one default kind list: the operation and value trees. The
+# layout itself is declared once on Shipshape/CallGraph and read from there.
+Shipshape/NoTypeInterrogation:
+  Description: >-
+    Nothing dispatches on what kind of thing it was handed. An assertion has one outcome,
+    a dispatch has two, and only the assertion is allowed.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - shape
+
+Shipshape/NoAmbientReads:
+  Description: >-
+    An operation reads what it was given. The clock, the zone, a global, a thread local
+    and the environment are dependencies that do not appear in the signature.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - shape
+
+Shipshape/NoDistantWrites:
+  Description: >-
+    Nothing is changed that the caller cannot see from the call. This is the
+    action-at-a-distance guard, and nothing else in the canon catches it.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - shape
+
+Shipshape/TypedArguments:
+  Description: >-
+    Every keyword an operation takes passes through a type guard, in a hand-written
+    initializer. Anything that is not a named keyword is its own offence.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query
+
+# The two seam cops. Both are scoped to the doors, because the domain past them is handed
+# real values and never parses anything.
+Shipshape/NoInlineParamParse:
+  Description: >-
+    Request input is parsed by named parsers at the edge, not inline where a typo becomes
+    a 500 the requester cannot act on.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - request_handling
+    - entry_point
+
+Shipshape/NoUnparsedLookup:
+  Description: >-
+    A raw parameter never reaches a finder or a writer. The adapter coerces it, so the
+    lookup succeeds against the wrong row and nothing fails.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - request_handling
+    - entry_point
+
+# The two migration cops. Scoped by path, not by kind — a migration is not a class, so the
+# kind registry has nothing to say about it.
+Shipshape/NoNullableColumns:
+  Description: >-
+    Every column is NOT NULL. A null is "off", "inherit", "not applicable" and "we lost it"
+    at once, and no reader can tell which.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - 'db/migrate/**/*.rb'
+    - 'db/*/migrate/**/*.rb'
+  # An engine's migrations are someone else's file, and holding them to a house rule only
+  # ever means a red build.
+  Exclude:
+    - 'db/migrate/**/*_from_*.rb'
+
+Shipshape/NoColumnDefaults:
+  Description: >-
+    No column carries a database default. The column refuses the gap; the domain names the
+    fallback. Creation and update timestamps excepted.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - 'db/migrate/**/*.rb'
+    - 'db/*/migrate/**/*.rb'
+  Exclude:
+    - 'db/migrate/**/*_from_*.rb'
+
+Shipshape/NoEmptyRescue:
+  Description: >-
+    A rescue that is empty, only logs, or only returns a literal stops a failure that was
+    already signalled. The known error swallowed is the dangerous one.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+
+Shipshape/NoSilentCoercion:
+  Description: >-
+    A cast that cannot fail turns rubbish into a plausible value. Flags the non-raising
+    numeric casts on a value traceable to an untrusted source in the same expression.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+
+Shipshape/PersistenceHoldsNoBehaviour:
+  Description: >-
+    A record maps rows and holds no rules. A method here is reachable from everywhere a
+    record is, which is how one concern after another settles on the same class.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - record
+
+Shipshape/ShapeIsComposed:
+  Description: >-
+    A domain object holds another; it never copies its fields. A flattened field is the
+    first column of the next god object.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - shape
+  # How many keywords must share a prefix before it reads as flattening rather than as a
+  # name. One prefixed keyword is just a name; firing on it would make the cop worthless.
+  MinimumFields: 2
+
+Shipshape/NoGeneratedInterfaces:
+  Description: >-
+    No private macro writes code a reader would otherwise grep for. The framework's public
+    conventions are exempt; a convention invented here has a corpus of one repository.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query
+    - shape
+    - record

@@ -46,9 +46,14 @@ module Shipshape
       return nil if source.ast.nil?
 
       Source.new(path: path, relative: relative(path), ast: source.ast)
+    # rubocop:disable Shipshape/NoEmptyRescue
+    # A swallow, and a deliberate one, for the reason stated above this method: a repository
+    # is entitled to hold a file this parser cannot read, and refusing to report anything
+    # because of one is worse than reporting everything else.
     rescue StandardError
       nil
     end
+    # rubocop:enable Shipshape/NoEmptyRescue
 
     def relative(path)
       path.sub("#{File.expand_path(root)}/", "").sub("#{root}/", "")

@@ -19,8 +19,6 @@ caller forbidden to interrogate can only know what it is told.
   value traceable to an untrusted source in the same expression.
   `Shipshape/NoEmptyRescue` flags a rescue whose body is empty, is only a log, or only
   returns a literal.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** a cast on a value already asserted as the right type is harmless and
   **syntactically identical** to the forbidden one, so the cop covers only same-expression

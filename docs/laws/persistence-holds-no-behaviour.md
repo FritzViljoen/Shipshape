@@ -21,8 +21,6 @@ one without the other just moves the pile.
 - **Guard:** `Shipshape/PersistenceHoldsNoBehaviour`, over the record tree. Fails any public
   method outside a declared allowlist: association and attribute declarations, and scopes
   whose body only filters on this table's own columns.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** it cannot tell a filtering scope from a rule-bearing one beyond a
   syntactic check on the block, so a scope that reaches another class inside a lambda passes.

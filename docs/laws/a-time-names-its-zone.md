@@ -25,8 +25,6 @@ one invents a date and an offset it never had.
 - **Guard:** the required keyword, which is the language's own error at the call site; the
   offset check in the parser; the type refusal in the argument guard; and
   `Shipshape/NoAmbientReads`, which forbids the ambient read that would go around all three.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** nothing stops an ambient zone being read outside the trees
   `NoAmbientReads` covers. Within its trees the read list is closed. Neither guard can tell

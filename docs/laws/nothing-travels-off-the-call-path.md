@@ -19,8 +19,6 @@ cause is perfectly visible, and it is the *effect* that cannot be found by readi
 - **Principle:** `good-boundaries-make-good-neighbours`
 - **Guard:** `Shipshape/NoAmbientReads` and `Shipshape/NoDistantWrites`, over the operation
   and value trees.
-  **Not built yet** — so this is a convention today, held by review. The law is
-  written anyway: a rule nobody wrote down cannot be built later.
 
 - **Guard's limit:** both hold **closed lists** — a new ambient source is uncovered until
   it is named, and the lists are the authority on what the law means in practice. Mutating
