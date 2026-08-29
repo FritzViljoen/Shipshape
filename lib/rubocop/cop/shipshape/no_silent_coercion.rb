@@ -28,6 +28,23 @@ module RuboCop
       #   integer_param(:page, default: 1)
       class NoSilentCoercion < Base
         include Explains
+        extend AutoCorrector
+
+        # **The correction is deliberately not behaviour-preserving**, which is why this cop
+        # is `SafeAutoCorrect: false` and the fix arrives under `-A` rather than `-a`.
+        # `"banana".to_i` is 0 today and a bounce afterwards — that IS the rule, and applying
+        # it silently to a running application would be the same sin the cop is named for.
+        #
+        # Only a literal key is rewritten: `params[key].to_i` names a parameter this cannot
+        # read, so it is reported and left alone.
+        PARSERS = {
+          to_i: "integer_param!",
+          to_f: "decimal_param!",
+          to_r: "decimal_param!",
+          to_c: "decimal_param!",
+          to_d: "decimal_param!",
+          to_s: "text_param!",
+        }.freeze
 
         CASTS = {
           to_i: "integer_param!(:page)",
@@ -55,7 +72,10 @@ module RuboCop
           # the whole receiver for a `params` anywhere inside made that an offence.
           return if SHAPES.include?(node.method_name) && !reads_a_parameter?(node.receiver)
 
-          add_offense(node, message: message_for(node.source, node.method_name, suggestion))
+          add_offense(node, message: message_for(node.source, node.method_name, suggestion)) do |corrector|
+            replacement = correction_for(node)
+            corrector.replace(node, replacement) if replacement
+          end
         end
 
         private
@@ -80,6 +100,27 @@ module RuboCop
         def source?(node)
           node.respond_to?(:send_type?) && node.send_type? && node.receiver.nil? &&
             UNTRUSTED.include?(node.method_name)
+        end
+
+        # `params[:page].to_i` → `integer_param!(:page)`.
+        def correction_for(node)
+          parser = PARSERS[node.method_name]
+          return unless parser
+
+          key = literal_key(node.receiver)
+          return unless key
+
+          "#{parser}(#{key})"
+        end
+
+        def literal_key(receiver)
+          return unless receiver.respond_to?(:send_type?) && receiver.send_type?
+          return unless %i[[] fetch].include?(receiver.method_name)
+
+          argument = receiver.arguments.first
+          return unless argument.respond_to?(:type) && %i[sym str].include?(argument.type)
+
+          argument.value.to_sym.inspect
         end
 
         def produced(cast)

@@ -175,6 +175,27 @@ what, every guard with its own one-line description, and — only if you install
 authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
 is a second copy of it, and the copy is the one that goes stale.
 
+## Fixing the mechanical part
+
+```sh
+bundle exec rubocop -A --only Shipshape/NoSilentCoercion,Shipshape/NoUnparsedLookup,Shipshape/NoInlineParamParse
+```
+
+`params[:page].to_i` becomes `integer_param!(:page)`; `Integer(params[:id])` becomes
+`integer_param!(:id)`. Deterministic rewrites, no judgement, about 7% of what shipshape finds
+on a real codebase.
+
+**These are `SafeAutoCorrect: false` and arrive under `-A`, never `-a`.** The correction is
+not behaviour-preserving on purpose — a silent `0` becomes a bounce, which is the rule.
+Applying that silently to a running application would be the same sin the cops are named for.
+
+**What is deliberately not corrected**, because the parser cannot be derived from a name:
+`where(short_id: params[:story_id])` is reported and left alone. Rewriting it to
+`integer_param!` broke lobsters in testing — its `short_id` is base 36. Only
+`find(params[:id])` is corrected positionally, because that is the primary key and Rails
+makes it an integer. Everything else is a person's call, since replacing a silent wrong
+answer with a confident one is worse than the offence.
+
 ## Knowing how much of your code the guards can reach
 
 ```sh

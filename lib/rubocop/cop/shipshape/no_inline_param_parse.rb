@@ -27,6 +27,7 @@ module RuboCop
       #   integer_param!(:id)
       class NoInlineParamParse < Base
         include ReadsKinds
+        extend AutoCorrector
 
         PARSERS = %i[parse parse! strptime iso8601 rfc3339 civil new].freeze
         CONVERSIONS = %i[Integer Float Rational Complex BigDecimal].freeze
@@ -39,7 +40,10 @@ module RuboCop
           named = node.receiver ? node.receiver.source : node.method_name.to_s
           return unless parser?(node) || conversion?(node)
 
-          add_offense(node, message: message_for(node.source, suggestion_for(named)))
+          add_offense(node, message: message_for(node.source, suggestion_for(named))) do |corrector|
+            replacement = correction_for(node)
+            corrector.replace(node, replacement) if replacement
+          end
         end
 
         private
@@ -52,6 +56,33 @@ module RuboCop
         # `Integer(params[:id])` parses as a receiverless send.
         def conversion?(node)
           node.receiver.nil? && CONVERSIONS.include?(node.method_name)
+        end
+
+        # **The date and time parsers are never corrected**, because their replacement takes a
+        # zone — `date_param!(:on, time_zone: ...)` — and which zone is a decision the source
+        # does not contain. `a-time-names-its-zone` says a zone nobody stated is a fact nobody
+        # declared, so inventing one here would be the cop writing the defect it forbids.
+        CORRECTABLE = {
+          Integer: "integer_param!",
+          Float: "decimal_param!",
+          BigDecimal: "decimal_param!",
+          Rational: "decimal_param!",
+        }.freeze
+
+        def correction_for(node)
+          return unless node.receiver.nil?
+
+          parser = CORRECTABLE[node.method_name]
+          return unless parser
+
+          argument = node.arguments.first
+          return unless argument.respond_to?(:send_type?) && argument.send_type?
+          return unless %i[[] fetch].include?(argument.method_name)
+
+          key = argument.arguments.first
+          return unless key.respond_to?(:type) && %i[sym str].include?(key.type)
+
+          "#{parser}(#{key.value.to_sym.inspect})"
         end
 
         # The example names the parser for the type actually being parsed. A generic one

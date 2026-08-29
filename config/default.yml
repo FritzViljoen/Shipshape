@@ -361,6 +361,10 @@ Shipshape/NoInlineParamParse:
     Request input is parsed by named parsers at the edge, not inline where a typo becomes
     a 500 the requester cannot act on.
   Enabled: true
+  # The correction is deliberately NOT behaviour-preserving: a silent 0 becomes a bounce,
+  # which is the rule. So it arrives under `-A`, never `-a` — applying it silently to a
+  # running application would be the same sin the cop is named for.
+  SafeAutoCorrect: false
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
@@ -373,6 +377,10 @@ Shipshape/NoUnparsedLookup:
     A raw parameter never reaches a finder or a writer. The adapter coerces it, so the
     lookup succeeds against the wrong row and nothing fails.
   Enabled: true
+  # The correction is deliberately NOT behaviour-preserving: a silent 0 becomes a bounce,
+  # which is the rule. So it arrives under `-A`, never `-a` — applying it silently to a
+  # running application would be the same sin the cop is named for.
+  SafeAutoCorrect: false
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
@@ -422,6 +430,10 @@ Shipshape/NoSilentCoercion:
     A cast that cannot fail turns rubbish into a plausible value. Flags the non-raising
     numeric casts on a value traceable to an untrusted source in the same expression.
   Enabled: true
+  # The correction is deliberately NOT behaviour-preserving: a silent 0 becomes a bounce,
+  # which is the rule. So it arrives under `-A`, never `-a` — applying it silently to a
+  # running application would be the same sin the cop is named for.
+  SafeAutoCorrect: false
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'

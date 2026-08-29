@@ -26,6 +26,7 @@ module RuboCop
       #   BookingRecord.where(state: enum_param!(:state, %w[held sold]))
       class NoUnparsedLookup < Base
         include ReadsKinds
+        extend AutoCorrector
 
         FINDERS = %i[find find_by find_by! where find_or_create_by find_or_initialize_by
                      exists? update update! create create! new destroy delete
@@ -37,7 +38,12 @@ module RuboCop
 
           node.arguments.each do |argument|
             reads = param_reads(argument)
-            reads.each { |read| add_offense(read, message: message_for(read.source, node.method_name)) }
+            reads.each do |read|
+              add_offense(read, message: message_for(read.source, node.method_name)) do |corrector|
+                replacement = correction_for(read)
+                corrector.replace(read, replacement) if replacement
+              end
+            end
           end
         end
 
@@ -57,6 +63,33 @@ module RuboCop
 
           receiver = node.receiver
           receiver&.send_type? && receiver.method_name == :params && receiver.receiver.nil?
+        end
+
+        # **Only `find(params[:id])` is corrected**, and only positionally: that is the
+        # primary key, and Rails makes it an integer.
+        #
+        # Nothing else is safe, because **the parser cannot be derived from a name**. This
+        # was found by running the correction over lobsters, where
+        # `where(short_id: params[:story_id])` was rewritten to `integer_param!` — `short_id`
+        # is base 36, and the correction would have broken every one of those lookups. A
+        # `_id` suffix says nothing about the type; only the column does, and the column is
+        # not in the source. Everything else is reported and left for a person, because
+        # replacing a silent wrong answer with a confident one is worse than the offence.
+        def correction_for(read)
+          return unless positional_find?(read)
+
+          argument = read.arguments.first
+          return unless argument.respond_to?(:type) && %i[sym str].include?(argument.type)
+          return unless argument.value.to_s == "id"
+
+          "integer_param!(:id)"
+        end
+
+        def positional_find?(read)
+          parent = read.parent
+          return false unless parent.respond_to?(:send_type?) && parent.send_type?
+
+          %i[find find!].include?(parent.method_name) && parent.arguments.first.equal?(read)
         end
 
         def message_for(source, finder)
