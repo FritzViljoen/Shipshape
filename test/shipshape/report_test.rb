@@ -496,6 +496,8 @@ class ReportTest < Minitest::Test
     # An earlier draft discarded every Result and reported a count that was never true —
     # the commonest shape of catastrophic failure, in the example meant to teach against it.
     assert_includes text, "EVERY RESULT IS READ."
+    assert_includes text, "There is no presenter, decorator or helper."
+    assert_includes text, "A stored state is a denormalisation."
     refute_includes text, "invoices.each { |invoice| SettleInvoice.call"
 
     # A guard clause reads as "should I proceed", which is deciding. Two arms read as

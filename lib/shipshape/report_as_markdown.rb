@@ -386,6 +386,18 @@ module Shipshape
           both do the combining.
         - A shape is not a table. It is assembled from as many as it takes, and one table
           may feed several shapes.
+        - **There is no presenter, decorator or helper.** Their methods only rearrange
+          fields they were handed, which is exactly what a shape may carry — so they
+          dissolve into the shape rather than getting a layer of their own. What renders is
+          a view component, it holds shapes, and it reaches nothing.
+        - **A tenant, a locale, a current user is an argument.** Every operation that needs
+          one takes one. There is no ambient current-anything, because a value read off a
+          global cannot be seen from the call and cannot be wrong in a test.
+        - **A stored state is a denormalisation.** A `state` column beside the events that
+          produced it is a second answer to one question, and it drifts. The state is a
+          query over what happened; where the read is too slow to do live, the answer lives
+          in a table whose name ends `_cache`, which is never authoritative and can be
+          dropped and rebuilt without losing anything.
         - Every class inherits exactly one of these, one level deep, so its kind — and
           therefore what it may reach — is knowable without reading it.
       TEXT

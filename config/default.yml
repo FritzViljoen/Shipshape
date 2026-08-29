@@ -22,6 +22,23 @@ Shipshape/CallGraph:
     request_handling:
       - 'app/controllers/**/*_controller.rb'
       - 'packs/*/controllers/**/*_controller.rb'
+    # The other doors. A job, a mailer, a subscriber and a channel are request handling
+    # through a different entrance: each parses its input, calls an operation and decides
+    # nothing. Same row, different glob.
+    entry_point:
+      - 'app/jobs/**/*.rb'
+      - 'app/mailers/**/*.rb'
+      - 'app/subscribers/**/*.rb'
+      - 'app/channels/**/*.rb'
+      - 'packs/*/jobs/**/*.rb'
+      - 'packs/*/mailers/**/*.rb'
+    # What renders. A view component holds shapes and asserts them with the same `typed`
+    # guard as everything else — it is the one place presentation is allowed to live, and
+    # there is no presenter, decorator or helper kind because those dissolve: their methods
+    # only rearrange fields they were handed, which is what a shape may carry.
+    view_component:
+      - 'app/view_components/**/*.rb'
+      - 'packs/*/view_components/**/*.rb'
     workflow:
       - 'app/workflows/**/*.rb'
       - 'packs/*/workflows/**/*.rb'
@@ -94,6 +111,7 @@ Shipshape/CallGraph:
     io_command: [IoCommand]
     legacy_query: [LegacyQuery]
     legacy_command: [LegacyCommand]
+    view_component: [ApplicationViewComponent, ViewComponent::Base]
     shape: [Shape]
     record: [ApplicationRecord, ActiveRecord::Base]
   # Kinds that are the same thing wearing different clothes. NO KIND CALLS A SISTER, and
@@ -119,6 +137,21 @@ Shipshape/CallGraph:
       - io_query
       - legacy_command
       - legacy_query
+      - view_component
+      - shape
+    entry_point:
+      - workflow
+      - command
+      - query
+      - io_command
+      - io_query
+      - legacy_command
+      - legacy_query
+      - shape
+    # It renders what it was handed and reads nothing. A component that can reach an
+    # operation is a controller with a template.
+    view_component:
+      - shape
     workflow:
       - command
       - query
