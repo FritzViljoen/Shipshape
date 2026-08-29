@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "rubocop/cop/shipshape/explains"
+require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
   module Cop
@@ -27,8 +27,17 @@ module RuboCop
       #   # good — a default you chose, rather than one the cast invented
       #   integer_param(:page, default: 1)
       class NoSilentCoercion < Base
-        include Explains
+        include ReadsKinds
         extend AutoCorrector
+
+        # **A correction is only ever emitted for `params`.** `session`, `cookies`, `env` and
+        # `request` are reported — they are untrusted in the sense the law means — but
+        # rewriting one to `text_param!` moves the read from the session to the query string.
+        # That is not a refactor, it is a vulnerability: over lobsters this turned an OAuth
+        # state check into `text_param!(:state) != text_param!(:github_state)`, comparing a
+        # parameter to itself, and put the 2FA re-authentication window under the requester's
+        # control. Found by running the correction over real code.
+        CORRECTABLE_SOURCE = "params"
 
         # **The correction is deliberately not behaviour-preserving**, which is why this cop
         # is `SafeAutoCorrect: false` and the fix arrives under `-A` rather than `-a`.
@@ -106,6 +115,10 @@ module RuboCop
         def correction_for(node)
           parser = PARSERS[node.method_name]
           return unless parser
+          # `integer_param!` comes from the TypedParams concern, which the installer wires
+          # into ApplicationController and nowhere else. Correcting a plain object that
+          # happens to expose `params` emits a call to a method that does not exist there.
+          return unless one_of?(door_kinds)
 
           key = literal_key(node.receiver)
           return unless key
@@ -113,14 +126,23 @@ module RuboCop
           "#{parser}(#{key})"
         end
 
+        # The read must be `params[:literal]`, whole and unchained. A nested read names a
+        # different parameter than its inner key; `fetch(:page, "7")` carries a default the
+        # author chose and the rewrite would delete.
         def literal_key(receiver)
           return unless receiver.respond_to?(:send_type?) && receiver.send_type?
           return unless %i[[] fetch].include?(receiver.method_name)
+          return unless receiver.arguments.length == 1
+          return unless receiver.receiver&.source == CORRECTABLE_SOURCE
 
           argument = receiver.arguments.first
           return unless argument.respond_to?(:type) && %i[sym str].include?(argument.type)
 
           argument.value.to_sym.inspect
+        end
+
+        def door_kinds
+          cop_config.fetch("Kinds", %w[request_handling entry_point])
         end
 
         def produced(cast)

@@ -23,14 +23,28 @@ by `# rubocop:disable Shipshape/X`, in the file, next to the code, in a form tha
 shows up in review. Every other mechanism invents its own escape hatch — an env var, an
 exclusion file, a skipped hook — and those are invisible from the code they excuse.
 
-**A guard is not a report.** `shipshape report` describes the codebase and fails nothing;
-`shipshape check` fails and describes nothing new. Two surfaces, one gate. A measure in the
+**A guard is not a report.** `shipshape report` and `shipshape coverage` describe the
+codebase and fail nothing; `shipshape check` fails and describes nothing new. `shipshape
+canaries` fails, and holds this law rather than adding a rule to it. A measure in the
 report is not enforcement and never claims to be — which is why a rule is not finished when
 the report can see it, only when a cop holds it.
 
 **A law that names a cop nobody built says so.** The Guard line carries the words
 **not built yet**, and the law is a convention until the cop exists. Writing the law first is
 right; letting the reader believe it is enforced is not.
+
+**A check that verifies the mechanism is not a second mechanism.** `shipshape canaries`
+fails a build, and it is allowed for one reason: it enforces no rule. It plants a known
+violation per cop and asserts each one fires, so it holds *this law* — that the cop list is
+the whole enforcement surface — rather than adding to it. A guard that does not run reports
+the same thing as a guard that finds nothing, and nothing else here can tell those apart:
+`shipshape check` reads a count, and a count of zero is exactly what a silent cop produces.
+
+It earns none of the exemptions a real gate would need. It has no ratchet because it is
+binary by nature: every cop fires, or the surface has a hole. Its escape hatch is not an
+exclusion an application writes but the canary tree itself, which is checked in and
+greppable. **`shipshape coverage` and `shipshape report` fail nothing** — they describe, and
+they exit 0.
 
 **The one exception is this gem's own bookkeeping, and it is bounded.** The check that holds
 the law-to-cop wiring is a test in shipshape's suite, not a cop — a cop parses Ruby, and law

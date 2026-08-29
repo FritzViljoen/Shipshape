@@ -57,6 +57,12 @@ def rules
   store = RuboCop::ConfigStore.new
   target = ARGV.include?("--out") ? ARGV[ARGV.index("--out") + 1] : "CLAUDE.md"
 
+  if File.exist?(target) && !ARGV.include?("--force")
+    warn "shipshape: #{target} exists. It is generated — regenerate with --force, or pass"
+    warn "--out to write elsewhere. Nothing has been changed."
+    return 1
+  end
+
   File.write(target, Shipshape::Rules.new(config: store.for_pwd, root: Dir.pwd).call)
   puts "  written  #{target}"
   puts
@@ -73,7 +79,15 @@ def canaries
   canaries = Shipshape::Canaries.new(config: RuboCop::ConfigStore.new.for_pwd, root: root)
 
   if ARGV.include?("--plant")
-    puts "  written  #{root}/ — #{canaries.plant} canaries and their .rubocop.yml"
+    begin
+      planted = canaries.plant
+    rescue Shipshape::Error => e
+      warn e.message
+      warn "Delete the directory and plant again, or point --dir somewhere empty."
+      return 1
+    end
+
+    puts "  written  #{root}/ — #{planted} canaries and their .rubocop.yml"
     puts
     puts "Check this directory in, and exclude it from your ordinary lint run: every file"
     puts "in it is a deliberate violation. Then run `shipshape canaries` in CI."

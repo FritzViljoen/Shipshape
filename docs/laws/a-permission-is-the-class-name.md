@@ -172,13 +172,12 @@ in doubt.
 - **Guard:** `Shipshape/EveryDoorChecksPermission` holds the half the base classes cannot
   hold themselves — `install` never overwrites, so an installed door that lost its check
   would disable authorisation for every operation of that kind with nothing else failing.
-  The rest is held **by construction rather than by cop**: The base class runs the
-  the base class runs the check for every operation, so there is nothing to declare and
-  nothing to forget — that failure was removed rather than watched for, which is what
-  `make-the-wrong-thing-impossible` asks. The generated classes are exercised by
-  `test/shipshape/generated_base_classes_test.rb`, which exercises the generated classes:
-  refusal, the nil-actor raise, `anonymous_call`, and the legacy doors. That is a test, not a
-  cop, for the same bounded reason
+  The rest is held **by construction rather than by cop**: the base class runs the check for
+  every operation, so there is nothing to declare and nothing to forget — the failure was
+  removed rather than watched for, which is what `make-the-wrong-thing-impossible` asks. The
+  generated classes are exercised by `test/shipshape/generated_base_classes_test.rb`:
+  refusal, the nil-actor raise, `anonymous_call`, an empty `STEPS`, and the legacy doors.
+  That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real

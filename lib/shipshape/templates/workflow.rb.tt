@@ -57,7 +57,13 @@ class Workflow
   def self.permissions
     raise NotImplementedError, "#{name} must declare STEPS" unless const_defined?(:STEPS, false)
 
-    const_get(:STEPS, false).reject(&:anonymous?).map(&:permission).uniq
+    steps = const_get(:STEPS, false)
+    # An empty list is the same fail-open as a missing one: `[].all?` is true, so the
+    # workflow would run for an actor holding no grants at all. A workflow with no steps is
+    # not a workflow.
+    raise NotImplementedError, "#{name} declares no steps" if steps.empty?
+
+    steps.reject(&:anonymous?).map(&:permission).uniq
   end
 
   # **One predicate, asked twice.** A view asks it to decide whether to offer the button;

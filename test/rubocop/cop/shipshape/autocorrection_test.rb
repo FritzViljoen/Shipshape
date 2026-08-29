@@ -58,6 +58,49 @@ class AutocorrectionTest < Minitest::Test
     assert_unchanged "ThingRecord.where(state: params[:state])", RuboCop::Cop::Shipshape::NoUnparsedLookup
   end
 
+  # **The vulnerability this cop nearly shipped.** Rewriting a session read to a parameter
+  # read moves the value from the server to the query string. Over lobsters this turned
+  # `params[:state] != session[:github_state]` into a comparison of a parameter with itself
+  # — an OAuth state check that always passes — and put the 2FA re-auth window under the
+  # requester's control.
+  def test_only_params_is_ever_rewritten
+    %w[session cookies env request].each do |source|
+      assert_unchanged "#{source}[:token].to_s", RuboCop::Cop::Shipshape::NoSilentCoercion
+    end
+  end
+
+  def test_a_mixed_comparison_corrects_only_the_parameter_half
+    corrected = correct(action("params[:state].to_s != session[:state].to_s"),
+                        RuboCop::Cop::Shipshape::NoSilentCoercion)
+
+    assert_includes corrected, "text_param!(:state) != session[:state].to_s"
+  end
+
+  # A nested read names a different parameter than its inner key.
+  def test_a_nested_or_defaulted_read_is_left_alone
+    assert_unchanged "params[:filter][:page].to_i", RuboCop::Cop::Shipshape::NoSilentCoercion
+    assert_unchanged 'params.fetch(:page, "7").to_i', RuboCop::Cop::Shipshape::NoSilentCoercion
+  end
+
+  # `Integer(params[:code], 16)` carries a base the rewrite would drop.
+  def test_a_conversion_with_a_base_is_left_alone
+    assert_unchanged "Integer(params[:code], 16)", RuboCop::Cop::Shipshape::NoInlineParamParse
+  end
+
+  # `integer_param!` lives in TypedParams, wired into ApplicationController and nowhere
+  # else. Correcting a plain object that happens to expose `params` emits a call to a method
+  # that does not exist there — 203 of these went into discourse before this guard.
+  def test_a_file_that_is_not_a_door_is_reported_and_left_alone
+    source = "class Report\n  def call\n    params[:page].to_i\n  end\nend\n"
+    path = "app/queries/report.rb"
+    layout = { "Shipshape/CallGraph" => { "Kinds" => { "query" => ["app/queries/**/*.rb"] },
+                                          "Matrix" => { "query" => [] } } }
+
+    refute_empty offences(source, cop_class: RuboCop::Cop::Shipshape::NoSilentCoercion,
+                                  path: path, other_cops: layout)
+    assert_equal source, correct(source, RuboCop::Cop::Shipshape::NoSilentCoercion, path: path, layout: layout)
+  end
+
   def test_a_raising_conversion_is_rewritten
     assert_corrected "Integer(params[:id])", "integer_param!(:id)", RuboCop::Cop::Shipshape::NoInlineParamParse
     assert_corrected "BigDecimal(params[:amount])", "decimal_param!(:amount)",
@@ -92,14 +135,15 @@ class AutocorrectionTest < Minitest::Test
     assert_equal source, correct(source, cop_class), "#{before} must be reported, not rewritten"
   end
 
-  def correct(source, cop_class)
+  def correct(source, cop_class, path: CONTROLLER, layout: LAYOUT)
     Dir.mktmpdir("correct") do |root|
-      path = File.join(root, CONTROLLER)
+      relative = path
+      path = File.join(root, relative)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, source)
 
       config = RuboCop::Config.new(
-        LAYOUT.merge(cop_class.cop_name => { "Enabled" => true }),
+        layout.merge(cop_class.cop_name => { "Enabled" => true }),
         File.join(root, ".rubocop.yml"),
       )
       team = RuboCop::Cop::Team.new([cop_class.new(config, RuboCop::Options.new.parse(["-A"]).first)],

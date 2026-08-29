@@ -176,7 +176,7 @@ module Shipshape
     # failure they exist to catch.
     def plant
       FileUtils.mkdir_p(root)
-      File.write(File.join(root, ".rubocop.yml"), configuration)
+      write(".rubocop.yml", configuration)
 
       planted.each do |cop, relative|
         canary = PLANTED.fetch(cop)
@@ -189,7 +189,7 @@ module Shipshape
     end
 
     def call
-      seen = inspect
+      seen = cops_that_fired
 
       Result.new(
         fired: (planted.keys & seen).sort,
@@ -211,6 +211,16 @@ module Shipshape
         # Exclude this directory from your ordinary lint run, or it fails for ever.
         inherit_from:
           - #{inherits || relative_default}
+
+        # Every file here is a deliberate violation, so the correcting cops must not correct
+        # them: `rubocop -A` over this tree rewrites the canaries, and the next run blames
+        # the kind globs for a hole the correction made.
+        Shipshape/NoSilentCoercion:
+          AutoCorrect: false
+        Shipshape/NoUnparsedLookup:
+          AutoCorrect: false
+        Shipshape/NoInlineParamParse:
+          AutoCorrect: false
 
         AllCops:
           NewCops: disable
@@ -277,14 +287,25 @@ module Shipshape
       cop.split("/").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
     end
 
+    # Nothing is overwritten, on the same terms as `shipshape install`: these paths collide
+    # with the installer's own output, and `--plant --dir .` replaced `.rubocop.yml` and
+    # `app/shipshape/command.rb` with stubs. A canary is worth nothing next to that.
     def write(relative, source)
+      target = File.join(root, relative)
+      raise Error, "shipshape: #{relative} already exists; canaries never overwrite" if File.exist?(target)
+
+      write!(relative, source)
+    end
+
+    def write!(relative, source)
       target = File.join(root, relative)
       FileUtils.mkdir_p(File.dirname(target))
       File.write(target, source)
     end
 
-    # The application's own configuration, over the planted tree.
-    def inspect
+    # Not `inspect`: that overrides `Object#inspect`, which Ruby calls regardless of
+    # visibility, so `p canaries` shelled out to a RuboCop subprocess.
+    def cops_that_fired
       # `-I` so the subprocess finds shipshape when it is on a load path rather than
       # installed — running from a checkout is the case that breaks otherwise, and it is the
       # case this gem is developed in.

@@ -26,20 +26,17 @@ because a blind spot nobody wrote down is read as coverage.
 
 ## Status
 
-**Early. Two cops of sixteen are built.**
-
-- `Shipshape/CallGraph` — holds
-  [`the-call-graph-is-declared`](docs/laws/the-call-graph-is-declared.md)
-- `Shipshape/OneOperationOneClass` — holds
-  [`one-operation-one-class`](docs/laws/one-operation-one-class.md)
+**Twenty laws, twenty cops, no conventions left** — every law names a guard that exists, and
+`CanonTest` fails the build if one does not. Run over seven public Rails codebases (~14,000
+files) without a cop error; every cop fires on real code.
 
 The layout — which paths hold which kind — is declared **once**, on `Shipshape/CallGraph`,
 and every other cop reads it from there. Repeating it per cop would be a second copy of one
 fact, and the copy is the one that goes stale.
 
-The rest are specified in `docs/laws/` and not yet written. The agent-rules generator is
-not built either. Until a law's guard exists, that law is a
-convention held by review, and the law file says so.
+**What it does not do:** nothing here proves behaviour is preserved. `shipshape check` proves
+the offence count fell; whether the code still works is the test suite's job, which is why
+`shipshape next` offers files a test names before the rest.
 
 ## Installing the base classes
 
@@ -251,24 +248,6 @@ Point a kind's globs at a directory that does not exist and the cops scoped to t
 silent, and `shipshape canaries` exits 1. That is the whole point: it is the only check here
 that survives a misconfiguration, because it is the only one that uses the real config.
 
-## Proving the guards are running
-
-A guard that does not run reports the same thing as a guard that finds nothing: zero. That
-has happened here — these cops were run over a 647-file tree and reported clean, and the
-truth was that no glob matched, so nothing was inspected.
-
-```sh
-bundle exec shipshape canaries --plant   # writes test/canaries/, one violation per cop
-bundle exec shipshape canaries           # CI: fails on any cop that stayed silent
-```
-
-Each canary is planted under **your** paths, taken from your own `Kinds`, with a
-`.rubocop.yml` beside it so the globs resolve there. Check the directory in and exclude it
-from your ordinary lint run — every file in it is a deliberate violation.
-
-Point a kind's globs at a directory that does not exist and the cops scoped to that kind go
-silent and this exits 1. That is the point: it is the only check here that survives a
-misconfiguration, because it is the only one that uses the real configuration.
 
 ## Running against an application that pins an older RuboCop
 

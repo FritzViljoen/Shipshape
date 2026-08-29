@@ -74,8 +74,14 @@ module Permission
     name.to_sym
   end
 
+  # **`false` is load-bearing: this class only, never an ancestor.** `method_defined?`
+  # searches the whole chain, so `class AdminUpload < PublicUpload` inherited its parent's
+  # `anonymous_call` and ran unauthenticated — and a concern defining one made every command
+  # that included it public. Publicness is declared by the class that is public, or the
+  # audit `grep -rn "def anonymous_call"` does not name the classes it applies to.
   def anonymous?
-    method_defined?(:anonymous_call) || private_method_defined?(:anonymous_call)
+    instance_methods(false).include?(:anonymous_call) ||
+      private_instance_methods(false).include?(:anonymous_call)
   end
 
   # Absence of an actor is a caller's defect, never a quiet pass. A nil actor reaching

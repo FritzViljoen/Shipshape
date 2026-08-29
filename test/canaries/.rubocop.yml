@@ -6,6 +6,16 @@
 inherit_from:
   - ../../config/default.yml
 
+# Every file here is a deliberate violation, so the correcting cops must not correct
+# them: `rubocop -A` over this tree rewrites the canaries, and the next run blames
+# the kind globs for a hole the correction made.
+Shipshape/NoSilentCoercion:
+  AutoCorrect: false
+Shipshape/NoUnparsedLookup:
+  AutoCorrect: false
+Shipshape/NoInlineParamParse:
+  AutoCorrect: false
+
 AllCops:
   NewCops: disable
   SuggestExtensions: false

@@ -437,6 +437,11 @@ Shipshape/NoSilentCoercion:
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
+  # Only a request-handling file is corrected: the parsers live in TypedParams, which
+  # the installer wires into ApplicationController and nowhere else.
+  Kinds:
+    - request_handling
+    - entry_point
 
 Shipshape/PersistenceHoldsNoBehaviour:
   Description: >-

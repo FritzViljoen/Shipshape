@@ -9,4 +9,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "== tests =="
-bundle exec rake test
+bundle exec rake test test:removal

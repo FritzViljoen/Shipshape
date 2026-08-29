@@ -71,6 +71,9 @@ module RuboCop
 
         def correction_for(node)
           return unless node.receiver.nil?
+          # `Integer(params[:code], 16)` carries a base the rewrite would drop, turning
+          # "ff" from 255 into a bounce.
+          return unless node.arguments.length == 1
 
           parser = CORRECTABLE[node.method_name]
           return unless parser
@@ -78,6 +81,8 @@ module RuboCop
           argument = node.arguments.first
           return unless argument.respond_to?(:send_type?) && argument.send_type?
           return unless %i[[] fetch].include?(argument.method_name)
+          return unless argument.arguments.length == 1
+          return unless argument.receiver&.source == "params"
 
           key = argument.arguments.first
           return unless key.respond_to?(:type) && %i[sym str].include?(key.type)

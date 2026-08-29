@@ -453,6 +453,54 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_includes error.message, "must declare STEPS"
   end
 
+  # **The fail-open the guard did not cover.** `const_defined?` catches a missing STEPS; an
+  # explicitly empty one yielded `permissions == []`, and `[].all?` is true, so the workflow
+  # ran for an actor holding no grants at all.
+  def test_a_workflow_declaring_an_empty_steps_raises
+    empty = Class.new(Workflow) do
+      const_set(:STEPS, [].freeze)
+      def self.name
+        "ChargeEveryone"
+      end
+    end
+
+    error = assert_raises(NotImplementedError) { empty.call(actor: ANYONE) }
+
+    assert_includes error.message, "declares no steps"
+  end
+
+  # **Publicness is declared by the class that is public.** `method_defined?` walked the
+  # ancestor chain, so a subclass of an anonymous command inherited its exemption and ran
+  # with no actor and no check.
+  def test_anonymity_is_not_inherited_from_a_parent
+    child = Class.new(LogIn) do
+      def self.name
+        "AdminUpload"
+      end
+    end
+
+    refute_predicate child, :anonymous?
+    assert_raises(ArgumentError) { child.call(email: "a@b.c") }
+  end
+
+  # Same hole through a concern: one module made every command that included it public.
+  def test_anonymity_is_not_granted_by_an_included_module
+    bootstrappable = Module.new do
+      def anonymous_call
+        Result.success(:public)
+      end
+    end
+    command = Class.new(Command) do
+      include bootstrappable
+      def self.name
+        "DeleteAllTenants"
+      end
+    end
+
+    refute_predicate command, :anonymous?
+    assert_raises(ArgumentError) { command.call }
+  end
+
   def test_an_empty_answer_is_an_answer
     empty = Class.new(Query) do
       def self.name
