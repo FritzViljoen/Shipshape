@@ -482,3 +482,23 @@ Shipshape/OperationDeclaresPermission:
     - query
     - io_command
     - io_query
+
+Shipshape/WorkflowAggregatesPermissions:
+  Description: >-
+    A workflow names every permission its steps need and refuses before the first step.
+    The declared list is checked against what the body actually calls.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  ListConstantName: PERMISSIONS
+  ConstantName: PERMISSION
+  # The kinds whose PERMISSION a workflow aggregates. A workflow calling a workflow would
+  # be a sister call, which Shipshape/CallGraph already refuses.
+  StepKinds:
+    - command
+    - query
+    - io_command
+    - io_query
+  Kinds:
+    - workflow

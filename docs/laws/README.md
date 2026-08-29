@@ -41,6 +41,7 @@ not make it hold.
 | [`enforcement-messages-are-documentation`](enforcement-messages-are-documentation.md) | `nothing-is-hidden` |
 | [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) | `one-way-to-say-each-thing` |
 | [`an-operation-declares-its-permission`](an-operation-declares-its-permission.md) | `nothing-crosses-unasserted` |
+| [`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md) | `nothing-fails-quietly` |
 
-Nineteen. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
+Twenty. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
 guard on this list, and the rule that each is tested by removal.
