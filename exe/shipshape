@@ -4,6 +4,7 @@
 require "shipshape"
 require "shipshape/install"
 require "shipshape/rules"
+require "shipshape/canaries"
 require "shipshape/wire_typed_params"
 require "shipshape/check"
 require "shipshape/report"
@@ -61,6 +62,43 @@ def rules
   0
 end
 
+# A guard that does not run reports the same thing as a guard that finds nothing. This plants
+# one known violation per cop, under this application's own paths, and fails on any cop that
+# stayed silent.
+def canaries
+  root = ARGV.include?("--dir") ? ARGV[ARGV.index("--dir") + 1] : Shipshape::Canaries::DIRECTORY
+  canaries = Shipshape::Canaries.new(config: RuboCop::ConfigStore.new.for_pwd, root: root)
+
+  if ARGV.include?("--plant")
+    puts "  written  #{root}/ — #{canaries.plant} canaries and their .rubocop.yml"
+    puts
+    puts "Check this directory in, and exclude it from your ordinary lint run: every file"
+    puts "in it is a deliberate violation. Then run `shipshape canaries` in CI."
+    return 0
+  end
+
+  unless Dir.exist?(root)
+    warn "shipshape: no canaries at #{root}. Plant them with `shipshape canaries --plant`."
+    return 1
+  end
+
+  result = canaries.call
+  puts "  #{result.fired.length} cops caught their planted violation."
+  result.unplanted.each { |cop| puts "  no canary  #{cop}" }
+  result.silent.each { |cop| puts "  SILENT     #{cop}" }
+
+  if result.ok?
+    puts
+    puts "Every guard is running."
+    return 0
+  end
+
+  puts
+  puts "A cop that cannot find a violation written for it is protecting nothing. Usually the"
+  puts "kind's paths in Shipshape/CallGraph do not match where this repository keeps them."
+  1
+end
+
 def check(trunk)
   report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
 
@@ -97,11 +135,12 @@ command = ARGV.shift
 case command
 when "install" then exit install(ARGV.include?("--auth"))
 when "rules" then exit rules
+when "canaries" then exit canaries
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] | rules | check | report | version"
+  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"

@@ -1,0 +1,2 @@
+class OtherQuery < Query
+end

@@ -1,0 +1,308 @@
+# frozen_string_literal: true
+
+require "erb"
+require "fileutils"
+require "json"
+require "open3"
+require "pathname"
+require "rubocop"
+require "shipshape/error"
+require "shipshape/settings"
+require "shipshape/typed_arguments"
+
+module Shipshape
+  # **A guard that does not run reports the same thing as a guard that finds nothing.**
+  #
+  # That is the failure this closes, and it is not hypothetical: shipshape's own cops were
+  # once run over a 647-file tree and reported zero, which read as "this code is clean" and
+  # meant "no glob matched, so nothing was inspected". Neither the unit tests nor
+  # `rake test:removal` can catch it — both construct a config, and the thing that broke was
+  # the *real* config's globs.
+  #
+  # So: plant one known violation per cop, at a path derived from **this application's own
+  # kinds**, run **this application's own configuration** over it, and report any cop that
+  # stayed silent. A cop that cannot find a violation written specifically for it is not
+  # protecting anything.
+  #
+  # The canaries live in a temporary directory and are never written into the repository —
+  # a planted violation checked in would fail the ordinary lint run for ever, and the first
+  # fix would be to exclude it, which puts the hole back.
+  class Canaries
+    include TypedArguments
+
+    Result = Struct.new(:fired, :silent, :unplanted, keyword_init: true) do
+      def ok?
+        silent.empty?
+      end
+    end
+
+    # Each canary is the smallest thing its cop must refuse. `kind` picks which of the
+    # application's globs the file is written under, so a repository that files commands
+    # somewhere unusual is still tested where it actually keeps them.
+    PLANTED = {
+      "Shipshape/CallGraph" => { kind: "query", body: <<~RUBY },
+        def call
+          OtherQuery.call
+        end
+      RUBY
+      "Shipshape/NoAmbientReads" => { kind: "command", body: <<~RUBY },
+        def call
+          Time.now
+        end
+      RUBY
+      "Shipshape/NoDistantWrites" => { kind: "command", body: <<~RUBY },
+        def call
+          $canary = 1
+        end
+      RUBY
+      "Shipshape/NoTypeInterrogation" => { kind: "command", body: <<~RUBY },
+        def call
+          @thing.is_a?(String)
+        end
+      RUBY
+      "Shipshape/NoGeneratedInterfaces" => { kind: "command", body: <<~RUBY },
+        def call
+          define_method(:x) { 1 }
+        end
+      RUBY
+      "Shipshape/TypedArguments" => { kind: "command", body: <<~RUBY },
+        def initialize(unasserted:)
+          @unasserted = unasserted
+        end
+      RUBY
+      "Shipshape/OneOperationOneClass" => { kind: "command", body: <<~RUBY },
+        def call; end
+
+        def second_operation; end
+      RUBY
+      "Shipshape/NoCallbacks" => { kind: "record", body: "  before_save :canary\n" },
+      "Shipshape/PersistenceHoldsNoBehaviour" => { kind: "record", body: <<~RUBY },
+        def canary_rule
+          1
+        end
+      RUBY
+      "Shipshape/ShapeIsComposed" => { kind: "shape", body: <<~RUBY },
+        def initialize(supplier_name:, supplier_email:)
+          @supplier_name = supplier_name
+        end
+      RUBY
+      "Shipshape/NoDecisionsInRequestHandling" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          render :x if @canary.cancelled?
+        end
+      RUBY
+      "Shipshape/NoInlineParamParse" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          Date.parse(params[:on])
+        end
+      RUBY
+      "Shipshape/NoUnparsedLookup" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          CanaryRecord.find(params[:id])
+        end
+      RUBY
+      "Shipshape/NoSilentCoercion" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          params[:page].to_i
+        end
+      RUBY
+      "Shipshape/NoEmptyRescue" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          risky
+        rescue StandardError
+        end
+      RUBY
+      "Shipshape/WorkflowAggregatesPermissions" => { kind: "workflow", body: <<~RUBY },
+        def call
+          SomeCommand.call
+        end
+      RUBY
+      # Not kind-scoped: these read paths of their own, so the canary goes there directly.
+      "Shipshape/NoNullableColumns" => { path: "db/migrate/20200101000000_canary.rb", raw: <<~RUBY },
+        class Canary < ActiveRecord::Migration[7.0]
+          def change
+            add_column :canaries, :thing, :string, null: true
+          end
+        end
+      RUBY
+      "Shipshape/NoColumnDefaults" => { path: "db/migrate/20200102000000_canary_default.rb", raw: <<~RUBY },
+        class CanaryDefault < ActiveRecord::Migration[7.0]
+          def change
+            add_column :canaries, :state, :string, null: false, default: "held"
+          end
+        end
+      RUBY
+      "Shipshape/EnforcementMessagesAreDocumentation" => { path: "lib/canary_cop.rb", raw: <<~RUBY },
+        class CanaryCop < Base
+          MSG = "Do not do that."
+
+          def on_send(node)
+            add_offense(node)
+          end
+        end
+      RUBY
+      "Shipshape/EveryDoorChecksPermission" => { path: "app/shipshape/command.rb", raw: <<~RUBY },
+        class Command
+          def self.call(**arguments)
+            new(**arguments).call
+          end
+        end
+      RUBY
+    }.freeze
+
+    # A canary sometimes needs a second file to be a violation at all.
+    #
+    # `EveryDoorChecksPermission` only speaks where authorisation was installed, and
+    # `CallGraph` skips a constant it cannot resolve to a file — so the callee has to exist,
+    # or the canary is inspected, found innocent, and the cop reports nothing while being
+    # perfectly healthy.
+    COMPANIONS = {
+      "Shipshape/EveryDoorChecksPermission" => { "app/shipshape/permission.rb" => "module Permission\nend\n" },
+      "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
+    }.freeze
+
+    DIRECTORY = "test/canaries"
+
+    def initialize(config:, root: DIRECTORY, inherits: nil)
+      @config = config
+      @root = typed(root, String)
+      @inherits = inherits
+    end
+
+    # Writes the canary tree, and its own `.rubocop.yml` beside it. **The configuration has
+    # to live next to the canaries**: RuboCop resolves every `Kinds` glob against the
+    # configuration file's directory, so pointed anywhere else the globs resolve back into
+    # the application and the canaries are never inspected — silently, which is the exact
+    # failure they exist to catch.
+    def plant
+      FileUtils.mkdir_p(root)
+      File.write(File.join(root, ".rubocop.yml"), configuration)
+
+      planted.each do |cop, relative|
+        canary = PLANTED.fetch(cop)
+
+        write(relative, canary[:raw] || wrap(canary.fetch(:kind), cop, canary.fetch(:body)))
+        plant_companion(COMPANIONS[cop])
+      end
+
+      planted.length
+    end
+
+    def call
+      seen = inspect
+
+      Result.new(
+        fired: (planted.keys & seen).sort,
+        silent: (planted.keys - seen).sort,
+        unplanted: (enabled - PLANTED.keys).sort,
+      )
+    end
+
+    private
+
+    attr_reader :config, :root, :inherits
+
+    def configuration
+      <<~YAML
+        # Generated by `shipshape canaries --plant`. Each file here is a deliberate
+        # violation, planted so a cop that stops running is noticed — a guard that does not
+        # run reports the same thing as a guard that finds nothing.
+        #
+        # Exclude this directory from your ordinary lint run, or it fails for ever.
+        inherit_from:
+          - #{inherits || relative_default}
+
+        AllCops:
+          NewCops: disable
+          SuggestExtensions: false
+      YAML
+    end
+
+    def relative_default
+      Pathname.new(::Shipshape::CONFIG_DEFAULT).relative_path_from(Pathname.new(File.expand_path(root)))
+    rescue ArgumentError
+      ::Shipshape::CONFIG_DEFAULT.to_s
+    end
+
+    def planted
+      @planted ||= (enabled & PLANTED.keys).to_h do |cop|
+        canary = PLANTED.fetch(cop)
+
+        [cop, canary[:path] || path_for(canary.fetch(:kind), cop)]
+      end
+    end
+
+    def enabled
+      RuboCop::Cop::Registry.global.cops
+                            .map(&:cop_name)
+                            .grep(%r{\AShipshape/})
+                            .select { |cop| config.for_cop(cop).fetch("Enabled", true) }
+    end
+
+    def settings
+      @settings ||= Settings.layout(config)
+    end
+
+    def plant_companion(companion)
+      return if companion.nil?
+      return companion.each { |name, source| write(name, source) } unless companion[:kind]
+
+      name = companion.fetch(:name)
+      superclass = Array(settings.base_classes[companion.fetch(:kind)]).first
+      write(path_for(companion.fetch(:kind), name), "class #{name} < #{superclass}\nend\n")
+    end
+
+    # `app/records/**/*_record.rb` → `app/records/canary_no_callbacks_record.rb`. The glob is
+    # the application's, so the canary lands where that application actually keeps the kind.
+    def path_for(kind, cop)
+      glob = Array(settings.kinds[kind]).first
+      raise Error, "shipshape: this configuration declares no path for #{kind}" unless glob
+
+      directory = glob.split("/").take_while { |part| !part.include?("*") }.join("/")
+      basename = File.basename(glob).sub("*", slug(cop))
+
+      File.join(directory, basename)
+    end
+
+    def wrap(kind, cop, body)
+      superclass = Array(settings.base_classes[kind]).first
+
+      name = slug(cop).split("_").map(&:capitalize).join
+      declaration = superclass ? "class #{name} < #{superclass}" : "class #{name}"
+
+      "# frozen_string_literal: true\n\n#{declaration}\n#{body}end\n"
+    end
+
+    def slug(cop)
+      cop.split("/").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+    end
+
+    def write(relative, source)
+      target = File.join(root, relative)
+      FileUtils.mkdir_p(File.dirname(target))
+      File.write(target, source)
+    end
+
+    # The application's own configuration, over the planted tree.
+    def inspect
+      # `-I` so the subprocess finds shipshape when it is on a load path rather than
+      # installed — running from a checkout is the case that breaks otherwise, and it is the
+      # case this gem is developed in.
+      command = [RbConfig.ruby, "-I", File.expand_path("../..", __dir__) + "/lib",
+                 rubocop, "--require", "shipshape", "--only", "Shipshape",
+                 "--format", "json", "--no-color", "."]
+
+      out, err, = Open3.capture3(*command, chdir: root)
+      report = out[/\{.*\}/m]
+      raise Error, "shipshape: rubocop produced no report for the canaries: #{err.strip}" unless report
+
+      JSON.parse(report)["files"].flat_map { |file| file["offenses"].map { |o| o["cop_name"] } }.uniq
+    end
+
+    def rubocop
+      @rubocop ||= Gem.bin_path("rubocop", "rubocop")
+    rescue Gem::Exception
+      raise Error, "shipshape: rubocop is not installed in this environment."
+    end
+  end
+end
