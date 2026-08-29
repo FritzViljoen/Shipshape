@@ -28,7 +28,8 @@ from version control on every run.
   a cop exists that no law names. Each cop's own removal test is the second half, and the
   suite fails if a cop has no such test.
 
-- **Guard's limit:** it checks that the limit section **exists**, never that what it says is
-  true, complete, or current. A stale blind-spot paragraph passes. That judgement is the
+- **Guard's limit:** it checks that the limit section and the removal note **exist**, never
+  that what either says is true, complete, or current. Nobody re-runs the removals, so a
+  note describing a mutation that no longer reddens anything passes. A stale blind-spot paragraph passes. That judgement is the
   author's and no check will ever make it — which is the honest reason this law is written
   down rather than assumed.

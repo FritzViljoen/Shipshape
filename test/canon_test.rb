@@ -20,6 +20,9 @@ class CanonTest < Minitest::Test
   # because removing it is what turns the law back into a promise the check will test.
   UNBUILT = "not built yet"
 
+  # The words a cop test carries to say its guard was watched to fail.
+  REMOVAL_CLAIM = "Watched to fail"
+
   GUARD_LINE = /^- \*\*Guard:\*\* (.+?)(?:\n(?!  )|\z)/m
   COP_NAME = %r{`Shipshape/(\w+)`}
 
@@ -69,6 +72,24 @@ class CanonTest < Minitest::Test
     assert_empty without.to_a,
                  "A cop with no test may enforce nothing at all. Every guard is proven by " \
                  "removal: delete it, watch the test go red, restore it."
+  end
+
+  # A test file existing is not the same as a guard having been watched to fail. This holds
+  # the declaration: each cop test names the removals somebody performed and what reddened.
+  # Writing it is the claim — it cannot be satisfied by a file that tests nothing, and it
+  # cannot go stale in the way a checked-in list of "verified cops" would, because nothing
+  # else confers the status.
+  def test_every_cop_test_names_the_removals_that_proved_it
+    unproven = registered_cops.select do |cop|
+      path = test_path_for(cop)
+
+      File.exist?(path) && !File.read(path).include?(REMOVAL_CLAIM)
+    end
+
+    assert_empty unproven.to_a,
+                 "`a-guard-states-its-limit` requires every guard to be proven by removal. " \
+                 "Delete the guard, watch the test go red, restore it — then say so in a " \
+                 "\"#{REMOVAL_CLAIM}\" comment naming which removal reddened which test."
   end
 
   def test_every_law_states_its_guards_limit

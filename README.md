@@ -42,8 +42,15 @@ convention held by review, and the law file says so.
 ## Installing the base classes
 
 ```sh
-bundle exec shipshape install
+bundle exec shipshape install          # no authorisation
+bundle exec shipshape install --auth   # every door checks a permission
 ```
+
+**Authorisation is opt-in and off by default.** This gem installs into codebases that
+already run, and base classes demanding an `actor:` on day one would stop every call site at
+once — an outage, not a migration. Turn it on when the seam is ready; nothing is ever
+overwritten, so you get a diff to apply rather than your files replaced. See
+[`a-permission-is-the-class-name`](docs/laws/a-permission-is-the-class-name.md).
 
 Writes the base classes into `app/shipshape/` and includes `TypedParams` into your
 `ApplicationController`. **They are generated, not inherited from this gem** — a base class
@@ -153,6 +160,31 @@ violations fail, and the count is the migration progress. Unlike a register of w
 are "done", it cannot rot.
 
 A constant that resolves to no file under a declared kind is skipped, not failed.
+
+## Running against an application that pins an older RuboCop
+
+Every cop here subclasses `RuboCop::Cop::Base`, which arrived in **RuboCop 1.0**. Supporting
+0.x would mean a second cop base class and a second `add_offense` convention — two ways to
+say each thing, in the gem whose subject is not doing that. So the floor is 1.0 and it does
+not move.
+
+An application pinned to an older RuboCop does not have to upgrade to use shipshape. Run it
+from its own bundle, pointed at the application:
+
+```sh
+# somewhere outside the app, e.g. tools/shipshape/Gemfile
+source "https://rubygems.org"
+gem "shipshape"
+gem "rubocop", ">= 1.0"
+```
+
+```sh
+BUNDLE_GEMFILE=tools/shipshape/Gemfile bundle exec shipshape check
+```
+
+The application's own `.rubocop.yml` and its own RuboCop are untouched, and its existing
+cops keep running as they always did. Loading shipshape under an older RuboCop raises with
+that instruction rather than a bare `NameError`.
 
 ## The ratchet
 

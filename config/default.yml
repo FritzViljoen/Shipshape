@@ -102,6 +102,11 @@ Shipshape/CallGraph:
     # Their population is the migration backlog. It RISES while the old world is pulled
     # into the new shape and falls only as each wrapped thing is rewritten — a curve, not a
     # ratchet. The ratchet governs violations, and a door is not a violation.
+    # A third-party read DSL — a datagrid, a report builder — is a read wearing someone
+    # else's shape, which is what this kind is for. It is NOT listed here: the paths a
+    # legacy door lives at are the application's to declare, and a glob shipped in the
+    # default config would claim a directory most repositories do not have. Add
+    # `app/grids/**/*.rb` to this list in your own .rubocop.yml where the gem is in use.
     legacy_query:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'
