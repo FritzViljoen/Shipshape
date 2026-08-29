@@ -2,10 +2,12 @@
 # frozen_string_literal: true
 
 require "shipshape"
+require "json"
 require "shipshape/install"
 require "shipshape/rules"
 require "shipshape/canaries"
 require "shipshape/coverage"
+require "shipshape/queue"
 require "shipshape/wire_typed_params"
 require "shipshape/check"
 require "shipshape/report"
@@ -127,6 +129,36 @@ def coverage
   0
 end
 
+# The work, one file at a time. An agent handed a whole codebase does the wrong thing; it
+# needs one file, the rules it breaks, and a way to know it finished.
+def next_work
+  count = ARGV.include?("--count") ? ARGV[ARGV.index("--count") + 1].to_i : 3
+  units = Shipshape::Queue.new(root: Dir.pwd).call(limit: count)
+
+  return puts("Nothing left. Every file this configuration reaches is clean.") || 0 if units.empty?
+
+  return puts(JSON.pretty_generate(units.map(&:to_h))) || 0 if ARGV.include?("--json")
+
+  units.each_with_index do |unit, index|
+    puts "── #{index + 1}. #{unit.path}"
+    puts "   breaks #{unit.cops.length} rules, #{unit.offences.length} times"
+    puts(unit.tested ? "   a test names this file — safe to change first" : "   NO TEST NAMES THIS FILE")
+    puts
+    unit.offences.first(3).each do |offence|
+      puts "   #{unit.path}:#{offence[:line]}  #{offence[:cop]}"
+      offence[:message].lines.each { |line| puts "     #{line.chomp}" }
+      puts
+    end
+    remaining = unit.offences.length - 3
+    puts "   …and #{remaining} more offences in this file\n\n" if remaining.positive?
+  end
+
+  puts "Do one. Then `shipshape check` — the count must fall, and your tests must still pass."
+  puts "Nothing here proves behaviour is preserved. That is the tests' job, and it is why the"
+  puts "covered files are offered first."
+  0
+end
+
 def check(trunk)
   report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
 
@@ -165,11 +197,12 @@ when "install" then exit install(ARGV.include?("--auth"))
 when "rules" then exit rules
 when "canaries" then exit canaries
 when "coverage" then exit coverage
+when "next" then exit next_work
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | coverage | check | report | version"
+  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | coverage | next | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"

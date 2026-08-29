@@ -175,6 +175,23 @@ what, every guard with its own one-line description, and — only if you install
 authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
 is a second copy of it, and the copy is the one that goes stale.
 
+## Handing the work to an agent
+
+```sh
+bundle exec shipshape next            # the next few files, with the rules they break
+bundle exec shipshape next --json     # the same, for a tool to consume
+```
+
+An agent handed a whole codebase does the wrong thing. It needs one file, the rules that file
+breaks, and a way to know it finished. Each unit carries the **full offence messages** — rule,
+reason, example — so it is actionable with nothing else loaded, and `shipshape check` is the
+way it knows it finished: the count must fall.
+
+**Files a test names come first, and the rest say so.** Not because they are worse — because
+they are safe. The ratchet proves the offence count fell; **nothing here proves the code still
+works.** Extracting a rule out of a class nothing tests is how a refactor becomes an outage,
+and no cop in this gem would notice. That remains the honest limit of the whole tool.
+
 ## Fixing the mechanical part
 
 ```sh
