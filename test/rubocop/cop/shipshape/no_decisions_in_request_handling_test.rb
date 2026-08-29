@@ -8,6 +8,7 @@ require "test_helper"
 # - Dropping `OUTCOMES` from the skip list reddens the `result.success?` test, which is the
 #   one shape the whole rule exists to permit.
 # - Making `one_of?` answer true unconditionally reddens the command test.
+# - Emptying `WRITES` reddens the write-described-as-a-write test.
 class NoDecisionsInRequestHandlingTest < Minitest::Test
   include CopRunner
 
@@ -130,6 +131,25 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
         end
       end
     RUBY
+  end
+
+  # `if @booking.save` is the commonest shape this cop meets in a real controller, and
+  # calling it "asking" was inaccurate: it writes, then branches on whether the write worked.
+  def test_a_write_is_described_as_a_write_not_a_question
+    message = check(<<~RUBY).first.message
+      class BookingsController
+        def create
+          if @booking.save
+            redirect_to bookings_path
+          else
+            render :new
+          end
+        end
+      end
+    RUBY
+
+    assert_includes message, "writing through it with `save` and branching on the result"
+    refute_includes message, "asking it `save`"
   end
 
   private

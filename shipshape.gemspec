@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "shipshape"
   spec.version = Shipshape::VERSION
   spec.authors = ["Fritz Viljoen"]
-  spec.summary = "A canon for Rails codebases, and the guards that hold it."
+  spec.summary = "MVC, taken apart — a canon for Rails codebases, and the guards that hold it."
   spec.description = <<~TEXT
     Gives every kind of code a place and keeps it there. Cops for operation shape,
     a baseline derived from version control rather than a checked-in file, and the

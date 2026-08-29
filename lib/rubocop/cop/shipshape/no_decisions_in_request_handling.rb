@@ -43,6 +43,12 @@ module RuboCop
 
         OUTCOMES = %i[success? failure? success failure].freeze
 
+        # `if @booking.save` is the commonest shape here, and calling it "asking" was wrong:
+        # it writes, and then branches on whether the write worked. Messages are the
+        # documentation, so they have to be accurate about what the code does.
+        WRITES = %i[save save! update update! update_attributes destroy destroy! create create!
+                    toggle touch increment decrement].freeze
+
         def on_if(node)
           return unless one_of?(handling_kinds)
 
@@ -54,10 +60,15 @@ module RuboCop
 
         def message_for(ask)
           subject = ask.receiver.source
+          verb = if WRITES.include?(ask.method_name)
+                   "writing through it with `#{ask.method_name}` and branching on the result " \
+                     "puts the write and the decision here"
+                 else
+                   "asking it `#{ask.method_name}` decides something on its behalf"
+                 end
 
           explain(
-            "`#{subject}` is what this action is about to render, and asking it " \
-            "`#{ask.method_name}` decides something on its behalf.",
+            "`#{subject}` is what this action is about to render, and #{verb}.",
             because: "The rule now has two owners — this action and whatever else asks the " \
                      "same question — and they will disagree. Nobody greps a controller for " \
                      "business logic, so the copy here is the one that goes stale.",

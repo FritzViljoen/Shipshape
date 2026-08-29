@@ -155,10 +155,13 @@ in doubt.
 
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
-- **Guard:** **no cop, by construction rather than by omission.** The base class runs the
-  check for every operation, so there is nothing to declare and nothing to forget — the
-  failure was removed rather than watched for, which is what
-  `make-the-wrong-thing-impossible` asks. It is held instead by
+- **Guard:** `Shipshape/EveryDoorChecksPermission` holds the half the base classes cannot
+  hold themselves — `install` never overwrites, so an installed door that lost its check
+  would disable authorisation for every operation of that kind with nothing else failing.
+  The rest is held **by construction rather than by cop**: The base class runs the
+  the base class runs the check for every operation, so there is nothing to declare and
+  nothing to forget — that failure was removed rather than watched for, which is what
+  `make-the-wrong-thing-impossible` asks. The generated classes are exercised by
   `test/shipshape/generated_base_classes_test.rb`, which exercises the generated classes:
   refusal, the nil-actor raise, `anonymous_call`, and the legacy doors. That is a test, not a
   cop, for the same bounded reason
@@ -167,8 +170,6 @@ in doubt.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real
   one, and nothing checks that request handling passes the requester rather than a system
   actor. It cannot see an operation invoked with `new(...).call` directly, going around
-  `self.call` and therefore around the check. And **`shipshape install` never overwrites a
-  file** — once written, `app/shipshape/command.rb` is the application's, so deleting one
-  line from it disables authorisation for every command in the app and no cop, test or
-  report notices. The guard is the shape of the generated code, which means it holds exactly
-  as long as nobody edits it.
+  `self.call` and therefore around the check. `EveryDoorChecksPermission` looks for the
+  **call**, not for what it does: a `permits?` redefined to answer true passes, and so does
+  one whose result is discarded.

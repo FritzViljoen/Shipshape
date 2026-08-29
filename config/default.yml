@@ -488,3 +488,15 @@ Shipshape/WorkflowAggregatesPermissions:
     - io_query
   Kinds:
     - workflow
+
+Shipshape/EveryDoorChecksPermission:
+  Description: >-
+    An installed base class that lost its permission check disables authorisation for every
+    operation of that kind, and nothing else fails. This notices.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  # The generated base classes only. Scoped by path because these are not domain classes and
+  # the kind registry has nothing to say about them.
+  Include:
+    - 'app/shipshape/*.rb'
+    - '**/shipshape/*.rb'

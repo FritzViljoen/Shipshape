@@ -1,10 +1,12 @@
 # shipshape
 
-A canon for Rails codebases, and the guards that hold it.
+**MVC, taken apart.**
 
-It detangles by giving every kind of code a place, then keeps the place with cops that can
-only ratchet — the count of violations falls and never rises. It ships the canon to agents
-as well as to CI, so the rules reach the thing doing the editing.
+The M is not one thing. It is workflows, commands, queries, shapes and records, and a
+codebase that calls all five "model" cannot tell you where a rule lives. shipshape gives each
+of them a place, then keeps the place with cops that can only ratchet — the count of
+violations falls and never rises. It ships the canon to agents as well as to CI, so the
+rules reach the thing doing the editing.
 
 **Not a package-boundary tool.** Packwerk enforces package boundaries; shipshape enforces
 operation shape — one operation per class, typed at the door, parsing at the seam,
