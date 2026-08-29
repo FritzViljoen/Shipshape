@@ -65,6 +65,38 @@ grants both halves. Nothing refuses that. What the design does is put the confla
 name, where a reader meets it — an operation whose name needs an "and" is usually two
 operations, and now it says so on every call site.
 
+## What an administrator grants is a capability, and it is data
+
+A permission is fine-grained by construction — one per operation, hundreds of them — because
+it is the class name and there is one class per act. An administrator does not think in
+hundreds. They think in a couple of dozen buckets, configurable per tenant: *AssignWork*,
+*ManageBilling*.
+
+**Those are two different things, and only one of them is code.**
+
+| | what it is | where it lives | how many |
+|---|---|---|---|
+| Permission | what the *code* requires | the class name, derived | one per operation |
+| Capability | what an *administrator* grants | a row | a couple of dozen |
+| The join | which permissions a capability contains | rows | authored once |
+
+`actor.may?(permission)` resolves through the join: does any capability granted to this actor
+contain this permission? **`may?` is the application's method — shipshape never sees
+capabilities and needs no change to support them.** The canon says only that an operation
+asks a named permission; how the actor answers is not its business.
+
+This is also why adopting the model is smaller than it sounds. **Existing grants do not
+move** — they stay on the capabilities, at the grain the business already uses. What is new
+is the join, populated once, and it is data: the admin UI still shows the buckets, and a
+tenant is still configured at the grain it thinks in.
+
+**The failure mode this creates is worth guarding.** An operation contained by no capability
+is unreachable — fail-closed, correct, and invisible. Today a miswired capability surfaces as
+a refusal nobody can explain; with the join it is checkable, because both sides are
+enumerable: `Command.descendants.map(&:permission)` against the join's contents. A coverage
+report listing operations no capability contains is the thing that pays for the scheme, and
+it belongs in the application, because the join is the application's table.
+
 ## The catalogue is derived, never maintained
 
 Every operation answers `permission`; every workflow answers `permissions`, from its `STEPS`.
