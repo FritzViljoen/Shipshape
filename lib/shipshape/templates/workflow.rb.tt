@@ -40,6 +40,7 @@
 class Workflow
   include TypedArguments
 
+<%- if auth -%>
   extend Permission
 
   # Ask a workflow what it needs without running it: hide a button the actor cannot use,
@@ -70,6 +71,8 @@ class Workflow
     permissions.all? { |permission| actor.may?(permission) }
   end
 
+<%- end -%>
+<%- if auth -%>
   # A workflow every one of whose steps is anonymous is itself anonymous — a signup
   # sequence runs before anyone is identified — and says so the same way an operation does,
   # by implementing `anonymous_call`.
@@ -78,6 +81,10 @@ class Workflow
 
     operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
     result = anonymous? ? operation.anonymous_call : operation.call
+<%- else -%>
+  def self.call(**arguments)
+    result = new(**arguments).call
+<%- end -%>
 
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 

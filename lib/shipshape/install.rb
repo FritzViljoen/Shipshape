@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "erb"
 require "fileutils"
 require "shipshape/error"
 require "shipshape/typed_arguments"
@@ -43,16 +44,24 @@ module Shipshape
 
     DIRECTORY = "app/shipshape"
 
-    def initialize(root:, directory: DIRECTORY)
+    # Written only when authorisation is asked for. Everything else is written either way.
+    AUTH_ONLY = %w[permission].freeze
+
+    # **Authorisation is opt-in, and off by default.** This gem installs into codebases that
+    # already run, and base classes demanding an actor on day one would stop every call site
+    # at once — which is not a migration, it is an outage. Turn it on when the seam is ready:
+    # `shipshape install --auth`. It only ever goes forward from there.
+    def initialize(root:, directory: DIRECTORY, auth: false)
       @root = typed(root, String)
       @directory = typed(directory, String)
+      @auth = typed(auth, Boolean)
     end
 
     # Answers what it did: { written: [...], skipped: [...] }, both relative paths.
     def call
       FileUtils.mkdir_p(File.join(root, directory))
 
-      FILES.each_with_object(written: [], skipped: []) do |name, report|
+      files.each_with_object(written: [], skipped: []) do |name, report|
         relative = File.join(directory, "#{name}.rb")
         target = File.join(root, relative)
 
@@ -65,13 +74,19 @@ module Shipshape
 
     private
 
-    attr_reader :root, :directory
+    attr_reader :root, :directory, :auth
+
+    def files
+      auth ? FILES : FILES - AUTH_ONLY
+    end
 
     def template(name)
       path = File.join(TEMPLATES, "#{name}.rb.tt")
       raise Error, "shipshape: no template for #{name}" unless File.file?(path)
 
-      File.read(path)
+      # `<%- if auth -%>` in a template, and nothing else. Ruby's own `#{}` passes through
+      # untouched, so a template stays readable as the file it is about to become.
+      ERB.new(File.read(path), trim_mode: "-").result(binding)
     end
   end
 end

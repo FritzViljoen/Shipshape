@@ -14,8 +14,24 @@ WIRING = {
   no_controller: "  MISSING  %<path>s — nothing includes TypedParams, so nothing is parsed at the seam",
 }.freeze
 
-def install
-  report = Shipshape::Install.new(root: Dir.pwd).call
+# Authorisation is opt-in because this gem installs into codebases that already run. Base
+# classes demanding an actor on day one would stop every call site at once, which is an
+# outage rather than a migration.
+AUTH_OFF = <<~TEXT
+  Authorisation is OFF. `shipshape install --auth` writes the same base classes with a
+  permission check in every door, and adds app/shipshape/permission.rb. Turn it on when
+  the seam is ready; existing files are never overwritten, so you will be shown a diff to
+  apply rather than having yours replaced.
+TEXT
+
+AUTH_ON = <<~TEXT
+  Authorisation is ON. Every operation now needs `actor:`, and its permission is its class
+  name. An operation that runs before anyone is identified says so by implementing
+  `anonymous_call` instead of `call`.
+TEXT
+
+def install(auth)
+  report = Shipshape::Install.new(root: Dir.pwd, auth: auth).call
 
   report[:written].each { |path| puts "  written  #{path}" }
   report[:skipped].each { |path| puts "  kept     #{path}" }
@@ -26,6 +42,7 @@ def install
   puts
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
+  puts auth ? AUTH_ON : AUTH_OFF
   outcome == :no_controller ? 1 : 0
 end
 
@@ -63,12 +80,12 @@ end
 command = ARGV.shift
 
 case command
-when "install" then exit install
+when "install" then exit install(ARGV.include?("--auth"))
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install"
+  warn "usage: shipshape install [--auth]"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"

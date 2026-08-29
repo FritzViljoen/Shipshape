@@ -9,10 +9,13 @@ require "shipshape/install"
 #
 # ActiveRecord is not here, so the two templates that open a transaction are given a stand
 # in that yields. That is honest: what is under test is the Result contract, not Rails.
+#
+# Installed with `auth: true`, because these exercise the authorisation contracts. The
+# opt-in itself — and what the default writes — is `install_auth_test.rb`.
 class GeneratedBaseClassesTest < Minitest::Test
   def self.load_generated_once
     root = Dir.mktmpdir("shipshape-generated")
-    Shipshape::Install.new(root: root).call
+    Shipshape::Install.new(root: root, auth: true).call
 
     stub_active_record
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }

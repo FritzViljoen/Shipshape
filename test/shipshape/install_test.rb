@@ -10,7 +10,7 @@ require "tmpdir"
 class InstallTest < Minitest::Test
   def test_it_writes_every_base_class
     in_app do |root|
-      report = Shipshape::Install.new(root: root).call
+      report = Shipshape::Install.new(root: root, auth: true).call
 
       assert_equal Shipshape::Install::FILES.length, report[:written].length
       assert_empty report[:skipped]
@@ -22,12 +22,12 @@ class InstallTest < Minitest::Test
   # Once written, the file is the application's.
   def test_it_never_overwrites
     in_app do |root|
-      Shipshape::Install.new(root: root).call
+      Shipshape::Install.new(root: root, auth: true).call
 
       target = File.join(root, "app/shipshape/command.rb")
       File.write(target, "# mine now\n")
 
-      report = Shipshape::Install.new(root: root).call
+      report = Shipshape::Install.new(root: root, auth: true).call
 
       assert_empty report[:written]
       assert_equal Shipshape::Install::FILES.length, report[:skipped].length
@@ -37,7 +37,7 @@ class InstallTest < Minitest::Test
 
   def test_every_generated_file_is_valid_ruby
     in_app do |root|
-      Shipshape::Install.new(root: root).call
+      Shipshape::Install.new(root: root, auth: true).call
 
       Dir[File.join(root, "app/shipshape/*.rb")].each do |path|
         assert RubyVM::InstructionSequence.compile(File.read(path), path), "#{path} did not compile"
@@ -49,7 +49,7 @@ class InstallTest < Minitest::Test
   # command, so they sit outside the governed trees and no cop classifies them.
   def test_they_land_outside_the_governed_trees
     in_app do |root|
-      Shipshape::Install.new(root: root).call
+      Shipshape::Install.new(root: root, auth: true).call
 
       refute_path_exists File.join(root, "app/commands")
       refute_path_exists File.join(root, "app/queries")

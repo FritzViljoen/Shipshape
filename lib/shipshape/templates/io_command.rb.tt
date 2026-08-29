@@ -26,18 +26,25 @@
 class IoCommand
   include TypedArguments
 
+<%- if auth -%>
   extend Permission
+<%- end -%>
 
   # The check runs here, once, for every command — not in each `call`, where it would be a
   # line every operation has to remember and one operation would forget. It opens no transaction of its own.
   #
   # An operation implementing `anonymous_call` instead of `call` runs before anyone is
   # identified and is not checked. That is a property of the class, never of the caller.
+<%- if auth -%>
   def self.call(actor: nil, **arguments)
     return Result.failure(:forbidden) unless permits?(actor)
 
     operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
     result = anonymous? ? operation.anonymous_call : operation.call
+<%- else -%>
+  def self.call(**arguments)
+    result = new(**arguments).call
+<%- end -%>
 
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 
