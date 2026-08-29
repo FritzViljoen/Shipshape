@@ -11,12 +11,17 @@ module Shipshape
     module Inheritance
       module_function
 
-      # { "SettleInvoice" => "Command", "Command" => nil, ... } for every standalone class.
+      # { "SettleInvoice" => "Command", "Command" => nil, ... } for EVERY class, nested
+      # ones included.
+      #
+      # Nested classes were skipped here at first, and it broke chain-walking: an error base
+      # declared inside its service — `class Base < StandardError` — was invisible, so
+      # `PollUnsupported < Base < StandardError` looked like accreted behaviour rather than
+      # the exception taxonomy it is. Whether a class is nested is a question for the
+      # measure that reports strays, not for a map of who inherits from whom.
       def map(sources)
         sources.each_with_object({}) do |source, found|
           ClassReading.classes(source).each do |node|
-            next if ClassReading.owned_by_a_class?(source.ast, node)
-
             found[ClassReading.name_of(node)] = ClassReading.superclass_of(node)
           end
         end

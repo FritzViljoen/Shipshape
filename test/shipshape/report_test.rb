@@ -89,6 +89,23 @@ class ReportTest < Minitest::Test
       class PaidOrder < Order
       end
     RUBY
+    "app/view_components/table_component.rb" => <<~RUBY,
+      class TableComponent < ApplicationViewComponent
+      end
+    RUBY
+    "app/view_components/application_view_component.rb" => <<~RUBY,
+      class ApplicationViewComponent < ViewComponent::Base
+      end
+    RUBY
+    "app/services/polling_service.rb" => <<~RUBY,
+      class PollingService
+        class Base < StandardError
+        end
+
+        class PollUnsupported < Base
+        end
+      end
+    RUBY
     "app/models/order_error.rb" => <<~RUBY,
       class OrderError < StandardError
       end
@@ -504,6 +521,18 @@ class ReportTest < Minitest::Test
   # them buried the finding — nine hundred, of which most were one error file.
   def test_an_error_hierarchy_is_not_accreted_behaviour
     assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Error/)
+  end
+
+  # `class Base < StandardError` is an error hierarchy that does not say so in its name.
+  # The chain was invisible because the map skipped nested classes.
+  def test_an_error_base_named_base_is_still_an_error_hierarchy
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/PollUnsupported/)
+  end
+
+  # Rails asks for one Application* base per framework class, so that depth is the
+  # framework's rather than the application's.
+  def test_a_conventional_application_base_is_not_accreted_behaviour
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/TableComponent/)
   end
 
   # A point in time carries its zone; a calendar date does not.
