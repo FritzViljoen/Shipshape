@@ -161,6 +161,18 @@ are "done", it cannot rot.
 
 A constant that resolves to no file under a declared kind is skipped, not failed.
 
+## The rules file an agent is handed
+
+```sh
+bundle exec shipshape rules            # writes CLAUDE.md
+bundle exec shipshape rules --out AGENTS.md
+```
+
+Derived from your `.rubocop.yml` and the cops that are loaded: the kinds, what may call
+what, every guard with its own one-line description, and — only if you installed it — how
+authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
+is a second copy of it, and the copy is the one that goes stale.
+
 ## Running against an application that pins an older RuboCop
 
 Every cop here subclasses `RuboCop::Cop::Base`, which arrived in **RuboCop 1.0**. Supporting

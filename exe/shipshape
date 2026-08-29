@@ -3,6 +3,7 @@
 
 require "shipshape"
 require "shipshape/install"
+require "shipshape/rules"
 require "shipshape/wire_typed_params"
 require "shipshape/check"
 require "shipshape/report"
@@ -46,6 +47,20 @@ def install(auth)
   outcome == :no_controller ? 1 : 0
 end
 
+# The rules file an agent is handed. Derived from the application's own configuration and
+# from the cop registry, so it cannot fall behind the code — regenerate it, never edit it.
+def rules
+  store = RuboCop::ConfigStore.new
+  target = ARGV.include?("--out") ? ARGV[ARGV.index("--out") + 1] : "CLAUDE.md"
+
+  File.write(target, Shipshape::Rules.new(config: store.for_pwd, root: Dir.pwd).call)
+  puts "  written  #{target}"
+  puts
+  puts "Regenerate rather than edit. Everything in it is derived from .rubocop.yml and the"
+  puts "cops that are loaded, so an edit is a second copy of a fact and it will go stale."
+  0
+end
+
 def check(trunk)
   report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
 
@@ -81,11 +96,12 @@ command = ARGV.shift
 
 case command
 when "install" then exit install(ARGV.include?("--auth"))
+when "rules" then exit rules
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth]"
+  warn "usage: shipshape install [--auth] | rules | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"
