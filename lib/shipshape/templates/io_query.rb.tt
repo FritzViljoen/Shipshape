@@ -21,8 +21,14 @@
 class IoQuery
   include TypedArguments
 
-  def self.call(**arguments)
-    answer = new(**arguments).call
+  extend Permission
+
+  # A query has no Result to carry a refusal, and wrapping one would make every caller
+  # unwrap a value that was never in doubt. So it raises, like every other query failure.
+  def self.call(actor:, **arguments)
+    raise Permission::Refused, permission unless actor.may?(permission)
+
+    answer = new(actor: actor, **arguments).call
 
     raise TypeError, "#{name}#call must answer with shapes, got #{answer.class}" unless shapes?(answer)
 

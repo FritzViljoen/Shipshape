@@ -28,6 +28,7 @@ module Shipshape
     FILES = %w[
       boolean
       typed_arguments
+      permission
       shape
       result
       query

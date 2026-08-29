@@ -65,18 +65,14 @@ module RuboCop
 
         private
 
-        # `PERMISSIONS = [A::PERMISSION, B::PERMISSION].freeze` — the operation names, in
-        # declaration order. nil when nothing was declared at all, which is a different
-        # mistake from declaring the wrong set.
+        # `STEPS = [SettleInvoice, NotifyCustomer].freeze` — the operations, in the order
+        # they run. nil when nothing was declared at all, which is a different mistake from
+        # declaring the wrong set.
         def declared_permissions(node)
           assignment = constant_node(node)
           return unless assignment
 
-          assignment.each_descendant(:const).filter_map do |const|
-            next unless const.children[1].to_s == permission_constant
-
-            owner_of(const)
-          end.uniq
+          assignment.each_descendant(:const).map { |const| const.source.sub(/\A::/, "") }.uniq
         end
 
         def constant_node(node)
@@ -106,15 +102,9 @@ module RuboCop
           step_kinds.include?(kinds.for_constant(name))
         end
 
-        # `SettleInvoice::PERMISSION` — the class the permission belongs to.
-        def owner_of(const)
-          owner = const.children.first
-          owner&.source&.sub(/\A::/, "")
-        end
-
         def undeclared(name, derived)
           explain(
-            "`#{name}` is a workflow and does not name the permissions its steps need.",
+            "`#{name}` is a workflow and does not name its steps.",
             because: "A workflow spans several transactions, so a refusal partway cannot " \
                      "undo what came before — those transactions closed. Discovering at " \
                      "step three that the actor may not run step three leaves steps one " \
@@ -141,16 +131,15 @@ module RuboCop
 
         def example(steps)
           named = steps.any? ? steps : %w[SettleInvoice NotifyCustomer]
-          entries = named.map { |step| "#{step}::#{permission_constant}" }.join(", ")
+          entries = named.join(", ")
 
           <<~RUBY
             class SettleMonth < Workflow
               #{list_constant} = [#{entries}].freeze
 
+              # the base class checks every step's permission before the first one runs,
+              # because after it there is nothing left to refuse
               def call
-                # before the first step, because after it there is nothing to refuse
-                return failure(:forbidden) unless @actor.may_all?(#{list_constant})
-
                 settled = SettleInvoice.call(actor: @actor, invoice_id: @id)
                 return settled if settled.failure?
 
@@ -161,11 +150,7 @@ module RuboCop
         end
 
         def list_constant
-          cop_config.fetch("ListConstantName", "PERMISSIONS")
-        end
-
-        def permission_constant
-          cop_config.fetch("ConstantName", "PERMISSION")
+          cop_config.fetch("ListConstantName", "STEPS")
         end
 
         def step_kinds

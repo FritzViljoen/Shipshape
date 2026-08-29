@@ -30,11 +30,12 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
 
   WORKFLOW = "app/workflows/settle_month.rb"
 
-  # The kinds are decided by the superclass, so the steps need real bodies on disk.
+  # The kinds are decided by the superclass, so the steps need real bodies on disk. They
+  # declare no permission of their own: the class name is the permission.
   TREE = {
-    "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\n  PERMISSION = :settle_invoice\nend\n",
-    "app/commands/notify_customer.rb" => "class NotifyCustomer < Command\n  PERMISSION = :notify_customer\nend\n",
-    "app/queries/list_invoices.rb" => "class ListInvoices < Query\n  PERMISSION = :list_invoices\nend\n",
+    "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\nend\n",
+    "app/commands/notify_customer.rb" => "class NotifyCustomer < Command\nend\n",
+    "app/queries/list_invoices.rb" => "class ListInvoices < Query\nend\n",
     "app/shapes/invoice.rb" => "class Invoice < Shape\nend\n",
   }.freeze
 
@@ -48,7 +49,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`SettleMonth` is a workflow and does not name the permissions"
+    assert_includes found.first.message, "`SettleMonth` is a workflow and does not name its steps"
   end
 
   def test_the_offence_carries_the_reason_and_an_example_naming_the_real_steps
@@ -63,14 +64,13 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
 
     assert_includes message, "WHY: A workflow spans several transactions"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "PERMISSIONS = [SettleInvoice::PERMISSION, NotifyCustomer::PERMISSION].freeze"
-    assert_includes message, "return failure(:forbidden) unless @actor.may_all?(PERMISSIONS)"
+    assert_includes message, "STEPS = [SettleInvoice, NotifyCustomer].freeze"
   end
 
   def test_a_matching_declaration_is_the_shape
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [SettleInvoice::PERMISSION, NotifyCustomer::PERMISSION].freeze
+        STEPS = [SettleInvoice, NotifyCustomer].freeze
 
         def call
           return failure(:forbidden) unless @actor.may_all?(PERMISSIONS)
@@ -86,7 +86,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_step_the_list_does_not_name_is_an_offence
     found = check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [SettleInvoice::PERMISSION].freeze
+        STEPS = [SettleInvoice].freeze
 
         def call
           SettleInvoice.call(actor: @actor)
@@ -103,7 +103,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_permission_for_a_step_it_does_not_call_is_an_offence
     found = check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [SettleInvoice::PERMISSION, ListInvoices::PERMISSION].freeze
+        STEPS = [SettleInvoice, ListInvoices].freeze
 
         def call
           SettleInvoice.call(actor: @actor)
@@ -118,7 +118,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_query_step_counts_as_well_as_a_command
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [ListInvoices::PERMISSION, SettleInvoice::PERMISSION].freeze
+        STEPS = [ListInvoices, SettleInvoice].freeze
 
         def call
           ListInvoices.call(actor: @actor)
@@ -132,7 +132,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_constant_that_is_not_an_operation_is_not_a_step
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [SettleInvoice::PERMISSION].freeze
+        STEPS = [SettleInvoice].freeze
 
         def call
           Invoice.new(number: "1")
@@ -145,8 +145,6 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_command_is_not_a_workflow
     assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
       class SettleInvoice < Command
-        PERMISSION = :settle_invoice
-
         def call
           ListInvoices.call(actor: @actor)
         end
@@ -158,7 +156,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
   def test_a_nested_part_is_not_a_second_workflow
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        PERMISSIONS = [SettleInvoice::PERMISSION].freeze
+        STEPS = [SettleInvoice].freeze
 
         class Outcome
           def initialize(settled:)

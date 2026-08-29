@@ -40,7 +40,7 @@ not make it hold.
 | [`a-guard-states-its-limit`](a-guard-states-its-limit.md) | `nothing-fails-quietly` |
 | [`enforcement-messages-are-documentation`](enforcement-messages-are-documentation.md) | `nothing-is-hidden` |
 | [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) | `one-way-to-say-each-thing` |
-| [`an-operation-declares-its-permission`](an-operation-declares-its-permission.md) | `nothing-crosses-unasserted` |
+| [`a-permission-is-the-class-name`](a-permission-is-the-class-name.md) | `one-way-to-say-each-thing` |
 | [`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md) | `nothing-fails-quietly` |
 
 Twenty. `make-the-wrong-thing-impossible` produces no law of its own — it produces every

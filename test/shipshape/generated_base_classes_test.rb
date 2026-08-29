@@ -32,8 +32,18 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   load_generated_once
 
+  # Says yes to everything except the one permission the refusal tests name.
+  Anyone = Struct.new(:refuses) do
+    def may?(permission)
+      !Array(refuses).include?(permission)
+    end
+  end
+
+  ANYONE = Anyone.new([]).freeze
+
   class Charge < Command
-    def initialize(amount:)
+    def initialize(actor:, amount:)
+      @actor = actor
       @amount = typed(amount, Integer)
     end
 
@@ -43,6 +53,10 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   class Misbehaving < Command
+    def initialize(actor:)
+      @actor = actor
+    end
+
     def call
       "a bare string"
     end
@@ -55,19 +69,27 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   class ListPlaces < Query
+    def initialize(actor:)
+      @actor = actor
+    end
+
     def call
       [Place.new(code: "ZA")]
     end
   end
 
   class LeakyQuery < Query
+    def initialize(actor:)
+      @actor = actor
+    end
+
     def call
       [{ code: "ZA" }]
     end
   end
 
   def test_a_command_answers_with_a_result
-    result = Charge.call(amount: 5)
+    result = Charge.call(actor: ANYONE, amount: 5)
 
     assert_predicate result, :success?
     assert_equal 5, result.value
@@ -75,7 +97,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   def test_an_expected_failure_comes_back_as_a_value
-    result = Charge.call(amount: 0)
+    result = Charge.call(actor: ANYONE, amount: 0)
 
     refute_predicate result, :success?
     assert_equal :not_positive, result.error
@@ -84,17 +106,17 @@ class GeneratedBaseClassesTest < Minitest::Test
   # The contract is enforced at the class method, so a subclass cannot teach its callers a
   # second shape.
   def test_a_command_that_answers_with_anything_else_stops_the_run
-    error = assert_raises(TypeError) { Misbehaving.call }
+    error = assert_raises(TypeError) { Misbehaving.call(actor: ANYONE) }
 
     assert_includes error.message, "must answer with a Result"
   end
 
   def test_arguments_are_asserted_at_construction
-    assert_raises(ArgumentError) { Charge.call(amount: "5") }
+    assert_raises(ArgumentError) { Charge.call(actor: ANYONE, amount: "5") }
   end
 
   def test_a_query_answers_with_shapes_and_no_envelope
-    answer = ListPlaces.call
+    answer = ListPlaces.call(actor: ANYONE)
 
     assert_equal [Place.new(code: "ZA")], answer
   end
@@ -102,15 +124,99 @@ class GeneratedBaseClassesTest < Minitest::Test
   # Whatever the old code returned, the door decides the shape. A query leaking hashes is
   # the leak this check exists to stop.
   def test_a_query_that_answers_with_anything_else_stops_the_run
-    error = assert_raises(TypeError) { LeakyQuery.call }
+    error = assert_raises(TypeError) { LeakyQuery.call(actor: ANYONE) }
 
     assert_includes error.message, "must answer with shapes"
   end
 
-  def test_an_empty_answer_is_an_answer
-    empty = Class.new(Query) { def call; []; end }
+  # The permission is the class name. No constant, so none can be forgotten or diverge.
+  def test_a_permission_is_derived_from_the_class_name
+    assert_equal :"generated_base_classes_test_charge", Charge.permission
+  end
 
-    assert_empty empty.call
+  # The whole point: a new operation is denied until someone grants it deliberately.
+  def test_a_command_refused_answers_with_a_value
+    refuser = Anyone.new([Charge.permission])
+
+    result = Charge.call(actor: refuser, amount: 5)
+
+    refute_predicate result, :success?
+    assert_equal :forbidden, result.error
+  end
+
+  # A query has no envelope, so refusal raises like every other query failure.
+  def test_a_refused_query_raises
+    refuser = Anyone.new([ListPlaces.permission])
+
+    assert_raises(Permission::Refused) { ListPlaces.call(actor: refuser) }
+  end
+
+  # A refusal costs no lock: the check runs before the transaction opens.
+  def test_a_refused_command_never_opens_a_transaction
+    opened = false
+    ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| opened = true; block.call }
+
+    Charge.call(actor: Anyone.new([Charge.permission]), amount: 5)
+
+    refute opened
+  ensure
+    ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| block.call }
+  end
+
+  def test_a_workflow_answers_the_permissions_of_its_steps
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [Charge].freeze)
+      def self.name
+        "SettleMonth"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        success(:done)
+      end
+    end
+
+    assert_equal [Charge.permission], flow.permissions
+  end
+
+  def test_a_workflow_refuses_before_a_single_step_runs
+    ran = false
+    flow = Class.new(Workflow) do
+      const_set(:STEPS, [Charge].freeze)
+      def self.name
+        "SettleMonth"
+      end
+
+      define_method(:initialize) { |actor:| @actor = actor }
+      define_method(:call) { ran = true; success(:done) }
+    end
+
+    result = flow.call(actor: Anyone.new([Charge.permission]))
+
+    refute_predicate result, :success?
+    assert_equal :forbidden, result.error
+    refute ran, "the workflow body ran despite a refused step"
+  end
+
+  def test_an_empty_answer_is_an_answer
+    empty = Class.new(Query) do
+      def self.name
+        "EmptyQuery"
+      end
+
+      def initialize(actor:)
+        @actor = actor
+      end
+
+      def call
+        []
+      end
+    end
+
+    assert_empty empty.call(actor: ANYONE)
   end
 
   # Value semantics without a macro: two shapes of a class holding the same values are
