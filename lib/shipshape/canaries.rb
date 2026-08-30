@@ -114,7 +114,7 @@ module Shipshape
       RUBY
       "Shipshape/NoEntryPointBypass" => { kind: "request_handling", body: <<~RUBY },
         def show
-          Settle.new(amount: 1).send(:call)
+          Settle.send(:new, amount: 1)
         end
       RUBY
       "Shipshape/OperationsAreLeaves" => { kind: "command", body: <<~RUBY },

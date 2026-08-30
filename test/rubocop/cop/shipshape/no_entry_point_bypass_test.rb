@@ -17,17 +17,19 @@ class NoEntryPointBypassTest < Minitest::Test
 
   PATH = "app/controllers/things_controller.rb"
 
-  def test_send_to_the_entry_point_is_a_bypass
-    found = check("Settle.new(amount: 1).send(:call)")
+  # Construction is what is closed: `call` is the only way in, and it is where the
+  # permission check, the transaction and the return-type assertion live.
+  def test_building_an_operation_directly_is_a_bypass
+    found = check("Settle.send(:new, amount: 1)")
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`send(:call)` reaches an operation's private entry point"
+    assert_includes found.first.message, "`send(:new)` builds an operation without going through the door"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
-    message = check("Settle.new(amount: 1).send(:call)").first.message
+    message = check("Settle.send(:new, amount: 1)").first.message
 
-    assert_includes message, "WHY: That entry point is private"
+    assert_includes message, "WHY: The constructor is private"
     assert_includes message, "`private` is a convention"
     assert_includes message, "INSTEAD:"
     assert_includes message, "SettleInvoice.call(actor: actor, invoice_id: 1)"
@@ -35,10 +37,10 @@ class NoEntryPointBypassTest < Minitest::Test
 
   def test_every_sender_in_the_family_is_caught
     found = check(<<~RUBY)
-      a = op.send(:call)
-      b = op.__send__(:call)
-      c = op.public_send(:anonymous_call)
-      d = op.method(:call)
+      a = Settle.send(:new)
+      b = Settle.__send__(:new)
+      c = Settle.public_send(:new)
+      d = op.send(:__perform__)
       [a, b, c, d]
     RUBY
 
@@ -47,6 +49,14 @@ class NoEntryPointBypassTest < Minitest::Test
 
   def test_the_door_itself_is_not_a_bypass
     assert_empty check("Settle.call(actor: actor, amount: 1)")
+  end
+
+  # The forwarding method the base class uses to reach a private entry point. Reaching it
+  # from outside runs the operation with none of the door's guarantees.
+  def test_the_forwarder_is_a_bypass_too
+    found = check("op.send(:__perform__)")
+
+    assert_equal 1, found.length
   end
 
   # A method name this cannot read is the stated blind spot, not a silent pass: reporting it

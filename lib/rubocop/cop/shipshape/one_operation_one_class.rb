@@ -265,9 +265,14 @@ module RuboCop
           end
         end
 
-        # Not behaviour-preserving, and it is `SafeAutoCorrect: false` for that reason: a
-        # caller doing `operation.call` breaks. It breaks under the rule anyway, and
-        # `Shipshape/NoEntryPointBypass` refuses the `send` that would paper over it.
+        # **At the top of the class**, so everything below it — the entry point included — is
+        # private in one edit. There is no case where some of an operation should be public
+        # and some should not.
+        #
+        # Not behaviour-preserving, and `SafeAutoCorrect: false` for that reason: a caller
+        # doing `operation.call` breaks. It breaks under the rule anyway, and the base class
+        # reaches the entry point through a forwarding method rather than an explicit
+        # receiver, so nothing that ships needs it public.
         def scaffold_private(corrector, node)
           body = node.body
           return if body.nil?
@@ -279,18 +284,18 @@ module RuboCop
         def entry_point_is_private(definition)
           explain(
             "`#{definition.method_name}` is public, and an operation exposes nothing.",
-            because: "The base class reaches it with `send`, so it does not need to be " \
-                     "public — and left public it is a second entrance. A caller can write " \
-                     "`SettleInvoice.new(...).#{definition.method_name}` and go around the " \
-                     "door, taking the permission check, the transaction and the " \
-                     "return-type assertion with it, while the call site looks ordinary.",
+            because: "The base class reaches it through a forwarding method, with an " \
+                     "implicit receiver — the one form `private` allows — so it never needs " \
+                     "to be public. Left public it is a second entrance, and the only reason " \
+                     "it is not reachable today is that the constructor is private too. One " \
+                     "guard is not two.",
             instead: <<~RUBY,
               class SettleInvoice < Command
+                private
+
                 def initialize(invoice_id:)
                   @invoice_id = typed(invoice_id, Integer)
                 end
-
-                private
 
                 def call
                   success(...)

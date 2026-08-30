@@ -39,10 +39,18 @@ module RuboCop
         EVALUATORS = %i[class_eval module_eval instance_eval eval instance_variable_set const_set].freeze
         DISPATCH = %i[method_missing respond_to_missing?].freeze
 
+        # **`send` makes every other guard optional.** Private is a convention it steps over,
+        # the call graph is a matrix it routes around, and the method it names cannot be
+        # found by grepping for the call. Nothing in an operation needs it: the class knows
+        # its own methods by name.
+        SENDERS = %i[send __send__ public_send].freeze
+
         def on_send(node)
           return unless one_of?(governed_kinds)
 
-          if DEFINERS.include?(node.method_name)
+          if SENDERS.include?(node.method_name)
+            add_offense(node, message: dispatching_dynamically(node.method_name))
+          elsif DEFINERS.include?(node.method_name)
             add_offense(node, message: defining(node.method_name))
           elsif EVALUATORS.include?(node.method_name)
             add_offense(node, message: evaluating(node.method_name))
@@ -66,6 +74,18 @@ module RuboCop
                      "nothing. Generation compressed the writing and expanded the reading, " \
                      "and the reading is paid on every visit, forever, by people who are " \
                      "not the writer.",
+            instead: WRITTEN,
+          )
+        end
+
+        def dispatching_dynamically(name)
+          explain(
+            "`#{name}` chooses a method at runtime.",
+            because: "It steps over `private`, routes around the call graph, and names a " \
+                     "method that cannot be found by grepping for the call — so every " \
+                     "other guard here becomes optional wherever it appears. A class knows " \
+                     "its own methods by name; if this one does not, the thing being " \
+                     "chosen is data and belongs in a row.",
             instead: WRITTEN,
           )
         end

@@ -31,12 +31,21 @@ nothing at the call site indicates the guarantees are gone.
 operation's entire public surface is the inherited class method — there is nothing else on it
 to reach for, and `SettleInvoice.call(...)` is the only supported way in.
 
-**`private` in Ruby is a convention, not a wall.** A caller can write
-`SettleInvoice.new(...).send(:call)` and skip the permission check, the transaction and the
-return-type assertion, in a line that reads like ordinary code. Nothing the operation does
-can refuse that, so the refusal is at the call site:
+**The base class reaches it with an implicit receiver**, through a forwarding method it
+defines itself. That is the one form `private` allows: `operation.call` raises, and no
+amount of inheritance changes it, because Ruby's `private` means *no explicit receiver*
+rather than *inside the hierarchy*. `send` would also work, and is **banned** — it steps over
+`private`, routes around the call matrix, and names a method nobody can grep for, so a base
+class that wrote it could not ask an application not to.
+
+**The constructor is private too.** `private_class_method :new` is what makes the rest hold:
+nobody outside can build an operation, so there is nothing to reach a private method on
+anyway.
+
+**`private` is still a convention, not a wall**, and `send` steps over both. Nothing the
+operation does can refuse that, so the refusal is at the call site:
 `Shipshape/NoEntryPointBypass` fails `send`, `__send__`, `public_send` and `method` where
-they name an entry point.
+they name `new` or the forwarder.
 
 **Tests are exempt, and deliberately.** A test builds objects directly, reaches private
 methods and stubs what it needs — that is what a test is for, and refusing it would make this

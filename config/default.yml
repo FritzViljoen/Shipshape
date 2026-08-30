@@ -580,8 +580,8 @@ Shipshape/NoEntryPointBypass:
     steps around it, skipping the permission check, the transaction and the type assertion.
   Enabled: true
   VersionAdded: '0.0.1'
-  PublicMethod: call
-  AnonymousMethod: anonymous_call
+  Constructor: new
+  Forwarder: __perform__
   Include:
     - '**/*.rb'
   # The generated base classes are where the legitimate `send` lives. Excluded by path, not

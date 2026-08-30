@@ -65,7 +65,7 @@ class OneOperationOneClassTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "`call` is public, and an operation exposes nothing"
-    assert_includes found.first.message, "go around the door"
+    assert_includes found.first.message, "forwarding method"
   end
 
   def test_a_second_public_method_is_a_second_operation

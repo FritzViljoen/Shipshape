@@ -7,10 +7,12 @@ module RuboCop
     module Shipshape
       # Holds the caller's half of `an-operation-is-a-leaf`.
       #
-      # An operation's entry point is private, so `SettleInvoice.call(...)` is the only way
-      # in. **`private` in Ruby is a convention, not a wall** — `send` steps around it, and a
-      # caller that does has skipped the permission check, the transaction and the
-      # return-type assertion while writing something that reads like ordinary code.
+      # An operation's constructor is private, so `SettleInvoice.call(...)` is the only way
+      # in: nobody outside can build one, which is what makes the public `call` on the
+      # instance harmless. **`private` in Ruby is a convention, not a wall** — `send` steps
+      # around it, and a caller that builds an operation directly then reaches its `call` has
+      # skipped the permission check, the transaction and the return-type assertion while
+      # writing something that reads like ordinary code.
       #
       # This is the one cop whose subject is the **call site** rather than the class. The
       # class cannot defend itself here: nothing an operation does can stop `send`.
@@ -25,8 +27,7 @@ module RuboCop
       #
       # @example
       #   # bad — the door is right there, and this went around it
-      #   SettleInvoice.new(invoice_id: 1).send(:call)
-      #   operation.public_send(:anonymous_call)
+      #   SettleInvoice.send(:new, invoice_id: 1).call
       #
       #   # good
       #   SettleInvoice.call(actor: actor, invoice_id: 1)
@@ -54,30 +55,34 @@ module RuboCop
 
         def message_for(sender, named)
           explain(
-            "`#{sender}(:#{named})` reaches an operation's private entry point.",
-            because: "That entry point is private so that the class method is the only way " \
-                     "in, and the class method is where the permission check runs, where " \
-                     "the transaction opens, and where the return type is asserted. This " \
-                     "call has skipped all three, and it reads like ordinary code — nothing " \
-                     "at this line says the guarantees are gone. `private` is a convention " \
-                     "in Ruby rather than a wall, so nothing the operation does can refuse " \
-                     "this; the refusal has to be here.",
+            "`#{sender}(:#{named})` builds an operation without going through the door.",
+            because: "The constructor is private so that `call` is the only way in, and " \
+                     "`call` is where the permission check runs, where the transaction " \
+                     "opens, and where the return type is asserted. An operation built this " \
+                     "way has skipped all three, and the line reads like ordinary code. " \
+                     "`private` is a convention in Ruby rather than a wall, so nothing the " \
+                     "operation does can refuse this; the refusal has to be here.",
             instead: <<~RUBY,
               # the door, which is the only supported way in
               SettleInvoice.call(actor: actor, invoice_id: 1)
 
               # in a test this is allowed and this cop is silent — but what the door does
-              # IS part of the behaviour, so a test that skips it passes while the
+              # IS part of the behaviour, so a test that builds around it passes while the
               # operation is unauthorised. Prefer going through it there too.
             RUBY
           )
         end
 
+        # **Construction is what is closed**, so this is what a bypass reaches for. `call`
+        # is public and harmless — there is no operation to call it on unless somebody built
+        # one, and `private_class_method :new` is what stops that.
+        # **Both doors.** `new` builds an operation without going through `call`;
+        # `__perform__` runs one without the permission check, the transaction or the
+        # return-type assertion. Neither is reachable without `send`, which is why this cop
+        # is the one that closes them.
         def entry_names
-          @entry_names ||= [
-            cop_config.fetch("PublicMethod", "call"),
-            cop_config.fetch("AnonymousMethod", "anonymous_call"),
-          ]
+          @entry_names ||= Array(cop_config.fetch("Constructor", "new")) +
+                           Array(cop_config.fetch("Forwarder", "__perform__"))
         end
       end
     end

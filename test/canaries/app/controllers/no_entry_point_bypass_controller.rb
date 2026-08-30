@@ -2,6 +2,6 @@
 
 class NoEntryPointBypass < ApplicationController
 def show
-  Settle.new(amount: 1).send(:call)
+  Settle.send(:new, amount: 1)
 end
 end

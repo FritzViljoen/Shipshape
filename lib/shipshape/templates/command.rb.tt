@@ -32,14 +32,10 @@ class Command
     return Result.failure(:forbidden) unless permits?(actor)
 
     operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
-    # `send`, because the entry point is private: an operation's whole public surface is
-    # this class method, so `call` and `anonymous_call` are implementation. A literal
-    # symbol is not the generated dispatch `code-is-written-not-generated` forbids — it
-    # names one of two methods, and both are greppable.
-    result = ActiveRecord::Base.transaction { operation.send(anonymous? ? :anonymous_call : :call) }
+    result = ActiveRecord::Base.transaction { operation.__perform__ }
 <%- else -%>
   def self.call(**arguments)
-    result = ActiveRecord::Base.transaction { new(**arguments).send(:call) }
+    result = ActiveRecord::Base.transaction { new(**arguments).__perform__ }
 <%- end -%>
 
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
@@ -58,4 +54,29 @@ class Command
   def failure(error)
     Result.failure(error)
   end
+
+  # **Reaches the private entry point with an implicit receiver**, which is the one form
+  # `private` allows — `operation.call` raises, and no amount of inheritance changes that,
+  # because Ruby's `private` means "no explicit receiver" rather than "inside the hierarchy".
+  #
+  # `send` would also work and is banned: it steps over `private`, routes around the call
+  # graph, and names a method nobody can grep for. A base class that writes it cannot ask an
+  # application not to.
+  #
+  # Public, and unreachable all the same: `new` is private, so nobody outside can hold an
+  # operation to call this on.
+  # `public` on purpose: this sits below the base class's own `private`, and it is called
+  # with an explicit receiver from the class method above. Harmless — `new` is private, so
+  # nobody outside can hold an operation to call it on.
+  public def __perform__
+<%- if auth -%>
+    self.class.anonymous? ? anonymous_call : call
+<%- else -%>
+    call
+<%- end -%>
+  end
+
+  # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
+  # that skipped the permission check, the transaction or the return-type assertion.
+  private_class_method :new
 end
