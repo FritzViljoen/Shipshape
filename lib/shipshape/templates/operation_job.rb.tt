@@ -67,9 +67,11 @@ class OperationJob < ActiveJob::Base
     { actor: self.class.actor_finder.call(class_name, id) }
   end
 
-  # ActiveJob hands back string keys. The doors take named keywords and assert them, so they
-  # have to arrive as symbols or every `typed` call fails on an argument that is present.
+  # ActiveJob hands back string keys, and any `Shape` among the arguments arrives packed. The
+  # doors take named keywords and assert them, so both have to be undone before the call —
+  # `ShapePacking.unpack` does both, because symbolising is what it does to every Hash it is
+  # not told is a shape.
   def keywords(arguments)
-    arguments.to_h { |name, value| [name.to_sym, value] }
+    ShapePacking.unpack(arguments)
   end
 end

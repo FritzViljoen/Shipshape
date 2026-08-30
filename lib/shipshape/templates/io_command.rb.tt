@@ -144,7 +144,7 @@ class IoCommand
 
     OperationJob.set(queue: queue_name).perform_later(
       operation: name,
-      arguments: arguments,
+      arguments: ShapePacking.pack(arguments),
       actor_class: actor&.class&.name,
       actor_id: actor.respond_to?(:id) ? actor.id : nil,
     )
@@ -160,7 +160,7 @@ class IoCommand
   # accepted, not that it happened — there is no caller to tell what happened, which is why
   # every door reports to the audit log.
   def self.call_later(**arguments)
-    OperationJob.set(queue: queue_name).perform_later(operation: name, arguments: arguments)
+    OperationJob.set(queue: queue_name).perform_later(operation: name, arguments: ShapePacking.pack(arguments))
 
     Result.success(:enqueued)
   end

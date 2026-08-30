@@ -37,8 +37,11 @@ ActiveJob needs primitives. The canon already requires them: *a record is not an
 anybody thought about queues. **The capability was paid for by an existing rule.**
 
 One exception: a command may take a `Shape` (`command → shape` is in the matrix), and
-ActiveJob cannot serialise one. Shapes have declared fields and value semantics, so a generic
-serialiser is writable — but it is work, and it is the one part of this that is not free.
+ActiveJob cannot serialise one. **`ShapePacking` closes it** — the door packs on the way out
+and the job unpacks on the way in, so no `ActiveJob::Serializers` registration and no
+initializer is needed. It works because a shape is a value with declared fields whose state is
+its instance variables: the round trip is exact, and a shape that would not survive it could
+not have been built.
 
 ## The contract with `an-operation-answers-a-result`
 
@@ -112,7 +115,6 @@ type — which is rare enough to declare where it is needed.
 
 ## What it does not solve
 
-- **The `Shape` argument**, until a serialiser exists.
 - **Permission timing is settled: checked twice.** At enqueue, so the caller learns
   immediately and gets `failure(:forbidden)` synchronously; and again in `self.call` when the
   job runs, because a right revoked in between is the answer that matters. Both refusals are

@@ -683,7 +683,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     assert_equal 1, jobs.length
     assert_equal "GeneratedBaseClassesTest::Slow", jobs.first[:operation]
-    assert_equal({ amount: 5 }, jobs.first[:arguments])
+    assert_equal({ "amount" => 5 }, jobs.first[:arguments])
   end
 
   # The Result describes the enqueue, never the work.
@@ -723,6 +723,57 @@ class GeneratedBaseClassesTest < Minitest::Test
   # ActiveJob hands back string keys; the doors assert named keywords.
   def test_arguments_arrive_as_keywords
     assert_equal({ amount: 5 }, OperationJob.new.send(:keywords, { "amount" => 5 }))
+  end
+
+  # **The one part of `call_later` that was not free.** Every other argument is already an id
+  # or a value, because a record is not an argument — which is exactly what a queue can carry.
+  # A `Shape` is the exception, and `command -> shape` is in the matrix, so it is an ordinary
+  # thing for a command to take.
+  class Bag < Shape
+    def initialize(place:, count:)
+      @place = typed(place, Place)
+      @count = typed(count, Integer)
+    end
+
+    attr_reader :place, :count
+  end
+
+  def test_a_shape_survives_the_round_trip
+    shape = Place.new(code: "ZA")
+
+    assert_equal shape, ShapePacking.unpack(ShapePacking.pack(shape))
+  end
+
+  # Where a hand-rolled packer usually breaks.
+  def test_a_shape_inside_a_shape_survives
+    bag = Bag.new(place: Place.new(code: "ZA"), count: 2)
+
+    assert_equal bag, ShapePacking.unpack(ShapePacking.pack(bag))
+  end
+
+  def test_shapes_in_arrays_and_hashes_survive
+    packed = ShapePacking.pack(rows: [Place.new(code: "ZA"), Place.new(code: "GB")])
+
+    assert_equal [Place.new(code: "ZA"), Place.new(code: "GB")], ShapePacking.unpack(packed)[:rows]
+  end
+
+  def test_ordinary_values_pass_through_untouched
+    assert_equal({ amount: 5, note: "x", flags: [true, nil] },
+                 ShapePacking.unpack(ShapePacking.pack(amount: 5, note: "x", flags: [true, nil])))
+  end
+
+  # What a queue actually hands back: string keys, no symbols anywhere.
+  def test_unpacking_symbolises_the_keywords_a_door_expects
+    assert_equal({ amount: 5 }, ShapePacking.unpack("amount" => 5))
+  end
+
+  # String keys on the wire, symbols again at the door — the enqueue boundary is where the
+  # keywords stop being keywords, and `unpack` is what puts them back.
+  def test_arguments_are_packed_before_they_are_enqueued
+    jobs = enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
+
+    assert_equal({ "amount" => 5 }, jobs.first[:arguments])
+    assert_equal({ amount: 5 }, ShapePacking.unpack(jobs.first[:arguments]))
   end
 
   def test_an_error_code_is_a_name_not_a_sentence

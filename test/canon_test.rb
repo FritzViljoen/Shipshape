@@ -66,6 +66,9 @@ class CanonTest < Minitest::Test
   ARCHITECTURE_WITHOUT_A_LAW = {
     "boolean" => "a name, so `Boolean` can be written in a type guard. It decides nothing.",
     "persistence" => "one definition of what a record is, used by the guards that have laws.",
+    "shape_packing" => "a round trip for a value, so a shape can go on a queue. It decides " \
+                       "nothing and refuses nothing — unlike the two below, it is exempt " \
+                       "rather than awaiting a decision.",
     # **Pending, not exempt.** This one does carry a rule — every writing door reports to it —
     # and it is here because Fritz asked for the audit log and nobody has decided whether that
     # rule is a law. The obvious home is `an-operation-answers-a-result`, which already names
