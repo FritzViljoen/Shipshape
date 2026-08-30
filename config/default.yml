@@ -702,3 +702,56 @@ Shipshape/QueriesOnlyRead:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/IoIsItsOwnKind:
+  Description: >-
+    A call to the outside is an operation of its own. The call matrix cannot refuse one
+    written inline, because a gem's constant resolves to no file under any declared glob and
+    is skipped.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Everything except the kinds whose job is the outside, and the legacy doors, which wrap an
+  # old world this canon has not classified.
+  Kinds:
+    - workflow
+    - command
+    - query
+    - shape
+    - view_component
+    - record
+    - request_handling
+    - entry_point
+  # **This list IS the fact.** Being named here is what makes a constant IO; nothing infers
+  # it. Add your own vendors - a client that is not here is invisible, not permitted.
+  #
+  # `File` and `Dir` are deliberately absent: `File.join` is a string operation and
+  # `File.read` is not, and separating them needs a per-constant method list that would drift.
+  Constants:
+    - 'Net::HTTP'
+    - 'Net::HTTPS'
+    - 'Net::FTP'
+    - 'Net::SMTP'
+    - 'Net::IMAP'
+    - 'Net::POP3'
+    - 'Net::Telnet'
+    - 'Socket'
+    - 'TCPSocket'
+    - 'UDPSocket'
+    - 'UNIXSocket'
+    - 'BasicSocket'
+    - 'OpenURI'
+    - 'Faraday'
+    - 'RestClient'
+    - 'HTTParty'
+    - 'Excon'
+    - 'Typhoeus'
+    - 'Curl'
+    - 'Curl::Easy'
+    - 'HTTPX'
+    - 'HTTPClient'
+  # **Tests are exempt.** A test stubs the outside, and naming the client is how it does that.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'

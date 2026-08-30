@@ -163,6 +163,11 @@ module Shipshape
           end
         end
       RUBY
+      "Shipshape/IoIsItsOwnKind" => { kind: "command", body: <<~RUBY },
+        def call
+          Net::HTTP.get(URI("http://example.com"))
+        end
+      RUBY
       "Shipshape/QueriesOnlyRead" => { kind: "query", body: <<~RUBY },
         def call
           CanaryRecord.create!(name: "x")

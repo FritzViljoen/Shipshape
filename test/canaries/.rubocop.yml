@@ -17,6 +17,8 @@ Shipshape/EnforcementMessagesAreDocumentation:
   Enabled: true
 Shipshape/EveryDoorChecksPermission:
   Enabled: true
+Shipshape/IoIsItsOwnKind:
+  Enabled: true
 Shipshape/MixinsAddNothingPublic:
   Enabled: true
   AutoCorrect: false
