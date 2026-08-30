@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "shipshape/measures/finding"
 
 module Shipshape
@@ -23,7 +24,7 @@ module Shipshape
       def population(_sources)
         return 0 unless File.file?(path)
 
-        File.readlines(path).count { |line| COLUMN.match?(line) }
+        SourceText.lines(path).count { |line| COLUMN.match?(line) }
       end
 
       SCHEMA = "db/schema.rb"
@@ -39,7 +40,7 @@ module Shipshape
       def call(_sources)
         return [] unless File.file?(path)
 
-        File.readlines(path).each_with_index.flat_map { |line, index| finding(line, index + 1) }.compact
+        SourceText.lines(path).each_with_index.flat_map { |line, index| finding(line, index + 1) }.compact
       end
 
       private

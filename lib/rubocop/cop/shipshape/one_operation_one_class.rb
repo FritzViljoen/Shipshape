@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require "shipshape/settings"
-require "shipshape/kinds"
-require "rubocop/cop/shipshape/explains"
+require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
   module Cop
@@ -52,7 +50,7 @@ module RuboCop
       class OneOperationOneClass < Base
         include VisibilityHelp
         extend AutoCorrector
-        include Explains
+        include ReadsKinds
 
         SHAPE = <<~RUBY
           class SettleInvoice < Command
@@ -343,21 +341,7 @@ module RuboCop
         end
 
         def operation?
-          operation_kinds.include?(kind_of_inspected_file)
-        end
-
-        def kind_of_inspected_file
-          @kind_of_inspected_file ||= kinds.for_path(processed_source.file_path)
-        end
-
-        def kinds
-          @kinds ||= ::Shipshape::Kinds.new(settings: settings, base_dir: base_dir)
-        end
-
-        # Declared once, on the call-graph cop. Repeating the layout per cop would be a
-        # second copy of one fact, and the copy is the one that goes stale.
-        def settings
-          @settings ||= ::Shipshape::Settings.layout(config)
+          one_of?(operation_kinds)
         end
 
         def operation_kinds
@@ -378,9 +362,6 @@ module RuboCop
           @entry_names ||= [expected_name, cop_config.fetch("AnonymousMethod", "anonymous_call")]
         end
 
-        def base_dir
-          config.base_dir_for_path_parameters
-        end
       end
     end
   end

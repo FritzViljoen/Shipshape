@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "shipshape/typed_arguments"
 
 module Shipshape
@@ -106,7 +107,7 @@ module Shipshape
 
     def superclass_in(path)
       superclass_cache.fetch(path) do
-        superclass_cache[path] = File.file?(path) ? File.read(path)[SUPERCLASS, 1] : nil
+        superclass_cache[path] = File.file?(path) ? SourceText.read(path)[SUPERCLASS, 1] : nil
       end
     end
 

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require "shipshape/settings"
 require "shipshape/mixins"
-require "rubocop/cop/shipshape/explains"
+require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
   module Cop
@@ -51,7 +50,7 @@ module RuboCop
       class MixinsAddNothingPublic < Base
         include VisibilityHelp
         extend AutoCorrector
-        include Explains
+        include ReadsKinds
 
         # `initialize` is private whatever the file says, and `respond_to_missing?` and
         # `included` are hooks the language and Ruby's own module protocol ask for.
@@ -175,19 +174,10 @@ module RuboCop
           )
         end
 
-        # Declared once, on the call-graph cop. Repeating the layout per cop would be a
-        # second copy of one fact, and the copy is the one that goes stale.
-        def settings
-          @settings ||= ::Shipshape::Settings.layout(config)
-        end
-
         def operation_kinds
           @operation_kinds ||= cop_config.fetch("OperationKinds", [])
         end
 
-        def base_dir
-          config.base_dir_for_path_parameters
-        end
       end
     end
   end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "set"
+require "shipshape/source_text"
 require "shipshape/typed_arguments"
 
 module Shipshape
@@ -64,7 +65,7 @@ module Shipshape
     end
 
     def included_in(file)
-      File.read(file).scan(INCLUDE).flatten.map { |name| name.sub(/\A::/, "") }
+      SourceText.read(file).scan(INCLUDE).flatten.map { |name| name.sub(/\A::/, "") }
     rescue SystemCallError
       # A file that vanished between the glob and the read is not this cop's business.
       []

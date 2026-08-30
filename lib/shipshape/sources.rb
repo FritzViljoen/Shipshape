@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "rubocop"
 require "shipshape/typed_arguments"
 
@@ -42,7 +43,7 @@ module Shipshape
     # is entitled to hold a file written for an older Ruby, and refusing to report anything
     # because of one is worse than reporting everything else.
     def parse(path)
-      source = RuboCop::ProcessedSource.new(File.read(path), RUBY_VERSION.to_f, path)
+      source = RuboCop::ProcessedSource.new(SourceText.read(path), RUBY_VERSION.to_f, path)
       return nil if source.ast.nil?
 
       Source.new(path: path, relative: relative(path), ast: source.ast)

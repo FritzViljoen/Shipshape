@@ -15,8 +15,18 @@ module RuboCop
       module ReadsKinds
         include Explains
 
+        # **Memoised against the file, not against the cop.** A plain `||=` is correct only
+        # because RuboCop happens to build a cop per file; drive one instance over two files
+        # — which its own API lets you do — and the first non-nil kind decides every file
+        # after it. Verified: a command inspected after a record was judged a record and
+        # reported an offence it does not have. Keying on the path cannot go wrong whoever
+        # does the driving, and needs no reset hook a cop can override.
         def kind_of_inspected_file
-          @kind_of_inspected_file ||= kinds.for_path(processed_source.file_path)
+          path = processed_source.file_path
+          return @kind_of_inspected_file if defined?(@kind_memo_for) && @kind_memo_for == path
+
+          @kind_memo_for = path
+          @kind_of_inspected_file = kinds.for_path(path)
         end
 
         def one_of?(*wanted)

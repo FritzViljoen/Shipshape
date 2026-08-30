@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "json"
 require "open3"
 require "shipshape/error"
@@ -128,7 +129,7 @@ module Shipshape
     # and it is the shape of every wrong answer this tool has produced. So it raises, and
     # names the file, because "which file" is the whole of what the caller needs.
     def read(file)
-      File.read(file)
+      SourceText.read(file)
     rescue SystemCallError => e
       raise Error, "shipshape: cannot read #{file.sub("#{root}/", '')} — #{e.class}"
     end

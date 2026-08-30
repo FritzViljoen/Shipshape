@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "shipshape/typed_arguments"
 
 module Shipshape
@@ -531,7 +532,7 @@ module Shipshape
       return nil unless File.file?(path)
 
       @lines ||= {}
-      @lines[path] ||= File.readlines(path)
+      @lines[path] ||= SourceText.lines(path)
       @lines[path][finding.line - 1]&.strip
     # rubocop:disable Shipshape/NoEmptyRescue
     # A swallow, and a deliberate one: this reads a source line to decorate an exemplar.

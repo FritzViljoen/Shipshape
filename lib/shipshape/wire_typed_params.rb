@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "shipshape/error"
 require "shipshape/typed_arguments"
 
@@ -35,7 +36,7 @@ module Shipshape
     def call
       return [:no_controller, controller] unless File.file?(path)
 
-      source = File.read(path)
+      source = SourceText.read(path)
       return [:already, controller] if source.include?("include #{CONCERN}")
 
       match = source.match(CLASS_LINE)

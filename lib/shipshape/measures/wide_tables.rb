@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/source_text"
 require "shipshape/measures/finding"
 
 module Shipshape
@@ -56,7 +57,7 @@ module Shipshape
         current = nil
         found = {}
 
-        File.readlines(path).each_with_index do |line, index|
+        SourceText.lines(path).each_with_index do |line, index|
           if (match = TABLE.match(line))
             current = match[1]
             found[current] = { line: index + 1, columns: 0 }

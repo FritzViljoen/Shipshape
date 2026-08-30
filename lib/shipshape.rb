@@ -3,6 +3,7 @@
 require "pathname"
 require "rubocop"
 
+require "shipshape/source_text"
 require "shipshape/version"
 require "shipshape/error"
 require "shipshape/boolean"
