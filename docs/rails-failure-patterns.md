@@ -64,8 +64,9 @@ shape you cannot express is not a guard at all.
 | N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
 | Missing indexes | **Uncovered** | `lol_dba`, `strong_migrations` |
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
-| Enum as array, reordering remaps rows | **Uncovered** | — |
-| Counter drift, `find_each` ignored, `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |
+| Enum as array, reordering silently remaps rows | **Procedure** | [an enum as an array](decomposing/an-enum-as-an-array.md). `no-nullable-columns` misses it: `0` is the first value *and* the empty integer, so the column need not be nullable to lose the distinction |
+| `find_each` ignored, `.all.each` loads the world | **Procedure** | [an unbounded read](decomposing/an-unbounded-read.md) |
+| Counter drift, `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |
 | Polymorphic associations with no FK integrity | **Procedure** | [a polymorphic association](decomposing/a-polymorphic-association.md) — no cop, because the defect is in what the schema cannot say |
 | UUID vs bigint decided late | **Uncovered** | — |
 | Money as float instead of cents | **Procedure** | [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md). No guard reads column types for meaning, and that stays true |
@@ -97,7 +98,7 @@ shape you cannot express is not a guard at all.
 | Loose strong params, mass assignment | **Guarded** | `NoInlineParamParse`, `NoUnparsedLookup`, `TypedArguments` |
 | Fat `params` juggling instead of form objects | **Guarded** | Parsed at the seam, typed at construction |
 | `before_action` chains that make flow untraceable | **Procedure** | [a filter chain](decomposing/a-filter-chain.md). Still uncovered by any cop — the branching is in `only:`/`except:`, which nothing here reads |
-| No pagination on index actions | **Uncovered** | — |
+| No pagination on index actions | **Procedure** | [an unbounded read](decomposing/an-unbounded-read.md) — size is a runtime fact, so the bound is made an argument instead |
 | Duplicated logic across formats | **Uncovered** | — |
 | Nested resources more than one level deep | **Uncovered** | Routing, not shape |
 | Redirect loops from callback-based auth | **Uncovered** | — |
@@ -154,7 +155,7 @@ place to live and one place to be invalidated from. That is a precondition, not 
 | Failure | Verdict | How |
 |---|---|---|
 | Authorization by obscurity, hidden buttons over open routes | **Unsayable** | Every door checks; `EveryDoorChecksPermission` fails a base class that lost the check |
-| IDOR, `Model.find(params[:id])` with no ownership scoping | **Partly guarded** | `NoUnparsedLookup` stops the raw param; the permission check has one home. **Ownership itself is the application's rule** |
+| IDOR, `Model.find(params[:id])` with no ownership scoping | **Procedure** | [an unowned find](decomposing/an-unowned-find.md). `NoUnparsedLookup` stops the raw param, but a permission **is a class name** — it says which actor may update stories, never which stories, and it never can. Row-level ownership is deliberately outside the model |
 | Logging params containing passwords or tokens | **Guarded** | `PersonalDataIsDeclared` plus audit-log redaction |
 | Secrets in code, missing CSRF, no rate limiting, CVEs, file uploads, `send_file` paths | **Uncovered** | brakeman, `bundler-audit`, `rack-attack`. Named here so nobody reads a green `shipshape check` as a security pass |
 
@@ -173,19 +174,25 @@ place to live and one place to be invalidated from. That is a precondition, not 
 | **Conventions documented but not enforced in CI** | **This is the whole thesis** | [`one-mechanism-guards-everything`](laws/one-mechanism-guards-everything.md), the canaries, `rake test:removal`, `a-guard-states-its-limit`. A convention nobody enforces is the failure shipshape exists to answer |
 | No clear boundary between domain and framework | **Guarded** | `Shipshape/CallGraph` is exactly this, declared once as a matrix |
 | Premature service extraction | **Procedure** | [a service](decomposing/a-service.md), and the detangling stance generally |
-| Gem sprawl, engines vs modules, stale feature flags, EOL Rails | **Uncovered** | — |
+| Feature flags added but never removed | **Procedure** | [a feature flag](decomposing/a-feature-flag.md). No cop reads a calendar, and what makes a flag a defect is time |
+| Gem sprawl, engines vs modules, EOL Rails | **Uncovered** | — |
 
 ---
 
 ## Roughly, the count
 
-Of about 120 rows: **15 unsayable, 28 guarded or partly guarded, 13 held by a procedure, and
-about 64 uncovered.**
+Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 19 held by a procedure, and
+about 58 uncovered.**
 
 **Those numbers moved because of this document.** It was written as a survey and turned into a
-work list: two gaps became cop clauses, four became procedures, and the counts above are the
-second reading, not the first. That is the use of writing coverage down — the first count was
-16 uncovered rows worse, and none of them were unknown, only unwritten.
+work list: two gaps became cop clauses, eight became procedures, and the counts above are a
+later reading, not the first. That is the use of writing coverage down — the first count was
+22 uncovered rows worse, and none of them were unknown, only unwritten.
+
+**One row moved the other way.** IDOR was recorded as *partly guarded* on the strength of the
+permission check, and writing the procedure showed that reading to be wrong: a permission is a
+class name, so it authorises the *operation* and says nothing about the *row*. It is a
+procedure now, and the survey is more honest for the demotion.
 
 **The 70 is the honest headline and it is not an apology.** Around forty of them are runtime,
 volume, or infrastructure questions that a file reader cannot answer and should not claim. What

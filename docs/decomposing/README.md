@@ -15,6 +15,8 @@ nobody can verify is a rewrite with extra confidence.
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
 | [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
 | [a filter chain](a-filter-chain.md) | six `before_action`s and three-line actions — the work moved above them |
+| [an unowned find](an-unowned-find.md) | `Story.find(params[:id])` — the row exists, so it was returned |
+| [an unbounded read](an-unbounded-read.md) | a query with no answer to "how many?" — no page, no limit, no cursor |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
 | [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |
 | [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
@@ -25,6 +27,8 @@ nobody can verify is a rewrite with extra confidence.
 | [a serialized column](a-serialized-column.md) | a JSON or YAML blob holding eleven keys nothing declares |
 | [a polymorphic association](a-polymorphic-association.md) | `commentable_type` — a class name in a data column, with no foreign key |
 | [a primitive that should be a type](a-primitive-that-should-be-a-type.md) | `amount` as a float, `state` as a string, the rule re-derived at every call site |
+| [an enum as an array](an-enum-as-an-array.md) | the column holds a position, so reordering the source rewrites the data |
+| [a feature flag](a-feature-flag.md) | a branch with no owner and no expiry, doubling the state space |
 | [a personal data trail](a-personal-data-trail.md) | erasure, which is unimplementable without an inventory |
 | [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
 | [a form that fails](a-form-that-fails.md) | the view still holds a record, and every rule here says it may not |
