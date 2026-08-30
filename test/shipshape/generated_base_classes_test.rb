@@ -15,11 +15,21 @@ require "shipshape/install"
 class GeneratedBaseClassesTest < Minitest::Test
   def self.load_generated_once
     root = Dir.mktmpdir("shipshape-generated")
-    Shipshape::Install.new(root: root, auth: true).call
+    Shipshape::Install.new(root: root, auth: true, view_components: true).call
 
     stub_active_record
+    stub_view_component
     stub_descendants
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }
+  end
+
+  # The generated component base inherits from the gem. Standing it in is what lets this
+  # suite prove the refusal without the gem — the refusal is ours, the superclass is not.
+  def self.stub_view_component
+    return if defined?(::ViewComponent)
+
+    Object.const_set(:ViewComponent, Module.new)
+    ::ViewComponent.const_set(:Base, Class.new)
   end
 
   def self.stub_descendants
@@ -636,7 +646,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_a_shape_refuses_a_record_handed_to_it
     error = assert_raises(TypeError) { Holder.new(thing: RECORD.new) }
 
-    assert_includes error.message, "A shape is a value"
+    assert_includes error.message, "This is the presentation layer"
     assert_includes error.message, "@thing"
   end
 
@@ -660,5 +670,86 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_construction_still_answers_a_working_shape
     assert_equal Holder.new(thing: 1), Holder.new(thing: 1)
     refute_equal Holder.new(thing: 1), Holder.new(thing: 2)
+  end
+  # A view component is the other presentation kind, and the matrix gives it one row:
+  # `shape`. A component holding a record renders a template that queries — the N+1 nobody
+  # can find, because the call causing it is in an `.erb` file and names nothing.
+  class Panel < ApplicationViewComponent
+    def initialize(thing:)
+      @thing = typed(thing, Object)
+    end
+  end
+
+  # Refused at the argument, because the component typed it — the same guard every kind gets
+  # from `TypedArguments`, not a rule about components.
+  def test_a_view_component_refuses_a_record_too
+    error = assert_raises(ArgumentError) { Panel.new(thing: RECORD.new) }
+
+    assert_includes error.message, "is not an argument"
+  end
+
+  def test_a_view_component_takes_values_and_shapes
+    assert Panel.new(thing: Place.new(code: "ZA"))
+  end
+
+  # One rule, one implementation. Two copies of it is how the two kinds come to disagree.
+  def test_both_presentation_kinds_refuse_through_the_same_module
+    assert_includes Shape.singleton_class.ancestors, HoldsNoRecords
+    assert_includes ApplicationViewComponent.singleton_class.ancestors, HoldsNoRecords
+  end
+  # **A record is never an argument — into anything.** Every generated base class includes
+  # `TypedArguments`, so the one guard covers every kind at the one moment every argument
+  # passes through.
+  class Typing
+    include TypedArguments
+
+    def assert(value)
+      typed(value, Object)
+    end
+
+    def assert_as_record(value)
+      typed(value, RECORD)
+    end
+
+    def assert_many(values)
+      typed_array(values, Object)
+    end
+  end
+
+  def test_typed_refuses_a_record
+    error = assert_raises(ArgumentError) { Typing.new.assert(RECORD.new) }
+
+    assert_includes error.message, "is a record, and a record is not an argument"
+  end
+
+  # Declaring the record type is not a licence. It is the clearest statement of the defect,
+  # so it is refused before the type is matched rather than waved through by matching.
+  def test_declaring_the_record_type_does_not_permit_it
+    assert_raises(ArgumentError) { Typing.new.assert_as_record(RECORD.new) }
+  end
+
+  def test_typed_refuses_a_relation_and_a_collection_of_records
+    assert_raises(ArgumentError) { Typing.new.assert(ActiveRecord::Relation.new) }
+    assert_raises(ArgumentError) { Typing.new.assert_many([RECORD.new]) }
+  end
+
+  def test_typed_still_takes_values_and_shapes
+    assert_equal "ZA", Typing.new.assert("ZA")
+    assert_equal [1, 2], Typing.new.assert_many([1, 2])
+  end
+
+  # **The two guards are not one guard twice**, and this is the case that separates them: a
+  # class that never calls `typed` gets nothing from the argument check, and the sweep is
+  # what catches it.
+  class Untyped < Shape
+    def initialize(thing:)
+      @thing = thing
+    end
+  end
+
+  def test_the_sweep_catches_what_never_passed_through_typed
+    error = assert_raises(TypeError) { Untyped.new(thing: RECORD.new) }
+
+    assert_includes error.message, "This is the presentation layer"
   end
 end

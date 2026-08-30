@@ -16,9 +16,29 @@ module TypedArguments
 
   def typed(value, type, allow_nil: false)
     return value if allow_nil && value.nil?
+
+    refuse_record(value, type)
     return value if matches?(value, type)
 
     raise ArgumentError, "expected #{type}, got #{value.class}: #{value.inspect}"
+  end
+
+  # **A record is never an argument.** Not into a command, not into a shape, not into
+  # anything — a record that travels carries the database with it, and whatever receives it
+  # can walk an association, write through it, and reopen a query where nobody is looking
+  # for one. What the receiver needs are the fields, or a shape built from them, or the id it
+  # should load for itself.
+  #
+  # Checked here because every generated base class includes this module, so one guard covers
+  # every kind at the one moment every argument passes through. It is checked **before** the
+  # type match, so `typed(person, PersonRecord)` fails as what it is rather than passing: the
+  # declared type being a record is not a licence, it is the clearest statement of the defect.
+  def refuse_record(value, type)
+    return unless Persistence.anywhere_in?(value)
+
+    raise ArgumentError, "#{value.class} is a record, and a record is not an argument " \
+                         "(declared #{type}). Hand over the fields it needs, a shape built " \
+                         "from them, or the id to load — never the record."
   end
 
   def typed_array(values, type, allow_empty: true)

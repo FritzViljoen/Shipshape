@@ -25,9 +25,16 @@ constant for anything to see.
 
 So the generated `Shape` refuses it on construction, where the object is in hand and can
 simply be asked what it is — reaching a record smuggled in under any name, in an array, in a
-hash. This is the same instrument as
-[`one-operation-one-class`](one-operation-one-class.md)'s installed test: where a cop can only
-read names, the loaded object answers exactly.
+hash. The generated `ApplicationViewComponent` refuses it the same way, through the same
+module: a component is the other presentation kind, and a component holding a record renders
+a template that queries — the N+1 nobody can find, because the call causing it is in an
+`.erb` file and names nothing.
+
+This is the same instrument as [`one-operation-one-class`](one-operation-one-class.md)'s
+installed test: where a cop can only read names, the loaded object answers exactly. The rule
+itself is general and belongs to
+[`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) — a record is
+not an argument anywhere; this is where the presentation layer is held to it.
 
 - **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object

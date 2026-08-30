@@ -29,14 +29,23 @@ AUTH_OFF = <<~TEXT
   apply rather than having yours replaced.
 TEXT
 
+# The one generated file that can stop a boot: it inherits from the `view_component` gem.
+VIEW_COMPONENTS_OFF = <<~TEXT
+
+  View components are OFF. `shipshape install --view-components` adds
+  app/shipshape/application_view_component.rb, which refuses to hold a record exactly as the
+  generated Shape does. It inherits from the view_component gem, so it is only written when
+  you ask for it.
+TEXT
+
 AUTH_ON = <<~TEXT
   Authorisation is ON. Every operation now needs `actor:`, and its permission is its class
   name. An operation that runs before anyone is identified says so by implementing
   `anonymous_call` instead of `call`.
 TEXT
 
-def install(auth)
-  report = Shipshape::Install.new(root: Dir.pwd, auth: auth).call
+def install(auth, view_components)
+  report = Shipshape::Install.new(root: Dir.pwd, auth: auth, view_components: view_components).call
 
   report[:written].each { |path| puts "  written  #{path}" }
   report[:skipped].each { |path| puts "  kept     #{path}" }
@@ -48,6 +57,7 @@ def install(auth)
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
   puts auth ? AUTH_ON : AUTH_OFF
+  puts VIEW_COMPONENTS_OFF unless view_components
   outcome == :no_controller ? 1 : 0
 end
 
@@ -218,7 +228,7 @@ end
 command = ARGV.shift
 
 case command
-when "install" then exit install(ARGV.include?("--auth"))
+when "install" then exit install(ARGV.include?("--auth"), ARGV.include?("--view-components"))
 when "rules" then exit rules
 when "canaries" then exit canaries
 when "coverage" then exit coverage
@@ -227,7 +237,7 @@ when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] | rules | canaries [--plant] | coverage | next | check | report | version"
+  warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant] | coverage | next | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"

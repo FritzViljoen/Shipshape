@@ -15,6 +15,22 @@ Date)` would stop being greppable — see
 
 - **Principle:** `nothing-crosses-unasserted`. `nothing-is-hidden` produces the
   written-not-generated half; on conflict `nothing-crosses-unasserted` governs.
+**A record is never an argument.** Not into a command, not into a shape, not into anything.
+A record that travels carries the database with it, and whatever receives it can walk an
+association, write through it, and reopen a query where nobody is looking for one — with
+`@person.orders` and no constant for the call graph to see. What a receiver needs is the
+fields, a shape built from them, or the id to load for itself.
+
+The generated `typed` refuses one, which covers every kind at once because every base class
+includes `TypedArguments`, and refuses it **before** the type is matched: declaring
+`typed(person, PersonRecord)` is not a licence, it is the clearest statement of the defect.
+
+That leaves the class that never calls `typed`. So the presentation kinds — `Shape` and the
+generated `ApplicationViewComponent` — also sweep what they ended up holding, through
+`HoldsNoRecords`. Two moments, one rule: `typed` names the keyword and is the better message;
+the sweep cannot be skipped and is the better guarantee. Each was watched to fail with the
+other in place, which is what says they are not one guard written twice.
+
 - **Guard:** `Shipshape/TypedArguments`. Within a governed tree the **superclass decides
   the kind**, so an operation stays covered wherever it is filed inside one. Every keyword
   must reach a

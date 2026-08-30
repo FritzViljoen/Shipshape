@@ -28,8 +28,10 @@ module Shipshape
     # name before it is used.
     FILES = %w[
       boolean
+      persistence
       typed_arguments
       permission
+      holds_no_records
       shape
       result
       query
@@ -41,6 +43,7 @@ module Shipshape
       legacy_command
       typed_params
       operation_surface
+      application_view_component
     ].freeze
 
     DIRECTORY = "app/shipshape"
@@ -56,15 +59,22 @@ module Shipshape
     # Written only when authorisation is asked for. Everything else is written either way.
     AUTH_ONLY = %w[permission].freeze
 
+    # **Written only on request, because it is the one file that can stop a boot.** It
+    # inherits from the `view_component` gem, and an application without that gem cannot load
+    # it. Everything else here is a PORO that loads anywhere.
+    VIEW_COMPONENT_ONLY = %w[application_view_component].freeze
+
     # **Authorisation is opt-in, and off by default.** This gem installs into codebases that
     # already run, and base classes demanding an actor on day one would stop every call site
     # at once — which is not a migration, it is an outage. Turn it on when the seam is ready:
     # `shipshape install --auth`. It only ever goes forward from there.
-    def initialize(root:, directory: DIRECTORY, test_directory: TEST_DIRECTORY, auth: false)
+    def initialize(root:, directory: DIRECTORY, test_directory: TEST_DIRECTORY, auth: false,
+                   view_components: false)
       @root = typed(root, String)
       @directory = typed(directory, String)
       @test_directory = typed(test_directory, String)
       @auth = typed(auth, Boolean)
+      @view_components = typed(view_components, Boolean)
     end
 
     # Answers what it did: { written: [...], skipped: [...] }, both relative paths.
@@ -79,7 +89,7 @@ module Shipshape
 
     private
 
-    attr_reader :root, :directory, :test_directory, :auth
+    attr_reader :root, :directory, :test_directory, :auth, :view_components
 
     def write_into(folder, names, report)
       FileUtils.mkdir_p(File.join(root, folder))
@@ -96,7 +106,10 @@ module Shipshape
     end
 
     def files
-      auth ? FILES : FILES - AUTH_ONLY
+      chosen = FILES
+      chosen -= AUTH_ONLY unless auth
+      chosen -= VIEW_COMPONENT_ONLY unless view_components
+      chosen
     end
 
     def template(name)
