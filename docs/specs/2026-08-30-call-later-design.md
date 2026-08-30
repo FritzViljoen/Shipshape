@@ -61,7 +61,7 @@ because the job dead-letters on an outcome that succeeded. This falls out of
 
 A transient condition — a gateway timeout — therefore **raises** rather than answering
 `failure(:gateway_unavailable)`. That is a narrowing of what the law permits today, and it is
-the first of the two things needing ratification.
+the one thing still needing ratification.
 
 ## The audit log is what satisfies `nothing-fails-quietly`
 
@@ -75,10 +75,9 @@ uniform answer is what makes a wrapper possible at all". One audit hook can exis
 door answers the same way, and that same uniformity is what makes `call_later` a base-class
 method rather than a per-command chore.
 
-> **Gap: shipshape does not generate an audit log.** The base classes have no such hook today.
-> The design above depends on one, so either the generated `Command` grows it or the
-> application supplies it and the canon says so. This is unresolved and it is load-bearing —
-> without it, a deferred failure genuinely does vanish.
+This was a gap when the note was written — shipshape generated no audit log, and without one
+a deferred failure genuinely vanished. `shipshape install` now writes `audit_log.rb` and every
+writing door reports to it, including the refusals.
 
 ## The job
 
@@ -114,9 +113,10 @@ type — which is rare enough to declare where it is needed.
 ## What it does not solve
 
 - **The `Shape` argument**, until a serialiser exists.
-- **Permission timing.** The check runs in `self.call`. Deferred, that is *run* time, so a
-  right revoked between enqueue and execution is honoured — but the caller no longer learns it
-  was refused. Whether `call_later` should also check at enqueue, to fail fast, is undecided.
+- **Permission timing is settled: checked twice.** At enqueue, so the caller learns
+  immediately and gets `failure(:forbidden)` synchronously; and again in `self.call` when the
+  job runs, because a right revoked in between is the answer that matters. Both refusals are
+  audited.
 - **Ordering.** Two `call_later`s are two jobs with no relative order. Anything order-dependent
   is a workflow, run synchronously.
 - **Nothing proves behaviour is preserved**, which is the standing gap everywhere in this
