@@ -42,6 +42,60 @@ have been found.
 
 ---
 
+## Start from the transaction blocks — somebody already drew the boundary
+
+**A command is one transaction** ([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md)),
+however many writes that holds. Read backwards, that is a finding technique: every
+`transaction do` already in the codebase is a place where somebody decided *these writes are
+one act*, and that decision is a command waiting to be named.
+
+```sh
+grep -rn "transaction do\|transaction {" app lib | grep -v spec
+```
+
+**This is the cheapest list in the whole playbook, and it is not a guess.** Most refactoring
+heuristics infer a boundary from shape — method length, coupling, a noun that appears a lot.
+This one reads a boundary somebody wrote down, under pressure, because getting it wrong
+corrupted data. Whatever else is unclear about the code, the author was sure about that.
+
+**Take the whole block, not the method around it.** The block's contents are the command's
+`call`; what precedes it is the caller's business — parsing, finding, deciding — and belongs
+where the procedure for that shape says.
+
+**Measured across six public Rails codebases: 307 blocks**, and where they sit is the useful
+part — the list is ordered by what the corpus actually holds, not by what one would guess:
+
+| Where it is | How many | What it is |
+|---|---|---|
+| a **model** method | 98 | a god record doing the work — [a god record](a-god-record.md) first, and the block is the command that comes out |
+| a **service** method | 89 | a command, and the rest of the method is its caller — [a service](a-service.md) |
+| a **controller** action | 60 | the action's whole job — [a fat controller](a-fat-controller.md) |
+| a **job** or elsewhere | 60 | usually a command with a doorbell attached |
+
+A transaction wrapping **two** unrelated acts is two commands, and the warning below applies.
+One with an HTTP call inside it is [inline IO](inline-io.md), and urgent.
+
+**The model bucket being the largest is the finding.** A transaction inside a record is a
+record deciding what is atomic, which is behaviour on a thing that should map rows —
+`persistence-holds-no-behaviour` and this technique point at the same files from opposite
+directions.
+
+**The two-act case is the one that costs something, and it must be said out loud.** Splitting
+one transaction into two commands means the middle state becomes reachable: the first
+committed, the second did not. That state was always *possible* — a crash could produce it —
+but it was rare, and afterwards it is ordinary. So a workflow sequences them, every step is
+idempotent, and somebody decides what the half-done state means. **If nobody will do that
+work, leave the transaction alone**: one command doing two acts is a smell, and two commands
+with an unconsidered gap between them is a bug.
+
+**A nested transaction is not the savepoint it looks like.** Rails' default reuses the outer
+one, so an inner `transaction do` neither isolates nor rolls back on its own — which is
+exactly the ambiguity `a-command-is-one-transaction` refuses when it forbids a command calling
+a command. An inner block is usually a command that was already extracted in someone's head.
+
+**Check:** every block on the list is either a command now, or has a sentence next to it
+saying why it is not.
+
 ## No industry terms in code
 
 **A word the business owns is a row, not a branch.** `vat`, `tourism_levy`, `gold_tier`,

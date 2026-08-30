@@ -44,6 +44,11 @@ The cops have already done the enumeration:
   `ENV`, `current_user`. Each becomes an argument.
 - **`NoTypeInterrogation`** names the places a variant should have been a class.
 
+And the cops are not the only free list. **Every `transaction do` in the service is a command
+somebody already named**, because they decided those writes were one act — see
+[the index](README.md), "Start from the transaction blocks". It is the one boundary in a
+legacy file that was not inferred.
+
 **Check:** you can list the target classes before writing any of them.
 
 ---

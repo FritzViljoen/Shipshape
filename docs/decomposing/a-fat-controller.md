@@ -45,6 +45,10 @@ and the response chooses between them at the edge.
 `Shipshape/NoDecisionsInRequestHandling` names every branch on domain state. Each one is a
 decision that belongs in the operation — and the decision's *answer* is what comes back.
 
+**And if the action contains a `transaction do`, that block is the command** — its contents
+are the new `call`, and everything before it is the action's own work. Somebody already
+decided what had to be atomic; see [the index](README.md), "Start from the transaction blocks".
+
 **Check:** you can name the command or query before writing it.
 
 ---
