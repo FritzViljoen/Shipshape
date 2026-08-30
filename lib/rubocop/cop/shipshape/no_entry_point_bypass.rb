@@ -76,12 +76,12 @@ module RuboCop
         # **Construction is what is closed**, so this is what a bypass reaches for. `call`
         # is public and harmless — there is no operation to call it on unless somebody built
         # one, and `private_class_method :new` is what stops that.
-        # **Both doors.** `new` builds an operation without going through `call`;
-        # `__perform__` runs one without the permission check, the transaction or the
+        # **Both doors.** `new` and `allocate` build an operation without going through
+        # `call`; `__perform__` runs one without the permission check, the transaction or the
         # return-type assertion. Neither is reachable without `send`, which is why this cop
         # is the one that closes them.
         def entry_names
-          @entry_names ||= Array(cop_config.fetch("Constructor", "new")) +
+          @entry_names ||= Array(cop_config.fetch("Constructor", %w[new allocate])) +
                            Array(cop_config.fetch("Forwarder", "__perform__"))
         end
       end

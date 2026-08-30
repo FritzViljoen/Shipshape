@@ -53,6 +53,12 @@ class NoEntryPointBypassTest < Minitest::Test
 
   # The forwarding method the base class uses to reach a private entry point. Reaching it
   # from outside runs the operation with none of the door's guarantees.
+  # `allocate` is public on every Ruby class and skips `initialize`, so hiding `new` alone
+  # left `Settle.allocate.__perform__(actor)` running unauthenticated. Found by running it.
+  def test_allocate_is_a_bypass_too
+    assert_equal 1, check("Settle.send(:allocate)").length
+  end
+
   def test_the_forwarder_is_a_bypass_too
     found = check("op.send(:__perform__)")
 

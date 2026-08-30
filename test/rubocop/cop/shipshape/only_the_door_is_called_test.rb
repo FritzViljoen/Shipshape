@@ -78,6 +78,19 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_equal 1, check("SettleInvoice.__perform__(actor)").length
   end
 
+  # The route `private_class_method :new` alone left open: `allocate` is public on every Ruby
+  # class and skips `initialize` entirely.
+  def test_allocate_is_not_the_door_either
+    assert_equal 1, check("SettleInvoice.allocate").length
+  end
+
+  # A variable holding the class is the stated blind spot. `private_class_method :new,
+  # :allocate` refuses this at runtime, and an operation declares no other public class
+  # method, so there is nothing else to reach for.
+  def test_an_operation_held_in_a_variable_is_the_stated_blind_spot
+    assert_empty check("command = SettleInvoice\n    command.new(invoice_id: 1)")
+  end
+
   def test_something_that_is_not_an_operation_is_left_alone
     assert_empty check("Invoice.new(number: '1')")
   end

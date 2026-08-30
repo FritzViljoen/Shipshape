@@ -97,5 +97,9 @@ class LegacyQuery
 
   # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
   # that skipped the permission check, the transaction or the return-type assertion.
-  private_class_method :new
+  #
+  # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
+  # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
+  # ran the operation unauthenticated. Verified by running it, not by reading it.
+  private_class_method :new, :allocate
 end

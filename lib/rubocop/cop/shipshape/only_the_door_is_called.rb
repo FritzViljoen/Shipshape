@@ -19,10 +19,21 @@ module RuboCop
       # visibility of the thing it names.
       #
       # WHAT IT DOES NOT CATCH: the receiver must be a **constant this configuration can
-      # resolve to a governed file**. An operation held in a variable — `klass = SettleInvoice;
-      # klass.build` — is invisible, and so is one reached through a constant in a tree the
-      # layout does not declare. **Tests are exempt**: a test builds objects directly and
-      # reaches inside, which is what a test is for.
+      # resolve to a governed file**. An operation held in a variable is invisible — a
+      # `command = SettleInvoice; command.new(...)` passes here, and so does anything reached
+      # through `constantize` or a registry lookup.
+      #
+      # **What catches those is the runtime, and it was checked rather than assumed.**
+      # `private_class_method :new, :allocate` refuses both through a variable, and an
+      # operation has no other public class method to call because
+      # `Shipshape/OneOperationOneClass` refuses declaring one. So the variable form fails on
+      # its first run; this cop's job is to fail it at build time instead, in the form people
+      # actually write. Chasing a constant through an assignment would buy the honest mistake
+      # nothing — that mistake is written as a constant — and would not stop a deliberate
+      # bypass, which has `constantize` either way.
+      #
+      # **Tests are exempt**: a test builds objects directly and reaches inside, which is what
+      # a test is for.
       #
       # @example
       #   # bad
