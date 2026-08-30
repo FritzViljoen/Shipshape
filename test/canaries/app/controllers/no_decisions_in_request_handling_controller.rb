@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NoDecisionsInRequestHandling
+class NoDecisionsInRequestHandling < ApplicationController
 def show
   render :x if @canary.cancelled?
 end

@@ -112,6 +112,11 @@ module Shipshape
         rescue StandardError
         end
       RUBY
+      "Shipshape/NoEntryPointBypass" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          Settle.new(amount: 1).send(:call)
+        end
+      RUBY
       "Shipshape/OperationsAreLeaves" => { kind: "command", body: <<~RUBY },
         def self.call(**arguments)
           new(**arguments).call

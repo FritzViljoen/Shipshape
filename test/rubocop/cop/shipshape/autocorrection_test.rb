@@ -27,6 +27,14 @@ class AutocorrectionTest < Minitest::Test
 
   CONTROLLER = "app/controllers/things_controller.rb"
 
+  OPERATION = {
+    "Shipshape/CallGraph" => {
+      "Kinds" => { "command" => ["app/commands/**/*.rb"] },
+      "Matrix" => { "command" => [] },
+    },
+    "Shipshape/OneOperationOneClass" => { "OperationKinds" => ["command"], "PublicMethod" => "call" },
+  }.freeze
+
   def test_a_silent_numeric_cast_is_rewritten_to_a_parser
     assert_corrected "params[:page].to_i", "integer_param!(:page)", RuboCop::Cop::Shipshape::NoSilentCoercion
     assert_corrected "params[:amount].to_f", "decimal_param!(:amount)", RuboCop::Cop::Shipshape::NoSilentCoercion
@@ -114,6 +122,34 @@ class AutocorrectionTest < Minitest::Test
     assert_unchanged "Date.parse(params[:on])", RuboCop::Cop::Shipshape::NoInlineParamParse
   end
 
+  # One `private`, scaffolded as the class's first line, fixes every public method at once —
+  # an operation exposes nothing, so there is no case where some stay public and others do
+  # not. Not behaviour-preserving: a caller doing `operation.call` breaks, which is why this
+  # is `SafeAutoCorrect: false` like the rest.
+  def test_a_public_operation_is_corrected_by_scaffolding_private
+    source = <<~RUBY
+      class Settle
+        def initialize(amount:)
+          @amount = amount
+        end
+
+        def call
+          helper
+        end
+
+        def helper
+          1
+        end
+      end
+    RUBY
+
+    corrected = correct(source, RuboCop::Cop::Shipshape::OneOperationOneClass,
+                        path: "app/commands/settle.rb", layout: OPERATION)
+
+    assert_includes corrected, "class Settle\n  private\n\n  def initialize"
+    assert_equal 1, corrected.scan(/^\s*private$/).length, "one private, not one per method"
+  end
+
   private
 
   def action(body)
@@ -142,10 +178,11 @@ class AutocorrectionTest < Minitest::Test
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, source)
 
-      config = RuboCop::Config.new(
-        layout.merge(cop_class.cop_name => { "Enabled" => true }),
-        File.join(root, ".rubocop.yml"),
-      )
+      # Merge rather than replace: overwriting the cop's own entry dropped `OperationKinds`,
+      # so the cop decided the file was not an operation and never fired.
+      own = { "Enabled" => true }.merge(layout.fetch(cop_class.cop_name, {}))
+      config = RuboCop::Config.new(layout.merge(cop_class.cop_name => own),
+                                   File.join(root, ".rubocop.yml"))
       team = RuboCop::Cop::Team.new([cop_class.new(config, RuboCop::Options.new.parse(["-A"]).first)],
                                     config, raise_error: true, autocorrect: true)
       processed = RuboCop::ProcessedSource.new(source, RUBY_VERSION.to_f, path)

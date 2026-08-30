@@ -45,6 +45,7 @@ module RuboCop
       #   end
       class OneOperationOneClass < Base
         include VisibilityHelp
+        extend AutoCorrector
         include Explains
 
         SHAPE = <<~RUBY
@@ -85,7 +86,7 @@ module RuboCop
           check_entry_point(node, statements)
           return if body.nil?
 
-          check_methods(statements)
+          check_methods(node, statements)
           statements.each { |statement| check_reader(statement) }
         end
 
@@ -143,17 +144,6 @@ module RuboCop
           )
         end
 
-        def wrong_name(definition)
-          explain(
-            "An operation's public method is `#{expected_name}` — or `#{entry_names.last}` " \
-            "where it runs before anyone is identified — not `#{definition.method_name}`.",
-            because: "One shape means one wrapper can serve every call site — logging, " \
-                     "transactions, instrumentation, the test harness. A second verb " \
-                     "means every one of those has to know about both.",
-            instead: SHAPE,
-          )
-        end
-
         def exposed_state(node)
           explain(
             "An operation exposes no state. `#{node.method_name}` here is a public " \
@@ -184,12 +174,50 @@ module RuboCop
         # work to run — and one that inherits its entry point from another operation is the
         # shape `an-operation-is-a-leaf` refuses, where the parent's `anonymous_call` made
         # the child public with nothing at the child saying so.
+        # The entry point exists, whatever its visibility — it must be **private**, and that
+        # is `check_instance_methods`' business. This asks only whether it is there at all.
         def check_entry_point(node, statements)
-          # A public method with the wrong name is already reported as the wrong name. Saying
-          # "and also defines neither" is one defect wearing two offences.
-          return if statements.any? { |statement| public_method?(statement) }
+          entries = definitions_in(statements).select do |definition|
+            entry_names.include?(definition.method_name.to_s)
+          end
 
-          add_offense(node.identifier, message: no_entry_point(node.identifier.source))
+          return add_offense(node.identifier, message: no_entry_point(node.identifier.source)) if entries.empty?
+          return if entries.length == 1
+
+          # **Both, and both private, is a fail-open.** `anonymous?` answers true, so the base
+          # class dispatches to `anonymous_call` and the operation runs unauthenticated —
+          # while the file appears to define an authorised `call`. Visibility cannot catch
+          # this, because the correct shape is private too.
+          entries.drop(1).each { |entry| add_offense(entry, message: two_entry_points(entry)) }
+        end
+
+        # `private def call; end` is a `send` wrapping a `def`, so a check that looks only at
+        # direct children misses it — and then reports the class as defining no entry point
+        # at all, which is the opposite of true.
+        def definitions_in(statements)
+          statements.flat_map do |statement|
+            next statement if statement.def_type?
+            next statement.arguments.select(&:def_type?) if inline_visibility?(statement)
+
+            []
+          end
+        end
+
+        def inline_visibility?(statement)
+          statement.respond_to?(:send_type?) && statement.send_type? &&
+            %i[private public protected].include?(statement.method_name)
+        end
+
+        def two_entry_points(definition)
+          explain(
+            "`#{definition.method_name}` is a second entry point, and an operation has one.",
+            because: "The base class dispatches to `#{entry_names.last}` whenever a class " \
+                     "defines it, so a class defining both runs unauthenticated while " \
+                     "appearing to define an authorised `#{expected_name}`. Which of the " \
+                     "two a class implements is what decides whether it is checked, so it " \
+                     "cannot implement both.",
+            instead: SHAPE,
+          )
         end
 
         def no_entry_point(name)
@@ -205,15 +233,107 @@ module RuboCop
           )
         end
 
-        def check_methods(statements)
+        # **Instance methods and class methods have different rules, and mixing them was a
+        # bug:** one list meant a class method counted towards the instance budget, so a
+        # command with `def self.for` had its perfectly correct `def call` reported as a
+        # third public method.
+        def check_methods(node, statements)
           public_defs = statements.select { |statement| public_method?(statement) }
 
-          public_defs.each_with_index do |definition, index|
-            next add_offense(definition, message: second_operation(definition)) if index.positive?
-            next if entry_names.include?(definition.method_name.to_s)
+          check_instance_methods(node, public_defs.select(&:def_type?))
+          check_class_methods(public_defs.select(&:defs_type?))
+        end
 
-            add_offense(definition, message: wrong_name(definition))
+        # **None.** Not even the entry point: the base class reaches it with `send`, so an
+        # operation's entire public surface is the inherited `self.call` and there is nothing
+        # else on it to reach for.
+        def check_instance_methods(node, definitions)
+          definitions.each_with_index do |definition, index|
+            message = if entry_names.include?(definition.method_name.to_s)
+                        entry_point_is_private(definition)
+                      else
+                        second_operation(definition)
+                      end
+
+            add_offense(definition, message: message) do |corrector|
+              # **One `private`, scaffolded as the class's first line, fixes every one of
+              # these at once** — an operation exposes nothing, so there is no case where
+              # some methods should stay public and others should not. Attached to the first
+              # offence only: a second insert would stack two `private` lines.
+              scaffold_private(corrector, node) if index.zero?
+            end
           end
+        end
+
+        # Not behaviour-preserving, and it is `SafeAutoCorrect: false` for that reason: a
+        # caller doing `operation.call` breaks. It breaks under the rule anyway, and
+        # `Shipshape/NoEntryPointBypass` refuses the `send` that would paper over it.
+        def scaffold_private(corrector, node)
+          body = node.body
+          return if body.nil?
+
+          first = body.begin_type? ? body.children.first : body
+          corrector.insert_before(first, "private\n\n#{' ' * first.loc.column}")
+        end
+
+        def entry_point_is_private(definition)
+          explain(
+            "`#{definition.method_name}` is public, and an operation exposes nothing.",
+            because: "The base class reaches it with `send`, so it does not need to be " \
+                     "public — and left public it is a second entrance. A caller can write " \
+                     "`SettleInvoice.new(...).#{definition.method_name}` and go around the " \
+                     "door, taking the permission check, the transaction and the " \
+                     "return-type assertion with it, while the call site looks ordinary.",
+            instead: <<~RUBY,
+              class SettleInvoice < Command
+                def initialize(invoice_id:)
+                  @invoice_id = typed(invoice_id, Integer)
+                end
+
+                private
+
+                def call
+                  success(...)
+                end
+              end
+
+              # the only way in, and the only one there has ever been
+              SettleInvoice.call(actor: actor, invoice_id: 1)
+            RUBY
+          )
+        end
+
+        # **None.** The only class method an operation has is the base class's `call`, and
+        # redefining that is `Shipshape/OperationsAreLeaves`' business — reporting it here
+        # too would be one defect wearing two offences.
+        def check_class_methods(definitions)
+          definitions.reject { |definition| definition.method?(expected_name.to_sym) }
+                     .each { |definition| add_offense(definition, message: class_method(definition)) }
+        end
+
+        def class_method(definition)
+          explain(
+            "`self.#{definition.method_name}` is a public class method, and an operation " \
+            "has none.",
+            because: "An operation's class surface is exactly what the base class gives it: " \
+                     "`call`, and nothing else. A second entrance means the wrapper that " \
+                     "serves every call site — the permission check, the transaction, the " \
+                     "return-type assertion — is not on the path that call took, and " \
+                     "nothing at the call site shows which entrance was used.",
+            instead: <<~RUBY,
+              # a constructor helper is the caller's business, or its own operation
+              SettleInvoice.call(invoice_id: invoice.id, settled_on: today)
+
+              # a constant belongs on the class; a computation belongs in `call`
+              class SettleInvoice < Command
+                TERMS = 30
+
+                def call
+                  success(...)
+                end
+              end
+            RUBY
+          )
         end
 
         def public_method?(node)

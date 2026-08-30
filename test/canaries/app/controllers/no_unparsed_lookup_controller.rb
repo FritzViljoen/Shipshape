@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NoUnparsedLookup
+class NoUnparsedLookup < ApplicationController
 def show
   CanaryRecord.find(params[:id])
 end

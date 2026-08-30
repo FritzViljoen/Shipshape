@@ -245,6 +245,9 @@ Shipshape/OneOperationOneClass:
     An operation is a class with one public method, taking keyword arguments. A second
     public method is a second operation, and it gets a second class.
   Enabled: true
+  # Scaffolding `private` is not behaviour-preserving: a caller doing `operation.call`
+  # breaks. It breaks under the rule anyway, so the fix arrives under `-A`, never `-a`.
+  SafeAutoCorrect: false
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
@@ -263,6 +266,12 @@ Shipshape/OneOperationOneClass:
   # identified says so by implementing it instead of `call`. A class defining both is still
   # refused, as a second public method.
   AnonymousMethod: anonymous_call
+  # **Tests are exempt.** A test legitimately builds an object directly, reaches a private
+  # method, and stubs what it needs — that is what a test is for, and refusing it would make
+  # this cop the first thing a team turns off. The rules here are about the code that ships.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
 
 Shipshape/NoDecisionsInRequestHandling:
   Description: >-
@@ -300,6 +309,13 @@ Shipshape/EnforcementMessagesAreDocumentation:
 
 # The three cops below share one default kind list: the operation and value trees. The
 # layout itself is declared once on Shipshape/CallGraph and read from there.
+  # **Tests are exempt.** A test legitimately builds an object directly, reaches a private
+  # method, and stubs what it needs — that is what a test is for, and refusing it would make
+  # this cop the first thing a team turns off. The rules here are about the code that ships.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+
 Shipshape/NoTypeInterrogation:
   Description: >-
     Nothing dispatches on what kind of thing it was handed. An assertion has one outcome,
@@ -435,6 +451,12 @@ Shipshape/NoEmptyRescue:
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
+  # **Tests are exempt.** A test legitimately builds an object directly, reaches a private
+  # method, and stubs what it needs — that is what a test is for, and refusing it would make
+  # this cop the first thing a team turns off. The rules here are about the code that ships.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
 
 Shipshape/NoSilentCoercion:
   Description: >-
@@ -453,6 +475,12 @@ Shipshape/NoSilentCoercion:
   Kinds:
     - request_handling
     - entry_point
+  # **Tests are exempt.** A test legitimately builds an object directly, reaches a private
+  # method, and stubs what it needs — that is what a test is for, and refusing it would make
+  # this cop the first thing a team turns off. The rules here are about the code that ships.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
 
 Shipshape/PersistenceHoldsNoBehaviour:
   Description: >-
@@ -545,3 +573,23 @@ Shipshape/OperationsAreLeaves:
     - io_query
     - legacy_command
     - legacy_query
+
+Shipshape/NoEntryPointBypass:
+  Description: >-
+    An operation's entry point is private so the class method is the only way in. `send`
+    steps around it, skipping the permission check, the transaction and the type assertion.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  PublicMethod: call
+  AnonymousMethod: anonymous_call
+  Include:
+    - '**/*.rb'
+  # The generated base classes are where the legitimate `send` lives. Excluded by path, not
+  # by name: an application file called command.rb is not one of these.
+  # Tests are exempt: a test legitimately reaches a private method, and refusing that would
+  # make this the first cop a team turns off.
+  Exclude:
+    - 'app/shipshape/*.rb'
+    - '**/shipshape/*.rb'
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'

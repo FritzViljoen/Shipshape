@@ -30,7 +30,7 @@ class OneOperationOneClassTest < Minitest::Test
 
   TREE = ["app/commands/create_person.rb", "app/queries/list_people.rb", "app/shapes/place.rb"].freeze
 
-  def test_one_public_call_with_keywords_is_the_shape
+  def test_a_private_call_with_keywords_is_the_shape
     assert_empty check(<<~RUBY)
       class CreatePerson
         def initialize(name:, joined_on:)
@@ -38,23 +38,44 @@ class OneOperationOneClassTest < Minitest::Test
           @joined_on = joined_on
         end
 
+        private
+
+        private
+
         def call
           PersonRecord.create!(name: @name)
         end
-
-        private
 
         attr_reader :name, :joined_on
       end
     RUBY
   end
 
+  # **The whole public surface is the inherited class method.** Left public, `call` is a
+  # second entrance: a caller can write `CreatePerson.new(...).call` and go around the door,
+  # taking the permission check, the transaction and the return-type assertion with it.
+  def test_a_public_entry_point_is_a_second_entrance
+    found = check(<<~RUBY)
+      class CreatePerson
+        def call
+          PersonRecord.create!(name: @name)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`call` is public, and an operation exposes nothing"
+    assert_includes found.first.message, "go around the door"
+  end
+
   def test_a_second_public_method_is_a_second_operation
     found = check(<<~RUBY)
       class CreatePerson
-        def call; end
-
         def preview; end
+
+        private
+
+        private def call; end
       end
     RUBY
 
@@ -62,25 +83,29 @@ class OneOperationOneClassTest < Minitest::Test
     assert_includes found.first.message, "`preview` is public"
   end
 
-  def test_the_public_method_is_named_call
+  def test_a_public_method_of_any_name_is_refused
     found = check(<<~RUBY)
       class CreatePerson
         def perform; end
+
+        private
+
+        private def call; end
       end
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "not `perform`"
+    assert_includes found.first.message, "`perform` is public"
   end
 
   def test_private_methods_are_not_counted
     assert_empty check(<<~RUBY)
       class CreatePerson
+        private
+
         def call
           build
         end
-
-        private
 
         def build; end
 
@@ -92,7 +117,7 @@ class OneOperationOneClassTest < Minitest::Test
   def test_an_inline_private_def_is_not_counted
     assert_empty check(<<~RUBY)
       class CreatePerson
-        def call; end
+        private def call; end
 
         private def build; end
       end
@@ -104,7 +129,9 @@ class OneOperationOneClassTest < Minitest::Test
       class CreatePerson
         attr_reader :name
 
-        def call; end
+        private
+
+        private def call; end
       end
     RUBY
 
@@ -119,7 +146,7 @@ class OneOperationOneClassTest < Minitest::Test
           @name = name
         end
 
-        def call; end
+        private def call; end
       end
     RUBY
 
@@ -132,7 +159,7 @@ class OneOperationOneClassTest < Minitest::Test
       class CreatePerson
         def initialize(name = "x"); end
 
-        def call; end
+        private def call; end
       end
     RUBY
 
@@ -147,7 +174,7 @@ class OneOperationOneClassTest < Minitest::Test
       class CreatePerson
         def initialize(**options); end
 
-        def call; end
+        private def call; end
       end
     RUBY
 
@@ -160,7 +187,7 @@ class OneOperationOneClassTest < Minitest::Test
       class CreatePerson
         def initialize(*args); end
 
-        def call; end
+        private def call; end
       end
     RUBY
 
@@ -173,7 +200,7 @@ class OneOperationOneClassTest < Minitest::Test
       class CreatePerson
         def initialize(name:, joined_on: nil); end
 
-        def call; end
+        private def call; end
       end
     RUBY
   end
@@ -198,7 +225,7 @@ class OneOperationOneClassTest < Minitest::Test
       class Import
         def initialize(path); end
 
-        def call; end
+        private def call; end
 
         def preview; end
       end
@@ -211,11 +238,11 @@ class OneOperationOneClassTest < Minitest::Test
 
     assert_empty check(<<~RUBY)
       class CreatePerson
+        private
+
         def call
       #{body}
         end
-
-        private
 
       #{Array.new(50) { |index| "  def step_#{index}; end" }.join("\n")}
       end
@@ -235,6 +262,8 @@ class OneOperationOneClassTest < Minitest::Test
           @name = name
         end
 
+        private
+
         def call
           apply(build(@name), 1)
         end
@@ -252,12 +281,16 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
+  # `initialize` and the entry point are what a caller hands arguments to, so both are
+  # checked — and the entry point being private does not exempt it.
   def test_the_entry_points_are_still_checked
     found = check(<<~RUBY)
       class CreatePerson
         def initialize(name)
           @name = name
         end
+
+        private
 
         def call(extra)
           extra
@@ -290,9 +323,13 @@ class OneOperationOneClassTest < Minitest::Test
   def test_a_nested_shape_may_expose_its_fields
     assert_empty check(<<~RUBY)
       class ReplyDraft
+        private
+
         def call
           [Draft.new(subject: "x")]
         end
+
+        public
 
         class Draft
           def initialize(subject:)
@@ -316,6 +353,8 @@ class OneOperationOneClassTest < Minitest::Test
           end
         end
 
+        private
+
         def call
           success(:done)
         end
@@ -328,6 +367,8 @@ class OneOperationOneClassTest < Minitest::Test
   def test_anonymous_call_is_an_entry_point
     assert_empty check(<<~RUBY)
       class CreatePerson
+        private
+
         def anonymous_call
           success(:in)
         end
@@ -335,10 +376,15 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
-  # Two entry points would be two operations with different authorisation in one class.
-  def test_defining_both_entry_points_is_a_second_operation
+  # **Both, and both private, is a fail-open.** `anonymous?` answers true, so the base class
+  # dispatches to `anonymous_call` and the operation runs unauthenticated — while the file
+  # appears to define an authorised `call`. Visibility cannot catch this: the correct shape
+  # is private too.
+  def test_defining_both_entry_points_is_refused_even_when_both_are_private
     found = check(<<~RUBY)
       class CreatePerson
+        private
+
         def call; end
 
         def anonymous_call; end
@@ -346,7 +392,8 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "is public, and an operation's only public method is `call`"
+    assert_includes found.first.message, "`anonymous_call` is a second entry point"
+    assert_includes found.first.message, "runs unauthenticated"
   end
 
   # The advice matters as much as the finding: a public helper is almost never a second
@@ -354,12 +401,14 @@ class OneOperationOneClassTest < Minitest::Test
   def test_a_public_helper_is_told_to_go_private
     message = check(<<~RUBY).first.message
       class CreatePerson
-        def call
-          total
-        end
-
         def total
           1
+        end
+
+        private
+
+        def call
+          total
         end
       end
     RUBY
@@ -373,11 +422,11 @@ class OneOperationOneClassTest < Minitest::Test
   def test_private_helpers_are_the_shape
     assert_empty check(<<~RUBY)
       class CreatePerson
+        private
+
         def call
           total + tax
         end
-
-        private
 
         def total
           1

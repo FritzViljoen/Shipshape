@@ -25,6 +25,26 @@ class's entry point and takes the check, the transaction and the type assertion 
 replacement reads as ordinary code: every caller still writes `SettleInvoice.call(...)`, and
 nothing at the call site indicates the guarantees are gone.
 
+## The entry point is private, and going around it is refused at the call site
+
+`call` and `anonymous_call` are private. The base class reaches them with `send`, so an
+operation's entire public surface is the inherited class method — there is nothing else on it
+to reach for, and `SettleInvoice.call(...)` is the only supported way in.
+
+**`private` in Ruby is a convention, not a wall.** A caller can write
+`SettleInvoice.new(...).send(:call)` and skip the permission check, the transaction and the
+return-type assertion, in a line that reads like ordinary code. Nothing the operation does
+can refuse that, so the refusal is at the call site:
+`Shipshape/NoEntryPointBypass` fails `send`, `__send__`, `public_send` and `method` where
+they name an entry point.
+
+**Tests are exempt, and deliberately.** A test builds objects directly, reaches private
+methods and stubs what it needs — that is what a test is for, and refusing it would make this
+the first cop a team turns off. The advice still stands where it applies: what the door does
+*is* part of the behaviour, so a test that skips it passes while the operation is
+unauthorised. That is a judgement for the person writing the test, not a rule the build
+holds.
+
 ## What to do with the thing you wanted to share
 
 Make it a collaborator, not an ancestor. Two operations that share work call a third:
@@ -44,7 +64,9 @@ inheritance was a way of not using it.
 - **Principle:** `nothing-is-hidden` governs — a guarantee decided two classes away is a
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.
-- **Guard:** `Shipshape/OperationsAreLeaves`, over the operation kinds. Fails a class whose
+- **Guard:** `Shipshape/NoEntryPointBypass` holds the call site — `send` and its family,
+  where they name an entry point, anywhere but the generated base classes.
+  `Shipshape/OperationsAreLeaves`, over the operation kinds, Fails a class whose
   superclass is itself an operation **rooted in a base class shipshape installs**, and fails
   `def self.call` in one.
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NoEmptyRescue
+class NoEmptyRescue < ApplicationController
 def show
   risky
 rescue StandardError
