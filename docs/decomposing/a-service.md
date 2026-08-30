@@ -5,6 +5,8 @@ something to **run**, because a decomposition nobody can verify is a rewrite wit
 confidence.
 
 It assumes a 600-line service with fifteen public methods, which is the shape this is for.
+Other shapes have their own procedure — see [the index](README.md), which also carries the
+one step they all share and the test for what belongs in a table.
 
 ---
 

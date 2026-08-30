@@ -168,7 +168,7 @@ def next_work
   end
 
   puts "The order matters: reads apart from writes, then thread out the ambient reads, then"
-  puts "move the data pretending to be code, and only then split. docs/decomposing-a-service.md"
+  puts "move the data pretending to be code, and only then split. docs/decomposing/"
   puts
   puts "Do one. Then `shipshape check` — the count must fall, and your tests must still pass."
   puts "Nothing here proves behaviour is preserved. That is the tests' job, and it is why the"

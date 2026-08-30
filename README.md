@@ -172,10 +172,23 @@ what, every guard with its own one-line description, and — only if you install
 authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
 is a second copy of it, and the copy is the one that goes stale.
 
-## Decomposing a service
+## Decomposing
 
-[`docs/decomposing-a-service.md`](docs/decomposing-a-service.md) is the procedure, ordered,
-with something to run at each step. The two that surprise people:
+[`docs/decomposing/`](docs/decomposing/) holds one ordered procedure per legacy pattern — a
+service, a god record, a type hierarchy, a state machine, a callback web — each with
+something to run at every step.
+
+**They share one step, and it comes before the split.** A legacy pattern is usually a
+taxonomy hardcoded as code structure: single-table inheritance is a type column expressed as
+classes, a state machine is a transition table expressed as branches, callbacks are an
+ordering expressed as registration order. Somebody had facts that grow and no place to put
+them, so the code grows every time the data does — the one kind of growth refactoring never
+fixes. Find the facts, move them to rows, *then* split.
+
+The test is who owns the fact: if you ask a person when it is wrong, it is data; if you ask a
+programmer, it is control flow.
+
+The two that surprise people:
 
 **Thread the ambient reads out before splitting**, not after. `Time.current` in two methods
 makes them look independent until they are not.
