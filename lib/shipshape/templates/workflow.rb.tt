@@ -86,7 +86,8 @@ class Workflow
     unless permits?(actor)
       # **The refusal is the entry nobody has when they need it.** Recorded before returning,
       # because a caller who was told no is exactly what somebody comes looking for.
-      AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden)
+      AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden,
+                      arguments: arguments, excluded: excluded_from_audit)
       return Result.failure(:forbidden)
     end
 
@@ -100,13 +101,16 @@ class Workflow
 <%- if auth -%>
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 
-    # **After the transaction, never inside it.** An entry written inside is erased by the
-    # rollback it exists to explain.
+    # **After the steps, before answering.** A workflow opens no transaction of its own — the
+    # steps did — so what this must not sit inside is a step, where a rollback there would
+    # erase the entry describing the sequence.
     AuditLog.record(
       operation: name,
       outcome: result.success? ? :succeeded : :failed,
       actor: actor,
       error: result.error,
+      arguments: arguments,
+      excluded: excluded_from_audit,
     )
 
     result
@@ -114,9 +118,11 @@ class Workflow
 <%- else -%>
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 
-    # **After the transaction, never inside it.** An entry written inside is erased by the
-    # rollback it exists to explain.
-    AuditLog.record(operation: name, outcome: result.success? ? :succeeded : :failed, error: result.error)
+    # **After the steps, before answering.** A workflow opens no transaction of its own — the
+    # steps did — so what this must not sit inside is a step, where a rollback there would
+    # erase the entry describing the sequence.
+    AuditLog.record(operation: name, outcome: result.success? ? :succeeded : :failed,
+                    error: result.error, arguments: arguments, excluded: excluded_from_audit)
 
     result
   end
@@ -169,5 +175,14 @@ class Workflow
   # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
   # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
   # ran the operation unauthenticated. Verified by running it, not by reading it.
+  # **What this operation keeps out of the trail**, beyond what `PersonalData` already
+  # declares. For a value that is not a column and so is in no registry: a token, a free-text
+  # note, a payload.
+  def self.excluded_from_audit
+    const_defined?(:EXCLUDE_FROM_AUDIT, false) ? const_get(:EXCLUDE_FROM_AUDIT, false) : []
+  end
+
+  private_class_method :excluded_from_audit
+
   private_class_method :new, :allocate
 end

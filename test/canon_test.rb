@@ -58,6 +58,9 @@ class CanonTest < Minitest::Test
   PROCEDURE_WOULD_NOT_HELP = {
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
+    "OperationsReportWhatTheyDid" =>
+      "an installed base class lost a line and the fix is to put it back. Nothing is moved, " \
+      "so there is no decomposition to describe — same position as its sibling below.",
     "EveryDoorChecksPermission" =>
       "authorisation is a rollout rather than a decomposition: nothing is moved, a check " \
       "is added. It reports zero until `shipshape install --auth` has been run.",

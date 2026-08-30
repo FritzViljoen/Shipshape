@@ -897,3 +897,22 @@ Shipshape/WorkflowsBranchOnOutcome:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/OperationsReportWhatTheyDid:
+  Description: >-
+    An installed base class that lost its audit call leaves no trace of anything its kind
+    attempted, including the refusals, and nothing else fails. The sibling of
+    Shipshape/EveryDoorChecksPermission, for the audit log.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  # The generated base classes only. An application class that happens to share a name is not
+  # one of them.
+  Include:
+    - '**/shipshape/*.rb'
+  # The operations that write. A query answers a caller and changes nothing.
+  Operations:
+    - command
+    - io_command
+    - legacy_command
+    - workflow
+  Recorder: AuditLog

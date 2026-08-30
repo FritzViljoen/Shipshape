@@ -37,16 +37,23 @@ the log runs; raising there would have the audit trail deciding the outcome of t
 auditing, telling a caller its command failed when it had succeeded. The failure goes to
 stderr instead — not swallowed, just not fatal.
 
-## Arguments are not recorded
+## Arguments are recorded, and the personal ones are redacted
 
 An audit log is the classic place personal data leaks: written on every call, kept longer than
 the rows it describes, copied into log aggregation, and visited by no erasure request ever
-written. Recording `email:` here puts a person's data somewhere
-[`personal-data-is-declared-and-erasable`](personal-data-is-declared-and-erasable.md) cannot
-see and nobody will delete.
+written. So two things are held back, and **the first costs nobody a decision**:
 
-An operation whose arguments genuinely belong in the trail records them itself, naming the
-fields, having thought about erasure. The default is silence.
+1. **Anything `PersonalData` already declares.** That registry names every personal column and
+   [a guard keeps it from going stale](personal-data-is-declared-and-erasable.md), so an
+   argument named for one is redacted without anybody classifying it twice. A floor that
+   cannot be forgotten.
+2. **Anything the operation lists in `EXCLUDE_FROM_AUDIT`** — a token, a free-text note, a
+   payload. For what is not a column, and so appears in no registry.
+
+**Redacted by declaration, never by inference**, which is the same position the personal-data
+law takes about columns. And a redaction keeps the argument's *name* and drops its value:
+knowing an email was supplied is most of what an audit answer needs, and the value is the part
+nobody can delete afterwards.
 
 - **Agreed:** Fritz, 2026-08-30 — "during install add the audit log", after the `call_later`
   design named the missing receiver for a deferred failure as load-bearing.
@@ -55,16 +62,16 @@ fields, having thought about erasure. The default is silence.
   than a cop. `self.call` records after the transaction and before answering, and the
   permission refusal records before returning. Proven by `generated_base_classes_test.rb`,
   a listed suite guard.
+- **Guard:** `Shipshape/OperationsReportWhatTheyDid`, over the installed base classes. Fails a
+  writing operation's base class that no longer names `AuditLog`, once an application has an
+  `audit_log.rb` to keep. The sibling of `Shipshape/EveryDoorChecksPermission`, and for the
+  same reason: a generated file is the application's to edit, and one that quietly lost its
+  audit call leaves no trace of anything its kind attempted while nothing else fails.
 - **Guard's limit:** it holds the **generated** base classes, not an application's copy of
   them. `generated_base_classes_test.rb` calls every writing operation and asserts an entry — for
   the success, and for the refusal — and derives the list from the templates that
   contain an audit call, so a new one that records cannot ship unexercised. Each of the four
   was watched to fail by deleting its call.
-
-  What it cannot see is a base class an application has since edited: these files are installed and
-  the application owns them, so `AuditLog.record` deleted there is caught by nothing —
-  the same hole `Shipshape/EveryDoorChecksPermission` closes for the permission check, with no
-  equivalent yet for this one.
 
   The sink is the application's, so what durability the trail has is not this canon's to
   claim: the default writes a line to a log, and a log is not an audit trail. It records that

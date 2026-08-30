@@ -62,6 +62,8 @@ Shipshape/OnlyTheDoorIsCalled:
   Enabled: true
 Shipshape/OperationsAreLeaves:
   Enabled: true
+Shipshape/OperationsReportWhatTheyDid:
+  Enabled: true
 Shipshape/PersistenceHoldsNoBehaviour:
   Enabled: true
 Shipshape/PersonalDataIsDeclared:

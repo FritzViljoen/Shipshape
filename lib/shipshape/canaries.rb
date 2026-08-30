@@ -193,6 +193,13 @@ module Shipshape
           CanaryRecord.create!(name: "x")
         end
       RUBY
+      "Shipshape/OperationsReportWhatTheyDid" => { path: "app/shipshape/workflow.rb", raw: <<~RUBY },
+        class Workflow
+          def self.call(**arguments)
+            new(**arguments).__perform__
+          end
+        end
+      RUBY
       "Shipshape/MixinsAddNothingPublic" => { path: "app/models/concerns/paying.rb", raw: <<~RUBY },
         module Paying
           def total
@@ -210,6 +217,10 @@ module Shipshape
     # perfectly healthy.
     COMPANIONS = {
       "Shipshape/EveryDoorChecksPermission" => { "app/shipshape/permission.rb" => "module Permission\nend\n" },
+      # Nothing is held to an audit log it never opted into, so the module has to exist.
+      "Shipshape/OperationsReportWhatTheyDid" => {
+        "app/shipshape/audit_log.rb" => "module AuditLog\nend\n",
+      },
       "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
       "Shipshape/OnlyTheDoorIsCalled" => { kind: "query", name: "OtherQuery" },
       # The write has to reach something the layout calls a record, or the cop is

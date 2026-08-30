@@ -19,7 +19,7 @@
 module AuditLog
   # What happened, as a value. A shape, so it holds no record and compares by value.
   class Entry < Shape
-    def initialize(operation:, outcome:, actor_id: nil, error: nil)
+    def initialize(operation:, outcome:, actor_id: nil, error: nil, arguments: {})
       @operation = typed(operation, String)
       @outcome = typed(outcome, Symbol)
       # **Not an Integer.** A UUID primary key is an ordinary Rails choice, and asserting
@@ -27,41 +27,68 @@ module AuditLog
       # command had failed when it had already succeeded.
       @actor_id = typed(actor_id, String, allow_nil: true)
       @error = typed(error, Symbol, allow_nil: true)
+      @arguments = typed(arguments, Hash)
     end
 
-    attr_reader :operation, :outcome, :actor_id, :error
+    attr_reader :operation, :outcome, :actor_id, :error, :arguments
   end
 
-  # **Arguments are deliberately not recorded, and this is not an oversight.**
+  # **Arguments are recorded, with the personal ones redacted.**
   #
-  # An audit log is the classic place personal data leaks: it is written on every call, kept
-  # longer than the rows it describes, copied into log aggregation, and forgotten by every
-  # erasure request ever written. Recording `email:` here puts a person's data somewhere
-  # `personal-data-is-declared-and-erasable` cannot see and nobody will delete.
+  # An audit log is the classic place personal data leaks: written on every call, kept longer
+  # than the rows it describes, copied into log aggregation, and visited by no erasure request
+  # ever written. So two things are held back, and the first costs nobody anything:
   #
-  # If an operation's arguments genuinely belong in the trail, that operation records them —
-  # deliberately, naming the fields, having thought about erasure. The default is silence.
+  # 1. **Anything `PersonalData` already declares.** That registry names every personal column
+  #    and a guard keeps it from going stale, so an argument named for one is redacted without
+  #    anybody deciding again. It is a floor that cannot be forgotten.
+  # 2. **Anything the operation lists in `EXCLUDE_FROM_AUDIT`** — a token, a free-text note, a
+  #    payload. For what is not a column, and so not in the registry.
+  #
+  # A value is never recorded, only that the argument was present: `email: "[redacted]"`.
   # **A broken sink does not fail the command.** The write has already committed by the time
   # this runs, so raising here would tell the caller the operation failed when it had
   # succeeded — the audit log deciding the outcome of the thing it is auditing. The failure
   # is not swallowed: it goes to stderr, where a silent audit trail would otherwise be the
   # one thing nobody notices.
-  def self.record(operation:, outcome:, actor: nil, error: nil)
-    entry(operation: operation, outcome: outcome, actor: actor, error: error)
+  def self.record(operation:, outcome:, actor: nil, error: nil, arguments: {}, excluded: [])
+    entry(operation: operation, outcome: outcome, actor: actor, error: error,
+          arguments: arguments, excluded: excluded)
   rescue StandardError => error
     warn("audit log failed: #{error.class}: #{error.message}")
   end
 
-  def self.entry(operation:, outcome:, actor: nil, error: nil)
+  def self.entry(operation:, outcome:, actor:, error:, arguments:, excluded:)
     sink.call(
       Entry.new(
         operation: operation.to_s,
         outcome: outcome,
         actor_id: actor.respond_to?(:id) ? actor.id&.to_s : nil,
         error: error,
+        arguments: redact(arguments, excluded),
       ),
     )
   end
+
+  REDACTED = "[redacted]"
+
+  # Personal by declaration, never by inference — the same position
+  # `personal-data-is-declared-and-erasable` takes about columns. An argument is redacted
+  # because `PersonalData` names a column of that name, or because the operation said so.
+  def self.redact(arguments, excluded)
+    arguments.to_h do |name, value|
+      [name.to_sym, personal?(name, excluded) ? REDACTED : value]
+    end
+  end
+
+  def self.personal?(name, excluded)
+    return true if excluded.map(&:to_sym).include?(name.to_sym)
+    return false unless defined?(::PersonalData)
+
+    ::PersonalData::COLUMNS.any? { |_table, columns| columns.key?(name.to_s) }
+  end
+
+  private_class_method :entry, :redact, :personal?
 
   # **The default is a log line, and a log line is not an audit trail.** It works on the day
   # you install this and it is not what you want by the time anybody asks for the trail: logs

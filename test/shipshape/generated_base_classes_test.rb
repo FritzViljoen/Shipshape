@@ -652,15 +652,75 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal :forbidden, entries.first.error
   end
 
-  # **Arguments are deliberately absent.** An audit log is the classic place personal data
-  # leaks: written on every call, kept longer than the rows it describes, and forgotten by
-  # every erasure request ever written.
-  def test_no_arguments_are_recorded
+  # **Arguments are recorded, and the personal ones are not.** An audit log is the classic
+  # place personal data leaks: written on every call, kept longer than the rows it describes,
+  # and visited by no erasure request ever written.
+  def test_arguments_are_recorded
     entries = audited { Charge.call(actor: ANYONE, amount: 5) }
 
-    refute_respond_to entries.first, :arguments
-    assert_equal %i[@actor_id @error @operation @outcome].sort,
-                 entries.first.instance_variables.sort
+    assert_equal({ amount: 5 }, entries.first.arguments)
+  end
+
+  # **Redacted by declaration, never by inference** — the same position
+  # `personal-data-is-declared-and-erasable` takes about columns. `PersonalData` names every
+  # personal column and a guard keeps that registry from going stale, so an argument named
+  # for one is held back without anybody deciding again.
+  class Registers < Command
+    def initialize(email:, account_id:, token:)
+      @email = typed(email, String)
+      @account_id = typed(account_id, Integer)
+      @token = typed(token, String)
+    end
+
+    EXCLUDE_FROM_AUDIT = %i[token].freeze
+
+    def call
+      success(1)
+    end
+  end
+
+  def test_a_declared_personal_argument_is_redacted
+    with_registry("users" => { "email" => :anonymise }) do
+      entries = audited { Registers.call(actor: ANYONE, email: "a@b.c", account_id: 1, token: "s") }
+
+      assert_equal "[redacted]", entries.first.arguments[:email]
+      assert_equal 1, entries.first.arguments[:account_id]
+    end
+  end
+
+  # For what is not a column, and so is in no registry.
+  def test_an_excluded_argument_is_redacted
+    with_registry({}) do
+      entries = audited { Registers.call(actor: ANYONE, email: "a@b.c", account_id: 1, token: "s") }
+
+      assert_equal "[redacted]", entries.first.arguments[:token]
+    end
+  end
+
+  # A redaction records that the argument was there, never what it held.
+  def test_redaction_keeps_the_name_and_drops_the_value
+    with_registry("users" => { "email" => :anonymise }) do
+      entries = audited { Registers.call(actor: ANYONE, email: "a@b.c", account_id: 1, token: "s") }
+
+      assert_equal %i[email account_id token].sort, entries.first.arguments.keys.sort
+      refute_includes entries.first.arguments.values, "a@b.c"
+    end
+  end
+
+  def test_a_refusal_records_its_arguments_too
+    with_registry("users" => { "email" => :anonymise }) do
+      entries = audited { Registers.call(actor: REFUSER, email: "a@b.c", account_id: 1, token: "s") }
+
+      assert_equal :refused, entries.first.outcome
+      assert_equal "[redacted]", entries.first.arguments[:email]
+    end
+  end
+
+  def with_registry(columns)
+    Object.const_set(:PersonalData, Module.new) unless defined?(::PersonalData)
+    ::PersonalData.send(:remove_const, :COLUMNS) if ::PersonalData.const_defined?(:COLUMNS, false)
+    ::PersonalData.const_set(:COLUMNS, columns)
+    yield
   end
 
   # An entry is a shape, so it obeys every rule a shape obeys.
@@ -772,7 +832,8 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_a_shape_is_its_hash
     entry = AuditLog::Entry.new(operation: "X", outcome: :succeeded, actor_id: "1", error: nil)
 
-    assert_equal({ operation: "X", outcome: :succeeded, actor_id: "1", error: nil }, entry.to_h)
+    assert_equal({ operation: "X", outcome: :succeeded, actor_id: "1", error: nil, arguments: {} },
+                 entry.to_h)
     assert_equal Place.new(code: "ZA"), Place.new(**Place.new(code: "ZA").to_h)
   end
 
