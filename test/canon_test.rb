@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "shipshape/install"
+require "yaml"
 
 # The law and the cop are two halves of one fact, and this is what holds them together.
 #
@@ -147,6 +148,28 @@ class CanonTest < Minitest::Test
                  "mechanism behind it."
   end
 
+  # **The architecture and the guard have to agree about which kinds are covered.**
+  #
+  # A base class that includes `TypedArguments` is a class whose initializer is meant to be
+  # asserted. If the cop is not scoped to that kind, the machinery ships and nothing requires
+  # anybody to use it — which is what had happened to `shape`: every generated `Shape`
+  # included `TypedArguments`, and a shape could still take a positional argument, a `**rest`,
+  # or an unguarded keyword with nothing objecting. In the one class whose entire job is to be
+  # a validated value.
+  #
+  # Derived from the templates and the shipped `BaseClasses` map rather than listed here, so
+  # it cannot go stale: add a base class that includes the module and this asks for its kind.
+  def test_every_base_class_that_types_its_arguments_is_a_kind_the_cop_covers
+    covered = default_config.fetch("Shipshape/TypedArguments").fetch("Kinds")
+
+    missing = kinds_of_templates_including("TypedArguments").reject { |kind| covered.include?(kind) }
+
+    assert_empty missing,
+                 "These kinds ship a base class that includes TypedArguments, so their " \
+                 "initializers are meant to be asserted — but Shipshape/TypedArguments is " \
+                 "not scoped to them, so nothing requires it."
+  end
+
   def test_the_index_lists_every_law
     index = File.read(File.expand_path("../docs/laws/README.md", __dir__))
 
@@ -154,6 +177,23 @@ class CanonTest < Minitest::Test
   end
 
   private
+
+  def default_config
+    @default_config ||= YAML.load_file(File.expand_path("../config/default.yml", __dir__))
+  end
+
+  # A template's constant is its file name camelised; `BaseClasses` maps a kind to the
+  # constants that stand for it. That is the join, and both halves are already declared.
+  def kinds_of_templates_including(mixin)
+    base_classes = default_config.fetch("Shipshape/CallGraph").fetch("BaseClasses")
+
+    Dir[File.expand_path("../lib/shipshape/templates/*.rb.tt", __dir__)].filter_map do |path|
+      next unless File.read(path).include?("include #{mixin}")
+
+      constant = File.basename(path, ".rb.tt").split("_").map(&:capitalize).join
+      base_classes.find { |_, names| names.include?(constant) }&.first
+    end.uniq.sort
+  end
 
   def installed
     Shipshape::Install::FILES + Shipshape::Install::TESTS

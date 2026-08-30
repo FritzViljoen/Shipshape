@@ -49,3 +49,15 @@ not an argument anywhere; this is where the presentation layer is held to it.
   share a prefix is a false positive to be argued in review. Whether two things belong in one
   object is a judgement, and no check makes it; the heuristic exists because the
   *convention* is catchable even though the *rule* is not.
+
+  **"Computes nothing" is unguarded, and deliberately.** A shape holding `@cents` and
+  answering `@cents * 1.15 + 100` passes everything here. Separating a field that is read
+  from a value that is derived needs a judgement about what the number means, and no check
+  makes it — a formatter is fine, a tax calculation is an operation wearing a shape's clothes,
+  and both are arithmetic on a field. Named here so the silence is a stated limit rather than
+  a hole somebody finds later.
+
+  A shape with **no** initializer is not reported: a value with no state is legitimate. Nor is
+  a public class method — `Money.from_cents` is a value constructor, and a shape's whole job
+  is to be read, which is why the rule that an operation exposes only `call` does not reach
+  here.

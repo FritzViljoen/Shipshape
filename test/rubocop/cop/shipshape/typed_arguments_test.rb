@@ -144,9 +144,45 @@ class TypedArgumentsTest < Minitest::Test
     RUBY
   end
 
+  # **A shape holds a shape and validates that shape**, so its initializer is asserted like a
+  # door's. This was left out until the kind was audited for: a shape could take a positional,
+  # a `**rest`, or an unguarded keyword and nothing objected — in the one class whose entire
+  # job is to be a validated value.
+  SHAPE = "app/shapes/place.rb"
+
+  SHAPE_KINDS = { "Kinds" => %w[command shape] }.freeze
+
+  def test_a_shape_asserts_its_keywords_too
+    found = check(shape("def initialize(code:)\n    @code = code\n  end"), SHAPE, SHAPE_KINDS)
+
+    assert_equal 1, found.length
+  end
+
+  def test_a_shape_may_not_take_a_positional_or_a_splat
+    positional = check(shape("def initialize(code)\n    @code = code\n  end"), SHAPE, SHAPE_KINDS)
+    splat = check(shape("def initialize(**o)\n    @o = o\n  end"), SHAPE, SHAPE_KINDS)
+
+    assert_equal 1, positional.length
+    assert_equal 1, splat.length
+  end
+
+  def test_a_guarded_shape_is_the_shape
+    assert_empty check(shape("def initialize(code:)\n    @code = typed(code, String)\n  end"),
+                       SHAPE, SHAPE_KINDS)
+  end
+
+  # A value with no state is legitimate, so a missing initializer is not reported.
+  def test_a_shape_with_no_initializer_is_left_alone
+    assert_empty check(shape("def code\n    @code\n  end"), SHAPE, SHAPE_KINDS)
+  end
+
   private
 
-  def check(source)
-    offences(source, cop_class: COP, path: COMMAND, other_cops: LAYOUT)
+  def shape(body)
+    "class Place < Shape\n  #{body}\nend\n"
+  end
+
+  def check(source, path = COMMAND, config = {})
+    offences(source, cop_class: COP, cop_config: config, path: path, other_cops: LAYOUT)
   end
 end

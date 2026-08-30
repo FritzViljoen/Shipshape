@@ -395,6 +395,14 @@ Shipshape/TypedArguments:
     - io_query
     - legacy_command
     - legacy_query
+    # **A shape holds a shape and validates that shape**, which is the whole of what it is
+    # for — so its initializer is asserted exactly as a door's is. Left out until it was
+    # audited for, and a shape could take a positional, a `**rest`, or an unguarded keyword
+    # with nothing objecting.
+    - shape
+    # A component's initializer is the same case: it is handed what it renders, and what it
+    # was handed is the only thing it knows.
+    - view_component
 
 # The two seam cops. Both are scoped to the doors, because the domain past them is handed
 # real values and never parses anything.
