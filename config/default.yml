@@ -878,3 +878,22 @@ Shipshape/CommandsProveIdempotence:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/WorkflowsBranchOnOutcome:
+  Description: >-
+    A workflow sequences; it does not work. It branches on whether a step succeeded, never on
+    what the step answered with - a rule read out of the answer applies to that one sequence
+    instead of to every caller of the operation that owns it.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+  # What a step's answer is called. Everything else a `Result` offers - `success?`,
+  # `failure?`, `error` - is the outcome, and the outcome is what a workflow may ask.
+  ValueMessage: value
+  # **Tests are exempt.** A test asserts on what an operation answered; that is its job.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'

@@ -91,6 +91,13 @@ not the controller's.
 
 **Check:** `Shipshape/NoDecisionsInRequestHandling` is silent.
 
+**And check the workflow you just extracted, if you extracted one.** The decision does not
+stop being a decision by moving one level in: a workflow sequences and does not work, so it
+branches on `success?`, `failure?` or the error code and never on what a step answered with.
+`Shipshape/WorkflowsBranchOnOutcome` fails `charge.value.total > 100` — a rule about totals
+that now applies to this one sequence instead of to every caller of the operation that owns
+them. The commonest way to fail this step is to move the branch rather than the rule.
+
 ---
 
 ## 5. The instance variables are a shape

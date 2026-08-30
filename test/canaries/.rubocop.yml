@@ -74,6 +74,8 @@ Shipshape/TypedArguments:
   Enabled: true
 Shipshape/WorkflowAggregatesPermissions:
   Enabled: true
+Shipshape/WorkflowsBranchOnOutcome:
+  Enabled: true
 
 AllCops:
   NewCops: disable

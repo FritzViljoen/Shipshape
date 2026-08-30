@@ -127,6 +127,13 @@ module Shipshape
           new(**arguments).call
         end
       RUBY
+      "Shipshape/WorkflowsBranchOnOutcome" => { kind: "workflow", body: <<~RUBY },
+        def call
+          charge = ChargeCard.call
+
+          success(1) if charge.value.total > 100
+        end
+      RUBY
       "Shipshape/WorkflowAggregatesPermissions" => { kind: "workflow", body: <<~RUBY },
         def call
           SomeCommand.call

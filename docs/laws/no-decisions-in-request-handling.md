@@ -40,9 +40,31 @@ turns inputs into a **new value** is a rule, and a rule has one home.
 escaped. The fix is to move the rule, not to tidy the conditional — often into an operation
 that answers with the decision already made.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
+## A workflow is closer to a controller than to a command, and this law reaches it
+
+It sequences; it does not work. It opens no transaction of its own and it writes nothing, and
+the only thing it is entitled to know about a step is whether the step succeeded.
+
+So the same rule holds one level in: a workflow branches on `success?`, `failure?` or the
+error code, and never on what the step answered with. `charge.value.total > 100` is a rule
+about totals living in the sequence, where it applies to that one sequence instead of to every
+caller of the operation that owns totals — and the next sequence will not have it.
+
+**The law's name is about the case it was written for**, which was an action. The defect is the
+same wherever a coordinator decides, and `tell-dont-ask` is the principle either way.
+
+- **Agreed:** grandfathered for request handling — predates this record. The workflow half is
+  Fritz, 2026-08-30: "workflows are closer to controllers than commands", then "add a gaurd
+  against a workflow doing result.value.total > 100".
 - **Principle:** `tell-dont-ask` governs. `good-boundaries-make-good-neighbours` also
   produces it — a decision made here is a rule outside its one home.
+- **Guard:** `Shipshape/WorkflowsBranchOnOutcome`, over the workflow tree. Fails a condition
+  that reads `value` off a step, and accepts `success?`, `failure?` and `error`.
+  **A second cop rather than a wider `Kinds` list, and that was measured**: with `workflow`
+  added to the cop below, all eight shapes tried came back clean — it keys on an instance
+  variable being interrogated, because an action's subject is `@story`, and a workflow's is a
+  local holding a `Result`. Teaching that cop about locals would fire on every action
+  branching on something it parsed.
 - **Guard:** `Shipshape/NoDecisionsInRequestHandling`, over the request-handling tree, fails
   a conditional whose test asks something of an instance variable — what the action is about
   to render — while allowing `result.success?` and its siblings, which is the decision
