@@ -331,6 +331,11 @@ Shipshape/NoTypeInterrogation:
     - io_command
     - io_query
     - shape
+    - view_component
+  # **The legacy doors are deliberately absent, and this is the exemption, not an oversight.**
+  # Adapting a shape the old world returns is what a door is FOR — `result.is_a?(Hash)` over a
+  # legacy return value is the crossing being made explicit, which is the opposite of the
+  # defect this cop names. Every other rule still binds them.
     # **A view component is the other presentation kind**, and the matrix says so: its whole
     # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
     # read at render time, or a constant mutated mid-render are the same defects they are in
@@ -357,6 +362,11 @@ Shipshape/NoAmbientReads:
     # read at render time, or a constant mutated mid-render are the same defects they are in
     # a shape, and this kind carried none of the rules until it was audited for it.
     - view_component
+    # **A legacy door is new code.** Only the world on the far side of it is old — the door
+    # itself takes what it was given, like every other kind. Left out until the kinds were
+    # audited, so a door could read the clock or mutate a constant with nothing objecting.
+    - legacy_command
+    - legacy_query
 
 Shipshape/NoDistantWrites:
   Description: >-
@@ -378,6 +388,11 @@ Shipshape/NoDistantWrites:
     # read at render time, or a constant mutated mid-render are the same defects they are in
     # a shape, and this kind carried none of the rules until it was audited for it.
     - view_component
+    # **A legacy door is new code.** Only the world on the far side of it is old — the door
+    # itself takes what it was given, like every other kind. Left out until the kinds were
+    # audited, so a door could read the clock or mutate a constant with nothing objecting.
+    - legacy_command
+    - legacy_query
 
 Shipshape/TypedArguments:
   Description: >-
@@ -548,6 +563,9 @@ Shipshape/NoGeneratedInterfaces:
     - legacy_query
     - shape
     - record
+    # A component that invents a macro hides the same thing: a reader greps for the method
+    # and finds the generator instead.
+    - view_component
 
 Shipshape/WorkflowAggregatesPermissions:
   Description: >-

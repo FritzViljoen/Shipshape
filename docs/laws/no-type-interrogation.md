@@ -17,8 +17,15 @@ to raise rather than to branch — see
 difference is what happens next: an assertion has one outcome, a dispatch has two.
 
 - **Principle:** `one-way-to-say-each-thing` governs. `tell-dont-ask` also produces it.
-- **Guard:** `Shipshape/NoTypeInterrogation`, over the operation and shape trees. Exempts the
-  argument-assertion helper by name, and nothing else.
+- **Guard:** `Shipshape/NoTypeInterrogation`, over the operation, shape and view-component
+  trees. Exempts the argument-assertion helper by name, and nothing else.
+
+  **The legacy doors are exempt, by decision rather than by omission.** Adapting a shape the
+  old world hands back is what a door is *for* — `row.is_a?(Hash)` over a legacy return value
+  is the crossing being made explicit, which is the opposite of the defect this law names.
+  Every other rule still binds them, including the two in
+  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md): a door is new
+  code, and only the world on the far side of it is old.
 
 - **Guard's limit:** a genuine boundary check written outside that helper is a **false
   positive**, and it is meant to be argued in review rather than suppressed in silence — a

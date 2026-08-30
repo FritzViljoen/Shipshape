@@ -17,8 +17,12 @@ Action at a distance is the leaving half, and nothing else in this canon catches
 cause is perfectly visible, and it is the *effect* that cannot be found by reading.
 
 - **Principle:** `good-boundaries-make-good-neighbours`
-- **Guard:** `Shipshape/NoAmbientReads` and `Shipshape/NoDistantWrites`, over the operation
-  and value trees.
+- **Guard:** `Shipshape/NoAmbientReads` and `Shipshape/NoDistantWrites`, over the operation,
+  value, view-component and legacy-door trees.
+
+  **A legacy door is new code**, and takes what it was given like every other kind — only the
+  world on the far side of it is old. The doors were outside both cops until the kinds were
+  audited for this, so one could read the clock or mutate a constant with nothing objecting.
 
 - **Guard's limit:** both hold **closed lists** — a new ambient source is uncovered until
   it is named, and the lists are the authority on what the law means in practice. Mutating

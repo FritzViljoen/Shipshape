@@ -17,7 +17,9 @@ writing was the expensive half; the cost is now paid on every read, forever, by 
 are not the writer.
 
 - **Principle:** `nothing-is-hidden`
-- **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, shape and record trees.
+- **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, shape, record and
+  view-component trees. A component that invents a macro hides exactly what an operation
+  inventing one hides: a reader greps for the method and finds the generator.
   Fails defining methods from data, evaluating a string as code, and missing-method
   dispatch.
 
