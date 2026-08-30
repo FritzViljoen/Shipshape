@@ -40,9 +40,18 @@ module Shipshape
       legacy_query
       legacy_command
       typed_params
+      operation_surface
     ].freeze
 
     DIRECTORY = "app/shipshape"
+
+    # **The guards that need the application loaded**, which is why they are tests rather
+    # than cops. A cop reads source and cannot see a module included through a variable or a
+    # method made by `define_method`; these ask the class itself. They run in the
+    # application's own suite, so they are installed rather than shipped.
+    TESTS = %w[operations_expose_nothing_test].freeze
+
+    TEST_DIRECTORY = "test/shipshape"
 
     # Written only when authorisation is asked for. Everything else is written either way.
     AUTH_ONLY = %w[permission].freeze
@@ -51,18 +60,32 @@ module Shipshape
     # already run, and base classes demanding an actor on day one would stop every call site
     # at once — which is not a migration, it is an outage. Turn it on when the seam is ready:
     # `shipshape install --auth`. It only ever goes forward from there.
-    def initialize(root:, directory: DIRECTORY, auth: false)
+    def initialize(root:, directory: DIRECTORY, test_directory: TEST_DIRECTORY, auth: false)
       @root = typed(root, String)
       @directory = typed(directory, String)
+      @test_directory = typed(test_directory, String)
       @auth = typed(auth, Boolean)
     end
 
     # Answers what it did: { written: [...], skipped: [...] }, both relative paths.
     def call
-      FileUtils.mkdir_p(File.join(root, directory))
+      report = { written: [], skipped: [] }
 
-      files.each_with_object(written: [], skipped: []) do |name, report|
-        relative = File.join(directory, "#{name}.rb")
+      write_into(directory, files, report)
+      write_into(test_directory, TESTS, report)
+
+      report
+    end
+
+    private
+
+    attr_reader :root, :directory, :test_directory, :auth
+
+    def write_into(folder, names, report)
+      FileUtils.mkdir_p(File.join(root, folder))
+
+      names.each do |name|
+        relative = File.join(folder, "#{name}.rb")
         target = File.join(root, relative)
 
         next report[:skipped] << relative if File.exist?(target)
@@ -71,10 +94,6 @@ module Shipshape
         report[:written] << relative
       end
     end
-
-    private
-
-    attr_reader :root, :directory, :auth
 
     def files
       auth ? FILES : FILES - AUTH_ONLY

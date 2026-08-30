@@ -532,4 +532,92 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_includes true.class.ancestors, Boolean
     assert_equal "Boolean", Boolean.to_s
   end
+  # `OperationSurface` is the exact form of `one-operation-one-class`, and these are the
+  # cases the cops cannot reach. A cop reads source; every one of these is invisible there
+  # and obvious here.
+  DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
+
+  def additions(operation)
+    OperationSurface.public_additions(operation, DOORS)
+  end
+
+  def test_a_clean_operation_adds_nothing
+    operation = Class.new(Command) do
+      def call; end
+
+      private
+
+      def total; end
+    end
+
+    assert_empty additions(operation)
+  end
+
+  def test_a_public_helper_is_an_addition
+    operation = Class.new(Command) do
+      def call; end
+
+      def total; end
+    end
+
+    assert_equal %i[total], additions(operation)
+  end
+
+  # The entry point is public and is not an addition: which of the two an operation
+  # implements is what decides whether it is checked.
+  def test_neither_entry_point_counts
+    assert_empty additions(Class.new(Command) { def call; end })
+    assert_empty additions(Class.new(Command) { def anonymous_call; end })
+  end
+
+  # **The case no cop can see.** The module is named by a variable, so nothing reading source
+  # knows this class includes it.
+  def test_a_module_included_through_a_variable_is_still_seen
+    helpers = Module.new { def total; end }
+    operation = Class.new(Command) do
+      include helpers
+
+      def call; end
+    end
+
+    assert_equal %i[total], additions(operation)
+  end
+
+  def test_a_method_made_by_define_method_is_still_seen
+    operation = Class.new(Command) do
+      def call; end
+
+      define_method(:total) { 1 }
+    end
+
+    assert_equal %i[total], additions(operation)
+  end
+
+  def test_a_public_class_method_is_an_addition
+    operation = Class.new(Command) do
+      def self.build; end
+
+      def call; end
+    end
+
+    assert_equal %i[build], additions(operation)
+  end
+
+  # Measured from the door rather than from `superclass`, so a hierarchy that broke
+  # `an-operation-is-a-leaf` does not also make this go quiet. Comparing a leaf against its
+  # parent operation would have reported nothing at all.
+  def test_a_second_level_still_reports_what_the_first_added
+    parent = Class.new(Command) do
+      def call; end
+
+      def total; end
+    end
+    child = Class.new(parent)
+
+    assert_equal %i[total], additions(child)
+  end
+
+  def test_something_that_is_not_an_operation_is_left_alone
+    assert_empty additions(Class.new { def total; end })
+  end
 end

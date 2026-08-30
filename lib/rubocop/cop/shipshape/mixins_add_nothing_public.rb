@@ -26,6 +26,12 @@ module RuboCop
       # last segment and only one is a mixin. Over-firing says "make these private", which is
       # a defensible thing to be told; under-firing would be silence. **Tests are exempt.**
       #
+      # **The exact version of this runs in the application's own suite**, as
+      # `test/shipshape/operations_expose_nothing_test.rb`, which subtracts the base class's
+      # public surface from the loaded operation's and so sees every route a mixin can take.
+      # This cop exists because that one needs a booted application; it is the fast
+      # approximation, and it names the file to fix.
+      #
       # @example
       #   # bad — included into a command, so `total` is public on every command that has it
       #   module Paying

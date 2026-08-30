@@ -90,6 +90,14 @@ is where it is going, so the guard reads the operations and asks what they inclu
 - **Guard:** `Shipshape/MixinsAddNothingPublic`, over modules that an operation includes.
   Fails a public instance method and a public reader, and scaffolds `private` above the
   first of them.
+- **Guard:** `operations_expose_nothing_test.rb`, installed into the application's own suite.
+  **The exact form of this law, and the only one that cannot be fooled.** The cops read
+  source; this boots the application and subtracts —
+  `SettleInvoice.public_instance_methods - Command.public_instance_methods` is precisely what
+  the operation and everything it mixes in added, whatever route it took. It works because
+  the base classes are POROs the application owns, with a surface that is known rather than
+  guessed. The cops stay because they answer in a second, in an editor, and name the file to
+  fix; this one is the guarantee behind them.
 - **Guard's limit:** it cannot tell whether the one method does one thing. A two-hundred
   line `call` passes. Class and method length are a separate concern and this cop does not
   cover them. It cannot see a public method added at runtime. `initialize` is exempt —
@@ -98,6 +106,9 @@ is where it is going, so the guard reads the operations and asks what they inclu
 
   The layout it reads is declared once, on `Shipshape/CallGraph`, and a file of no declared
   kind is left alone rather than judged.
+- **Guard's limit:** the installed test sees only what eager loading loads and only classes
+  with a name, so an operation built at runtime is invisible to it. It reports a name, not a
+  line — which is the trade for being exact.
 - **Guard's limit:** the mixin guard reads `include`/`prepend` with a regular expression over
   the operation trees, so a module mixed in dynamically is invisible, and so is one reached
   through an alias. It compares a written `include Paying` against a module declared `Paying`

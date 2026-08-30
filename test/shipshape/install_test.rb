@@ -8,14 +8,29 @@ require "tmpdir"
 # does-not-overwrite case, and it is the one that matters — a generator that clobbers a
 # file the application has since edited has taken a decision that was never its own.
 class InstallTest < Minitest::Test
+  def everything
+    Shipshape::Install::FILES + Shipshape::Install::TESTS
+  end
+
   def test_it_writes_every_base_class
     in_app do |root|
       report = Shipshape::Install.new(root: root, auth: true).call
 
-      assert_equal Shipshape::Install::FILES.length, report[:written].length
+      assert_equal everything.length, report[:written].length
       assert_empty report[:skipped]
       assert_path_exists File.join(root, "app/shipshape/command.rb")
       assert_path_exists File.join(root, "app/shipshape/legacy_query.rb")
+    end
+  end
+
+  # A guard that needs the application loaded is a test, not a cop, and it lands in the
+  # suite rather than in `app/`.
+  def test_it_writes_the_guards_that_need_a_booted_application
+    in_app do |root|
+      Shipshape::Install.new(root: root, auth: true).call
+
+      assert_path_exists File.join(root, "test/shipshape/operations_expose_nothing_test.rb")
+      assert_path_exists File.join(root, "app/shipshape/operation_surface.rb")
     end
   end
 
@@ -30,7 +45,7 @@ class InstallTest < Minitest::Test
       report = Shipshape::Install.new(root: root, auth: true).call
 
       assert_empty report[:written]
-      assert_equal Shipshape::Install::FILES.length, report[:skipped].length
+      assert_equal everything.length, report[:skipped].length
       assert_equal "# mine now\n", File.read(target)
     end
   end
@@ -39,7 +54,7 @@ class InstallTest < Minitest::Test
     in_app do |root|
       Shipshape::Install.new(root: root, auth: true).call
 
-      Dir[File.join(root, "app/shipshape/*.rb")].each do |path|
+      Dir[File.join(root, "{app,test}/shipshape/*.rb")].each do |path|
         assert RubyVM::InstructionSequence.compile(File.read(path), path), "#{path} did not compile"
       end
     end
