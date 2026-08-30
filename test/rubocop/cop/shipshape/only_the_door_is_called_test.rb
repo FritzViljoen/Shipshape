@@ -34,6 +34,8 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     },
   }.freeze
 
+  DEFERRABLE = { "DeferrableKinds" => %w[command], "DeferredMessages" => %w[call_later] }.freeze
+
   TREE = {
     "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\nend\n",
     "app/workflows/settle_month.rb" => "class SettleMonth < Workflow\nend\n",
@@ -95,6 +97,21 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_empty check("Invoice.new(number: '1')")
   end
 
+  # **Deferring is running, at a different time**, so the writing doors answer it.
+  def test_a_command_may_be_deferred
+    assert_empty check("SettleInvoice.call_later(actor: actor, invoice_id: 1)")
+  end
+
+  # **Per kind, not one flat list.** `call_later` exists only on the writing doors, so
+  # allowing it everywhere let `SomeWorkflow.call_later(…)` pass this cop and fail at runtime
+  # with `NoMethodError` — the guard moving a failure from the build into production.
+  def test_a_workflow_may_not_be_deferred
+    found = check("SettleMonth.call_later(actor: actor)")
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "is not the door"
+  end
+
   # A class naming itself is not a call site reaching in.
   def test_a_class_referring_to_itself_is_not_a_call_site
     assert_empty offences("class SettleInvoice < Command\n  def self.build\n    SettleInvoice.new\n  end\nend\n",
@@ -106,6 +123,7 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
 
   def check(body)
     offences("class InvoicesController\n  def create\n    #{body}\n  end\nend\n",
-             cop_class: COP, path: CONTROLLER, files: TREE, other_cops: LAYOUT)
+             cop_class: COP, cop_config: DEFERRABLE, path: CONTROLLER, files: TREE,
+             other_cops: LAYOUT)
   end
 end

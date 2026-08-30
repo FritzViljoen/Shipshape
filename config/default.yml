@@ -671,6 +671,17 @@ Shipshape/OnlyTheDoorIsCalled:
     - io_query
     - legacy_command
     - legacy_query
+  # **Deferring is running, at a different time**, so it goes through the base class exactly
+  # as `call` does — the permission check, the argument assertion and the audit entry all
+  # happen. But only the writing doors have the method: a workflow spans several transactions
+  # and a query answers nothing to nobody. Allowed for those kinds and refused for the rest,
+  # rather than added to AllowedMessages, which is checked before the kind is known.
+  DeferredMessages:
+    - call_later
+  DeferrableKinds:
+    - command
+    - io_command
+    - legacy_command
   # Tests are exempt: a test builds objects directly and reaches inside, which is what a
   # test is for. The generated base classes are where the legitimate construction lives.
   Exclude:

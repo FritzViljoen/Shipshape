@@ -22,7 +22,10 @@ module AuditLog
     def initialize(operation:, outcome:, actor_id: nil, error: nil)
       @operation = typed(operation, String)
       @outcome = typed(outcome, Symbol)
-      @actor_id = typed(actor_id, Integer, allow_nil: true)
+      # **Not an Integer.** A UUID primary key is an ordinary Rails choice, and asserting
+      # Integer here raised *after* the transaction committed — telling the caller the
+      # command had failed when it had already succeeded.
+      @actor_id = typed(actor_id, String, allow_nil: true)
       @error = typed(error, Symbol, allow_nil: true)
     end
 
@@ -38,12 +41,23 @@ module AuditLog
   #
   # If an operation's arguments genuinely belong in the trail, that operation records them —
   # deliberately, naming the fields, having thought about erasure. The default is silence.
+  # **A broken sink does not fail the command.** The write has already committed by the time
+  # this runs, so raising here would tell the caller the operation failed when it had
+  # succeeded — the audit log deciding the outcome of the thing it is auditing. The failure
+  # is not swallowed: it goes to stderr, where a silent audit trail would otherwise be the
+  # one thing nobody notices.
   def self.record(operation:, outcome:, actor: nil, error: nil)
+    entry(operation: operation, outcome: outcome, actor: actor, error: error)
+  rescue StandardError => error
+    warn("audit log failed: #{error.class}: #{error.message}")
+  end
+
+  def self.entry(operation:, outcome:, actor: nil, error: nil)
     sink.call(
       Entry.new(
         operation: operation.to_s,
         outcome: outcome,
-        actor_id: actor.respond_to?(:id) ? actor.id : nil,
+        actor_id: actor.respond_to?(:id) ? actor.id&.to_s : nil,
         error: error,
       ),
     )

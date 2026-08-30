@@ -71,6 +71,26 @@ class CommandsProveIdempotenceTest < Minitest::Test
     assert_equal 1, check("test/commands/other_test.rb" => "# Idempotent: whatever.\n").length
   end
 
+  # **A namespaced command needs a claim like any other.** `each_ancestor(:class, :module)`
+  # skipped every command declared inside a module, which in most applications is most of
+  # them — and the `Kinds` glob is `app/commands/**/*.rb` precisely to reach those
+  # subdirectories.
+  def test_a_command_inside_a_module_is_not_skipped
+    found = offences("module Billing\n  class SettleInvoice < Command\n    def call; end\n  end\nend\n",
+                     cop_class: COP, path: "app/commands/billing/settle_invoice.rb",
+                     files: {}, other_cops: LAYOUT)
+
+    assert_equal 1, found.length
+  end
+
+  def test_a_namespaced_command_is_settled_by_its_own_test
+    files = { "test/commands/billing/settle_invoice_test.rb" => "# Idempotent: settled_at guards it.\n" }
+
+    assert_empty offences("module Billing\n  class SettleInvoice < Command\n  end\nend\n",
+                          cop_class: COP, path: "app/commands/billing/settle_invoice.rb",
+                          files: files, other_cops: LAYOUT)
+  end
+
   def test_a_query_is_not_this_cops_business
     assert_empty offences("class ListPeople < Query\nend\n", cop_class: COP,
                           path: "app/queries/list_people.rb", other_cops: LAYOUT)

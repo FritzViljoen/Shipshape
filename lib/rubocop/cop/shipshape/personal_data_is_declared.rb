@@ -61,23 +61,36 @@ module RuboCop
 
         REGISTRY = "app/shipshape/personal_data.rb"
 
+        # Blocks whose body declares columns on one named table.
+        TABLE_BLOCKS = %i[create_table change_table].freeze
+
         def on_new_investigation
           @table = nil
         end
 
-        # `create_table "users" do |t|` — everything inside belongs to that table.
+        # `create_table "users" do |t|` — everything inside belongs to that table, and so does
+        # everything inside a `change_table`. Reading only `create_table` left `@table` holding
+        # the previous one, so a `change_table "leads"` had its columns judged against `users` —
+        # the cross-table blindness this cop was fixed to remove, one block type over.
+        #
+        # Any other block clears it, so a column reached through something unrecognised is
+        # attributed to no table rather than to whichever came last.
         def on_block(node)
-          send_node = node.send_node
-          return unless send_node.method?(:create_table)
+          @table = table_of(node.send_node)
+        end
 
-          @table = literal(send_node.first_argument)
+        def table_of(send_node)
+          return nil unless TABLE_BLOCKS.include?(send_node.method_name)
+
+          literal(send_node.first_argument)
         end
 
         def on_send(node)
+          @table = literal(node.first_argument) if node.method?(:add_column)
           column = column_of(node)
           return if column.nil?
           return unless personal?(column)
-          return if declared?(column)
+          return if declared?(@table.to_s, column)
 
           add_offense(node, message: message_for(column))
         end
@@ -116,18 +129,53 @@ module RuboCop
           names.any? { |name| column == name || column.end_with?("_#{name}") }
         end
 
-        # **Read as text, not loaded.** The cop runs without the application booted, and the
-        # registry is written flat and literal precisely so a regular expression can read it.
-        # A computed entry is invisible here, which the law states.
-        def declared?(column)
-          registry.include?("\"#{column}\"") || registry.include?("'#{column}'")
+        # **Parsed, not text-matched**, and per table.
+        #
+        # Matching the file as text failed twice over. The registry `shipshape install` writes
+        # carries commented-out examples, so a fresh install was already blind to `email` and
+        # `ip_address` while `COLUMNS` was genuinely empty — and any prose did it, so a
+        # `# TODO: decide about "passport"` cleared `passport`. And the column was matched
+        # without its table, so classifying `users.email` cleared `email` on every other table
+        # in the schema. Both were green builds over exactly what this exists to catch.
+        def declared?(table, column)
+          registry.fetch(table, []).include?(column)
         end
 
+        # table => [column, …], read from the `COLUMNS` literal. A computed entry is invisible,
+        # which is why the template says to write it flat, and which the law states as a limit.
         def registry
-          @registry ||= begin
-            path = File.join(base_dir, cop_config.fetch("Registry", REGISTRY))
-            File.file?(path) ? ::Shipshape::SourceText.read(path) : ""
-          end
+          @registry ||= parse(registry_path)
+        end
+
+        def registry_path
+          File.join(base_dir, cop_config.fetch("Registry", REGISTRY))
+        end
+
+        def parse(path)
+          return {} unless File.file?(path)
+
+          source = RuboCop::ProcessedSource.new(::Shipshape::SourceText.read(path), RUBY_VERSION.to_f, path)
+          literal = source.ast&.each_descendant(:casgn)&.find { |node| node.name == :COLUMNS }
+
+          literal.nil? ? {} : tables(literal)
+        end
+
+        def tables(assignment)
+          hash = assignment.each_descendant(:hash).first
+          return {} if hash.nil?
+
+          hash.pairs.to_h { |pair| [text(pair.key), columns_of(pair.value)] }
+        end
+
+        def columns_of(node)
+          inner = node.hash_type? ? node : node.each_descendant(:hash).first
+          return [] if inner.nil?
+
+          inner.pairs.map { |pair| text(pair.key) }.compact
+        end
+
+        def text(node)
+          node.respond_to?(:value) ? node.value.to_s : nil
         end
 
         def message_for(column)

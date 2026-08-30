@@ -34,7 +34,6 @@ module Shipshape
       holds_no_records
       shape
       result
-      shape_packing
       audit_log
       operation_job
       query

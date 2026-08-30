@@ -38,6 +38,19 @@ class Shape
     "#<#{self.class.name} #{pairs.join(", ")}>"
   end
 
+  # **A shape is a hash with a declared shape, and this is the hash** — an audit sink writing
+  # to a table wants it, and so does anything putting a shape on a wire.
+  #
+  # **It is the instance variables, which is the round trip only when they are the keywords.**
+  # `new(**shape.to_h)` rebuilds a shape whose initializer takes exactly the fields it stores,
+  # and raises `unknown keyword` on one that renames them — `initialize(from:)` storing
+  # `@starts_at` — or that stores anything it was not given. It does not convert a nested
+  # shape either: what comes back is the shape object, which is right for reading and wrong
+  # for a queue, where ActiveJob will refuse it.
+  def to_h
+    instance_variables.to_h { |name| [name.to_s.delete("@").to_sym, instance_variable_get(name)] }
+  end
+
   protected
 
   def state

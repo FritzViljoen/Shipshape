@@ -15,14 +15,28 @@ require "test_helper"
 # marked `:anonymise` with nothing that anonymises it is a declaration, not a capability, and
 # a declaration is exactly what an erasure request cannot be answered with.
 class PersonalDataIsErasableTest < ActiveSupport::TestCase
-  # Columns whose name suggests a person. Kept in step with the cop's list by the test below,
-  # so the two cannot drift apart and disagree about what needs classifying.
-  SUGGESTS_A_PERSON = /
-    \b(email|phone|mobile|telephone|address|postcode|zipcode|ip_address|
-       first_name|last_name|full_name|surname|forename|maiden|
-       date_of_birth|dob|birth_date|passport|national_id|ssn|nino|tax_id|
-       latitude|longitude|gender|nationality|signature|avatar|photo)\b
-  /x
+  # Columns whose name suggests a person, matched the way the cop matches them: the whole
+  # name, or the name after an underscore.
+  #
+  # **This was a regular expression anchored with `\b`, and `_` is a word character** — so it
+  # matched `email` and missed `contact_email`, `billing_email`, `home_address` and every
+  # other prefixed column. For a repository whose schema is `structure.sql` this file is not
+  # a second opinion, it is the only guard there is, and it was firing on bare names alone.
+  #
+  # **Keep this list in step with `Shipshape/PersonalDataIsDeclared`'s `Names` by hand.**
+  # Nothing checks it: this file runs in your application, the cop runs in a lint pass, and
+  # neither can see the other. An earlier version of this comment claimed a test held them
+  # together. There was no such test and the two already disagreed.
+  NAMES = %w[
+    email phone mobile telephone address postcode zipcode ip_address
+    first_name last_name full_name surname forename maiden_name
+    date_of_birth dob birth_date passport national_id ssn nino tax_id
+    latitude longitude gender nationality signature avatar photo
+  ].freeze
+
+  def self.suggests_a_person?(column)
+    NAMES.any? { |name| column == name || column.end_with?("_#{name}") }
+  end
 
   def test_every_column_the_database_holds_is_classified
     unclassified = live_columns.reject do |table, column|
@@ -78,10 +92,12 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
     ActiveRecord::Base.connection
   end
 
+  # A boolean cannot hold a person, and the cop skips them. Without this the two disagree and
+  # this file demands a classification the cop never asks for.
   def live_columns
     connection.tables.flat_map do |table|
-      connection.columns(table).map(&:name)
-                .select { |column| SUGGESTS_A_PERSON.match?(column) }
+      connection.columns(table).reject { |column| column.type == :boolean }.map(&:name)
+                .select { |column| self.class.suggests_a_person?(column) }
                 .map { |column| [table, column] }
     end
   end

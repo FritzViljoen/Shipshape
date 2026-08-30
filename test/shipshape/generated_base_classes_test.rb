@@ -67,6 +67,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     Object.const_set(:ActiveJob, Module.new)
     ::ActiveJob.const_set(:Base, base)
+
   end
 
   def self.stub_descendants
@@ -102,6 +103,16 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   ANYONE = Anyone.new([]).freeze
+
+  # **An actor a deferred job can find again.** `Anyone` has no `id`, which is legitimate —
+  # `permits?` needs only `may?` — and is precisely the shape `call_later` used to drop.
+  Named = Struct.new(:id) do
+    def may?(_permission)
+      true
+    end
+  end
+
+  NAMED = Named.new(7).freeze
 
   # Pointing the sink somewhere is what an application does on install; a test suite is no
   # different. The default is deliberately noisy — never silent — which is right in production
@@ -661,7 +672,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   # **Deferral, at the one grain where it is safe:** one command, one transaction, one job.
   class Slow < Command
     QUEUE = :payments
-    RETRIES = 2
+    ATTEMPTS = 2
 
     def initialize(amount:)
       @amount = typed(amount, Integer)
@@ -679,17 +690,17 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   def test_call_later_enqueues_the_operation_by_name
-    jobs = enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
+    jobs = enqueued { Slow.call_later(actor: NAMED, amount: 5) }
 
     assert_equal 1, jobs.length
     assert_equal "GeneratedBaseClassesTest::Slow", jobs.first[:operation]
-    assert_equal({ "amount" => 5 }, jobs.first[:arguments])
+    assert_equal({ amount: 5 }, jobs.first[:arguments])
   end
 
   # The Result describes the enqueue, never the work.
   def test_call_later_answers_that_it_was_accepted
     result = nil
-    enqueued { result = Slow.call_later(actor: ANYONE, amount: 5) }
+    enqueued { result = Slow.call_later(actor: NAMED, amount: 5) }
 
     assert_predicate result, :success?
     assert_equal :enqueued, result.value
@@ -706,8 +717,8 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   def test_the_queue_is_declared_on_the_operation
-    assert_equal :payments, Slow.queue_name
-    assert_equal :default, Charge.queue_name
+    assert_equal :payments, Slow.send(:queue_name)
+    assert_equal :default, Charge.send(:queue_name)
   end
 
   # **Per-operation, from one job class.** `retry_on` would capture one limit for every
@@ -720,60 +731,91 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal OperationJob::DEFAULT_ATTEMPTS, job.send(:attempts_for, "GeneratedBaseClassesTest::Charge")
   end
 
-  # ActiveJob hands back string keys; the doors assert named keywords.
-  def test_arguments_arrive_as_keywords
-    assert_equal({ amount: 5 }, OperationJob.new.send(:keywords, { "amount" => 5 }))
+  # **An id is not an Integer.** A UUID primary key is an ordinary Rails choice, and this
+  # raised after the transaction had committed — telling the caller the command failed when
+  # it had succeeded. The suite missed it because its own actor has no `id` at all.
+  Uuid = Struct.new(:id) do
+    def may?(_permission)
+      true
+    end
   end
 
-  # **The one part of `call_later` that was not free.** Every other argument is already an id
-  # or a value, because a record is not an argument — which is exactly what a queue can carry.
-  # A `Shape` is the exception, and `command -> shape` is in the matrix, so it is an ordinary
-  # thing for a command to take.
-  class Bag < Shape
-    def initialize(place:, count:)
-      @place = typed(place, Place)
-      @count = typed(count, Integer)
+  def test_an_actor_with_a_uuid_is_recorded
+    entries = audited { Charge.call(actor: Uuid.new("6f1c8a2e-0b3d"), amount: 5) }
+
+    assert_equal "6f1c8a2e-0b3d", entries.first.actor_id
+  end
+
+  def test_an_integer_id_is_recorded_as_text
+    entries = audited { Charge.call(actor: Uuid.new(7), amount: 5) }
+
+    assert_equal "7", entries.first.actor_id
+  end
+
+  # **A broken sink does not fail the command.** The write has committed by the time the log
+  # runs, so raising here would have the audit trail deciding the outcome of the thing it is
+  # auditing.
+  def test_a_sink_that_raises_does_not_fail_a_committed_command
+    previous = AuditLog.sink
+    AuditLog.sink = ->(_entry) { raise "sink down" }
+
+    result = Charge.call(actor: ANYONE, amount: 5)
+
+    assert_predicate result, :success?
+  ensure
+    AuditLog.sink = previous
+  end
+
+  # **A shape is a hash with a declared shape.** The documented audit sink writes `entry.to_h`
+  # to a table; that method is on `Shape`, so every shape has it and the round trip is
+  # `new(**shape.to_h)` with nothing in between — no packer and no serialiser.
+  def test_a_shape_is_its_hash
+    entry = AuditLog::Entry.new(operation: "X", outcome: :succeeded, actor_id: "1", error: nil)
+
+    assert_equal({ operation: "X", outcome: :succeeded, actor_id: "1", error: nil }, entry.to_h)
+    assert_equal Place.new(code: "ZA"), Place.new(**Place.new(code: "ZA").to_h)
+  end
+
+  # **`call_later` refuses what `call` refuses.** Without building the operation it answered
+  # `success(:enqueued)` for arguments that could never run, which then burned the whole
+  # retry budget failing.
+  def test_call_later_asserts_its_arguments_before_enqueuing
+    assert_raises(ArgumentError) do
+      enqueued { Slow.call_later(actor: NAMED, amount: "not an integer") }
+    end
+    assert_empty OperationJob.enqueued
+  end
+
+  # **An actor that cannot be named cannot be deferred.** It used to be dropped in silence:
+  # the caller was told `success(:enqueued)`, the job died "requires an actor", exhausted its
+  # retries and wrote no audit entry at all.
+  def test_call_later_refuses_an_actor_it_could_not_rebuild
+    error = assert_raises(ArgumentError) do
+      enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
     end
 
-    attr_reader :place, :count
+    assert_includes error.message, "needs an actor with an id to defer"
+    assert_empty OperationJob.enqueued
   end
 
-  def test_a_shape_survives_the_round_trip
-    shape = Place.new(code: "ZA")
-
-    assert_equal shape, ShapePacking.unpack(ShapePacking.pack(shape))
+  def test_call_later_refuses_an_actor_whose_id_is_nil
+    assert_raises(ArgumentError) do
+      enqueued { Slow.call_later(actor: Named.new(nil), amount: 5) }
+    end
+    assert_empty OperationJob.enqueued
   end
 
-  # Where a hand-rolled packer usually breaks.
-  def test_a_shape_inside_a_shape_survives
-    bag = Bag.new(place: Place.new(code: "ZA"), count: 2)
+  # `to_h` is the instance variables, which is the round trip only when they are the keywords.
+  # The comment used to promise more than that.
+  def test_to_h_does_not_round_trip_a_shape_that_renames_its_fields
+    renaming = Class.new(Shape) do
+      def initialize(from:)
+        @starts_at = typed(from, String)
+      end
+    end
 
-    assert_equal bag, ShapePacking.unpack(ShapePacking.pack(bag))
-  end
-
-  def test_shapes_in_arrays_and_hashes_survive
-    packed = ShapePacking.pack(rows: [Place.new(code: "ZA"), Place.new(code: "GB")])
-
-    assert_equal [Place.new(code: "ZA"), Place.new(code: "GB")], ShapePacking.unpack(packed)[:rows]
-  end
-
-  def test_ordinary_values_pass_through_untouched
-    assert_equal({ amount: 5, note: "x", flags: [true, nil] },
-                 ShapePacking.unpack(ShapePacking.pack(amount: 5, note: "x", flags: [true, nil])))
-  end
-
-  # What a queue actually hands back: string keys, no symbols anywhere.
-  def test_unpacking_symbolises_the_keywords_a_door_expects
-    assert_equal({ amount: 5 }, ShapePacking.unpack("amount" => 5))
-  end
-
-  # String keys on the wire, symbols again at the door — the enqueue boundary is where the
-  # keywords stop being keywords, and `unpack` is what puts them back.
-  def test_arguments_are_packed_before_they_are_enqueued
-    jobs = enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
-
-    assert_equal({ "amount" => 5 }, jobs.first[:arguments])
-    assert_equal({ amount: 5 }, ShapePacking.unpack(jobs.first[:arguments]))
+    assert_equal({ starts_at: "x" }, renaming.new(from: "x").to_h)
+    assert_raises(ArgumentError) { renaming.new(**renaming.new(from: "x").to_h) }
   end
 
   def test_an_error_code_is_a_name_not_a_sentence

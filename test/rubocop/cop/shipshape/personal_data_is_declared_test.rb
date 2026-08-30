@@ -67,6 +67,42 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     assert_empty check("add_column \"users\", \"show_email\", :boolean\n")
   end
 
+  # **The registry `shipshape install` writes, verbatim.** Its commented-out examples used to
+  # clear `email` and `ip_address` on a fresh install, while `COLUMNS` was genuinely empty —
+  # the feature was born blind to the two commonest personal columns and the build was green.
+  def test_the_shipped_registry_declares_nothing
+    shipped = File.read(File.expand_path("../../../../lib/shipshape/templates/personal_data.rb.tt", __dir__))
+    body = create_table("t.string \"email\"\n    t.string \"ip_address\"")
+
+    assert_equal 2, check(body, shipped).length
+  end
+
+  # Prose is not a declaration.
+  def test_a_comment_naming_a_column_does_not_clear_it
+    registry = "module PersonalData\n  # TODO: decide about \"passport\"\n  COLUMNS = {}.freeze\nend\n"
+
+    assert_equal 1, check(create_table("t.string \"passport\""), registry).length
+  end
+
+  # **Per table, not per column name.** Classifying `users.email` used to clear `email`
+  # everywhere in the schema.
+  def test_classifying_one_table_does_not_clear_another
+    registry = "module PersonalData\n  COLUMNS = { \"users\" => { \"email\" => :anonymise } }.freeze\nend\n"
+    schema = create_table("t.string \"email\"") +
+             "create_table \"marketing_leads\" do |t|\n    t.string \"email\"\n  end\n"
+
+    found = check(schema, registry)
+
+    assert_equal 1, found.length
+  end
+
+  def test_add_column_is_read_against_its_own_table
+    registry = "module PersonalData\n  COLUMNS = { \"users\" => { \"email\" => :anonymise } }.freeze\nend\n"
+
+    assert_empty check("add_column \"users\", \"email\", :string\n", registry)
+    assert_equal 1, check("add_column \"leads\", \"email\", :string\n", registry).length
+  end
+
   # The stated limit, pinned so the silence is a decision rather than a discovery.
   def test_a_name_the_list_does_not_know_is_the_stated_blind_spot
     assert_empty check(create_table("t.string \"contact_ref\""))

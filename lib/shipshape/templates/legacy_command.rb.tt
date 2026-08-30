@@ -121,12 +121,6 @@ class LegacyCommand
   end
 <%- end -%>
 
-  # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
-  # that skipped the permission check, the transaction or the return-type assertion.
-  #
-  # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
-  # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
-  # ran the operation unauthenticated. Verified by running it, not by reading it.
 <%- if auth -%>
   # **Deferred, at the one grain where deferral is safe:** one command, one transaction, one
   # job, so a retry re-runs exactly one transaction. `a-command-runs-twice` is what makes that
@@ -146,15 +140,39 @@ class LegacyCommand
       return Result.failure(:forbidden)
     end
 
+    # **Built and thrown away, so the arguments are asserted here.** Without this
+    # `call_later` accepted what `call` refuses — a wrong type, or a record — and answered
+    # `success(:enqueued)` for work that could never run, which then burned its whole retry
+    # budget failing. An initializer only asserts, so building one twice costs nothing.
+    new(**arguments)
+    refuse_unidentifiable(actor)
+
     OperationJob.set(queue: queue_name).perform_later(
       operation: name,
-      arguments: ShapePacking.pack(arguments),
+      arguments: arguments,
       actor_class: actor&.class&.name,
       actor_id: actor.respond_to?(:id) ? actor.id : nil,
     )
 
     Result.success(:enqueued)
   end
+
+  # **An actor that cannot be named cannot be deferred.** Nothing here says an actor is a
+  # record — `permits?` needs only `may?` — so an actor with no `id` is legitimate and used to
+  # be dropped silently: the caller was told `success(:enqueued)`, the job then died
+  # "requires an actor", exhausted its retries and wrote no audit entry at all. Refusing at
+  # the door is the same failure the argument assertion above exists to prevent, one keyword
+  # over.
+  def self.refuse_unidentifiable(actor)
+    return if actor.nil?
+    return if actor.respond_to?(:id) && !actor.id.nil?
+
+    raise ArgumentError, "#{name}.call_later needs an actor with an id to defer; " \
+                         "#{actor.class} has none, so the job could not rebuild it"
+  end
+
+  private_class_method :refuse_unidentifiable
+
 <%- else -%>
   # **Deferred, at the one grain where deferral is safe:** one command, one transaction, one
   # job, so a retry re-runs exactly one transaction. `a-command-runs-twice` is what makes that
@@ -164,18 +182,28 @@ class LegacyCommand
   # accepted, not that it happened — there is no caller to tell what happened, which is why
   # every door reports to the audit log.
   def self.call_later(**arguments)
-    OperationJob.set(queue: queue_name).perform_later(operation: name, arguments: ShapePacking.pack(arguments))
+    new(**arguments)
+
+    OperationJob.set(queue: queue_name).perform_later(operation: name, arguments: arguments)
 
     Result.success(:enqueued)
   end
 <%- end -%>
   # **Which queue, declared on the operation.** `QUEUE = :payments` on the class; the default
-  # otherwise. `RETRIES = 2` is declared the same way and read by OperationJob at the moment
+  # otherwise. `ATTEMPTS = 2` is declared the same way and read by OperationJob at the moment
   # it decides whether to retry — not with `retry_on`, which would fix one policy for every
   # operation because it captures its limit when the job class is defined.
   def self.queue_name
     const_defined?(:QUEUE, false) ? const_get(:QUEUE, false) : :default
   end
 
+  private_class_method :queue_name
+
+  # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
+  # that skipped the permission check, the transaction or the return-type assertion.
+  #
+  # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
+  # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
+  # ran the operation unauthenticated. Verified by running it, not by reading it.
   private_class_method :new, :allocate
 end

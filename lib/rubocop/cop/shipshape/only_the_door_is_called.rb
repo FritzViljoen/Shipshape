@@ -53,18 +53,15 @@ module RuboCop
           return unless receiver&.const_type?
 
           name = receiver.source.sub(/\A::/, "")
-          return if allowed.include?(node.method_name.to_s)
-          return unless operation?(name)
+          kind = kinds.for_constant(name)
+          return unless governed_kinds.include?(kind)
+          return if allowed_for(kind).include?(node.method_name.to_s)
           return if refers_to_itself?(name)
 
           add_offense(node, message: message_for(name, node.method_name))
         end
 
         private
-
-        def operation?(name)
-          governed_kinds.include?(kinds.for_constant(name))
-        end
 
         # A class naming itself is not a call site reaching in. `Result.success(...)` inside
         # `Result` is one class talking to itself, and the door has nothing to say about it.
@@ -102,8 +99,28 @@ module RuboCop
         # The door, plus the small class-level API the base classes provide for asking about
         # an operation without running it — a view hiding a button it may not offer needs
         # `permissions`, and the permission catalogue needs `permission`.
+        #
+        # **Per kind, not one flat list.** `call_later` exists only on the writing doors: a
+        # workflow spans several transactions and a query answers nothing to nobody, so
+        # neither has the method. Allowing it everywhere made `SomeWorkflow.call_later(…)`
+        # pass this cop and fail at runtime with `NoMethodError` — the guard moving a failure
+        # from the build to production, which is the opposite of its job.
+        def allowed_for(kind)
+          return allowed + deferring if deferrable_kinds.include?(kind)
+
+          allowed
+        end
+
         def allowed
           @allowed ||= cop_config.fetch("AllowedMessages", %w[call permission permissions permits? anonymous?])
+        end
+
+        def deferring
+          @deferring ||= cop_config.fetch("DeferredMessages", %w[call_later])
+        end
+
+        def deferrable_kinds
+          cop_config.fetch("DeferrableKinds", %w[command io_command legacy_command])
         end
 
         def door

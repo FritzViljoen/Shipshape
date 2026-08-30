@@ -13,7 +13,9 @@
 # a workflow: it spans several transactions, and one job holding three of them would retry
 # steps that already committed.
 class OperationJob < ActiveJob::Base
-  # Used when an operation declares no `RETRIES` of its own.
+  # Used when an operation declares no `ATTEMPTS` of its own. **Attempts, not retries:** the
+  # number is compared against ActiveJob's `executions`, so `ATTEMPTS = 1` runs once and does
+  # not retry. `RETRIES = 1` would have read as "retry once" and bought the opposite.
   DEFAULT_ATTEMPTS = 5
 
   # **A raise is the retry signal. A `failure` is not** — it is expected and terminal, the
@@ -26,7 +28,7 @@ class OperationJob < ActiveJob::Base
   # with the number read at the moment it is needed. `executions` is what ActiveJob has
   # already counted, so nothing here keeps its own tally.
   def perform(operation:, arguments: {}, actor_class: nil, actor_id: nil)
-    Object.const_get(operation).call(**actor(actor_class, actor_id), **keywords(arguments))
+    Object.const_get(operation).call(**actor(actor_class, actor_id), **arguments)
   rescue StandardError => error
     raise error if executions >= attempts_for(operation)
 
@@ -48,13 +50,13 @@ class OperationJob < ActiveJob::Base
 
   private
 
-  # `RETRIES = 2` on the operation, read at the moment the decision is made rather than when
+  # `ATTEMPTS = 2` on the operation, read at the moment the decision is made rather than when
   # this class was defined. `false` so an operation does not inherit a limit somebody set for
   # a different one.
   def attempts_for(operation)
     klass = Object.const_get(operation)
 
-    klass.const_defined?(:RETRIES, false) ? klass.const_get(:RETRIES, false) : DEFAULT_ATTEMPTS
+    klass.const_defined?(:ATTEMPTS, false) ? klass.const_get(:ATTEMPTS, false) : DEFAULT_ATTEMPTS
   end
 
   def backoff
@@ -65,13 +67,5 @@ class OperationJob < ActiveJob::Base
     return {} if class_name.nil? || id.nil?
 
     { actor: self.class.actor_finder.call(class_name, id) }
-  end
-
-  # ActiveJob hands back string keys, and any `Shape` among the arguments arrives packed. The
-  # doors take named keywords and assert them, so both have to be undone before the call —
-  # `ShapePacking.unpack` does both, because symbolising is what it does to every Hash it is
-  # not told is a shape.
-  def keywords(arguments)
-    ShapePacking.unpack(arguments)
   end
 end
