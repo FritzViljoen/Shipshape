@@ -4,10 +4,12 @@ require "test_helper"
 
 # Watched to fail:
 #
-# - Making `derived_permissions` answer `[]` reddens the missing-entry test.
-# - Making `declared_permissions` answer the derived set reddens both mismatch tests.
+# - Making `steps_named` answer `["X"]` reddens the sequences-nothing tests.
+# - Making it answer `[]` reddens every empty-expectation test.
 # - Making `operation?` answer true reddens the not-a-step test.
-# - Making `on_class` skip the nil check reddens the undeclared test.
+# - Making `hidden_steps` answer `[]` reddens the private-helper test.
+# - Making `unreadable_receivers` answer `[]` reddens the variable-receiver test.
+# - Dropping `call_later` from `RUNS` reddens the deferred tests.
 # - Removing the nested-class guard reddens the nested-part test.
 class WorkflowAggregatesPermissionsTest < Minitest::Test
   include CopRunner
@@ -54,104 +56,192 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     "app/shapes/invoice.rb" => "class Invoice < Shape\nend\n",
   }.freeze
 
-  def test_a_workflow_with_no_permissions_is_an_offence
+  def test_a_workflow_that_sequences_nothing_is_an_offence
     found = check(<<~RUBY)
       class SettleMonth < Workflow
         def call
-          SettleInvoice.call(actor: @actor)
+          success(:done)
         end
       end
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`SettleMonth` is a workflow and does not name its steps"
+    assert_includes found.first.message, "`SettleMonth#call` names no operation to run"
   end
 
-  def test_the_offence_carries_the_reason_and_an_example_naming_the_real_steps
+  def test_the_offence_carries_the_reason_and_the_shape
     message = check(<<~RUBY).first.message
       class SettleMonth < Workflow
         def call
-          SettleInvoice.call(actor: @actor)
-          NotifyCustomer.call(actor: @actor)
+          success(:done)
         end
       end
     RUBY
 
-    assert_includes message, "WHY: A workflow spans several transactions"
+    assert_includes message, "WHY: A workflow is a sequence"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "STEPS = [SettleInvoice, NotifyCustomer].freeze"
+    assert_includes message, "SettleInvoice.call(actor: actor, invoice_id: @id)"
   end
 
-  def test_a_matching_declaration_is_the_shape
+  def test_a_call_that_names_its_steps_is_the_shape
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        STEPS = [SettleInvoice, NotifyCustomer].freeze
-
-        def call
-          return failure(:forbidden) unless @actor.may_all?(PERMISSIONS)
-
-          SettleInvoice.call(actor: @actor)
-          NotifyCustomer.call(actor: @actor)
-        end
-      end
-    RUBY
-  end
-
-  # The rot this law exists for: a step is added and the list is not.
-  def test_a_step_the_list_does_not_name_is_an_offence
-    found = check(<<~RUBY)
-      class SettleMonth < Workflow
-        STEPS = [SettleInvoice].freeze
-
         def call
           SettleInvoice.call(actor: @actor)
           NotifyCustomer.call(actor: @actor)
         end
       end
     RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "missing `NotifyCustomer`"
-  end
-
-  # The other direction is a different mistake, and says so.
-  def test_a_permission_for_a_step_it_does_not_call_is_an_offence
-    found = check(<<~RUBY)
-      class SettleMonth < Workflow
-        STEPS = [SettleInvoice, ListInvoices].freeze
-
-        def call
-          SettleInvoice.call(actor: @actor)
-        end
-      end
-    RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "names `ListInvoices`, which it does not call"
   end
 
   def test_a_query_step_counts_as_well_as_a_command
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        STEPS = [ListInvoices, SettleInvoice].freeze
-
         def call
           ListInvoices.call(actor: @actor)
+        end
+      end
+    RUBY
+  end
+
+  # A shape is not a step. Holding one needs no permission, so it aggregates nothing — and a
+  # workflow that only builds shapes is still a workflow that sequences nothing.
+  def test_a_constant_that_is_not_an_operation_is_not_a_step
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          Invoice.new(number: "1")
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
+  # **The blind spot the base class has, held here rather than left to production.**
+  # `RubyVM::AbstractSyntaxTree.of` reads `call` and nothing else, so a step behind a helper
+  # is a permission never demanded.
+  def test_a_step_reached_from_a_private_helper_is_an_offence
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          sequence
+        end
+
+        private
+
+        def sequence
+          SettleInvoice.call(actor: @actor)
+        end
+      end
+    RUBY
+
+    # Two: `call` names nothing, and the step is somewhere the reading does not reach.
+    assert_equal 2, found.length
+    assert(found.any? { |offence| offence.message.include?("called from somewhere the permissions are not read from") })
+  end
+
+  # **The fail-open the old shape allowed through.** One visible step satisfied the cop, and
+  # the hidden one was demanded of nobody — so the workflow ran, committed step one, then
+  # refused at the step nothing had checked.
+  def test_one_visible_step_does_not_excuse_a_hidden_one
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          SettleInvoice.call(actor: @actor)
+          finish
+        end
+
+        private
+
+        def finish
+          NotifyCustomer.call(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`NotifyCustomer` is a step"
+  end
+
+  # Legal Ruby that no reader can resolve to a permission.
+  def test_a_receiver_that_is_not_a_constant_is_an_offence
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          step = SettleInvoice
+          step.call(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert(found.any? { |offence| offence.message.include?("receiver is not a constant") })
+  end
+
+  # A deferred step still runs, so its permission is still owed — and the base class reads it.
+  def test_a_deferred_step_is_a_step
+    assert_empty check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          SettleInvoice.call_later(actor: @actor)
+        end
+      end
+    RUBY
+  end
+
+  def test_a_deferred_step_hidden_in_a_helper_is_an_offence
+    found = check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          SettleInvoice.call(actor: @actor)
+          finish
+        end
+
+        private
+
+        def finish
+          NotifyCustomer.call_later(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
+  # `::SettleInvoice` is a `COLON3` node. The base class dropped it silently, so the cop has
+  # to read it the same way or one of them is wrong about what the workflow owes.
+  def test_a_step_with_leading_colons_is_a_step
+    assert_empty check(<<~RUBY)
+      class SettleMonth < Workflow
+        def call
+          ::SettleInvoice.call(actor: @actor)
+        end
+      end
+    RUBY
+  end
+
+  # A signup sequence runs before anyone is identified and implements the other method.
+  def test_an_anonymous_workflow_names_its_steps_the_same_way
+    assert_empty check(<<~RUBY)
+      class SignUp < Workflow
+        def anonymous_call
           SettleInvoice.call(actor: @actor)
         end
       end
     RUBY
   end
 
-  # A shape is not a step, so holding one needs no permission.
-  def test_a_constant_that_is_not_an_operation_is_not_a_step
+  def test_a_helper_that_touches_no_operation_is_not_a_hidden_step
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        STEPS = [SettleInvoice].freeze
-
         def call
-          Invoice.new(number: "1")
           SettleInvoice.call(actor: @actor)
+        end
+
+        private
+
+        def summary
+          Invoice.new(number: "1")
         end
       end
     RUBY
@@ -167,15 +257,14 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     RUBY
   end
 
-  # A part nested inside the workflow is reached only through it, so it declares nothing.
+  # A part nested inside the workflow is reached only through it, so it is not a second
+  # workflow to be judged on its own `call`.
   def test_a_nested_part_is_not_a_second_workflow
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
-        STEPS = [SettleInvoice].freeze
-
         class Outcome
-          def initialize(settled:)
-            @settled = settled
+          def call
+            success(:built)
           end
         end
 
@@ -186,33 +275,32 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     RUBY
   end
 
-  # A STEPS on a NESTED class used to satisfy the outer workflow, which then ran with the
-  # base class's empty list and refused nobody — green over the defect the cop exists for.
-  def test_a_nested_classs_steps_does_not_satisfy_the_workflow
+  # A `call` on a NESTED class must not satisfy the outer workflow, which would then run
+  # with no steps and refuse nobody — green over the defect the cop exists for.
+  def test_a_nested_classs_call_does_not_satisfy_the_workflow
     found = check(<<~RUBY)
       class SettleMonth < Workflow
         class Report
-          STEPS = [SettleInvoice, NotifyCustomer].freeze
+          def call
+            SettleInvoice.call(actor: @actor)
+          end
         end
 
         def call
-          SettleInvoice.call(actor: @actor)
-          NotifyCustomer.call(actor: @actor)
+          success(:done)
         end
       end
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "does not name its steps"
   end
 
-  # `Billing::SettleInvoice` names one step. Collecting descendants also yielded `Billing`,
-  # so a correct declaration failed — and a cop that fails correct code gets disabled.
-  def test_a_namespaced_step_is_not_also_its_namespace
+  # `Billing::SettleInvoice` names one step, and the base class resolves it through the
+  # workflow's own namespace. A cop that could not see it would fail correct code, and a cop
+  # that fails correct code gets disabled.
+  def test_a_namespaced_step_is_named
     assert_empty offences(<<~RUBY, cop_class: COP, path: WORKFLOW, files: NAMESPACED, other_cops: NAMESPACED_LAYOUT)
       class SettleMonth < Workflow
-        STEPS = [Billing::SettleInvoice].freeze
-
         def call
           Billing::SettleInvoice.call(actor: @actor)
         end

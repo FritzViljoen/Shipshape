@@ -104,7 +104,12 @@ module RuboCop
               # needed both? that is a workflow, which is what accepts the bill for
               # spanning two transactions
               class RegisterPerson < Workflow
-                STEPS = [FindPerson, CreatePerson].freeze
+                def call
+                  found = FindPerson.call(actor: actor, email: @email)
+                  return found if found.value
+
+                  CreatePerson.call(actor: actor, email: @email)
+                end
               end
             RUBY
           )

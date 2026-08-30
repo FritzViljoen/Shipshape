@@ -92,7 +92,12 @@ module RuboCop
               # and a workflow sequences the outside call and the local write, which is the
               # only kind obliged to make each step idempotent
               class SettleInvoice < Workflow
-                STEPS = [ChargeCard, RecordPayment].freeze
+                def call
+                  charged = ChargeCard.call(actor: actor, invoice_id: @id)
+                  return charged if charged.failure?
+
+                  RecordPayment.call(actor: actor, invoice_id: @id)
+                end
               end
             RUBY
           )

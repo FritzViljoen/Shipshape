@@ -54,7 +54,7 @@ half to grant, so the only available move is to split the class — which is the
 correct anyway, arriving at the moment the requirement proves it.
 
 **A workflow is the escape hatch, and it is the only one.** Work that genuinely spans several
-permitted acts is a sequence, declares its `STEPS`, and is refused whole
+permitted acts is a sequence, names its steps in `call`, and is refused whole
 ([`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md)). One
 permission means a command or a query; several means a workflow. The typology is not a
 convention here — it is what the permission model can and cannot say.
@@ -107,13 +107,14 @@ know — every grantable permission, read off the classes, with anonymous operat
 because they are never granted. The other half is the application's table, so the comparison
 lives there.
 
-It raises on a workflow that declares no `STEPS`, deliberately: that workflow would otherwise
-refuse nothing at its first real call, in production, and walking the catalogue at boot is
-the cheapest place to find it.
+It raises on a workflow whose `call` names no operation, deliberately: that workflow would
+otherwise refuse nothing at its first real call, in production, and walking the catalogue at
+boot is the cheapest place to find it.
 
 ## The catalogue is derived, never maintained
 
-Every operation answers `permission`; every workflow answers `permissions`, from its `STEPS`.
+Every operation answers `permission`; every workflow answers `permissions`, read out of its
+`call`.
 So the full set the system recognises is read off the classes — no seed file, no registry,
 nothing to fall behind the code, and no way for a permission to exist in a list but not in
 the application or the reverse.
@@ -179,7 +180,8 @@ in doubt.
   every operation, so there is nothing to declare and nothing to forget — the failure was
   removed rather than watched for, which is what `make-the-wrong-thing-impossible` asks. The
   generated classes are exercised by `test/shipshape/generated_base_classes_test.rb`:
-  refusal, the nil-actor raise, `anonymous_call`, an empty `STEPS`, and the legacy doors.
+  refusal, the nil-actor raise, `anonymous_call`, a workflow that sequences nothing, and the
+  legacy doors.
   That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.

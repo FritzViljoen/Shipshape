@@ -58,9 +58,9 @@ module Permission
   # contain one would fail every check for ever. So are nameless classes — a `Class.new`
   # subclass has no constant, so it has no permission, and asking for one raises.
   #
-  # **It raises on a workflow that declares no STEPS, deliberately.** That workflow would
-  # otherwise refuse nothing at its first real call, in production; walking the catalogue at
-  # boot is the cheapest place to find it.
+  # **It raises on a workflow whose `call` names no operation, deliberately.** That workflow
+  # would otherwise refuse nothing at its first real call, in production; walking the
+  # catalogue at boot is the cheapest place to find it.
   def self.catalogue(*doors)
     doors.flat_map { |door| door.descendants }
          .select(&:name)

@@ -576,13 +576,12 @@ Shipshape/NoGeneratedInterfaces:
 
 Shipshape/WorkflowAggregatesPermissions:
   Description: >-
-    A workflow names its steps, so the base class can check every permission before the
-    first one runs. The declared list is checked against what the body actually calls.
+    A workflow's steps are read out of its `call`, so the base class can check every
+    permission before the first one runs. A `call` that names none refuses nobody.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
-  ListConstantName: STEPS
   # The kinds that count as steps. A workflow calling a workflow would
   # be a sister call, which Shipshape/CallGraph already refuses.
   StepKinds:

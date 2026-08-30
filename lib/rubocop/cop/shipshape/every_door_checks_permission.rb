@@ -21,7 +21,7 @@ module RuboCop
       # WHAT IT DOES NOT CATCH: it looks for the **call**, not for what the call does. A
       # `permits?` redefined to answer true passes, and so does one whose result is
       # discarded. It cannot see an operation that overrides `self.call` in its own class to
-      # go around the door, and it says nothing about the workflow's `STEPS`.
+      # go around the door, and it says nothing about the operations a workflow sequences.
       #
       # @example
       #   # bad — the door still exists, and every command through it is unauthorised

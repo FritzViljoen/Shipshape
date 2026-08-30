@@ -246,12 +246,12 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   def test_a_workflow_answers_the_permissions_of_its_steps
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [Charge].freeze)
       def self.name
-        "SettleMonth"
+        "GeneratedBaseClassesTest::SettleMonth"
       end
 
       def call
+        Charge.call(actor: ANYONE, amount: 1)
         success(:done)
       end
     end
@@ -260,21 +260,25 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   def test_a_workflow_refuses_before_a_single_step_runs
-    ran = false
+    opened = false
+    ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| opened = true; block.call }
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [Charge].freeze)
       def self.name
-        "SettleMonth"
+        "GeneratedBaseClassesTest::SettleMonth"
       end
 
-            define_method(:call) { ran = true; success(:done) }
+      def call
+        Charge.call(actor: ANYONE, amount: 1)
+      end
     end
 
     result = flow.call(actor: Anyone.new([Charge.permission]))
 
     refute_predicate result, :success?
     assert_equal :forbidden, result.error
-    refute ran, "the workflow body ran despite a refused step"
+    refute opened, "a step opened a transaction despite the workflow being refused"
+  ensure
+    ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| block.call }
   end
 
   # Publicness is a property of the class — which method it implements — never of the
@@ -325,11 +329,13 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_predicate wipe.call(actor: Anyone.new([wipe.permission])), :success?
   end
 
-  # An inherited empty STEPS meant a workflow that forgot to declare one refused nobody.
-  def test_a_workflow_that_forgets_steps_raises_rather_than_running
+  # **A workflow whose `call` names no operations is not a workflow**, and answering `[]`
+  # would be a fail-open: `[].all?` is true, so it would run for an actor holding no grants.
+  # This is also what a step hidden behind a private helper looks like from here.
+  def test_a_workflow_that_sequences_nothing_raises_rather_than_running
     forgetful = Class.new(Workflow) do
       def self.name
-        "Forgetful"
+        "GeneratedBaseClassesTest::Forgetful"
       end
 
       def call
@@ -339,7 +345,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     error = assert_raises(NotImplementedError) { forgetful.call(actor: ANYONE) }
 
-    assert_includes error.message, "must declare STEPS"
+    assert_includes error.message, "names no operations"
   end
 
   # An anonymous step is never granted — that is what anonymous means — so aggregating its
@@ -347,12 +353,13 @@ class GeneratedBaseClassesTest < Minitest::Test
   # forbidden.
   def test_an_anonymous_step_contributes_no_permission
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [LogIn, Charge].freeze)
       def self.name
-        "Onboard"
+        "GeneratedBaseClassesTest::Onboard"
       end
 
       def call
+        LogIn.call(email: "a@b.c")
+        Charge.call(actor: ANYONE, amount: 1)
         success(:onboarded)
       end
     end
@@ -366,9 +373,8 @@ class GeneratedBaseClassesTest < Minitest::Test
   # operation does.
   def test_a_workflow_may_be_anonymous
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [LogIn].freeze)
       def self.name
-        "SignUp"
+        "GeneratedBaseClassesTest::SignUp"
       end
 
       def initialize(email:)
@@ -389,13 +395,12 @@ class GeneratedBaseClassesTest < Minitest::Test
   # The guarded path still demands one, so anonymity stays a property of the class.
   def test_a_guarded_workflow_still_requires_an_actor
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [Charge].freeze)
       def self.name
-        "SettleMonth"
+        "GeneratedBaseClassesTest::SettleMonth"
       end
 
       def call
-        success(:done)
+        Charge.call(actor: ANYONE, amount: 1)
       end
     end
 
@@ -407,13 +412,13 @@ class GeneratedBaseClassesTest < Minitest::Test
   # — the button hidden from everybody.
   def test_a_workflow_answers_whether_the_actor_may_run_it
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [LogIn, Charge].freeze)
       def self.name
-        "Onboard"
+        "GeneratedBaseClassesTest::Onboard"
       end
 
       def call
-        success(:done)
+        LogIn.call(email: "a@b.c")
+        Charge.call(actor: ANYONE, amount: 1)
       end
     end
 
@@ -423,13 +428,12 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   def test_the_view_predicate_and_the_refusal_are_one_question
     flow = Class.new(Workflow) do
-      const_set(:STEPS, [Charge].freeze)
       def self.name
-        "SettleMonth"
+        "GeneratedBaseClassesTest::SettleMonth"
       end
 
       def call
-        success(:done)
+        Charge.call(actor: ANYONE, amount: 1)
       end
     end
 
@@ -454,12 +458,138 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_includes Permission.catalogue(Command), LogIn.permission
   end
 
+  # **Every shape the reader could not see was a permission never demanded.** Each of these
+  # was found by running it: the workflow permitted an actor the missing step refused, ran
+  # step one, committed it, and refused at step two — the partial run this law exists to
+  # prevent. They are fixtures with real bodies because the reading is of the file on disk.
+  class WipeEverything < Command
+    def initialize(**); end
+
+    def call
+      success(:wiped)
+    end
+  end
+
+  module Billing
+    class Charge < Command
+      def initialize(**); end
+
+      def call
+        success(:billed)
+      end
+    end
+
+    class Notify < Command
+      def initialize(**); end
+
+      def call
+        success(:notified)
+      end
+    end
+
+    # Written `module Billing` / `class Nested`, so `Charge` here means `Billing::Charge`.
+    class Nested < Workflow
+      def initialize(**); end
+
+      def call
+        Charge.call(actor: actor, amount: 1)
+      end
+    end
+  end
+
+  # Written in the **compact form**, so `Billing` is not in `Module.nesting` and `Charge`
+  # means the top-level one. Reading the class's *name* instead demanded `Billing::Charge`
+  # and permitted an actor refused the operation that actually runs.
+  class Billing::Compact < Workflow
+    def initialize(**); end
+
+    def call
+      Charge.call(actor: actor, amount: 1)
+    end
+  end
+
+  # A leading `::` is a `COLON3` node. It was not recognised, so the step was dropped.
+  class LeadingColons < Workflow
+    def initialize(**); end
+
+    def call
+      Charge.call(actor: actor, amount: 1)
+      ::GeneratedBaseClassesTest::WipeEverything.call(actor: actor)
+    end
+  end
+
+  # `COLON3` holds a bare Symbol, so recursing into it raised `NoMethodError` — a `NameError`,
+  # which the rescue swallowed, discarding both steps and leaving the workflow unrunnable.
+  class DeepColons < Workflow
+    def initialize(**); end
+
+    def call
+      Billing::Charge.call(actor: actor)
+      ::GeneratedBaseClassesTest::Billing::Notify.call(actor: actor)
+    end
+  end
+
+  # A deferred step still runs, so its permission is still owed.
+  class Deferred < Workflow
+    def initialize(**); end
+
+    def call
+      Charge.call(actor: actor, amount: 1)
+      WipeEverything.call_later(actor: actor)
+    end
+  end
+
+  FORMATTER = ->(value) { value }
+
+  # A constant receiving `call` that is not an operation has no permission to contribute.
+  # Asking it for one took the whole door down with `NoMethodError`.
+  class WithAProc < Workflow
+    def initialize(**); end
+
+    def call
+      Charge.call(actor: actor, amount: 1)
+      FORMATTER.call(1)
+    end
+  end
+
+  def test_a_step_written_with_leading_colons_is_a_step
+    assert_equal [Charge.permission, WipeEverything.permission].sort, LeadingColons.permissions.sort
+    refute LeadingColons.permits?(Anyone.new([WipeEverything.permission]))
+  end
+
+  def test_a_namespaced_step_with_leading_colons_does_not_zero_the_list
+    assert_equal [Billing::Charge.permission, Billing::Notify.permission].sort, DeepColons.permissions.sort
+  end
+
+  # Compact form and nested form read the same constant differently, and Ruby is the
+  # authority on which — so the nesting is rebuilt from the file, not from the class name.
+  def test_the_compact_form_resolves_the_way_ruby_resolves_it
+    assert_equal [Charge.permission], Billing::Compact.permissions
+    refute Billing::Compact.permits?(Anyone.new([Charge.permission]))
+  end
+
+  def test_the_nested_form_resolves_to_the_namespaced_operation
+    assert_equal [Billing::Charge.permission], Billing::Nested.permissions
+    refute Billing::Nested.permits?(Anyone.new([Billing::Charge.permission]))
+  end
+
+  def test_a_deferred_step_is_still_a_step
+    assert_equal [Charge.permission, WipeEverything.permission].sort, Deferred.permissions.sort
+    refute Deferred.permits?(Anyone.new([WipeEverything.permission]))
+  end
+
+  def test_a_constant_that_is_not_an_operation_is_skipped_not_fatal
+    assert_equal [Charge.permission], WithAProc.permissions
+  end
+
   # A door of its own, so the catalogue under test is this file's classes and not every
   # subclass any other test in the process happened to create.
   class CataloguedFlow < Workflow; end
 
   class SettleMonthFlow < CataloguedFlow
-    STEPS = [Charge].freeze
+    def call
+      Charge.call(actor: ANYONE, amount: 1)
+    end
   end
 
   def test_a_workflow_contributes_its_steps_not_its_own_name
@@ -471,28 +601,10 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   # Not a wart: that workflow would otherwise refuse nothing at its first real call, in
   # production. Walking the catalogue at boot is the cheapest place to find it.
-  def test_the_catalogue_raises_on_a_workflow_that_declares_no_steps
+  def test_the_catalogue_raises_on_a_workflow_that_sequences_nothing
     error = assert_raises(NotImplementedError) { Permission.catalogue(Workflow) }
 
-    # Either broken workflow in this file may be met first, depending on run order: one
-    # declares no STEPS, the other declares an empty one. Both are the same defect.
-    assert_match(/STEPS|no steps/, error.message)
-  end
-
-  # **The fail-open the guard did not cover.** `const_defined?` catches a missing STEPS; an
-  # explicitly empty one yielded `permissions == []`, and `[].all?` is true, so the workflow
-  # ran for an actor holding no grants at all.
-  def test_a_workflow_declaring_an_empty_steps_raises
-    empty = Class.new(Workflow) do
-      const_set(:STEPS, [].freeze)
-      def self.name
-        "ChargeEveryone"
-      end
-    end
-
-    error = assert_raises(NotImplementedError) { empty.call(actor: ANYONE) }
-
-    assert_includes error.message, "declares no steps"
+    assert_includes error.message, "names no operations"
   end
 
   # **Publicness is declared by the class that is public.** `method_defined?` walked the
@@ -907,11 +1019,10 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   class AuditedFlow < Workflow
-    STEPS = [AuditedCommand].freeze
-
     def initialize; end
 
     def call
+      AuditedCommand.call(actor: ANYONE)
       success(1)
     end
   end
@@ -931,10 +1042,12 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_every_writing_door_records_what_it_did
     AUDITED_DOORS.each do |door|
       entries = audited { door.call(actor: ANYONE) }
+      # A workflow's steps record their own entries, so the count is the depth of the
+      # sequence. What must hold on every door is that it recorded itself, exactly once.
+      own = entries.select { |entry| entry.operation == door.name }
 
-      assert_equal 1, entries.length, door.name
-      assert_equal :succeeded, entries.first.outcome, door.name
-      assert_equal door.name, entries.first.operation, door.name
+      assert_equal 1, own.length, door.name
+      assert_equal :succeeded, own.first.outcome, door.name
     end
   end
 

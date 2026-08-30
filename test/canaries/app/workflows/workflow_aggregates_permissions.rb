@@ -2,6 +2,6 @@
 
 class WorkflowAggregatesPermissions < Workflow
 def call
-  SomeCommand.call
+  success(:done)
 end
 end

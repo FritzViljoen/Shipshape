@@ -65,7 +65,7 @@ it answers `failure(:code)` so the caller can act.
 
 Where a workflow sequences several,
 [`a-workflow-aggregates-its-permissions`](../laws/a-workflow-aggregates-its-permissions.md)
-applies: declared `STEPS`, refused whole.
+applies: the steps are read out of `call`, and it is refused whole.
 
 **Check:** `Shipshape/NoCallbacks` is silent — no transition happens because something was
 saved.

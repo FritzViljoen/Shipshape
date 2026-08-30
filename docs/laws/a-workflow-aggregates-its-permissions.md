@@ -1,11 +1,11 @@
 # `a-workflow-aggregates-its-permissions` — A workflow names its steps, and refuses before it starts
 
-A workflow declares `STEPS`: the operations it calls, in order. The base class maps each to
-its permission — [the class name](a-permission-is-the-class-name.md) — checks the whole set
-before the first step, and refuses the whole workflow.
+A workflow's steps are the operations its `call` names, in order. The base class reads them
+out of `call`, maps each to its permission — [the class name](a-permission-is-the-class-name.md)
+— checks the whole set before the first step, and refuses the whole workflow.
 
-`STEPS` is the one thing a workflow must declare, and only because the base class cannot see
-what `call` will do until it does it. Everywhere else the permission is derived.
+Nothing is declared. `RubyVM::AbstractSyntaxTree.of` hands back the syntax tree of `call`
+itself, so the list is derived from the only copy there is.
 
 **A workflow is multi-permission by definition**, so the sizing rule in
 [`one-operation-one-class`](one-operation-one-class.md) — an operation is sized so it can be
@@ -56,22 +56,34 @@ work be finished?" It refuses to start what it cannot complete. Two different qu
 consulting one fact is not two places deciding — the permission model is still declared in
 one place per operation, and the workflow reads it rather than restating it.
 
-## The list is declared and derived, both
+## The list was declared once, and the declaration is what rotted
 
-A hand-maintained list of permissions is a copy of a fact the steps already state, and a copy
-rots — silently, and in the direction that grants rather than refuses, because the step
-somebody added is the one missing from the list.
+A workflow declared a `STEPS` constant for a while, with a guard checking it against what the
+body called. That is a copy of a fact the steps already state, and a copy rots — silently, and
+in the direction that grants rather than refuses, because the step somebody added is the one
+missing from the list. The guard held the two in step, but there were still two places to
+change and one of them was easy to forget.
 
-So the declaration is written **and** checked against the code: the guard reads what `call`
-actually calls, keeps the constants that resolve to an operation, and fails when that set and
-`STEPS` disagree. **Where they
-disagree, the list is wrong.** Adding a step to a workflow and forgetting the permission
-fails the build, which is the only way this stays true.
+Reading `call` removes the second copy rather than policing it, which is what
+[`one-way-to-say-each-thing`](one-way-to-say-each-thing.md) asks for: an abstraction earns its
+place by removing a way to say something.
+
+**Only `call` is read, and that is a constraint worth having.** A workflow *is* a sequence; a
+step hidden behind a private helper is a sequence that does not read as one.
+
+**But an unread step fails open, and saying so is not enough.** Fewer steps found means fewer
+permissions demanded, and the dangerous case is not the workflow that reads as empty — that one
+raises. It is the workflow with one step in `call` and another behind a helper: the reading
+finds a step, raises nothing, and demands half of what the workflow owes. The build is green
+and the refusal arrives at step two, after step one has committed.
+
+So the guard fails the shapes the reading cannot see, rather than describing them:
+a receiver that is not a constant, and an operation called from any method other than `call`.
+The reading and the guard recognise exactly the same shapes, which is the only arrangement in
+which the green build means anything.
 
 ```ruby
 class SettleMonth < Workflow
-  STEPS = [SettleInvoice, NotifyCustomer].freeze
-
   def initialize(month:)
     @month = typed(month, Date)
   end
@@ -90,17 +102,23 @@ end
 - **Principle:** `nothing-fails-quietly` governs — partial work with no way back is the
   quietest failure there is. `nothing-is-hidden` produces the declaration, and
   `absence-is-absence` the refusal to let a missing entry mean "allowed".
-- **Guard:** `Shipshape/WorkflowAggregatesPermissions`, over the workflow kind. Fails a
-  workflow with no `STEPS`, and fails one whose declared set does not match the operations
-  its body calls. Names the missing and the
-  surplus entries separately, because they are different mistakes.
-- **Guard's limit:** it reads the constants the body **names syntactically**. A step reached
-  through a variable, a constant it cannot resolve to a file, or an operation called by
-  another operation one level down is invisible — so the derived set is a floor, not a
-  ceiling, and a workflow can still need a permission this cannot see. `STEPS` is read only
-  as an array literal in the workflow's own body — a list built any other way reads as absent.
-  Ordering is not checked: `STEPS` may list the operations in an order the body does not run
-  them in. It says nothing about whether the actor is threaded through to each step.
+- **Guard:** `Shipshape/WorkflowAggregatesPermissions`, over the workflow kind. Fails three
+  shapes, all of them permissions never demanded: a `call` naming no operation the layout
+  knows; a `call`/`call_later` receiver that is not a constant; and an operation called from
+  any method other than `call`. The base class raises on the first; the cop moves all three
+  off the first production call.
+- **Guard's limit:** it reads constants **syntactically**, the same way the base class does,
+  so a step reached through `const_get`, `send`, or a constant assigned from a variable is
+  invisible to both — and unlike the shapes above, invisible without being reported. That is
+  a fail-open: the workflow demands less than it owes and nothing says so. A constant
+  resolving to no governed file is skipped, which is right for a `Proc` in a constant and
+  wrong for an operation the layout does not cover. Ordering is not checked, nor whether a
+  named constant is called rather than merely mentioned, nor whether the actor is threaded
+  through to each step.
+
+  **`RubyVM` is MRI's.** On an interpreter without it the reading raises rather than
+  answering `[]`, which is the fail-closed direction, but it means the base class as written
+  does not run there.
 
   **A workflow's own `permission` exists but is never consulted** — the steps are what get
   granted. Granting `:SettleMonth` therefore does nothing, and nothing warns you; the coarse

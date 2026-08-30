@@ -119,7 +119,11 @@ in a command, and a workflow sequences them:
 
 ```ruby
 class ForgetPerson < Workflow
-  STEPS = [AnonymiseComments, DeleteSessions, AnonymiseUser].freeze
+  def call
+    AnonymiseComments.call(actor: actor, person_id: @id)
+    DeleteSessions.call(actor: actor, person_id: @id)
+    AnonymiseUser.call(actor: actor, person_id: @id)
+  end
 end
 ```
 

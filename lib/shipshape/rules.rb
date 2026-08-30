@@ -103,7 +103,8 @@ module Shipshape
         class checks it before the work, so no operation writes a permission check of its
         own. An operation that runs before anyone is identified implements `anonymous_call`
         instead of `call` — that is a property of the class, and there is no way for a caller
-        to ask for it. A workflow declares `STEPS` and is refused whole before its first step.
+        to ask for it. A workflow's steps are read out of its `call`, and it is refused whole
+        before the first one runs.
       TEXT
     end
 

@@ -88,7 +88,12 @@ that it spans more than one transaction:
 
 ```ruby
 class RegisterConsumerApp < Workflow
-  STEPS = [FindConsumerApp, CreateConsumerApp].freeze
+  def call
+    found = FindConsumerApp.call(actor: actor, name: @name)
+    return found if found.value
+
+    CreateConsumerApp.call(actor: actor, name: @name)
+  end
 end
 ```
 
