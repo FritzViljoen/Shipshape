@@ -68,16 +68,28 @@ What stays a judgement is whether the single act you named should have been two.
 but the conflation is in the name, on every call site. An operation whose name needs an "and"
 is usually two.
 
+**A module included into an operation is held to the same rule.** `include Paying` puts
+every one of that module's public methods onto every operation that includes it, and it does
+so in a file none of those operations mention — the surface this law closes, reopened where
+nobody looks for it. So a mixin's methods go under `private` too.
+
+**A module cannot be judged by its own file**, which is what makes this a separate guard.
+`Paying` with public methods is correct in a shape, whose whole job is to be read, and wrong
+in a command, which answers one message. Nothing in the module separates those. What decides
+is where it is going, so the guard reads the operations and asks what they include.
+
 - **Principle:** `one-way-to-say-each-thing`
 - **Guard:** `Shipshape/OneOperationOneClass`, over classes of a kind listed in
   `OperationKinds`. Fails a second public method, a public method not named `call`, a
   public `attr_reader`/`attr_accessor`/`attr_writer` — which is a public method in all but
   name — a class that defines neither `call` nor `anonymous_call`, and any parameter that is
-  not a named keyword. It says which it was, and for a second public method it leads with
-  `private`, because that is nearly always the answer and "give it its own class" is the
-  rarer one: positional, optional positional,
-  `*rest`, `**rest`, and `(...)`. Each refusal says which it was, because "use keywords"
-  without the reason gets worked around rather than fixed.
+  not a named keyword: positional, optional positional, `*rest`, `**rest`, and `(...)`. Each
+  refusal says which it was, because "use keywords" without the reason gets worked around
+  rather than fixed. For a second public method it leads with `private`, that being nearly
+  always the answer and "give it its own class" the rarer one.
+- **Guard:** `Shipshape/MixinsAddNothingPublic`, over modules that an operation includes.
+  Fails a public instance method and a public reader, and scaffolds `private` above the
+  first of them.
 - **Guard's limit:** it cannot tell whether the one method does one thing. A two-hundred
   line `call` passes. Class and method length are a separate concern and this cop does not
   cover them. It cannot see a public method added at runtime. `initialize` is exempt —
@@ -86,3 +98,9 @@ is usually two.
 
   The layout it reads is declared once, on `Shipshape/CallGraph`, and a file of no declared
   kind is left alone rather than judged.
+- **Guard's limit:** the mixin guard reads `include`/`prepend` with a regular expression over
+  the operation trees, so a module mixed in dynamically is invisible, and so is one reached
+  through an alias. It compares a written `include Paying` against a module declared `Paying`
+  or `Billing::Paying`, which over-fires where two modules share a last segment and only one
+  is a mixin — being told to make a module's methods private is defensible, and silence is
+  not. It says nothing about `def self.`, which does not travel through `include`.

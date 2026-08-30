@@ -163,6 +163,13 @@ module Shipshape
           end
         end
       RUBY
+      "Shipshape/MixinsAddNothingPublic" => { path: "app/models/concerns/paying.rb", raw: <<~RUBY },
+        module Paying
+          def total
+            1
+          end
+        end
+      RUBY
     }.freeze
 
     # A canary sometimes needs a second file to be a violation at all.
@@ -175,6 +182,12 @@ module Shipshape
       "Shipshape/EveryDoorChecksPermission" => { "app/shipshape/permission.rb" => "module Permission\nend\n" },
       "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
       "Shipshape/OnlyTheDoorIsCalled" => { kind: "query", name: "OtherQuery" },
+      # A module is only a violation because an operation includes it, so the including
+      # operation is the canary's other half. Without it the module is somebody else's
+      # business and the cop is silent while perfectly healthy.
+      "Shipshape/MixinsAddNothingPublic" => {
+        "app/commands/pays_something.rb" => "class PaysSomething < Command\n  include Paying\n\n  def call; end\nend\n",
+      },
     }.freeze
 
     DIRECTORY = "test/canaries"
@@ -236,6 +249,10 @@ module Shipshape
         Shipshape/NoUnparsedLookup:
           AutoCorrect: false
         Shipshape/NoInlineParamParse:
+          AutoCorrect: false
+        Shipshape/MixinsAddNothingPublic:
+          AutoCorrect: false
+        Shipshape/OneOperationOneClass:
           AutoCorrect: false
 
         AllCops:

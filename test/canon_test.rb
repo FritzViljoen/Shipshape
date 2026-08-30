@@ -110,7 +110,11 @@ class CanonTest < Minitest::Test
   def laws
     @laws ||= LAWS.sort.map do |path|
       body = File.read(path)
-      guard = body[GUARD_LINE, 1].to_s
+      # **Every** guard line, not the first. A law may be held by more than one cop —
+      # `one-operation-one-class` is held by two, because a module cannot be judged by the
+      # cop that walks classes — and reading only the first made the second cop an orphan
+      # that `test_every_cop_is_named_by_a_law` then reported as having no law at all.
+      guard = body.scan(GUARD_LINE).flatten.join("\n")
 
       {
         name: File.basename(path, ".md"),

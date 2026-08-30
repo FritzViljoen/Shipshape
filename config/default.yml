@@ -630,3 +630,31 @@ Shipshape/OnlyTheDoorIsCalled:
     - 'spec/**/*.rb'
     - 'app/shipshape/*.rb'
     - '**/shipshape/*.rb'
+
+Shipshape/MixinsAddNothingPublic:
+  Description: >-
+    A module mixed into an operation declares no public instance methods. An operation has
+    one public method, and a concern can put back everything that closed — in a file none of
+    the operations including it mention.
+  Enabled: true
+  # Scaffolding `private` changes what callers can reach, which is the point of it. The fix
+  # arrives under `-A`, never `-a`.
+  SafeAutoCorrect: false
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Which kinds count as operations, so a module included by one is held to their rules. The
+  # layout itself is declared once on Shipshape/CallGraph and read from there.
+  OperationKinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query
+  # **Tests are exempt**, as they are for every rule about what code exposes. A test support
+  # module legitimately hands helpers to whatever includes it.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
