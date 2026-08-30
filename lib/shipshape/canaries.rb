@@ -168,6 +168,11 @@ module Shipshape
           t.string "email"
         end
       RUBY
+      "Shipshape/CommandsProveIdempotence" => { kind: "command", body: <<~RUBY },
+        def call
+          success(1)
+        end
+      RUBY
       "Shipshape/AssociationsSurviveErasure" => { kind: "record", body: <<~RUBY },
         has_many :comments
       RUBY

@@ -29,6 +29,7 @@ not make it hold.
 | [`a-query-only-reads`](a-query-only-reads.md) | `good-boundaries-make-good-neighbours` |
 | [`io-is-its-own-kind`](io-is-its-own-kind.md) | `good-boundaries-make-good-neighbours` |
 | [`personal-data-is-declared-and-erasable`](personal-data-is-declared-and-erasable.md) | `nothing-is-hidden` |
+| [`a-command-runs-twice`](a-command-runs-twice.md) | `tell-dont-ask` |
 | [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
 | [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) | `good-boundaries-make-good-neighbours` |

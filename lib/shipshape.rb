@@ -54,6 +54,7 @@ require "rubocop/cop/shipshape/mixins_add_nothing_public"
 require "rubocop/cop/shipshape/only_the_door_is_called"
 require "rubocop/cop/shipshape/io_is_its_own_kind"
 require "rubocop/cop/shipshape/associations_survive_erasure"
+require "rubocop/cop/shipshape/commands_prove_idempotence"
 require "rubocop/cop/shipshape/personal_data_is_declared"
 require "rubocop/cop/shipshape/queries_only_read"
 

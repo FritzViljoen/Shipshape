@@ -112,6 +112,9 @@ uniqueness constraint, which is the right answer if the constraint exists and a 
 if it does not. **This is where the unique index gets added**, and it is not optional.
 
 **Check:** the index exists in `db/schema.rb`, and the step's test calls it twice.
+`Shipshape/CommandsProveIdempotence` requires the test to say *how* — a sentence beginning
+`Idempotent:` naming what makes the second run safe. It checks the sentence was written, never
+that it is true, which is why the index above is a separate check and not the same one.
 
 ---
 

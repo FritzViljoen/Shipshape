@@ -843,3 +843,27 @@ Shipshape/AssociationsSurviveErasure:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/CommandsProveIdempotence:
+  Description: >-
+    Every command's test says what happens when it runs twice. `tell-dont-ask` already obliges
+    it - a caller may not ask whether the work has happened, so the command owns repetition -
+    and a queue retry is what makes it load-bearing.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - command
+    - io_command
+    - legacy_command
+  # The phrase IS the act being required, the same way `Watched to fail` is. The check is that
+  # somebody wrote it; no check makes the judgement behind it.
+  Claim: 'Idempotent:'
+  TestRoots:
+    - test
+    - spec
+  # A test declares idempotence; it is not itself held to it.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
