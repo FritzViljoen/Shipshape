@@ -30,11 +30,12 @@ module Shipshape
     # and belongs where it is.
     class RulesThatAreReallyData
       TITLE = "Rules that are really data"
-      LAW = "model-concerns-not-groups"
-      WHY = "A branch over domain literals answering with literals is a lookup table " \
-            "written as code: changing a rate is a deploy, a tenant cannot have its own, " \
-            "and the set cannot be listed without grepping."
-      CAVEAT = "**Nothing enforces this** — it is a judgement about what the business owns, " \
+      LAW = "no-industry-terms-in-code"
+      WHY = "No industry terms in code: a word the business owns is a row, not a branch. " \
+            "Held as code, a rate cannot be changed without a deploy, cannot differ per " \
+            "tenant, cannot be listed on a screen, and cannot be corrected by the person " \
+            "who knows the answer."
+      CAVEAT = "**This cites a principle rather than a law, and nothing enforces it** — it is a judgement about what the business owns, " \
                "and no check makes it. What is counted is the shape a table takes when it " \
                "is written as code: a `case` over string or symbol literals whose branches " \
                "answer with literals. A lookup spelled as a Hash constant is already data " \

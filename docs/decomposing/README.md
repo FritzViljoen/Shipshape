@@ -14,40 +14,36 @@ nobody can verify is a rewrite with extra confidence.
 
 ---
 
-## The one thing they have in common
+## No industry terms in code
 
-**A legacy pattern is usually a taxonomy hardcoded as code structure.**
+**A word the business owns is a row, not a branch.** `vat`, `tourism_levy`, `gold_tier`,
+`draft`, `card_payment` — if somebody outside the team owns the word, it belongs in the
+database. That is [`no-industry-terms-in-code`](../principles.md), and **every procedure here
+starts with it.**
 
-- Single-table inheritance is a **type column** expressed as classes.
-- A state machine is a **transition table** expressed as branches.
-- Callbacks are an **ordering** expressed as registration order.
-- A `case` over levy names is a **rate table** expressed as a method.
+The test is who you ask when it is wrong. A person — an accountant, an operations manager,
+the client — means data. A programmer means control flow, and it stays. "Is it a constant?"
+is the failing question, because constants are code.
 
-In each, somebody had a set of facts that grows — statuses, types, rates, steps — and no
-place to put facts, so they put them in the only place Rails offered: more code. The code
-then grows every time the *data* does, which is the one kind of growth refactoring never
-fixes, because the code was never the problem.
+**Each pattern below is the same defect in a different costume:**
 
-**So every procedure here has the same step, and it comes before the split:** find the facts
-and move them to rows. Split first and the branch survives, distributed across six classes
-instead of one, still needing a deploy to add a row.
+| The pattern | The industry term, written as code |
+|---|---|
+| single-table inheritance | a **type column**, written as classes |
+| a state machine | a **transition table**, written as branches |
+| lifecycle callbacks | an **ordering**, written as registration order |
+| a `case` over levy names | a **rate table**, written as a method |
 
-## The test for what is data
+Each began the same way: a set of facts that grows — statuses, tiers, rates, steps — and no
+place to put facts, so they went where the framework offered room, which was more code.
 
-Ask who owns the fact.
+**This is why it comes before the split.** Code that encodes facts grows every time the facts
+grow, and refactoring never fixes that, because the code was never the problem. Split a
+fifteen-method service into fifteen classes and the branch survives in one of them — adding a
+levy is still a deploy.
 
-- **A rate, a fee, a status the business named, a term of art, which tenant gets what** —
-  somebody outside the team owns it, and changing it should not be a deploy. **Rows.**
-- **A nil check, a size comparison, a retry count, whether a collection is empty** — the code
-  owns it. **Control flow, and it stays.**
-
-The failing question is "is this a constant?" — constants are code. The passing question is
-"who do I ask when this is wrong?" If the answer is a person rather than a programmer, it is
-data.
-
-`shipshape report` counts the commonest shape of this under **"Rules that are really data"**:
-a `case` over domain literals answering with literals. Nothing enforces it; the judgement is
-the point.
+`shipshape report` counts the commonest shape under **"Rules that are really data"**: a `case`
+over domain literals answering with literals. Nothing enforces it; the judgement is the point.
 
 ## What none of these prove
 

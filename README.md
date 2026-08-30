@@ -2,6 +2,12 @@
 
 **MVC, taken apart.**
 
+**No industry terms in code.** A word the business owns — a rate, a levy, a tier, a status —
+is a row, not a branch. Held as code it cannot change without a deploy, cannot differ per
+tenant, and cannot be corrected by the person who knows the answer. That is the shortest
+statement of what this gem is for, and every procedure in
+[`docs/decomposing/`](docs/decomposing/) starts there.
+
 The M is not one thing. It is workflows, commands, queries, shapes and records, and a
 codebase that calls all five "model" cannot tell you where a rule lives. shipshape gives each
 of them a place, then keeps the place with cops that can only ratchet — the count of
@@ -178,15 +184,17 @@ is a second copy of it, and the copy is the one that goes stale.
 service, a god record, a type hierarchy, a state machine, a callback web — each with
 something to run at every step.
 
-**They share one step, and it comes before the split.** A legacy pattern is usually a
-taxonomy hardcoded as code structure: single-table inheritance is a type column expressed as
-classes, a state machine is a transition table expressed as branches, callbacks are an
-ordering expressed as registration order. Somebody had facts that grow and no place to put
-them, so the code grows every time the data does — the one kind of growth refactoring never
-fixes. Find the facts, move them to rows, *then* split.
+**They share one step, and it comes before the split: no industry terms in code.** A word the
+business owns — `vat`, `tourism_levy`, `gold_tier`, `draft` — is a row, not a branch. Each
+pattern is that defect in a different costume: single-table inheritance is a type column
+written as classes, a state machine is a transition table written as branches, callbacks are
+an ordering written as registration order.
 
-The test is who owns the fact: if you ask a person when it is wrong, it is data; if you ask a
-programmer, it is control flow.
+Code that encodes facts grows every time the facts grow, and refactoring never fixes that,
+because the code was never the problem. Find the terms, move them to rows, *then* split.
+
+The test is who you ask when it is wrong: a person means data, a programmer means control
+flow. "Is it a constant?" is the failing question — constants are code.
 
 The two that surprise people:
 

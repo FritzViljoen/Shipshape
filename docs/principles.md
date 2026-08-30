@@ -167,7 +167,61 @@ whereas here the operations are named domain concepts and the values are typed �
 exists, it is just not expressed as methods hanging off a table. What decides it in practice
 is whether the operations carry domain names or CRUD names, and no check makes that call.
 
+**A grouping is not always code, either.** Where the shared noun is a word the business
+owns rather than a thing the code does, the concern belongs in rows —
+`no-industry-terms-in-code` is that case, and it is the one to check first because it
+shrinks the class before anything is moved.
+
 *Produces* `persistence-holds-no-behaviour`, `a-shape-is-composed-not-flattened`.
+
+### `no-industry-terms-in-code` — A word the business owns is a row, not a branch
+
+`vat`, `tourism_levy`, `gold_tier`, `draft`, `card_payment`. If somebody outside the team
+owns the word, it belongs in the database.
+
+**The test is who you ask when it is wrong.** A person — an accountant, an operations
+manager, the client — means it is data. A programmer means it is control flow and stays.
+"Is it a constant?" is the failing question, because constants are code; `RATES = {...}` is
+still a deploy away from being right.
+
+**This is the same defect wearing several costumes**, and naming it once is what makes the
+costumes recognisable:
+
+- single-table inheritance is a **type column** written as classes
+- a state machine is a **transition table** written as branches
+- lifecycle callbacks are an **ordering** written as registration order
+- a `case` over levy names is a **rate table** written as a method
+
+Each began the same way: somebody had a set of facts that grows — statuses, tiers, rates,
+steps — and no place to put facts, so they went in the only place the framework offered,
+which was more code.
+
+**The cost is not ugliness, it is the growth curve.** Code that encodes facts grows every
+time the *facts* grow, and that is the one kind of growth refactoring never fixes, because
+the code was never the problem. A fifteen-method service split into fifteen classes still
+has the branch; it is now in one of them, and adding a levy is still a deploy. **So this
+comes before any decomposition**, not after.
+
+**What you get back is not tidiness.** A term the business owns, held as data, can be added
+without a deploy, differ per tenant, be listed on a screen, be totalled in a report, and be
+corrected by the person who knows the answer. Held as code it can do none of those, and each
+one becomes a ticket.
+
+**Grounding.** This is Parnas's criterion read literally: modules are decomposed around the
+decisions likely to change, and a business vocabulary is the fastest-changing thing in a
+commercial codebase. Evans's ubiquitous language argues the domain's words belong in the
+model — this principle adds where: in rows, because the people who own the words cannot edit
+Ruby. The failure mode is Evans's *anaemic* one inverted — not a model with no behaviour,
+but behaviour that has swallowed the model's vocabulary.
+
+**The limit, stated rather than avoided.** Some vocabularies genuinely are structural. A
+payment that clears through a different network needs different code, not a different row,
+and forcing it into data produces a configuration language nobody can debug — the opposite
+mistake, and a worse one. The signal you have gone too far is a row whose value is the name
+of a class.
+
+*Produces* the "Rules that are really data" measure, and the shared first step of every
+procedure in [`docs/decomposing/`](decomposing/).
 
 ### `tell-dont-ask` — Send the message; do not pull the state out and decide for it
 
