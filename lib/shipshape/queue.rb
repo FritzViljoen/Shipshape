@@ -106,9 +106,7 @@ module Shipshape
     ].freeze
 
     def methods_in(path)
-      File.read(File.join(root, path)).scan(DEFINITION).flatten.uniq - TOO_COMMON
-    rescue StandardError
-      []
+      read(File.join(root, path)).scan(DEFINITION).flatten.uniq - TOO_COMMON
     end
 
     def named_in_a_test?(method)
@@ -122,7 +120,17 @@ module Shipshape
     def test_source
       @test_source ||= TEST_DIRECTORIES.flat_map { |directory|
         Dir.glob(File.join(root, directory, "**", "*.rb"))
-      }.map { |file| File.read(file) rescue "" }.join("\n")
+      }.map { |file| read(file) }.join("\n")
+    end
+
+    # **Answering `[]` for a file that could not be read would say "no methods to move",**
+    # which is a false statement about the code rather than a report about the failure —
+    # and it is the shape of every wrong answer this tool has produced. So it raises, and
+    # names the file, because "which file" is the whole of what the caller needs.
+    def read(file)
+      File.read(file)
+    rescue SystemCallError => e
+      raise Error, "shipshape: cannot read #{file.sub("#{root}/", '')} — #{e.class}"
     end
 
     def report
