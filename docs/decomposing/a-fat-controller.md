@@ -7,6 +7,31 @@ describe this one shape.
 **An action places what an operation answered.** It reads the request, calls one thing, and
 chooses a response. Everything else it currently does belongs somewhere with a name.
 
+## It is a command turned inside out
+
+**The command is already written — it is in the action, with its parts the wrong way round.**
+Nothing here is designed from scratch, and that is what makes this the most mechanical
+procedure in the playbook once the reading is right.
+
+| In the action | What it is in the command |
+|---|---|
+| `return render :forbidden unless @story.editable_by?(current_user)` | the permission the base class checks, so it disappears |
+| `return render :not_found unless @story` | `failure(:not_found)` |
+| `if record.save … else …` | `success(record)` / `failure(:invalid, ...)` |
+| `transaction do … end` | the whole of `call` |
+| `@story = Story.find_by(...)` | a query, or the command's own load |
+| each `render` / `redirect_to` arm | one outcome the result has to be able to carry |
+
+**The last row is the load-bearing one.** An action's response arms are the command's result
+vocabulary, and counting them says what the command must be able to answer with before a line
+of it is written. Four arms means four outcomes; a command that can answer two of them has
+left the other two being decided in the controller.
+
+**The branch count does not fall, and that is not a failure.** The same conditions exist
+afterwards — on the inside, where the domain is, rather than on the outside, where the
+placement is. What falls is the number of things deciding, which is what
+`Shipshape/NoDecisionsInRequestHandling` counts and what `shipshape report` ranks.
+
 ---
 
 ## 0. Make it visible
