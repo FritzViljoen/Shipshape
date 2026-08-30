@@ -18,6 +18,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
 | [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
 | [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
+| [a personal data trail](a-personal-data-trail.md) | erasure, which is unimplementable without an inventory |
 | [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
 
 **A nullable column is not in a class**, which is why it is the category most often missed: a

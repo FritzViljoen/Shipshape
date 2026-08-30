@@ -163,6 +163,14 @@ module Shipshape
           end
         end
       RUBY
+      "Shipshape/PersonalDataIsDeclared" => { path: "db/schema.rb", raw: <<~RUBY },
+        create_table "canaries" do |t|
+          t.string "email"
+        end
+      RUBY
+      "Shipshape/AssociationsSurviveErasure" => { kind: "record", body: <<~RUBY },
+        has_many :comments
+      RUBY
       "Shipshape/IoIsItsOwnKind" => { kind: "command", body: <<~RUBY },
         def call
           Net::HTTP.get(URI("http://example.com"))
@@ -195,6 +203,9 @@ module Shipshape
       # The write has to reach something the layout calls a record, or the cop is
       # inspected, finds an unresolvable constant, and reports nothing while healthy.
       "Shipshape/QueriesOnlyRead" => { kind: "record", name: "Canary" },
+      "Shipshape/PersonalDataIsDeclared" => {
+        "app/shipshape/personal_data.rb" => "module PersonalData\n  COLUMNS = {}.freeze\nend\n",
+      },
       # A module is only a violation because an operation includes it, so the including
       # operation is the canary's other half. Without it the module is somebody else's
       # business and the cop is silent while perfectly healthy.

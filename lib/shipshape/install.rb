@@ -43,6 +43,7 @@ module Shipshape
       legacy_command
       typed_params
       operation_surface
+      personal_data
       application_view_component
     ].freeze
 
@@ -52,7 +53,7 @@ module Shipshape
     # than cops. A cop reads source and cannot see a module included through a variable or a
     # method made by `define_method`; these ask the class itself. They run in the
     # application's own suite, so they are installed rather than shipped.
-    TESTS = %w[operations_expose_nothing_test].freeze
+    TESTS = %w[operations_expose_nothing_test personal_data_is_erasable_test].freeze
 
     TEST_DIRECTORY = "test/shipshape"
 

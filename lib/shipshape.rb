@@ -53,6 +53,8 @@ require "rubocop/cop/shipshape/no_entry_point_bypass"
 require "rubocop/cop/shipshape/mixins_add_nothing_public"
 require "rubocop/cop/shipshape/only_the_door_is_called"
 require "rubocop/cop/shipshape/io_is_its_own_kind"
+require "rubocop/cop/shipshape/associations_survive_erasure"
+require "rubocop/cop/shipshape/personal_data_is_declared"
 require "rubocop/cop/shipshape/queries_only_read"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(

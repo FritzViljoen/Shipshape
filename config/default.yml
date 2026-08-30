@@ -780,3 +780,66 @@ Shipshape/IoIsItsOwnKind:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/PersonalDataIsDeclared:
+  Description: >-
+    Every column whose name suggests a person is classified in app/shipshape/personal_data.rb
+    with what happens to it on erasure. NOT a compliance check - it makes the inventory exist
+    and keeps it from going stale, and says nothing about lawfulness.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  # The schema is the one place every column appears exactly once.
+  Include:
+    - 'db/schema.rb'
+  Registry: 'app/shipshape/personal_data.rb'
+  # **This list IS the fact.** A name not here is unexamined, not cleared - a field named for
+  # the business rather than for the person is invisible until somebody adds it.
+  Names:
+    - email
+    - phone
+    - mobile
+    - telephone
+    - address
+    - postcode
+    - zipcode
+    - ip_address
+    - first_name
+    - last_name
+    - full_name
+    - surname
+    - forename
+    - maiden_name
+    - date_of_birth
+    - dob
+    - birth_date
+    - passport
+    - national_id
+    - ssn
+    - nino
+    - tax_id
+    - latitude
+    - longitude
+    - gender
+    - nationality
+    - signature
+    - avatar
+    - photo
+
+Shipshape/AssociationsSurviveErasure:
+  Description: >-
+    An association with no `dependent:` leaves its children behind when the parent is deleted,
+    and nobody chose that. The option is where the choice is written down.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - record
+  Associations:
+    - has_many
+    - has_one
+    - has_and_belongs_to_many
+  # **Tests are exempt.** A fixture declares associations to build data, not to model a domain.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
