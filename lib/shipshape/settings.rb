@@ -29,17 +29,13 @@ module Shipshape
                               "declares. A base class mapped to a kind that does not exist " \
                               "classifies nothing and hides a typo."
 
-    attr_reader :kinds, :matrix, :base_classes, :sisters, :schedulers
+    attr_reader :kinds, :matrix, :base_classes, :sisters
 
-    def initialize(kinds:, matrix:, base_classes: {}, sisters: [], schedulers: [])
+    def initialize(kinds:, matrix:, base_classes: {}, sisters: [])
       @kinds = typed_hash(kinds, String, Array)
       @matrix = typed_hash(matrix, String, Array)
       @base_classes = typed_hash(base_classes, String, Array)
       @sisters = typed_array(sisters, Array)
-      # **Which kinds may hand work to a queue.** Its own row rather than a matrix edge,
-      # because scheduling an entry point is not the same act as calling one: nothing may
-      # reach through a doorbell, and every application still has to defer work.
-      @schedulers = typed_array(schedulers, String)
 
       assert_globs_are_strings
       refuse_rows_naming_a_sister
@@ -74,7 +70,6 @@ module Shipshape
         matrix: cop_config.fetch("Matrix", {}),
         base_classes: cop_config.fetch("BaseClasses", {}),
         sisters: cop_config.fetch("Sisters", []),
-        schedulers: cop_config.fetch("Schedules", []),
       )
     end
 

@@ -51,6 +51,7 @@ the law-to-cop wiring is a test in shipshape's suite, not a cop — a cop parses
 files are Markdown. It is allowed because it never runs in a consuming application: it ships
 with the gem's tests, not with the gem's rules. Anything that runs in *your* build is a cop.
 
+- **Agreed:** Fritz, 2026-08-29 — "we only use one mechanism to guard, so that there is one place to check".
 - **Principle:** `one-way-to-say-each-thing` governs — a second way to forbid something is a
   second thing that has to be kept correct, and the gap between the two is where the rule
   fails. `nothing-fails-quietly` produces the ratchet clause.

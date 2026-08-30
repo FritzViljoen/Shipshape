@@ -19,6 +19,7 @@ it hold. Several laws here are part-guarded and say which half the build actuall
 and pressing it on a red build is exactly what erases the signal. The baseline is derived
 from version control on every run.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-fails-quietly` governs. `make-the-wrong-thing-impossible` produces
   the tested-by-removal half.
 - **Guard:** `CanonTest`, in this gem's own suite — see

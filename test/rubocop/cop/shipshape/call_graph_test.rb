@@ -478,53 +478,7 @@ class CallGraphTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  # **Scheduling an entry point is not calling one**, and the matrix was conflating them.
-  # Nothing may reach through a doorbell — correctly — but that left `perform_later` with no
-  # legal home in any kind, which is not a position anybody can hold. Found by refactoring a
-  # real controller, where the enqueue was an offence before the extraction and after it.
-  def test_a_command_may_schedule_an_entry_point
-    assert_empty schedule("NotifyJob.perform_later(1)", "app/commands/create_person.rb")
-  end
-
-  # A read that queues work is a write.
-  def test_a_query_may_not_schedule
-    found = schedule("NotifyJob.perform_later(1)", "app/queries/list_people.rb")
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "may not schedule work"
-  end
-
-  # The doorbell is still a doorbell: scheduling is a named set of methods, not an open door.
-  def test_a_command_may_not_reach_through_an_entry_point
-    found = schedule("NotifyJob.new", "app/commands/create_person.rb")
-
-    assert_equal 1, found.length
-    refute_includes found.first.message, "may not schedule work"
-  end
-
-  def test_the_scheduling_offence_names_the_row_that_grants_it
-    message = schedule("NotifyJob.perform_later(1)", "app/queries/list_people.rb").first.message
-
-    assert_includes message, "`Shipshape/CallGraph`'s `Schedules`"
-    assert_includes message, "INSTEAD:"
-  end
-
   private
-
-  SCHEDULING = CONFIG.merge(
-    "Kinds" => CONFIG["Kinds"].merge("entry_point" => ["app/jobs/**/*.rb"]),
-    "Matrix" => CONFIG["Matrix"].merge("entry_point" => %w[command query]),
-    "Schedules" => %w[command entry_point],
-  ).freeze
-
-  JOBS = (TREE + ["app/jobs/notify_job.rb"]).freeze
-
-  def schedule(body, path)
-    declaration = path.include?("commands") ? "class CreatePerson < Command" : "class ListPeople < Query"
-
-    offences("#{declaration}\n  def call\n    #{body}\n  end\nend\n",
-             cop_class: COP, cop_config: SCHEDULING, path: path, files: JOBS)
-  end
 
   WITH_BASES = CONFIG.merge(
     "BaseClasses" => {

@@ -13,6 +13,7 @@ initializer behind them would hide both the assignment and the assertion, and `t
 Date)` would stop being greppable — see
 [`code-is-written-not-generated`](code-is-written-not-generated.md).
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-crosses-unasserted`. `nothing-is-hidden` produces the
   written-not-generated half; on conflict `nothing-crosses-unasserted` governs.
 **A record is never an argument.** Not into a command, not into a shape, not into anything.

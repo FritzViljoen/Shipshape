@@ -40,6 +40,7 @@ turns inputs into a **new value** is a rule, and a rule has one home.
 escaped. The fix is to move the rule, not to tidy the conditional — often into an operation
 that answers with the decision already made.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `tell-dont-ask` governs. `good-boundaries-make-good-neighbours` also
   produces it — a decision made here is a rule outside its one home.
 - **Guard:** `Shipshape/NoDecisionsInRequestHandling`, over the request-handling tree, fails

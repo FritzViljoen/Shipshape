@@ -78,6 +78,7 @@ nobody looks for it. So a mixin's methods go under `private` too.
 in a command, which answers one message. Nothing in the module separates those. What decides
 is where it is going, so the guard reads the operations and asks what they include.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `one-way-to-say-each-thing`
 - **Guard:** `Shipshape/OneOperationOneClass`, over classes of a kind listed in
   `OperationKinds`. Fails a second public method, a public method not named `call`, a

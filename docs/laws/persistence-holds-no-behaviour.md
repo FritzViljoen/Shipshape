@@ -16,6 +16,7 @@ This is the first half of taking a god object apart. The second is
 [`a-shape-is-composed-not-flattened`](a-shape-is-composed-not-flattened.md), and doing
 one without the other just moves the pile.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `model-concerns-not-groups` governs. `tell-dont-ask` also produces it — a
   record answering questions about itself is the record deciding on the caller's behalf.
 - **Guard:** `Shipshape/PersistenceHoldsNoBehaviour`, over the record tree. Fails any public

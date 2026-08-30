@@ -13,6 +13,7 @@ addition at a time.
 deriving a value are different jobs; deriving is an operation's, and a shape is not an
 operation.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `model-concerns-not-groups` governs. `good-boundaries-make-good-neighbours`
   also produces it — a copied field is a second home for one fact.
 **A shape never holds a record, and an argument is how one gets in.** The call graph stops a

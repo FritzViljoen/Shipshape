@@ -16,6 +16,7 @@ runtime.
 Action at a distance is the leaving half, and nothing else in this canon catches it: the
 cause is perfectly visible, and it is the *effect* that cannot be found by reading.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `good-boundaries-make-good-neighbours`
 - **Guard:** `Shipshape/NoAmbientReads` and `Shipshape/NoDistantWrites`, over the operation,
   value, view-component and legacy-door trees.

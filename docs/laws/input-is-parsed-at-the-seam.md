@@ -22,6 +22,7 @@ blank guard turns a parameter that says *no* into the default — the request st
 and the application hears nothing. Absence and a value of false are different things, and
 only one of them is absence.
 
+- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-crosses-unasserted`, and `nothing-fails-quietly` for the bouncing
   half. On conflict `nothing-crosses-unasserted` governs.
 - **Implementation:** `shipshape install` writes `TypedParams` into the application, beside

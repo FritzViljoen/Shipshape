@@ -25,6 +25,7 @@ is abandoned with `raise ActiveRecord::Rollback` and the answer given afterwards
 connection for no reason. The generated `Query` therefore has no transaction at all — the word
 appears in that file only in a comment about the door.
 
+- **Agreed:** UNRATIFIED — written by an agent during an audit Fritz asked for, not in answer to a request for a new law. The rule was already enforced by the generated base classes; what was unsanctioned is writing it down as law.
 - **Principle:** `make-the-wrong-thing-impossible`
 - **Guard:** the generated `command.rb`, `io_command.rb` and `legacy_command.rb` — architecture
   rather than a cop. `self.call` wraps the operation in `ActiveRecord::Base.transaction`, so no

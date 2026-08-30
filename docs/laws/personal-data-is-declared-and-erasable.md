@@ -55,6 +55,7 @@ did not null out looks exactly like a column that was always empty.
 party's store. This is repository-scoped and sees the database; it does not know what fraction
 of the whole that is, and neither does anybody who has not gone and looked.
 
+- **Agreed:** Fritz, 2026-08-30 — "yes three way, docs and Gaurds please", after the scope was set at erasure preconditions rather than compliance.
 - **Principle:** `nothing-is-hidden`
 - **Guard:** `Shipshape/PersonalDataIsDeclared`, over `db/schema.rb`. For every column whose
   name suggests a person, asks the registry what happens to it, and fails when nothing does.

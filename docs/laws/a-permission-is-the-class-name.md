@@ -167,6 +167,7 @@ nothing is an answer, not a failure — so a refused query raises `Permission::R
 every other query failure. Wrapping it would make every caller unwrap a value that was never
 in doubt.
 
+- **Agreed:** Fritz, 2026-08-29 — asked how auth is handled for reads and writes, then chose the class name as the permission over a mapping.
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
 - **Guard:** the generated `permission.rb` — architecture. The permission IS `name.to_sym`,
