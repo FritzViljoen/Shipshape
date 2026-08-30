@@ -66,7 +66,9 @@ asserted with `typed`. Do this **before** splitting, not after: an ambient read 
 piece actually depends on what, and two pieces that both call `Time.current` look
 independent until they are not.
 
-**Check:** `NoAmbientReads` is silent on the file.
+**Check:** `NoAmbientReads` is silent on the file. `NoDistantWrites` too — a service that
+mutated a global or a constant in place was passing state to its next caller through the
+floor, and that is the same dependency with no name at all.
 
 ---
 

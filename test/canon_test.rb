@@ -37,6 +37,18 @@ class CanonTest < Minitest::Test
   # Installed files that carry no rule of their own, each with the reason. Being on this list
   # is what grants the exemption, so it cannot go stale: a file that grows a rule has to be
   # taken off it, and nothing else confers the status.
+
+  # Cops whose offences are not a refactor, each with the reason. Being on this list is what
+  # grants the exemption; nothing else confers it, so a cop that becomes app-facing has to
+  # come off it.
+  PROCEDURE_WOULD_NOT_HELP = {
+    "EnforcementMessagesAreDocumentation" =>
+      "guards this gem's own cops, so it never fires on an application at all.",
+    "EveryDoorChecksPermission" =>
+      "authorisation is a rollout rather than a decomposition: nothing is moved, a check " \
+      "is added. It reports zero until `shipshape install --auth` has been run.",
+  }.freeze
+
   ARCHITECTURE_WITHOUT_A_LAW = {
     "boolean" => "a name, so `Boolean` can be written in a type guard. It decides nothing.",
     "persistence" => "one definition of what a record is, used by the guards that have laws.",
@@ -168,6 +180,38 @@ class CanonTest < Minitest::Test
                  "These kinds ship a base class that includes TypedArguments, so their " \
                  "initializers are meant to be asserted — but Shipshape/TypedArguments is " \
                  "not scoped to them, so nothing requires it."
+  end
+
+  # **A cop says a thing is wrong. A procedure says how to move it.** Without the second, an
+  # agent handed 29,644 offences has an enumeration and no method — which is how a refactor
+  # becomes a rewrite with extra confidence.
+  #
+  # Measured against seven public repositories, the procedures covered 87% of what an agent
+  # actually meets, and the largest uncovered item was the commonest work of all: the call-site
+  # sweep, 1,883 sites, which every other procedure depends on and none of them described.
+  def test_every_cop_has_a_procedure_that_names_it
+    prose = Dir[File.expand_path("../docs/decomposing/*.md", __dir__)]
+            .reject { |path| path.end_with?("README.md") }
+            .map { |path| File.read(path) }.join("\n")
+
+    orphans = registered_cops.reject do |cop|
+      PROCEDURE_WOULD_NOT_HELP.key?(cop) || prose.include?(cop)
+    end
+
+    assert_empty orphans.to_a,
+                 "No procedure in docs/decomposing names these, so an agent meeting one is " \
+                 "told the code is wrong and not how to move it. Write the procedure, name " \
+                 "the cop in it, or declare it on PROCEDURE_WOULD_NOT_HELP with the reason."
+  end
+
+  def test_the_decomposing_index_lists_every_procedure
+    index = File.read(File.expand_path("../docs/decomposing/README.md", __dir__))
+
+    missing = Dir[File.expand_path("../docs/decomposing/*.md", __dir__)]
+              .map { |path| File.basename(path) }
+              .reject { |name| name == "README.md" || index.include?("(#{name})") }
+
+    assert_empty missing, "A procedure nothing links to is one nobody will find."
   end
 
   def test_the_index_lists_every_law

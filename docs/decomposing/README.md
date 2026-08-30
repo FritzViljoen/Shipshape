@@ -12,6 +12,23 @@ nobody can verify is a rewrite with extra confidence.
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
 | [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
+| [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
+| [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
+| [inline IO](inline-io.md) | `HTTParty.post` in the middle of a method, inside a transaction |
+| [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
+| [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
+| [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
+| [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
+
+**A nullable column is not in a class**, which is why it is the category most often missed: a
+run scoped to `app/` reports nothing about the schema, and that reads exactly like a clean one.
+
+**The last one is not like the others.** Every procedure above takes one class apart; the
+sweep is one decision repeated across every caller, and it is the step that decides whether an
+extraction landed or left a trail of broken callers. It is the largest single category of work
+in the corpus this canon was measured against, and it is the one an agent is likeliest to
+declare finished early — the cop goes quiet long before the constants reached through a string
+have been found.
 
 ---
 
