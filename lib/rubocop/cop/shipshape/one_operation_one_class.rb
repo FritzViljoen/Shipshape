@@ -12,6 +12,12 @@ module RuboCop
       # An operation is a class with one public method, `call`, taking keyword arguments.
       # A second public method is a second operation, and it gets a second class.
       #
+      # `call` itself stays public, and the guard that keeps a caller out of it is
+      # `Shipshape/OnlyTheDoorIsCalled`, which refuses `SettleInvoice.new` at the call site —
+      # so nobody can hold an operation to call anything on. Hiding `call` too was tried and
+      # dropped: it bought a runtime backstop against a hole already refused, and cost the
+      # shape every Rails developer already writes.
+      #
       # The uniform shape is what lets one wrapper serve every call site — logging,
       # instrumentation, an audit trail, a migration seam. Four call conventions and none
       # of those can exist. It is also what leaves a new case nowhere to go but a new
@@ -174,8 +180,7 @@ module RuboCop
         # work to run — and one that inherits its entry point from another operation is the
         # shape `an-operation-is-a-leaf` refuses, where the parent's `anonymous_call` made
         # the child public with nothing at the child saying so.
-        # The entry point exists, whatever its visibility — it must be **private**, and that
-        # is `check_instance_methods`' business. This asks only whether it is there at all.
+        # Whatever its visibility — this asks only whether it is there at all.
         def check_entry_point(node, statements)
           entries = definitions_in(statements).select do |definition|
             entry_names.include?(definition.method_name.to_s)
@@ -244,68 +249,31 @@ module RuboCop
           check_class_methods(public_defs.select(&:defs_type?))
         end
 
-        # **None.** Not even the entry point: the base class reaches it with `send`, so an
-        # operation's entire public surface is the inherited `self.call` and there is nothing
-        # else on it to reach for.
-        def check_instance_methods(node, definitions)
-          definitions.each_with_index do |definition, index|
-            message = if entry_names.include?(definition.method_name.to_s)
-                        entry_point_is_private(definition)
-                      else
-                        second_operation(definition)
-                      end
+        # **The entry point, and nothing else.** `initialize` and `call` are what a caller
+        # hands arguments to; every other method is the operation's own business.
+        def check_instance_methods(_node, definitions)
+          helpers = definitions.reject { |definition| entry_names.include?(definition.method_name.to_s) }
 
-            add_offense(definition, message: message) do |corrector|
-              # **One `private`, scaffolded as the class's first line, fixes every one of
-              # these at once** — an operation exposes nothing, so there is no case where
-              # some methods should stay public and others should not. Attached to the first
-              # offence only: a second insert would stack two `private` lines.
-              scaffold_private(corrector, node) if index.zero?
+          helpers.each_with_index do |definition, index|
+            add_offense(definition, message: second_operation(definition)) do |corrector|
+              # **One `private` above the first helper fixes every one of them at once.**
+              # Attached to the first offence only — a second insert would stack two
+              # `private` lines. Indexed over the helpers, not over every definition: the
+              # entry point is usually first, and counting it meant the scaffold was pinned
+              # to an offence that never came.
+              scaffold_private(corrector, definition) if index.zero?
             end
           end
         end
 
-        # **At the top of the class**, so everything below it — the entry point included — is
-        # private in one edit. There is no case where some of an operation should be public
-        # and some should not.
-        #
-        # Not behaviour-preserving, and `SafeAutoCorrect: false` for that reason: a caller
-        # doing `operation.call` breaks. It breaks under the rule anyway, and the base class
-        # reaches the entry point through a forwarding method rather than an explicit
-        # receiver, so nothing that ships needs it public.
-        def scaffold_private(corrector, node)
-          body = node.body
-          return if body.nil?
-
-          first = body.begin_type? ? body.children.first : body
-          corrector.insert_before(first, "private\n\n#{' ' * first.loc.column}")
-        end
-
-        def entry_point_is_private(definition)
-          explain(
-            "`#{definition.method_name}` is public, and an operation exposes nothing.",
-            because: "The base class reaches it through a forwarding method, with an " \
-                     "implicit receiver — the one form `private` allows — so it never needs " \
-                     "to be public. Left public it is a second entrance, and the only reason " \
-                     "it is not reachable today is that the constructor is private too. One " \
-                     "guard is not two.",
-            instead: <<~RUBY,
-              class SettleInvoice < Command
-                private
-
-                def initialize(invoice_id:)
-                  @invoice_id = typed(invoice_id, Integer)
-                end
-
-                def call
-                  success(...)
-                end
-              end
-
-              # the only way in, and the only one there has ever been
-              SettleInvoice.call(actor: actor, invoice_id: 1)
-            RUBY
-          )
+        # **Above the first helper, below the entry point.** `initialize` and `call` stay
+        # public: what stops a caller reaching them is `Shipshape/OnlyTheDoorIsCalled`, which
+        # refuses `SettleInvoice.new` at the call site, so nobody can obtain an operation to
+        # call anything on. Hiding `call` as well bought a runtime backstop against a hole
+        # that already required constructing one — and cost the shape every Rails developer
+        # already writes.
+        def scaffold_private(corrector, definition)
+          corrector.insert_before(definition, "private\n\n#{' ' * definition.loc.column}")
         end
 
         # **None.** The only class method an operation has is the base class's `call`, and

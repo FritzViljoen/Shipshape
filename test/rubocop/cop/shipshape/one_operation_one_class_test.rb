@@ -52,20 +52,17 @@ class OneOperationOneClassTest < Minitest::Test
   end
 
   # **The whole public surface is the inherited class method.** Left public, `call` is a
-  # second entrance: a caller can write `CreatePerson.new(...).call` and go around the door,
-  # taking the permission check, the transaction and the return-type assertion with it.
-  def test_a_public_entry_point_is_a_second_entrance
-    found = check(<<~RUBY)
+  # `CreatePerson.new(...).call` needs `new`, and `Shipshape/OnlyTheDoorIsCalled` refuses that
+  # at the call site — so a public entry point is not a second entrance, and demanding it be
+  # private only cost the shape every Rails developer already writes.
+  def test_a_public_entry_point_is_the_shape
+    assert_empty check(<<~RUBY)
       class CreatePerson
         def call
           PersonRecord.create!(name: @name)
         end
       end
     RUBY
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "`call` is public, and an operation exposes nothing"
-    assert_includes found.first.message, "forwarding method"
   end
 
   def test_a_second_public_method_is_a_second_operation
@@ -465,7 +462,9 @@ class OneOperationOneClassTest < Minitest::Test
 
   private
 
-  def check(source, path = "app/commands/create_person.rb")
+  PATH = "app/commands/create_person.rb"
+
+  def check(source, path = PATH)
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: TREE, other_cops: LAYOUT)
   end
 end

@@ -122,10 +122,9 @@ class AutocorrectionTest < Minitest::Test
     assert_unchanged "Date.parse(params[:on])", RuboCop::Cop::Shipshape::NoInlineParamParse
   end
 
-  # One `private`, scaffolded as the class's first line, fixes every public method at once —
-  # an operation exposes nothing, so there is no case where some stay public and others do
-  # not. Not behaviour-preserving: a caller doing `operation.call` breaks, which is why this
-  # is `SafeAutoCorrect: false` like the rest.
+  # One `private`, scaffolded above the first helper. `initialize` and `call` stay public:
+  # what keeps a caller out of them is `Shipshape/OnlyTheDoorIsCalled`, which refuses
+  # `Settle.new` at the call site, so nobody can hold an operation to call them on.
   def test_a_public_operation_is_corrected_by_scaffolding_private
     source = <<~RUBY
       class Settle
@@ -146,7 +145,7 @@ class AutocorrectionTest < Minitest::Test
     corrected = correct(source, RuboCop::Cop::Shipshape::OneOperationOneClass,
                         path: "app/commands/settle.rb", layout: OPERATION)
 
-    assert_includes corrected, "class Settle\n  private\n\n  def initialize"
+    assert_includes corrected, "  def call\n    helper\n  end\n\n  private\n\n  def helper"
     assert_equal 1, corrected.scan(/^\s*private$/).length, "one private, not one per method"
   end
 

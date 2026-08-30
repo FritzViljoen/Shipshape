@@ -576,8 +576,9 @@ Shipshape/OperationsAreLeaves:
 
 Shipshape/NoEntryPointBypass:
   Description: >-
-    An operation's entry point is private so the class method is the only way in. `send`
-    steps around it, skipping the permission check, the transaction and the type assertion.
+    An operation is built and run only through its class method. `send` steps around the
+    private constructor, skipping the permission check, the transaction and the type
+    assertion.
   Enabled: true
   VersionAdded: '0.0.1'
   Constructor: new

@@ -25,27 +25,29 @@ class's entry point and takes the check, the transaction and the type assertion 
 replacement reads as ordinary code: every caller still writes `SettleInvoice.call(...)`, and
 nothing at the call site indicates the guarantees are gone.
 
-## The entry point is private, and going around it is refused at the call site
+## Going around the door is refused at the call site, not by `private`
 
-`call` and `anonymous_call` are private. The base class reaches them with `send`, so an
-operation's entire public surface is the inherited class method — there is nothing else on it
-to reach for, and `SettleInvoice.call(...)` is the only supported way in.
+`SettleInvoice.call(...)` is the only supported way in, and what holds that is a check on the
+**call site** rather than a keyword on the method. `Shipshape/OnlyTheDoorIsCalled` resolves
+the constant and refuses any message an operation does not answer — `.new`, `.build`,
+`.for`, the forwarder — wherever it is written and whatever the visibility of the thing it
+names.
 
-**The base class reaches it with an implicit receiver**, through a forwarding method it
-defines itself. That is the one form `private` allows: `operation.call` raises, and no
-amount of inheritance changes it, because Ruby's `private` means *no explicit receiver*
-rather than *inside the hierarchy*. `send` would also work, and is **banned** — it steps over
-`private`, routes around the call matrix, and names a method nobody can grep for, so a base
-class that wrote it could not ask an application not to.
+**`call` and `anonymous_call` stay public**, and `private` goes above the first helper, which
+is the shape every Rails codebase already writes. Hiding the entry point as well was tried
+and dropped: it bought a runtime backstop against a hole that already required constructing
+an operation, and construction is separately refused. The base class dispatches with an
+implicit receiver, so it works either way — an application free to make its own `call`
+private loses nothing.
 
-**The constructor is private too.** `private_class_method :new` is what makes the rest hold:
-nobody outside can build an operation, so there is nothing to reach a private method on
-anyway.
+**The constructor is private.** `private_class_method :new` says at runtime what the call-site
+check says at build time: nobody outside builds an operation. `send` undoes it, which is why
+it is not the guarantee — `Shipshape/NoEntryPointBypass` fails `send`, `__send__`,
+`public_send` and `method` where they name `new` or the forwarder.
 
-**`private` is still a convention, not a wall**, and `send` steps over both. Nothing the
-operation does can refuse that, so the refusal is at the call site:
-`Shipshape/NoEntryPointBypass` fails `send`, `__send__`, `public_send` and `method` where
-they name `new` or the forwarder.
+**Every one of those is a convention Ruby steps over.** `private` is not a wall, `send` undoes
+`private_class_method`, and a subclass can redeclare a private method public. Each is worth
+having and none is the check. The check reads the call site.
 
 **Tests are exempt, and deliberately.** A test builds objects directly, reaches private
 methods and stubs what it needs — that is what a test is for, and refusing it would make this

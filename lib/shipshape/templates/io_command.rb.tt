@@ -68,16 +68,14 @@ class IoCommand
     Result.failure(error)
   end
 
-  # **Reaches the private entry point with an implicit receiver**, which is the one form
-  # `private` allows — `operation.call` raises, and no amount of inheritance changes that,
-  # because Ruby's `private` means "no explicit receiver" rather than "inside the hierarchy".
-  #
-  # `send` would also work and is banned: it steps over `private`, routes around the call
-  # graph, and names a method nobody can grep for. A base class that writes it cannot ask an
-  # application not to.
+  # **Dispatches with an implicit receiver**, so it works whether the operation left its
+  # entry point public or made it private. `send` would work too and is banned: it steps
+  # over `private`, routes around the call graph, and names a method nobody can grep for. A
+  # base class that writes it cannot ask an application not to.
   #
   # Public, and unreachable all the same: `new` is private, so nobody outside can hold an
-  # operation to call this on.
+  # operation to call this on — and `Shipshape/OnlyTheDoorIsCalled` refuses the attempt at
+  # the call site, where no visibility keyword can be stepped over.
 <%- if auth -%>
   public def __perform__(actor)
     # **The actor belongs to the base class, not to the operation's signature.** The check
