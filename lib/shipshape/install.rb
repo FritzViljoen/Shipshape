@@ -35,6 +35,7 @@ module Shipshape
       shape
       result
       audit_log
+      operation_job
       query
       command
       workflow

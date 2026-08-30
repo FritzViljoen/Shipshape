@@ -19,6 +19,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     stub_active_record
     stub_view_component
+    stub_active_job
     stub_descendants
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }
   end
@@ -30,6 +31,42 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     Object.const_set(:ViewComponent, Module.new)
     ::ViewComponent.const_set(:Base, Class.new)
+  end
+
+  # ActiveJob is not loaded in this suite. The stand-in records enqueues and can run `perform`,
+  # which is what lets the per-operation retry limit be exercised rather than described.
+  def self.stub_active_job
+    return if defined?(::ActiveJob)
+
+    base = Class.new do
+      class << self
+        attr_accessor :enqueued
+
+        def set(**options)
+          @options = options
+          self
+        end
+
+        def perform_later(**arguments)
+          (self.enqueued ||= []) << arguments
+          new
+        end
+      end
+
+      attr_accessor :executions
+
+      def initialize
+        @executions = 1
+      end
+
+      def retry_job(**)
+        @executions += 1
+        self
+      end
+    end
+
+    Object.const_set(:ActiveJob, Module.new)
+    ::ActiveJob.const_set(:Base, base)
   end
 
   def self.stub_descendants
@@ -619,6 +656,73 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_an_entry_is_a_value
     assert_equal AuditLog::Entry.new(operation: "X", outcome: :succeeded),
                  AuditLog::Entry.new(operation: "X", outcome: :succeeded)
+  end
+
+  # **Deferral, at the one grain where it is safe:** one command, one transaction, one job.
+  class Slow < Command
+    QUEUE = :payments
+    RETRIES = 2
+
+    def initialize(amount:)
+      @amount = typed(amount, Integer)
+    end
+
+    def call
+      success(@amount)
+    end
+  end
+
+  def enqueued
+    OperationJob.enqueued = []
+    yield
+    OperationJob.enqueued
+  end
+
+  def test_call_later_enqueues_the_operation_by_name
+    jobs = enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
+
+    assert_equal 1, jobs.length
+    assert_equal "GeneratedBaseClassesTest::Slow", jobs.first[:operation]
+    assert_equal({ amount: 5 }, jobs.first[:arguments])
+  end
+
+  # The Result describes the enqueue, never the work.
+  def test_call_later_answers_that_it_was_accepted
+    result = nil
+    enqueued { result = Slow.call_later(actor: ANYONE, amount: 5) }
+
+    assert_predicate result, :success?
+    assert_equal :enqueued, result.value
+  end
+
+  # Checked here so the caller learns immediately, and again when the job runs.
+  def test_call_later_refuses_before_enqueuing
+    jobs = nil
+    result = nil
+    jobs = enqueued { result = Slow.call_later(actor: Anyone.new([Slow.permission]), amount: 5) }
+
+    assert_equal :forbidden, result.error
+    assert_empty jobs
+  end
+
+  def test_the_queue_is_declared_on_the_operation
+    assert_equal :payments, Slow.queue_name
+    assert_equal :default, Charge.queue_name
+  end
+
+  # **Per-operation, from one job class.** `retry_on` would capture one limit for every
+  # command; reading `RETRIES` at the moment the decision is made is what makes it per
+  # operation.
+  def test_the_retry_limit_is_read_from_the_operation
+    job = OperationJob.new
+
+    assert_equal 2, job.send(:attempts_for, "GeneratedBaseClassesTest::Slow")
+    assert_equal OperationJob::DEFAULT_ATTEMPTS, job.send(:attempts_for, "GeneratedBaseClassesTest::Charge")
+  end
+
+  # ActiveJob hands back string keys; the doors assert named keywords.
+  def test_arguments_arrive_as_keywords
+    assert_equal({ amount: 5 }, OperationJob.new.send(:keywords, { "amount" => 5 }))
   end
 
   def test_an_error_code_is_a_name_not_a_sentence

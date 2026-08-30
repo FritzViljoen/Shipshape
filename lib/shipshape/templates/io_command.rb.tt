@@ -123,5 +123,55 @@ class IoCommand
   # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
   # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
   # ran the operation unauthenticated. Verified by running it, not by reading it.
+<%- if auth -%>
+  # **Deferred, at the one grain where deferral is safe:** one command, one transaction, one
+  # job, so a retry re-runs exactly one transaction. `a-command-runs-twice` is what makes that
+  # retry harmless, and it is a law rather than a hope.
+  #
+  # **The Result describes the enqueue, never the work.** `success(:enqueued)` means it was
+  # accepted, not that it happened — there is no caller to tell what happened, which is why
+  # every door reports to the audit log. A deferred failure is recorded there exactly as a
+  # synchronous one is.
+  #
+  # Permission is checked **twice, on purpose**: here so the caller learns immediately that it
+  # was refused, and again when the job runs, because a right revoked in between is the answer
+  # that matters. The refusal here is audited like any other.
+  def self.call_later(actor: nil, **arguments)
+    unless permits?(actor)
+      AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden)
+      return Result.failure(:forbidden)
+    end
+
+    OperationJob.set(queue: queue_name).perform_later(
+      operation: name,
+      arguments: arguments,
+      actor_class: actor&.class&.name,
+      actor_id: actor.respond_to?(:id) ? actor.id : nil,
+    )
+
+    Result.success(:enqueued)
+  end
+<%- else -%>
+  # **Deferred, at the one grain where deferral is safe:** one command, one transaction, one
+  # job, so a retry re-runs exactly one transaction. `a-command-runs-twice` is what makes that
+  # retry harmless, and it is a law rather than a hope.
+  #
+  # **The Result describes the enqueue, never the work.** `success(:enqueued)` means it was
+  # accepted, not that it happened — there is no caller to tell what happened, which is why
+  # every door reports to the audit log.
+  def self.call_later(**arguments)
+    OperationJob.set(queue: queue_name).perform_later(operation: name, arguments: arguments)
+
+    Result.success(:enqueued)
+  end
+<%- end -%>
+  # **Which queue, declared on the operation.** `QUEUE = :payments` on the class; the default
+  # otherwise. `RETRIES = 2` is declared the same way and read by OperationJob at the moment
+  # it decides whether to retry — not with `retry_on`, which would fix one policy for every
+  # operation because it captures its limit when the job class is defined.
+  def self.queue_name
+    const_defined?(:QUEUE, false) ? const_get(:QUEUE, false) : :default
+  end
+
   private_class_method :new, :allocate
 end

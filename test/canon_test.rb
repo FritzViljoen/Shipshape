@@ -72,6 +72,10 @@ class CanonTest < Minitest::Test
     # an audit trail as what the uniform answer buys; that law is UNRATIFIED, so attaching this
     # to it would make the audit log depend on a decision that has not been made either.
     "audit_log" => "carries a rule with no law yet — awaiting a decision, not exempt from one.",
+    # Same position: `call_later` is built and the rule behind it — deferral at the
+    # one-command grain, a failure that is terminal, a raise that retries — is written in
+    # docs/specs rather than in a law. Awaiting a decision, not exempt from one.
+    "operation_job" => "carries a rule with no law yet — the design note is a proposal.",
   }.freeze
 
   def test_every_law_names_a_cop_that_exists_or_says_it_does_not
