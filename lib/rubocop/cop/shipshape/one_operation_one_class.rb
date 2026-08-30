@@ -75,9 +75,11 @@ module RuboCop
           return unless operation?
 
           body = node.body
+          statements = body.nil? ? [] : (body.begin_type? ? body.children : [body])
+
+          check_entry_point(node, statements)
           return if body.nil?
 
-          statements = body.begin_type? ? body.children : [body]
           check_methods(statements)
           statements.each { |statement| check_reader(statement) }
         end
@@ -112,8 +114,8 @@ module RuboCop
 
         def wrong_name(definition)
           explain(
-            "An operation's public method is `#{expected_name}`, " \
-            "not `#{definition.method_name}`.",
+            "An operation's public method is `#{expected_name}` — or `#{entry_names.last}` " \
+            "where it runs before anyone is identified — not `#{definition.method_name}`.",
             because: "One shape means one wrapper can serve every call site — logging, " \
                      "transactions, instrumentation, the test harness. A second verb " \
                      "means every one of those has to know about both.",
@@ -143,7 +145,33 @@ module RuboCop
         end
 
         def entry_point?(node)
-          node.method_name == :initialize || node.method_name.to_s == expected_name
+          node.method_name == :initialize || entry_names.include?(node.method_name.to_s)
+        end
+
+        # **The entry point is defined here, never inherited.** The base class's `call` runs
+        # whichever of the two this class implements, so a class implementing neither has no
+        # work to run — and one that inherits its entry point from another operation is the
+        # shape `an-operation-is-a-leaf` refuses, where the parent's `anonymous_call` made
+        # the child public with nothing at the child saying so.
+        def check_entry_point(node, statements)
+          # A public method with the wrong name is already reported as the wrong name. Saying
+          # "and also defines neither" is one defect wearing two offences.
+          return if statements.any? { |statement| public_method?(statement) }
+
+          add_offense(node.identifier, message: no_entry_point(node.identifier.source))
+        end
+
+        def no_entry_point(name)
+          explain(
+            "`#{name}` defines neither `#{expected_name}` nor `#{entry_names.last}`.",
+            because: "The base class's `#{expected_name}` runs whichever of the two this " \
+                     "class implements, so a class implementing neither has nothing to " \
+                     "run — and one that inherits an entry point from another operation " \
+                     "inherits that operation's answers, including whether it needs an " \
+                     "actor at all. Which of the two it is must be readable here, in this " \
+                     "file, because that is what decides whether the operation is checked.",
+            instead: SHAPE,
+          )
         end
 
         def check_methods(statements)
@@ -151,7 +179,7 @@ module RuboCop
 
           public_defs.each_with_index do |definition, index|
             next add_offense(definition, message: second_operation(definition)) if index.positive?
-            next if definition.method_name.to_s == expected_name
+            next if entry_names.include?(definition.method_name.to_s)
 
             add_offense(definition, message: wrong_name(definition))
           end
@@ -214,6 +242,16 @@ module RuboCop
 
         def expected_name
           @expected_name ||= cop_config.fetch("PublicMethod", "call")
+        end
+
+        # **A closed pair, not an open list.** `anonymous_call` is the second because the
+        # permission model requires it — an operation that runs before anyone is identified
+        # says so by which method it implements. Without this the canon forbade the shape it
+        # also demanded. A class defining BOTH is already refused as a second public method,
+        # which is the answer that matters: two entry points would be two operations with
+        # different authorisation wearing one class.
+        def entry_names
+          @entry_names ||= [expected_name, cop_config.fetch("AnonymousMethod", "anonymous_call")]
         end
 
         def base_dir

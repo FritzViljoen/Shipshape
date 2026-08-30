@@ -112,6 +112,11 @@ module Shipshape
         rescue StandardError
         end
       RUBY
+      "Shipshape/OperationsAreLeaves" => { kind: "command", body: <<~RUBY },
+        def self.call(**arguments)
+          new(**arguments).call
+        end
+      RUBY
       "Shipshape/WorkflowAggregatesPermissions" => { kind: "workflow", body: <<~RUBY },
         def call
           SomeCommand.call

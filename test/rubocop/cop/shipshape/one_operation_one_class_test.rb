@@ -70,7 +70,7 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "is `call`, not `perform`"
+    assert_includes found.first.message, "not `perform`"
   end
 
   def test_private_methods_are_not_counted
@@ -266,6 +266,48 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 2, found.length
+  end
+
+  # The base class runs whichever of the two this class implements, so a class implementing
+  # neither has nothing to run — and one inheriting an entry point inherits that operation's
+  # answers, including whether it needs an actor at all.
+  def test_an_operation_must_define_its_own_entry_point
+    found = check(<<~RUBY)
+      class CreatePerson
+        def initialize(name:)
+          @name = typed(name, String)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "defines neither `call` nor `anonymous_call`"
+  end
+
+  # The permission model requires this name: an operation running before anyone is
+  # identified says so by implementing it instead of `call`.
+  def test_anonymous_call_is_an_entry_point
+    assert_empty check(<<~RUBY)
+      class CreatePerson
+        def anonymous_call
+          success(:in)
+        end
+      end
+    RUBY
+  end
+
+  # Two entry points would be two operations with different authorisation in one class.
+  def test_defining_both_entry_points_is_a_second_operation
+    found = check(<<~RUBY)
+      class CreatePerson
+        def call; end
+
+        def anonymous_call; end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "is a second"
   end
 
   private

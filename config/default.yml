@@ -252,6 +252,10 @@ Shipshape/OneOperationOneClass:
     - legacy_command
     - legacy_query
   PublicMethod: call
+  # The permission model requires this second name: an operation that runs before anyone is
+  # identified says so by implementing it instead of `call`. A class defining both is still
+  # refused, as a second public method.
+  AnonymousMethod: anonymous_call
 
 Shipshape/NoDecisionsInRequestHandling:
   Description: >-
@@ -517,3 +521,20 @@ Shipshape/EveryDoorChecksPermission:
   Include:
     - 'app/shipshape/*.rb'
     - '**/shipshape/*.rb'
+
+Shipshape/OperationsAreLeaves:
+  Description: >-
+    A base class is inherited exactly once, and its door is not overridable. A second level
+    inherits the door's answers — permission, transaction, return type — without asking.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query

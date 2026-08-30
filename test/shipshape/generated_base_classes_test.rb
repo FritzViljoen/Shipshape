@@ -450,7 +450,9 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_the_catalogue_raises_on_a_workflow_that_declares_no_steps
     error = assert_raises(NotImplementedError) { Permission.catalogue(Workflow) }
 
-    assert_includes error.message, "must declare STEPS"
+    # Either broken workflow in this file may be met first, depending on run order: one
+    # declares no STEPS, the other declares an empty one. Both are the same defect.
+    assert_match(/STEPS|no steps/, error.message)
   end
 
   # **The fail-open the guard did not cover.** `const_defined?` catches a missing STEPS; an

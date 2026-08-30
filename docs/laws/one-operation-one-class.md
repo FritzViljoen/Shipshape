@@ -6,6 +6,16 @@ A second public method is a second operation, and it gets a second class. No pos
 parameters, no `**rest`, no `(...)` — every input is a named keyword, because a collected
 parameter is a hole in every other law that inspects the signature.
 
+**And it defines that method itself.** The base class's `call` runs whichever of `call` or
+`anonymous_call` the class implements, so a class implementing neither has nothing to run —
+and one that inherits an entry point from another operation inherits that operation's
+answers, including whether it needs an actor at all. Which of the two it is decides whether
+the operation is authorisation-checked, so it has to be readable in the file, not two classes
+away. `anonymous_call` is the second permitted name and the only one:
+[`a-permission-is-the-class-name`](a-permission-is-the-class-name.md) requires it for an
+operation that runs before anyone is identified, and a class defining **both** is two
+operations with different authorisation sharing one name.
+
 **It answers the same way as every other operation.** A uniform shape is what lets one
 wrapper serve every call site: logging, instrumentation, an audit trail, a migration seam.
 Four call conventions and none of those can exist.
@@ -49,7 +59,8 @@ is usually two.
 - **Guard:** `Shipshape/OneOperationOneClass`, over classes of a kind listed in
   `OperationKinds`. Fails a second public method, a public method not named `call`, a
   public `attr_reader`/`attr_accessor`/`attr_writer` — which is a public method in all but
-  name — and any parameter that is not a named keyword: positional, optional positional,
+  name — a class that defines neither `call` nor `anonymous_call`, and any parameter that is
+  not a named keyword: positional, optional positional,
   `*rest`, `**rest`, and `(...)`. Each refusal says which it was, because "use keywords"
   without the reason gets worked around rather than fixed.
 - **Guard's limit:** it cannot tell whether the one method does one thing. A two-hundred

@@ -24,6 +24,7 @@ not make it hold.
 | Law | Principle |
 |---|---|
 | [`one-operation-one-class`](one-operation-one-class.md) | `one-way-to-say-each-thing` |
+| [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
 | [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) | `good-boundaries-make-good-neighbours` |
 | [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) | `nothing-crosses-unasserted` |
@@ -44,5 +45,5 @@ not make it hold.
 | [`a-permission-is-the-class-name`](a-permission-is-the-class-name.md) | `one-way-to-say-each-thing` |
 | [`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md) | `nothing-fails-quietly` |
 
-Twenty. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
+Twenty-one. `make-the-wrong-thing-impossible` produces no law of its own — it produces every
 guard on this list, and the rule that each is tested by removal.
