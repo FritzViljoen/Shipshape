@@ -8,6 +8,7 @@ nobody can verify is a rewrite with extra confidence.
 |---|---|
 | [a service](a-service.md) | 600 lines, fifteen public methods, does everything for one noun |
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
+| [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
@@ -24,6 +25,12 @@ nobody can verify is a rewrite with extra confidence.
 
 **A nullable column is not in a class**, which is why it is the category most often missed: a
 run scoped to `app/` reports nothing about the schema, and that reads exactly like a clean one.
+
+**A scope chain is the commonest shape here by some distance** — 1,600 of them against 952
+declared scopes across seven codebases — and the one least often treated as a decomposition
+at all. It is also where the call graph is already half-shouting: the controller chains are
+refused today, and the model and service ones, which are the larger half, are legal and
+unnamed.
 
 **"A form that fails" states the cost of adoption**, which no other procedure here does:
 taking this canon all the way means the view layer stops holding ActiveRecord objects, and
