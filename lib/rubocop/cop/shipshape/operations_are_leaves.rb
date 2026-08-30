@@ -22,6 +22,10 @@ module RuboCop
       # **And the door itself is not overridable.** `def self.call` in an operation replaces
       # the base class's entry point, taking the check and the transaction with it.
       #
+      # It sees `def self.call` and `class << self`. A door built with
+      # `define_singleton_method(:call)` is held by `Shipshape/NoGeneratedInterfaces`
+      # instead — the same refusal, reached by the rule that owns generated methods.
+      #
       # WHAT IT DOES NOT CATCH: it reads the **superclass constant**, so a class built by
       # `Class.new(SettleInvoice)` or assigned through a constant it cannot resolve to a file
       # is invisible. It cannot see a module that redefines `call` after inclusion. Depth is
@@ -64,7 +68,15 @@ module RuboCop
           parent = node.parent_class
           return unless parent&.const_type?
 
-          kind = kinds.for_constant(parent.source.sub(/\A::/, ""))
+          name = parent.source.sub(/\A::/, "")
+          # **A base class filed with its operations is still a base class.** stratum keeps
+          # `Command` in `app/commands/command.rb`, so resolving the constant answers
+          # "command" and every correct operation in the repository looked like a second
+          # level. What a class inherits decides its kind; being a declared base class
+          # decides that it is not an operation at all.
+          return if base_class?(name)
+
+          kind = kinds.for_constant(name)
           return unless governed_kinds.include?(kind)
 
           add_offense(parent, message: too_deep(node.identifier.source, parent.source, kind))
@@ -106,12 +118,12 @@ module RuboCop
 
         def door_replaced(name)
           explain(
-            "`#{name}` defines `self.#{DOOR}`, which is the base class's door.",
-            because: "The door is where the permission check runs, where the transaction " \
-                     "opens, and where the return type is asserted. Replacing it takes all " \
-                     "three with it, and the replacement looks like ordinary code — every " \
-                     "caller still writes `#{name}.call(...)` and nothing indicates the " \
-                     "guarantees are gone.",
+            "`#{name}` owns `self.#{DOOR}`, which is the door.",
+            because: "The door belongs to the base class, because that is the one place a " \
+                     "permission check, a transaction and a return-type assertion can be " \
+                     "true of every operation at once. A class that defines its own owns " \
+                     "all three alone, and the difference is invisible: every caller still " \
+                     "writes `#{name}.call(...)`.",
             instead: <<~RUBY,
               # define the instance method; the base class calls it
               class SettleInvoice < Command
@@ -121,6 +133,12 @@ module RuboCop
               end
             RUBY
           )
+        end
+
+        def base_class?(name)
+          simple = name.split("::").last
+
+          settings.base_classes.values.flatten.any? { |declared| declared.split("::").last == simple }
         end
 
         def article(kind)

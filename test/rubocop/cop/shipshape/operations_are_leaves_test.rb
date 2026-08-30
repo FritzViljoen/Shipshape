@@ -27,6 +27,9 @@ class OperationsAreLeavesTest < Minitest::Test
   # The superclass has to exist on disk: the kind is decided by what a class inherits.
   TREE = {
     "app/commands/log_in.rb" => "class LogIn < Command\n  def anonymous_call; end\nend\n",
+    # Filed with the operations it is the base class for — which is where stratum keeps it,
+    # and where resolving the constant answers "command".
+    "app/commands/command.rb" => "class Command\nend\n",
   }.freeze
 
   COMMAND = "app/commands/admin_upload.rb"
@@ -64,12 +67,19 @@ class OperationsAreLeavesTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "defines `self.call`, which is the base class's door"
+    assert_includes found.first.message, "owns `self.call`, which is the door"
   end
 
   # The instance method is the one every operation must define.
   def test_the_instance_call_is_not_the_door
     assert_empty check("class AdminUpload < Command\n  def call\n    success(:done)\n  end\nend\n")
+  end
+
+  # **A base class filed with its operations is still a base class.** Resolving `Command`
+  # in a repository that keeps `app/commands/command.rb` answers "command", so every correct
+  # operation looked like a second level — 22 of stratum's 80 files, all false.
+  def test_a_base_class_kept_beside_its_operations_is_not_a_second_level
+    assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
   end
 
   def test_a_shape_is_outside_the_operation_kinds

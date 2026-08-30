@@ -64,8 +64,15 @@ class InstallTest < Minitest::Test
     generated = %w[Workflow Command Query IoQuery IoCommand LegacyQuery LegacyCommand Shape]
 
     # The application's own bases and the framework's. Shipshape names them so kinds can be
-    # resolved; it does not write them, because they already exist.
-    theirs = ["ApplicationRecord", "ActiveRecord::Base", "ApplicationViewComponent", "ViewComponent::Base"]
+    # resolved — and so `OperationsAreLeaves` knows a class inheriting one is a first level,
+    # not a second — but it does not write them, because they already exist.
+    theirs = %w[
+      ApplicationRecord ActiveRecord::Base
+      ApplicationViewComponent ViewComponent::Base
+      ApplicationMailer ActionMailer::Base
+      ApplicationJob ActiveJob::Base ApplicationCable::Channel ActionCable::Channel::Base
+      ApplicationController ActionController::Base ActionController::API
+    ]
 
     (named - theirs).each do |name|
       assert_includes generated, name, "BaseClasses names #{name} but nothing generates it"

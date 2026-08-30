@@ -284,6 +284,24 @@ class OneOperationOneClassTest < Minitest::Test
     assert_includes found.first.message, "defines neither `call` nor `anonymous_call`"
   end
 
+  # `Invoice::Line` — a part reached only through the class that declared it. The canon
+  # blesses this shape, so requiring an entry point of it fires on correct code.
+  def test_a_nested_part_needs_no_entry_point
+    assert_empty check(<<~RUBY)
+      class CreatePerson
+        class Outcome
+          def initialize(total:)
+            @total = typed(total, Integer)
+          end
+        end
+
+        def call
+          success(:done)
+        end
+      end
+    RUBY
+  end
+
   # The permission model requires this name: an operation running before anyone is
   # identified says so by implementing it instead of `call`.
   def test_anonymous_call_is_an_entry_point

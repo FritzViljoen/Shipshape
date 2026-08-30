@@ -130,17 +130,24 @@ Shipshape/CallGraph:
   # only decide which trees are governed at all. Two kinds may therefore share a glob — the
   # legacy pair do — and a governed file whose superclass is not listed here falls back to
   # its path, or to no kind if the path does not say either.
+  # **Rails' own base classes are named here too.** They live inside the trees these globs
+  # cover — `app/mailers/application_mailer.rb` is under the io_command glob — so a class
+  # inheriting one looked like a second level of inheritance to
+  # Shipshape/OperationsAreLeaves, which fired on every mailer in forem. Being on this list
+  # is what makes a name a base class, and a rename buys nothing, so it cannot go stale.
   BaseClasses:
     workflow: [Workflow]
     command: [Command]
     query: [Query]
     io_query: [IoQuery]
-    io_command: [IoCommand]
+    io_command: [IoCommand, ApplicationMailer, ActionMailer::Base]
     legacy_query: [LegacyQuery]
     legacy_command: [LegacyCommand]
     view_component: [ApplicationViewComponent, ViewComponent::Base]
     shape: [Shape]
     record: [ApplicationRecord, ActiveRecord::Base]
+    entry_point: [ApplicationJob, ActiveJob::Base, ApplicationCable::Channel, ActionCable::Channel::Base]
+    request_handling: [ApplicationController, ActionController::Base, ActionController::API]
   # Kinds that are the same thing wearing different clothes. NO KIND CALLS A SISTER, and
   # every kind is its own sister — that rule lives in the cop, not here, so a Matrix row
   # naming a sister stops the run rather than being honoured.

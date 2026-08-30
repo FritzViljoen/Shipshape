@@ -46,6 +46,8 @@ inheritance was a way of not using it.
   collaborator half.
 - **Guard:** `Shipshape/OperationsAreLeaves`, over the operation kinds. Fails a class whose
   superclass is itself an operation, and fails `def self.call` in one.
+  A door spelled `define_singleton_method(:call)` is refused by
+  [`code-is-written-not-generated`](code-is-written-not-generated.md) rather than here.
 - **Guard's limit:** it reads the **superclass constant**, so `Class.new(SettleInvoice)` and
   any superclass it cannot resolve to a governed file are invisible. It cannot see a module
   that redefines `call` after inclusion, nor an included module carrying `anonymous_call` —
