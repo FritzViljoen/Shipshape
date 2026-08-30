@@ -172,6 +172,21 @@ what, every guard with its own one-line description, and — only if you install
 authorisation works. **Regenerate rather than edit.** A hand-kept description of the layout
 is a second copy of it, and the copy is the one that goes stale.
 
+## Decomposing a service
+
+[`docs/decomposing-a-service.md`](docs/decomposing-a-service.md) is the procedure, ordered,
+with something to run at each step. The two that surprise people:
+
+**Thread the ambient reads out before splitting**, not after. `Time.current` in two methods
+makes them look independent until they are not.
+
+**Move the data pretending to be code before splitting.** A `case` over domain literals
+answering with literals — `status → colour`, `levy → rate` — is a lookup table someone wrote
+as code, and it is usually *why* the service grew: each new case is one more branch, because
+the data grew. Split a fifteen-method service into fifteen classes and the branch is still
+there, still needing a deploy to add a row. `shipshape report` counts these under "Rules that
+are really data".
+
 ## Handing the work to an agent
 
 ```sh

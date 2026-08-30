@@ -17,6 +17,7 @@ require "shipshape/measures/actions_calling_many_classes"
 require "shipshape/measures/actions_branching_on_domain_state"
 require "shipshape/measures/several_classes_in_one_file"
 require "shipshape/measures/inheritance_deeper_than_one_level"
+require "shipshape/measures/rules_that_are_really_data"
 
 module Shipshape
   # What the report measures, in the order it reads best: the shape of the classes first,
@@ -27,6 +28,7 @@ module Shipshape
       InheritanceDeeperThanOneLevel,
       SeveralClassesInOneFile,
       ClassesDoingSeveralThings,
+      RulesThatAreReallyData,
       GodClasses,
       RequestHandlingThatDecides,
       ActionsBranchingOnDomainState,
