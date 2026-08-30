@@ -36,12 +36,17 @@ ActiveJob needs primitives. The canon already requires them: *a record is not an
 (`arguments-are-typed-at-construction`), so every command's inputs are ids and values before
 anybody thought about queues. **The capability was paid for by an existing rule.**
 
-One exception: a command may take a `Shape` (`command → shape` is in the matrix), and
-ActiveJob cannot serialise one. **`ShapePacking` closes it** — the door packs on the way out
-and the job unpacks on the way in, so no `ActiveJob::Serializers` registration and no
-initializer is needed. It works because a shape is a value with declared fields whose state is
-its instance variables: the round trip is exact, and a shape that would not survive it could
-not have been built.
+**A `Shape` argument is the one thing ActiveJob cannot carry.** A hand-rolled packer sat here
+briefly and was deleted: it was a second, worse copy of `ActiveJob::Arguments`, which already
+round-trips symbol keys, nesting and dates exactly — and the copy arrived with a key-fidelity
+bug ActiveJob does not have and a `const_get` on a queue payload it would never have invited.
+
+`Shape#to_h` is what replaced it. A shape is a hash with a declared shape, so `to_h` is that
+hash and `new(**shape.to_h)` is the round trip. A caller deferring an operation that takes a
+shape hands the hash; **a command whose initializer demands the shape itself cannot be
+deferred**, and fails at enqueue with ActiveJob's own error naming the type. Commands take ids
+and values, so that is rare — and if it stops being rare, an `ActiveJob::Serializers`
+registration is the supported answer.
 
 ## The contract with `an-operation-answers-a-result`
 
@@ -89,14 +94,14 @@ One generic job, with policy declared on the command:
 ```ruby
 class SettleInvoice < Command
   QUEUE = :payments
-  RETRIES = 5
+  ATTEMPTS = 5
 end
 ```
 
 One job **execution** per command call, while keeping application code from ever naming a job
 class.
 
-**`RETRIES` works per operation from a single job class**, which an earlier draft of this note
+**`ATTEMPTS` works per operation from a single job class**, which an earlier draft of this note
 said was impossible. `retry_on` captures its `attempts:` when the job class is defined, so it
 would fix one policy for every command — but writing the retry out instead reads the number at
 the moment the decision is made:
