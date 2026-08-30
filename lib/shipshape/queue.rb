@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "shipshape/source_text"
+require "shipshape/test_mentions"
 require "json"
 require "open3"
 require "shipshape/error"
@@ -99,29 +100,19 @@ module Shipshape
     # the question, and a precise answer would mean running the suite.
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
-    # Ruby's own vocabulary, and the words every test file contains anyway. Matching these
-    # would mark every method covered.
-    TOO_COMMON = %w[
-      initialize call to_s to_h to_a inspect each map new name id type value
-      first last count length size empty? present? blank? nil? key? include?
-    ].freeze
-
     def methods_in(path)
-      read(File.join(root, path)).scan(DEFINITION).flatten.uniq - TOO_COMMON
+      read(File.join(root, path)).scan(DEFINITION).flatten.uniq
+                                 .reject { |method| mentions.too_common?(method) }
     end
 
+    # Asked through `TestMentions`, which `Edges` asks the same way. Two copies of a
+    # heuristic are two heuristics, and they drift.
     def named_in_a_test?(method)
-      bare = method.sub(/[?!=]\z/, "")
-      return false if bare.length < 4
-
-      test_source.include?(bare)
+      mentions.names?(method)
     end
 
-    # Read once. A grep per method over a large suite is minutes, and this runs per file.
-    def test_source
-      @test_source ||= TEST_DIRECTORIES.flat_map { |directory|
-        Dir.glob(File.join(root, directory, "**", "*.rb"))
-      }.map { |file| read(file) }.join("\n")
+    def mentions
+      @mentions ||= TestMentions.new(root: root)
     end
 
     # **Answering `[]` for a file that could not be read would say "no methods to move",**

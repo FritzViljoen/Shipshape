@@ -4,6 +4,8 @@ require "pathname"
 require "rubocop"
 
 require "shipshape/source_text"
+require "shipshape/edges"
+require "shipshape/test_mentions"
 require "shipshape/version"
 require "shipshape/error"
 require "shipshape/boolean"

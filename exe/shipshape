@@ -155,6 +155,41 @@ end
 
 # The work, one file at a time. An agent handed a whole codebase does the wrong thing; it
 # needs one file, the rules it breaks, and a way to know it finished.
+# **Before anything moves.** Every procedure in the playbook changes internals; the edge is
+# what must answer the same afterwards, so it is the only place a characterisation test is
+# worth writing first.
+def edges
+  settings = Shipshape::Settings.layout(RuboCop::ConfigStore.new.for_pwd)
+  report = Shipshape::Edges.new(root: Dir.pwd, settings: settings).call
+
+  if report.edges.empty?
+    warn "No edges found. Declare request_handling or entry_point paths in Shipshape/CallGraph's"
+    warn "Kinds — until a tree is declared, nothing looks at it and this reports a clean zero."
+    return 1
+  end
+
+  return puts(JSON.pretty_generate(report.uncovered.map(&:to_h))) || 0 if ARGV.include?("--json")
+
+  puts "#{report.edges.length} edges, #{report.actions} actions."
+  puts
+
+  if report.ready?
+    puts "Every edge is named by something in the suite."
+    puts "That is not proof they are characterised — only that a test mentions each one."
+    return 0
+  end
+
+  puts "NOT NAMED BY ANY TEST — characterise these before moving anything behind them:"
+  report.uncovered.each do |edge|
+    puts format("  %-52s %s", edge.file, edge.actions.join(", "))
+  end
+  puts
+  puts "#{report.covered.length} of #{report.edges.length} edges are named somewhere in the suite."
+  puts "A refactor changes what is behind an edge, never what the edge answers — so a test"
+  puts "here survives the work, and a test on an internal moves with it and proves nothing."
+  0
+end
+
 def next_work
   count = ARGV.include?("--count") ? ARGV[ARGV.index("--count") + 1].to_i : 3
   units = Shipshape::Queue.new(root: Dir.pwd).call(limit: count)
@@ -232,12 +267,13 @@ when "install" then exit install(ARGV.include?("--auth"), ARGV.include?("--view-
 when "rules" then exit rules
 when "canaries" then exit canaries
 when "coverage" then exit coverage
+when "edges" then exit edges
 when "next" then exit next_work
 when "report" then exit report
 when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant] | coverage | next | check | report | version"
+  warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant] | coverage | edges | next | check | report | version"
   warn "       shipshape report"
   warn "       shipshape check [--trunk <ref>]"
   warn "       shipshape version"

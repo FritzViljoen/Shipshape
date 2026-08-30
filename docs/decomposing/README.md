@@ -9,6 +9,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a service](a-service.md) | 600 lines, fifteen public methods, does everything for one noun |
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
 | [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
+| [characterise the edges](characterise-the-edges.md) | **do this first** — the tests that survive every procedure above |
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
@@ -140,11 +141,25 @@ levy is still a deploy.
 `shipshape report` counts the commonest shape under **"Rules that are really data"**: a `case`
 over domain literals answering with literals. Nothing enforces it; the judgement is the point.
 
+## Before any of them: characterise the edges
+
+**Nothing any procedure here does proves the code still works.** `shipshape check` proves the
+offence count fell.
+
+[Characterising the edges](characterise-the-edges.md) is the answer and it comes first.
+**Treat the repository as a black box**: every procedure below moves internals, so a test
+written against an internal is deleted by the extraction it was meant to protect. The edges —
+a request, a job — are what a refactor must not change, which is what makes them the only
+place a test survives the work.
+
+```sh
+shipshape edges     # the ones nothing in the suite names
+```
+
 ## What none of these prove
 
-**Nothing here shows the code still works.** `shipshape check` proves the offence count fell.
-Every procedure assumes you write the characterisation test first — call it, record what it
-answers, pin it.
+Even with the edges recorded: these procedures move code, and a green count is not a working
+application.
 
 `shipshape next` makes the risk visible rather than removing it: it counts, per file, how
 many methods are named anywhere in the suite and lists the ones that are not. Move the named
