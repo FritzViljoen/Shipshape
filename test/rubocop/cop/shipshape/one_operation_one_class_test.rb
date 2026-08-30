@@ -59,7 +59,7 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`preview` is a second"
+    assert_includes found.first.message, "`preview` is public"
   end
 
   def test_the_public_method_is_named_call
@@ -346,7 +346,72 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "is a second"
+    assert_includes found.first.message, "is public, and an operation's only public method is `call`"
+  end
+
+  # The advice matters as much as the finding: a public helper is almost never a second
+  # operation, it is a method that forgot to go under `private`.
+  def test_a_public_helper_is_told_to_go_private
+    message = check(<<~RUBY).first.message
+      class CreatePerson
+        def call
+          total
+        end
+
+        def total
+          1
+        end
+      end
+    RUBY
+
+    assert_includes message, "`total` is public"
+    assert_includes message, "it is a helper, and it goes under `private`"
+    assert_includes message, "occasionally: it is a second operation"
+  end
+
+  # A private helper is the shape, and there may be as many as the operation needs.
+  def test_private_helpers_are_the_shape
+    assert_empty check(<<~RUBY)
+      class CreatePerson
+        def call
+          total + tax
+        end
+
+        private
+
+        def total
+          1
+        end
+
+        def tax
+          2
+        end
+      end
+    RUBY
+  end
+
+  # **A shape is the presenter level, and it may expose whatever it likes.** Its whole job is
+  # to be read: readers, formatters, derived values that only rearrange fields it was handed.
+  # `OperationKinds` leaves it out, and this pins that so nobody narrows it later.
+  def test_a_shape_may_have_public_helpers
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: CONFIG, path: "app/shapes/invoice.rb",
+      class Invoice
+        def initialize(number:)
+          @number = typed(number, String)
+        end
+
+        attr_reader :number
+
+        def formatted
+          "INV-\#{@number}"
+        end
+
+        def short
+          @number.last(4)
+        end
+      end
+    RUBY
+                          files: TREE, other_cops: LAYOUT)
   end
 
   private

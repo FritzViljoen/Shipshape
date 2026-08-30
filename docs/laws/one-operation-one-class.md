@@ -6,6 +6,19 @@ A second public method is a second operation, and it gets a second class. No pos
 parameters, no `**rest`, no `(...)` — every input is a named keyword, because a collected
 parameter is a hole in every other law that inspects the signature.
 
+**Everything else it does is private.** A public helper on an operation is reachable from
+anywhere the class is, so it is part of the contract whether or not anyone meant it to be,
+and it cannot be renamed or removed without finding every caller. Under `private` it is what
+it was always meant to be — an implementation detail of the one thing this class does. There
+may be as many as the work needs.
+
+**A shape is the exception, and it is the only one.** A shape is the presenter level: its job
+is to be read, so readers, formatters and values derived from fields it was handed are all
+public and all correct. `OperationKinds` leaves shapes out for that reason, and records are
+governed instead by
+[`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md), which allows them no
+methods at all.
+
 **And it defines that method itself.** The base class's `call` runs whichever of `call` or
 `anonymous_call` the class implements, so a class implementing neither has nothing to run —
 and one that inherits an entry point from another operation inherits that operation's
@@ -60,7 +73,9 @@ is usually two.
   `OperationKinds`. Fails a second public method, a public method not named `call`, a
   public `attr_reader`/`attr_accessor`/`attr_writer` — which is a public method in all but
   name — a class that defines neither `call` nor `anonymous_call`, and any parameter that is
-  not a named keyword: positional, optional positional,
+  not a named keyword. It says which it was, and for a second public method it leads with
+  `private`, because that is nearly always the answer and "give it its own class" is the
+  rarer one: positional, optional positional,
   `*rest`, `**rest`, and `(...)`. Each refusal says which it was, because "use keywords"
   without the reason gets worked around rather than fixed.
 - **Guard's limit:** it cannot tell whether the one method does one thing. A two-hundred

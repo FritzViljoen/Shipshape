@@ -108,12 +108,38 @@ module RuboCop
 
         def second_operation(definition)
           explain(
-            "An operation has one public method. `#{definition.method_name}` is a second.",
-            because: "Two public methods are two operations sharing one constructor, and " \
-                     "the constructor ends up carrying the union of what both need. The " \
-                     "class then has no arguments that are always required, so nothing " \
-                     "about it can be asserted at construction.",
-            instead: SHAPE,
+            "`#{definition.method_name}` is public, and an operation's only public method " \
+            "is `#{expected_name}`.",
+            because: "Everything an operation does apart from answering is private — a " \
+                     "public helper is reachable from anywhere the class is, so it is part " \
+                     "of the contract whether or not anyone meant it to be, and it cannot " \
+                     "be renamed or removed without finding every caller. Where it really " \
+                     "is a second operation, two public methods are two operations sharing " \
+                     "one constructor, and that constructor ends up carrying the union of " \
+                     "what both need — so nothing about the class can be asserted at " \
+                     "construction. Only a shape exposes anything, because a shape's whole " \
+                     "job is to be read.",
+            instead: <<~RUBY,
+              # nearly always: it is a helper, and it goes under `private`
+              class SettleInvoice < Command
+                def call
+                  success(total)
+                end
+
+                private
+
+                def total
+                  @lines.sum(&:amount)
+                end
+              end
+
+              # occasionally: it is a second operation, and it gets its own class
+              class TotalInvoice < Query
+                def call
+                  success(@lines.sum(&:amount))
+                end
+              end
+            RUBY
           )
         end
 
