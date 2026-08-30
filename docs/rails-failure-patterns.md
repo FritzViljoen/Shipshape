@@ -62,7 +62,8 @@ shape you cannot express is not a guard at all.
 | `default_scope` leaking into every query, and into `create` | **Guarded** | `Shipshape/PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. It is implicit behaviour: global state in, distant write out |
 | `unscoped` used to escape a bad `default_scope` | **Unsayable** | There is no `default_scope` left to escape |
 | N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
-| Missing indexes | **Uncovered** | `lol_dba`, `strong_migrations` |
+| Missing indexes on foreign keys | **Procedure** | [an unindexed foreign key](decomposing/an-unindexed-foreign-key.md) — a runtime failure with a structural cause: both facts are in `db/schema.rb`, which this canon already reads |
+| Missing indexes on sort and uniqueness columns | **Uncovered** | `lol_dba`. Which column a query sorts on is not in the schema |
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
 | Enum as array, reordering silently remaps rows | **Procedure** | [an enum as an array](decomposing/an-enum-as-an-array.md). `no-nullable-columns` misses it: `0` is the first value *and* the empty integer, so the column need not be nullable to lose the distinction |
 | `find_each` ignored, `.all.each` loads the world | **Procedure** | [an unbounded read](decomposing/an-unbounded-read.md) |
@@ -122,7 +123,7 @@ shape you cannot express is not a guard at all.
 | Jobs that aren't idempotent, then retried | **Guarded** | `Shipshape/CommandsProveIdempotence` — every command's test says what happens on the second run |
 | Unbounded retries hammering a broken dependency | **Guarded** | Per-command `ATTEMPTS` on the installed job |
 | No failure visibility | **Guarded** | Every operation records to the audit log, failures included |
-| Long work in the request cycle | **Uncovered** | `call_later` makes deferring one word; nothing says when you should |
+| Long work in the request cycle | **Procedure** | [work in the request cycle](decomposing/work-in-the-request-cycle.md). `call_later` makes the mechanics one word, which is why the procedure is all judgement |
 | One queue for everything | **Uncovered** | — |
 | **Cron jobs with no locking, two servers running the same task** | **Uncovered, deliberately** | Scheduling has not been decided in this canon. It came up once, a law was drafted unasked, and it was deleted — see below |
 
@@ -164,8 +165,9 @@ place to live and one place to be invalidated from. That is a precondition, not 
 | Failure | Verdict | How |
 |---|---|---|
 | Error tracking without context | **Partly guarded** | The audit log carries operation, actor, outcome and error for every operation |
-| No timeouts on outbound HTTP | **Uncovered** | `IoIsItsOwnKind` gives the call one place to put a timeout. It does not check that you did |
-| Environment drift, no APM, health checks, connection pool, memory bloat, log volume, third-party cascade | **Uncovered** | Every one of these is a running system reporting on itself. Nothing in this canon runs |
+| No timeouts on outbound HTTP | **Procedure** | [an untimed call](decomposing/an-untimed-call.md). `IoIsItsOwnKind` gives the call one place to put a timeout; it does not check that you did |
+| Third-party outage cascading into downtime | **Partly procedure** | [an untimed call](decomposing/an-untimed-call.md) bounds the wait. A bound is not a circuit breaker, and this canon has no answer for that |
+| Environment drift, no APM, health checks, connection pool, memory bloat, log volume | **Uncovered** | Every one of these is a running system reporting on itself. Nothing in this canon runs |
 
 ## Architecture and process
 
@@ -181,13 +183,19 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ## Roughly, the count
 
-Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 19 held by a procedure, and
-about 58 uncovered.**
+Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 23 held by a procedure, and
+about 54 uncovered.**
 
 **Those numbers moved because of this document.** It was written as a survey and turned into a
-work list: two gaps became cop clauses, eight became procedures, and the counts above are a
+work list: two gaps became cop clauses, eleven became procedures, and the counts above are a
 later reading, not the first. That is the use of writing coverage down — the first count was
-22 uncovered rows worse, and none of them were unknown, only unwritten.
+26 uncovered rows worse, and none of them were unknown, only unwritten.
+
+**Three of those procedures cover failures this document calls runtime**, which looks like a
+contradiction and is not. A file reader cannot know a table is large — but it can list the
+foreign keys with no index, and the judgement of which ones matter is what a procedure is for.
+The line between shape and runtime is about what a *guard* may claim, not about what the
+playbook may take apart.
 
 **One row moved the other way.** IDOR was recorded as *partly guarded* on the strength of the
 permission check, and writing the procedure showed that reading to be wrong: a permission is a

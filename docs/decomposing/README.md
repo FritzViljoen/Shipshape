@@ -17,6 +17,8 @@ nobody can verify is a rewrite with extra confidence.
 | [a filter chain](a-filter-chain.md) | six `before_action`s and three-line actions — the work moved above them |
 | [an unowned find](an-unowned-find.md) | `Story.find(params[:id])` — the row exists, so it was returned |
 | [an unbounded read](an-unbounded-read.md) | a query with no answer to "how many?" — no page, no limit, no cursor |
+| [work in the request cycle](work-in-the-request-cycle.md) | the caller waiting for four things they cannot see |
+| [an untimed call](an-untimed-call.md) | somebody else's outage, arriving as yours |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
 | [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |
 | [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
@@ -24,6 +26,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
 | [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
 | [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
+| [an unindexed foreign key](an-unindexed-foreign-key.md) | `t.bigint "order_id"` with no index — the join the database has to scan |
 | [a serialized column](a-serialized-column.md) | a JSON or YAML blob holding eleven keys nothing declares |
 | [a polymorphic association](a-polymorphic-association.md) | `commentable_type` — a class name in a data column, with no foreign key |
 | [a primitive that should be a type](a-primitive-that-should-be-a-type.md) | `amount` as a float, `state` as a string, the rule re-derived at every call site |

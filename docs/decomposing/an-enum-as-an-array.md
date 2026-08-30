@@ -5,46 +5,70 @@ something to **run**, because a decomposition nobody can verify is a rewrite wit
 confidence.
 
 ```ruby
-enum status: %i[draft live archived]
+enum channel: %i[web phone api]
 ```
 
 The column holds `0`, `1`, `2`. **The meaning of every row is its position in a Ruby array**,
 and the array is in a file that anybody may reorder.
 
-Insert `:pending` at the front and every `draft` row in the database becomes `pending`, every
-`live` becomes `draft`, silently, with no migration, no error, and no way to notice except by
-reading rows. A reorder is a data migration that does not look like one.
+Insert `:partner` at the front and every `web` order becomes `partner`, every `phone` becomes
+`web`, silently, with no migration, no error, and no way to notice except by reading rows. A
+reorder is a data migration that does not look like one.
+
+---
+
+## 0. First: does the column deserve to exist?
+
+**Do not start here with a `status` column.** A status is almost always a denormalisation of
+events that already happened — `delivered` means a delivery row exists — and
+[a state machine](a-state-machine.md) is the procedure for it. Fixing how such a column is
+*stored* is careful work on a column that should be deleted, and it makes the wrong shape
+harder to remove by making it tidier.
+
+This procedure is for an enum that is a **recorded fact**, not a derived one:
+
+| A real enum | Why |
+|---|---|
+| `channel` — how the order arrived | a fact about the past. Nothing else in the database implies it, and it never changes |
+| `unit` — grams or kilograms | a property of this row, not a summary of other rows |
+| `severity` — recorded when the entry was written | the same |
+
+**The test: can anything else in the database contradict this column?** If it can, the column
+is a cache and belongs to [a state machine](a-state-machine.md). If nothing can, because this
+column is the only record of the fact, it is an enum and this procedure applies.
+
+**Check:** for each enum you found, you can name the fact it records and say what would
+contradict it. "Nothing" is the answer that lets you continue.
 
 ---
 
 ## Two defects, and the second is the worse one
 
-**The meaning lives outside the database.** A row's status cannot be read without the current
+**The meaning lives outside the database.** A row's channel cannot be read without the current
 version of the application source. Every report, every psql session, every replica consumer,
 every analyst sees integers.
 
 **And `0` is both the first value and the default of an empty integer column.** So "nobody has
-said" and "draft" are the same byte. That is
+said" and "web" are the same byte. That is
 [`no-nullable-columns`](../laws/no-nullable-columns.md) arriving through a door it does not
 cover: the column need not be nullable at all to lose the distinction, because the zero is
 doing two jobs and the law only reads whether NULL is admitted.
 
 ---
 
-## 0. Find them, and find the ones already at risk
+## 1. Find them, and find the ones already at risk
 
 ```sh
 grep -rn "enum .*: *%[iw]\[\|enum .*: *\[" app
 ```
 
-An `enum` given an **array** is positional. An `enum` given a **hash** is not — `enum status:
-{ draft: 0, live: 1 }` at least names its numbers, and is a smaller version of the same
-problem.
+An `enum` given an **array** is positional. An `enum` given a **hash** is not — `enum channel:
+{ web: 0, phone: 1 }` at least names its numbers, and is a smaller version of the same problem.
 
 Then ask the data what is actually in use:
 
 ```sql
-SELECT status, COUNT(*) FROM stories GROUP BY 1 ORDER BY 1;
+SELECT channel, COUNT(*) FROM orders GROUP BY 1 ORDER BY 1;
 ```
 
 **A value in the data with no name in the array is the finding.** It means the array already
@@ -55,30 +79,30 @@ are the same set. Where they differ, stop and find out what happened before chan
 
 ---
 
-## 1. Pin the current mapping before touching the array
+## 2. Pin the current mapping before touching the array
 
 The first change is not the fix. It is making the existing meaning explicit, so that the fix
 cannot move it:
 
 ```ruby
 # no behaviour change: the same integers, now written down
-enum status: { draft: 0, live: 1, archived: 2 }
+enum channel: { web: 0, phone: 1, api: 2 }
 ```
 
 **This is safe and it is the step people skip.** After it, reordering the source is harmless,
 which means every later step can be reviewed without anybody having to hold the array order in
 their head.
 
-**Check:** the mapping in the code matches the `GROUP BY` from step 0, value for value, and the
+**Check:** the mapping in the code matches the `GROUP BY` from step 1, value for value, and the
 suite is green with no other change in the commit.
 
 ---
 
-## 2. Move to strings, so the column says what it means
+## 3. Move to strings, so the column says what it means
 
 ```ruby
-# the column is a string; the row reads `"archived"` in psql, in a report, on a replica
-enum status: { draft: "draft", live: "live", archived: "archived" }
+# the column is a string; the row reads `"phone"` in psql, in a report, on a replica
+enum channel: { web: "web", phone: "phone", api: "api" }
 ```
 
 The migration is the ordinary dual-write shape — add the column, write both, backfill, verify,
@@ -87,26 +111,11 @@ step 3.
 
 ```sql
 -- the verification, before any reader moves
-SELECT COUNT(*) FROM stories WHERE status_string IS DISTINCT FROM
-  (ARRAY['draft','live','archived'])[status + 1];
+SELECT COUNT(*) FROM orders WHERE channel_name IS DISTINCT FROM
+  (ARRAY['web','phone','api'])[channel + 1];
 ```
 
 **Check:** zero, on production-shaped data.
-
----
-
-## 3. Ask whether it is a state, because then it is not an enum
-
-An enum is a closed set of names. If the values have **transitions** — draft becomes live,
-live becomes archived, archived becomes nothing — the set is not the interesting part and
-naming the values is not the work.
-
-That is [a state machine](a-state-machine.md), and the enum is how it is currently
-spelled. Do steps 0 to 2 first regardless: a state machine over positional integers is the
-same corruption with more branches attached.
-
-**Check:** you can say whether this is a set of labels or a set of states, and the answer
-decides whether the next procedure is this one or that one.
 
 ---
 
@@ -142,13 +151,13 @@ running your code: a psql session, a BI tool, a replica consumer, an incident at
 **A reorder that already happened is invisible to all of this.** If the array was reordered in
 2023 and nobody noticed, the rows written before it hold the old meaning and the rows after it
 hold the new one, and both are the same integers. No query distinguishes them; only the git
-history of the enum line does. Look there before trusting step 1's mapping:
+history of the enum line does. Look there before trusting step 2's mapping:
 
 ```sh
-git log -p -S "enum status" -- app/models/story.rb
+git log -p -S "enum channel" -- app/models/order.rb
 ```
 
-**And `enum` generates methods** — `story.live?`, `Story.live` — which is
+**And `enum` generates methods** — `order.phone?`, `Order.phone` — which is
 `code-is-written-not-generated` under an exemption for framework macros. This procedure changes
 what is stored; it does not remove the generated interface, and moving off `enum` entirely is a
 larger change than this one.
