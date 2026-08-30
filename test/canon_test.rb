@@ -66,6 +66,12 @@ class CanonTest < Minitest::Test
   ARCHITECTURE_WITHOUT_A_LAW = {
     "boolean" => "a name, so `Boolean` can be written in a type guard. It decides nothing.",
     "persistence" => "one definition of what a record is, used by the guards that have laws.",
+    # **Pending, not exempt.** This one does carry a rule — every writing door reports to it —
+    # and it is here because Fritz asked for the audit log and nobody has decided whether that
+    # rule is a law. The obvious home is `an-operation-answers-a-result`, which already names
+    # an audit trail as what the uniform answer buys; that law is UNRATIFIED, so attaching this
+    # to it would make the audit log depend on a decision that has not been made either.
+    "audit_log" => "carries a rule with no law yet — awaiting a decision, not exempt from one.",
   }.freeze
 
   def test_every_law_names_a_cop_that_exists_or_says_it_does_not

@@ -66,6 +66,11 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   ANYONE = Anyone.new([]).freeze
 
+  # Pointing the sink somewhere is what an application does on install; a test suite is no
+  # different. The default is deliberately noisy — never silent — which is right in production
+  # and wrong in a test run.
+  AuditLog.sink = ->(_entry) {}
+
   class Charge < Command
     def initialize(amount:)
       @amount = typed(amount, Integer)
@@ -553,6 +558,67 @@ class GeneratedBaseClassesTest < Minitest::Test
   # The payload obeys the rule everything a shape holds obeys.
   def test_a_failure_may_not_carry_a_record
     assert_raises(TypeError) { Result.failure(:invalid, RECORD.new) }
+  end
+
+  # **Every door reports to one place**, which is the uniform shape paying for itself. The
+  # refusal is the entry that matters most: a caller told no is what somebody comes looking
+  # for, and it is the one nobody has.
+  class Bounces < Command
+    def initialize; end
+
+    def call
+      failure(:nope)
+    end
+  end
+
+  def audited
+    entries = []
+    previous = AuditLog.sink
+    AuditLog.sink = ->(entry) { entries << entry }
+    yield
+    entries
+  ensure
+    AuditLog.sink = previous
+  end
+
+  def test_a_successful_command_is_recorded
+    entries = audited { Charge.call(actor: ANYONE, amount: 5) }
+
+    assert_equal 1, entries.length
+    assert_equal :succeeded, entries.first.outcome
+    assert_nil entries.first.error
+  end
+
+  def test_a_failed_command_is_recorded_with_its_code
+    entries = audited { Bounces.call(actor: ANYONE) }
+
+    assert_equal :failed, entries.first.outcome
+    assert_equal :nope, entries.first.error
+  end
+
+  # The entry nobody has when they need it.
+  def test_a_refusal_is_recorded
+    entries = audited { Charge.call(actor: Anyone.new([Charge.permission]), amount: 5) }
+
+    assert_equal :refused, entries.first.outcome
+    assert_equal :forbidden, entries.first.error
+  end
+
+  # **Arguments are deliberately absent.** An audit log is the classic place personal data
+  # leaks: written on every call, kept longer than the rows it describes, and forgotten by
+  # every erasure request ever written.
+  def test_no_arguments_are_recorded
+    entries = audited { Charge.call(actor: ANYONE, amount: 5) }
+
+    refute_respond_to entries.first, :arguments
+    assert_equal %i[@actor_id @error @operation @outcome].sort,
+                 entries.first.instance_variables.sort
+  end
+
+  # An entry is a shape, so it obeys every rule a shape obeys.
+  def test_an_entry_is_a_value
+    assert_equal AuditLog::Entry.new(operation: "X", outcome: :succeeded),
+                 AuditLog::Entry.new(operation: "X", outcome: :succeeded)
   end
 
   def test_an_error_code_is_a_name_not_a_sentence

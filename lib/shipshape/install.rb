@@ -34,6 +34,7 @@ module Shipshape
       holds_no_records
       shape
       result
+      audit_log
       query
       command
       workflow

@@ -41,7 +41,12 @@ class LegacyCommand
   # identified and is not checked. That is a property of the class, never of the caller.
 <%- if auth -%>
   def self.call(actor: nil, **arguments)
-    return Result.failure(:forbidden) unless permits?(actor)
+    unless permits?(actor)
+      # **The refusal is the entry nobody has when they need it.** Recorded before returning,
+      # because a caller who was told no is exactly what somebody comes looking for.
+      AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden)
+      return Result.failure(:forbidden)
+    end
 
     operation = new(**arguments)
     result = ActiveRecord::Base.transaction { operation.__perform__(actor) }
@@ -50,10 +55,30 @@ class LegacyCommand
     result = ActiveRecord::Base.transaction { new(**arguments).__perform__ }
 <%- end -%>
 
+<%- if auth -%>
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
+
+    # **After the transaction, never inside it.** An entry written inside is erased by the
+    # rollback it exists to explain.
+    AuditLog.record(
+      operation: name,
+      outcome: result.success? ? :succeeded : :failed,
+      actor: actor,
+      error: result.error,
+    )
 
     result
   end
+<%- else -%>
+    raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
+
+    # **After the transaction, never inside it.** An entry written inside is erased by the
+    # rollback it exists to explain.
+    AuditLog.record(operation: name, outcome: result.success? ? :succeeded : :failed, error: result.error)
+
+    result
+  end
+<%- end -%>
 
   private
 <%- if auth -%>
