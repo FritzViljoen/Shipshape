@@ -24,6 +24,11 @@ cause is perfectly visible, and it is the *effect* that cannot be found by readi
   world on the far side of it is old. The doors were outside both cops until the kinds were
   audited for this, so one could read the clock or mutate a constant with nothing objecting.
 
+  **The seams are inside `Shipshape/NoDistantWrites` and deliberately outside
+  `Shipshape/NoAmbientReads`.** A controller mutating a constant is the same defect it is
+  anywhere; a controller *reading* ambient state is the entire job of a seam, and a cop
+  firing on `params` would be refusing the thing it exists to permit.
+
 - **Guard's limit:** both hold **closed lists** — a new ambient source is uncovered until
   it is named, and the lists are the authority on what the law means in practice. Mutating
   a collaborator reached *through* a handed-in object is legal here and can still act at a

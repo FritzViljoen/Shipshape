@@ -393,6 +393,13 @@ Shipshape/NoDistantWrites:
     # audited, so a door could read the clock or mutate a constant with nothing objecting.
     - legacy_command
     - legacy_query
+    # **The seams too.** A controller or a job mutating a global or a constant is the same
+    # action at a distance it is anywhere else, and there is no adapter's excuse for it — the
+    # seam parses input and calls an operation. They stay out of `Shipshape/NoAmbientReads`
+    # for the opposite reason: reading ambient state is exactly what a seam is for, and a cop
+    # that fired on `params` would be refusing the job.
+    - request_handling
+    - entry_point
 
 Shipshape/TypedArguments:
   Description: >-
