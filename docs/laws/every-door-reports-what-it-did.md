@@ -55,10 +55,16 @@ fields, having thought about erasure. The default is silence.
   than a cop. `self.call` records after the transaction and before answering, and the
   permission refusal records before returning. Proven by `generated_base_classes_test.rb`,
   a listed suite guard.
-- **Guard's limit:** **nothing notices if a door stops calling it.** Delete the
-  `AuditLog.record` line from a generated `command.rb` and every check here stays green —
-  the same hole `Shipshape/EveryDoorChecksPermission` exists to close for the permission
-  check, with no equivalent yet for this one.
+- **Guard's limit:** it holds the **generated** base classes, not an application's copy of
+  them. `generated_base_classes_test.rb` calls every writing door and asserts an entry — for
+  the success, and for the refusal — and derives the list of doors from the templates that
+  contain an audit call, so a new door that records cannot ship unexercised. Each of the four
+  was watched to fail by deleting its call.
+
+  What it cannot see is a door an application has since edited: these files are installed and
+  the application owns them, so `AuditLog.record` deleted there is caught by nothing —
+  the same hole `Shipshape/EveryDoorChecksPermission` closes for the permission check, with no
+  equivalent yet for this one.
 
   The sink is the application's, so what durability the trail has is not this canon's to
   claim: the default writes a line to a log, and a log is not an audit trail. It records that

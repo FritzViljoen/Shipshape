@@ -818,6 +818,89 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { renaming.new(**renaming.new(from: "x").to_h) }
   end
 
+  # **Every writing door, not just `Command`.** The audit call is in four base classes and
+  # only one of them was ever exercised — so three could have lost it and every check here
+  # would have stayed green, which is exactly the hole this suite was told it had.
+  class AuditedCommand < Command
+    def initialize; end
+
+    def call
+      success(1)
+    end
+  end
+
+  class AuditedIo < IoCommand
+    def initialize; end
+
+    def call
+      success(1)
+    end
+  end
+
+  class AuditedLegacy < LegacyCommand
+    def initialize; end
+
+    def call
+      success(1)
+    end
+  end
+
+  class AuditedFlow < Workflow
+    STEPS = [AuditedCommand].freeze
+
+    def initialize; end
+
+    def call
+      success(1)
+    end
+  end
+
+  AUDITED_DOORS = [AuditedCommand, AuditedIo, AuditedLegacy, AuditedFlow].freeze
+
+  # A workflow asks `permissions`, a command asks `permission`; an actor that says no to
+  # everything refuses both without the test having to know which.
+  Refuser = Struct.new(:nothing) do
+    def may?(_permission)
+      false
+    end
+  end
+
+  REFUSER = Refuser.new(nil).freeze
+
+  def test_every_writing_door_records_what_it_did
+    AUDITED_DOORS.each do |door|
+      entries = audited { door.call(actor: ANYONE) }
+
+      assert_equal 1, entries.length, door.name
+      assert_equal :succeeded, entries.first.outcome, door.name
+      assert_equal door.name, entries.first.operation, door.name
+    end
+  end
+
+  # The entry nobody has when they need it, on every door.
+  def test_every_writing_door_records_a_refusal
+    AUDITED_DOORS.each do |door|
+      entries = audited { door.call(actor: REFUSER) }
+
+      assert_equal :refused, entries.first.outcome, door.name
+      assert_equal :forbidden, entries.first.error, door.name
+    end
+  end
+
+  # **Derived, so a new door cannot ship unaudited.** The doors exercised above must be
+  # exactly the generated base classes that contain an audit call — add a fifth that records
+  # and this reddens until it is covered.
+  def test_every_generated_door_that_records_is_exercised
+    recording = Shipshape::Install::FILES.select do |name|
+      path = File.expand_path("../../lib/shipshape/templates/#{name}.rb.tt", __dir__)
+      File.file?(path) && File.read(path).include?("AuditLog.record")
+    end
+
+    covered = AUDITED_DOORS.map { |door| door.superclass.name.gsub(/([a-z])([A-Z])/, '\1_\2').downcase }
+
+    assert_equal recording.sort, covered.sort
+  end
+
   def test_an_error_code_is_a_name_not_a_sentence
     assert_raises(ArgumentError) { Result.failure("something went wrong") }
   end
