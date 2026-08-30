@@ -11,6 +11,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
+| [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
 
 ---
 
@@ -33,6 +34,12 @@ is the failing question, because constants are code.
 | a state machine | a **transition table**, written as branches |
 | lifecycle callbacks | an **ordering**, written as registration order |
 | a `case` over levy names | a **rate table**, written as a method |
+
+A fat controller is the exception: its defect is misplacement rather than a term written as
+code, which is why it is the one procedure that does not begin with the data step. It is also
+rarely the cheapest place to start — the rules it branches on usually live on a record, so
+[a god record](a-god-record.md) comes first or the extracted command wraps the same god
+object.
 
 Each began the same way: a set of facts that grows — statuses, tiers, rates, steps — and no
 place to put facts, so they went where the framework offered room, which was more code.

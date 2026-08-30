@@ -73,6 +73,11 @@ module RuboCop
 
         def on_class(node)
           return unless operation?
+          # **A nested class is a part, not the operation.** `ReplyDraft::Draft` is a shape,
+          # and a shape's whole job is to expose the fields it was handed — judging it by
+          # the operation's rules flags `attr_reader` on the one class that must have it.
+          # Found by using this on a real refactor rather than by reading it.
+          return if node.each_ancestor(:class).any?
 
           body = node.body
           statements = body.nil? ? [] : (body.begin_type? ? body.children : [body])
@@ -154,10 +159,6 @@ module RuboCop
         # shape `an-operation-is-a-leaf` refuses, where the parent's `anonymous_call` made
         # the child public with nothing at the child saying so.
         def check_entry_point(node, statements)
-          # A part nested inside its operation — `Invoice::Line` — is not an operation. It is
-          # reached only through the class that declared it, and the canon blesses the shape
-          # explicitly, so requiring an entry point of it fires on correct code.
-          return if node.each_ancestor(:class).any?
           # A public method with the wrong name is already reported as the wrong name. Saying
           # "and also defines neither" is one defect wearing two offences.
           return if statements.any? { |statement| public_method?(statement) }

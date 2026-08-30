@@ -284,6 +284,27 @@ class OneOperationOneClassTest < Minitest::Test
     assert_includes found.first.message, "defines neither `call` nor `anonymous_call`"
   end
 
+  # A shape's whole job is to expose the fields it was handed, so judging a nested part by
+  # the operation's rules flags `attr_reader` on the one class that must have it. Found by
+  # using this on a real refactor.
+  def test_a_nested_shape_may_expose_its_fields
+    assert_empty check(<<~RUBY)
+      class ReplyDraft
+        def call
+          [Draft.new(subject: "x")]
+        end
+
+        class Draft
+          def initialize(subject:)
+            @subject = typed(subject, String)
+          end
+
+          attr_reader :subject
+        end
+      end
+    RUBY
+  end
+
   # `Invoice::Line` — a part reached only through the class that declared it. The canon
   # blesses this shape, so requiring an entry point of it fires on correct code.
   def test_a_nested_part_needs_no_entry_point
