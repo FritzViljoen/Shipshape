@@ -1,14 +1,23 @@
-# `a-command-is-one-transaction` — A command is exactly one write, in one transaction it did not open by hand
+# `a-command-is-one-transaction` — One transaction, opened by the base class, however many writes it holds
 
-A command does one write and the transaction around it is opened by the base class, not by
-the subclass. A workflow is several commands and therefore several transactions, and it
-accepts the bill for that: every step idempotent, every intermediate state legal.
+**A command may write as many rows to as many tables as one act needs** — an invoice and its
+lines, an order and its items, a row and the counter that follows it. What it may not do is
+span more than one transaction, and the transaction is opened by the base class rather than
+by the subclass.
 
-**The distinction is the sharpest line in the canon.** A command that calls another command
-has either nested a transaction or silently widened one, and nobody decided which. The
-failure is not that it is untidy — it is that the second command's rollback semantics are now
+The unit is the **act**, not the row. A workflow is several commands and therefore several
+transactions, and it accepts the bill for that: every step idempotent, every intermediate
+state legal.
+
+**The distinction is the sharpest line in the canon**, and it is about atomicity rather than
+tidiness. A command that calls another command has either nested a transaction or silently
+widened one, and nobody decided which — so the second command's rollback semantics are now
 decided by whichever caller happens to be on the stack, which is a different answer per call
-site and not written anywhere.
+site and written nowhere.
+
+**Four writes inside one command are not a smell.** They either all happen or none do, which
+is the whole point of the transaction being there. Four writes across two commands called in
+sequence is the defect, because the middle state is reachable and nobody said what it means.
 
 **It is opened by the base class so it cannot be forgotten, and cannot be doubled.** Left to
 each subclass, the law would be true by convention: some commands would open one, some would
@@ -25,14 +34,20 @@ is abandoned with `raise ActiveRecord::Rollback` and the answer given afterwards
 connection for no reason. The generated `Query` therefore has no transaction at all — the word
 appears in that file only in a comment about the door.
 
-- **Agreed:** UNRATIFIED — written by an agent during an audit Fritz asked for, not in answer to a request for a new law. The rule was already enforced by the generated base classes; what was unsanctioned is writing it down as law.
+- **Agreed:** Fritz, 2026-08-30 — ratified on review, after correcting what it said: "a
+  command can do multiple writes to multiple tables, but one transaction". It had been written
+  as "exactly one write", which is a different and wrong rule. Drafted by an agent during an
+  audit rather than in answer to a request for a law, which is why it stood unratified.
 - **Principle:** `make-the-wrong-thing-impossible`
 - **Guard:** the generated `command.rb`, `io_command.rb` and `legacy_command.rb` — architecture
   rather than a cop. `self.call` wraps the operation in `ActiveRecord::Base.transaction`, so no
   subclass writes one and none can omit one. `Shipshape/CallGraph` holds the other half by
   refusing a command that calls a command, which is what would nest one. Proven by
   `generated_base_classes_test.rb`, a listed suite guard.
-- **Guard's limit:** nothing counts the writes. A command issuing four updates is one
-  transaction and passes, and whether those four are one act is a judgement no check makes. It
-  cannot see a transaction opened inside a called library, and it cannot see one opened by a
-  callback on a record — which is among the reasons `no-lifecycle-callbacks` exists.
+- **Guard's limit:** nothing counts the writes, and nothing should — the number is not the
+  rule. **What no check makes is the judgement of whether those writes are one act**: a
+  command updating an invoice and archiving an unrelated report is two acts sharing a
+  transaction, and it passes everything here.
+
+  It cannot see a transaction opened inside a called library, and it cannot see one opened by
+  a callback on a record — which is among the reasons `no-lifecycle-callbacks` exists.

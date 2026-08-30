@@ -24,7 +24,7 @@
 # buys is that the number is knowable at all: every door is one named piece of the old
 # world still standing.
 #
-# The transaction is opened here, as it is for a command — one door, one write, one
+# The transaction is opened here, as it is for a command — one door, one act, one
 # transaction. Where the legacy code manages its own, say so in the subclass and skip it.
 class LegacyCommand
   include TypedArguments

@@ -47,7 +47,6 @@ class CanonTest < Minitest::Test
   # this covered" — rather than a request for a new rule. The code they describe was already
   # enforced; what was unsanctioned was writing it down as law and thereby making it binding.
   UNRATIFIED = %w[
-    a-command-is-one-transaction
     a-query-only-reads
   ].freeze
 
