@@ -8,6 +8,7 @@ require "test_helper"
 # - Making `on_defs` return early reddens the class-method test.
 # - Making `reaches_another_class?` answer true reddens the filtering-scope test, which is
 #   the shape the law explicitly allows.
+# - Dropping the `DELEGATORS` branch reddens both `delegate` tests.
 # - Dropping the `default_scope` branch reddens three of the four `default_scope` tests.
 #   The fourth asserts silence outside the record tree, so it stays green — which is what
 #   makes it the false-positive guard rather than a fourth copy of the same assertion.
@@ -27,6 +28,41 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
   }.freeze
 
   RECORD = "app/records/booking_record.rb"
+
+  # **`delegate` was the one way left to put behaviour on a record.** `def name; supplier.name; end`
+  # is an offence; the macro writes the same method and the guard reading `def` saw nothing.
+  # `code-is-written-not-generated` exempts it deliberately — that law draws its line at the
+  # framework's public conventions — which decides where it is caught, not whether.
+  def test_delegate_puts_methods_on_a_record
+    found = check(<<~RUBY)
+      class BookingRecord < ApplicationRecord
+        belongs_to :supplier_record
+        delegate :name, :email, to: :supplier_record
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`delegate` puts public methods on a record"
+  end
+
+  # The same surface with no list at all, so it cannot even be read off the declaration.
+  def test_delegate_missing_to_is_the_same_offence
+    assert_equal 1, check(<<~RUBY).length
+      class BookingRecord < ApplicationRecord
+        delegate_missing_to :supplier_record
+      end
+    RUBY
+  end
+
+  # The line the other law draws stays where it is: a delegating operation is that cop's
+  # business and not this one's, and neither of them is the record tree.
+  def test_delegate_outside_a_record_is_not_this_cops_business
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
+      class ListBookings < Query
+        delegate :name, to: :supplier
+      end
+    RUBY
+  end
 
   # **`default_scope` was invisible to this cop**, which matched `scope` exactly — so the one
   # scope reaching every read in the application passed the guard that exists to stop rules

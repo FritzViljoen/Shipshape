@@ -58,9 +58,16 @@ module RuboCop
         # without being handed in. That is `nothing-travels-off-the-call-path` in both
         # directions, declared on a record — which is why it is caught here, where it is
         # written, rather than at the thousand call sites where it acts.
+        # **`delegate` is exempt from `code-is-written-not-generated`**, which draws its line
+        # at the framework's public conventions and uses this macro to draw it. That line
+        # holds: a Rails reader knows what `delegate` does. It says nothing about a record
+        # being allowed to have the methods, and this law does.
+        DELEGATORS = %i[delegate delegate_missing_to].freeze
+
         def on_send(node)
           return unless one_of?(record_kinds)
           return add_offense(node, message: default_scope_message) if node.method_name == :default_scope
+          return add_offense(node, message: delegate_message(node.method_name)) if DELEGATORS.include?(node.method_name)
           return unless node.method_name == :scope
           return unless reaches_another_class?(node)
 
@@ -92,6 +99,37 @@ module RuboCop
             instead: SPLIT,
           )
         end
+
+        # `def name; supplier.name; end` is an offence here, and `delegate :name, to: :supplier`
+        # writes the same method — so it was the one way left to put behaviour on a record.
+        def delegate_message(name)
+          explain(
+            "`#{name}` puts public methods on a record, which maps rows and holds no rules.",
+            because: "It writes the methods `def` would have written, so a record that may " \
+                     "not answer `#name` answers it anyway — and the guard reading `def` " \
+                     "sees nothing. The method is also somebody else's: the caller depends " \
+                     "on a class it never names, and a `nil` in the middle raises " \
+                     "`NoMethodError` naming a class the reader was not looking at. " \
+                     "`allow_nil: true` answers that by making absence a value, which this " \
+                     "canon refuses everywhere else.",
+            instead: ASKED,
+          )
+        end
+
+        ASKED = <<~RUBY
+          # the record maps rows and nothing else
+          class BookingRecord < ApplicationRecord
+            belongs_to :supplier_record
+          end
+
+          # the query reads what it needs and says where each fact came from
+          class ShowBooking < Query
+            def call
+              row = BookingRecord.find(@id)
+              success(Booking.new(reference: row.reference, supplier_name: row.supplier_record.name))
+            end
+          end
+        RUBY
 
         # The one scope that is never written at the call site, so it cannot be read there
         # either. It is also the only one that reaches `create`.

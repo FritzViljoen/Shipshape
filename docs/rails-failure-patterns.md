@@ -84,7 +84,7 @@ shape you cannot express is not a guard at all.
 | No value objects, primitives everywhere | **Guarded** | `TypedArguments`, `ShapeIsComposed` |
 | Concerns as dumping grounds | **Guarded** + **Procedure** | `MixinsAddNothingPublic`; [a shared concern](decomposing/a-shared-concern.md), [a record concern](decomposing/a-record-concern.md) |
 | STI overuse, endless `type` conditionals | **Guarded** + **Procedure** | `NoTypeInterrogation`; [a type hierarchy](decomposing/a-type-hierarchy.md) |
-| Delegation chains hiding nil errors | **Uncovered** | `delegate` is not in `NoGeneratedInterfaces`'s lists and not a `def`. **A gap, found writing this** |
+| Delegation chains hiding nil errors | **Guarded on records** | `PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. Elsewhere it stays exempt: `code-is-written-not-generated` draws its line at framework macros and uses `delegate` to draw it |
 | `attr_accessor` shadowing a real column | **Uncovered** | — |
 
 ## Controllers
@@ -200,7 +200,15 @@ and no guard reads:
   `NoGeneratedInterfaces`'s macro lists. A delegation chain is also the classic way a `nil`
   travels three objects from where it will be blamed.
 
-Both are candidates, not decisions. Neither is written as a law.
+**Both are now closed, and neither needed a new law** — they were shapes an existing law
+already forbade and no clause read. That is the direction to prefer: a cop's clause count
+measures how many ways the code can say one thing, and closing a gap by widening a clause
+leaves the canon the same size.
+
+**One boundary was left where it was.** `delegate` is banned on records and nowhere else,
+because `code-is-written-not-generated` exempts the framework's public conventions on purpose
+and uses `delegate` as the example that draws the line. Moving that line is a separate
+decision from closing this gap, and it has not been taken.
 
 **And one deliberate blank: scheduling.** Two servers running the same cron with no lock is a
 real failure and shipshape says nothing about it. A rule for it was once drafted here without
