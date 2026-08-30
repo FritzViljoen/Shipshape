@@ -223,7 +223,7 @@ module Shipshape
       Result.new(
         fired: (planted.keys & seen).sort,
         silent: (planted.keys - seen).sort,
-        unplanted: (enabled - PLANTED.keys).sort,
+        unplanted: (registered - PLANTED.keys).sort,
       )
     end
 
@@ -255,6 +255,11 @@ module Shipshape
         Shipshape/OneOperationOneClass:
           AutoCorrect: false
 
+        # **Every cop is on for this run, whatever it ships as.** A cop that is off by
+        # default is still one the canon claims, so it still has to be shown firing — and a
+        # canary that is never inspected reports the same thing as a cop that is broken.
+        #{enable_every_cop}
+
         AllCops:
           NewCops: disable
           SuggestExtensions: false
@@ -268,18 +273,26 @@ module Shipshape
     end
 
     def planted
-      @planted ||= (enabled & PLANTED.keys).to_h do |cop|
+      @planted ||= (registered & PLANTED.keys).to_h do |cop|
         canary = PLANTED.fetch(cop)
 
         [cop, canary[:path] || path_for(canary.fetch(:kind), cop)]
       end
     end
 
-    def enabled
-      RuboCop::Cop::Registry.global.cops
-                            .map(&:cop_name)
-                            .grep(%r{\AShipshape/})
-                            .select { |cop| config.for_cop(cop).fetch("Enabled", true) }
+    # **Every cop, not every enabled cop.** Filtering on the configuration meant a cop
+    # shipped `Enabled: false` needed no canary — while the canon still demanded a law and a
+    # test for it, so it read as fully covered while being unprovable. A cop that is off by
+    # default is a legitimate thing; a cop nothing can prove fires is not. The planted tree
+    # turns them all on for its own run, so the canary answers the question either way.
+    def registered
+      RuboCop::Cop::Registry.global.cops.map(&:cop_name).grep(%r{\AShipshape/}).sort
+    end
+
+    def enable_every_cop
+      # No indent: <<~ dedents the literal lines only, so interpolated content arrives
+      # exactly as written and any leading spaces here become real YAML indentation.
+      registered.map { |cop| "#{cop}:\n  Enabled: true" }.join("\n")
     end
 
     def settings

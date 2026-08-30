@@ -27,9 +27,25 @@ from version control on every run.
   has no guard section or no limit section, when it names a cop that does not exist, or when
   a cop exists that no law names. Each cop's own removal test is the second half, and the
   suite fails if a cop has no such test.
+- **Guard:** `CanariesTest`, also in this gem's suite. **A test and a canary answer different
+  questions, and a cop needs both.** A removal test asks whether the test exercises the cop;
+  a canary asks whether the cop can still fire under a real configuration — the failure where
+  a kind's globs stop matching where the code lives, and every cop scoped to that kind goes
+  quiet while passing every test it has. So the suite fails when a registered cop has no
+  planted canary, when a planted canary does not fire, and when the checked-in canary
+  configuration is not what the planter writes.
+
+  **Every registered cop, not every enabled one.** Filtering on the configuration meant a cop
+  shipped `Enabled: false` needed no canary while the canon still demanded a law and a test
+  for it — fully covered on paper, unprovable in fact. The planted tree turns every cop on for
+  its own run, so a cop that is off by default is still shown firing.
 
 - **Guard's limit:** it checks that the limit section and the removal note **exist**, never
   that what either says is true, complete, or current. Nobody re-runs the removals, so a
   note describing a mutation that no longer reddens anything passes. A stale blind-spot paragraph passes. That judgement is the
   author's and no check will ever make it — which is the honest reason this law is written
   down rather than assumed.
+
+  The canary half has its own blind spot: it proves a cop **can** fire on one planted
+  violation, never that it fires on everything it should. A cop narrowed to catch only the
+  exact shape of its own canary would pass here and protect nothing else.

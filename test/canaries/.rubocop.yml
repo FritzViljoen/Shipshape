@@ -20,6 +20,58 @@ Shipshape/MixinsAddNothingPublic:
 Shipshape/OneOperationOneClass:
   AutoCorrect: false
 
+# **Every cop is on for this run, whatever it ships as.** A cop that is off by
+# default is still one the canon claims, so it still has to be shown firing — and a
+# canary that is never inspected reports the same thing as a cop that is broken.
+Shipshape/CallGraph:
+  Enabled: true
+Shipshape/EnforcementMessagesAreDocumentation:
+  Enabled: true
+Shipshape/EveryDoorChecksPermission:
+  Enabled: true
+Shipshape/MixinsAddNothingPublic:
+  Enabled: true
+Shipshape/NoAmbientReads:
+  Enabled: true
+Shipshape/NoCallbacks:
+  Enabled: true
+Shipshape/NoColumnDefaults:
+  Enabled: true
+Shipshape/NoDecisionsInRequestHandling:
+  Enabled: true
+Shipshape/NoDistantWrites:
+  Enabled: true
+Shipshape/NoEmptyRescue:
+  Enabled: true
+Shipshape/NoEntryPointBypass:
+  Enabled: true
+Shipshape/NoGeneratedInterfaces:
+  Enabled: true
+Shipshape/NoInlineParamParse:
+  Enabled: true
+Shipshape/NoNullableColumns:
+  Enabled: true
+Shipshape/NoSilentCoercion:
+  Enabled: true
+Shipshape/NoTypeInterrogation:
+  Enabled: true
+Shipshape/NoUnparsedLookup:
+  Enabled: true
+Shipshape/OneOperationOneClass:
+  Enabled: true
+Shipshape/OnlyTheDoorIsCalled:
+  Enabled: true
+Shipshape/OperationsAreLeaves:
+  Enabled: true
+Shipshape/PersistenceHoldsNoBehaviour:
+  Enabled: true
+Shipshape/ShapeIsComposed:
+  Enabled: true
+Shipshape/TypedArguments:
+  Enabled: true
+Shipshape/WorkflowAggregatesPermissions:
+  Enabled: true
+
 AllCops:
   NewCops: disable
   SuggestExtensions: false

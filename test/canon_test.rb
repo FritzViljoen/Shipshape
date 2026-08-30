@@ -31,7 +31,7 @@ class CanonTest < Minitest::Test
   # each shipping with this gem's own suite rather than running in a consuming build.
   # Being on this list is what makes a non-cop guard legitimate; the list cannot go stale
   # because nothing else grants that status.
-  SUITE_GUARDS = ["CanonTest", "generated_base_classes_test.rb"].freeze
+  SUITE_GUARDS = ["CanonTest", "CanariesTest", "generated_base_classes_test.rb"].freeze
 
   # Installed files that carry no rule of their own, each with the reason. Being on this list
   # is what grants the exemption, so it cannot go stale: a file that grows a rule has to be
