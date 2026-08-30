@@ -55,6 +55,11 @@ inheritance was a way of not using it.
   files `Command` beside its commands.
   A door spelled `define_singleton_method(:call)` is refused by
   [`code-is-written-not-generated`](code-is-written-not-generated.md) rather than here.
+  **Depth outside this canon's hierarchy is a smell, and the report counts it.** "Inheritance
+  deeper than one level" in `shipshape report` names every chain of three the repository
+  declares — `Mod::ActivitiesController < Mod::ModController < ApplicationController` is the
+  usual shape, an intermediate base class where behaviour accretes and which belongs to
+  nobody. It is reported and not guarded, and the measure says so where it is read.
 - **Guard's limit:** it reads the **superclass constant**, so `Class.new(SettleInvoice)` and
   any superclass it cannot resolve to a governed file are invisible. It cannot see a module
   that redefines `call` after inclusion, nor an included module carrying `anonymous_call` —

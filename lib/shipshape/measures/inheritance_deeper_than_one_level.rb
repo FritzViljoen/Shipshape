@@ -20,11 +20,17 @@ module Shipshape
     # place to put things.
     class InheritanceDeeperThanOneLevel
       TITLE = "Inheritance deeper than one level"
-      LAW = "the-call-graph-is-declared"
+      LAW = "an-operation-is-a-leaf"
       WHY = "An intermediate base class is where shared behaviour accretes — the god object " \
             "arriving through inheritance rather than through columns, and reachable by " \
             "everything below it."
-      CAVEAT = "A conventional application base — ApplicationRecord, ApplicationController, " \
+      CAVEAT = "**Nothing enforces this.** `Shipshape/OperationsAreLeaves` refuses a second " \
+               "level only in shipshape's own hierarchy — a class whose parent inherits a " \
+               "base class the installer wrote — because a depth rule over somebody else's " \
+               "hierarchy is a rule nobody agreed to. Everything counted here is therefore " \
+               "a smell, reported and not guarded, and it will not fail a build or move " \
+               "the ratchet. " \
+               "A conventional application base — ApplicationRecord, ApplicationController, " \
                "ApplicationViewComponent — is excluded: Rails asks for one per framework " \
                "class, so that depth is the framework's rather than the application's. " \
                "Error hierarchies are excluded: an error taxonomy has no behaviour to " \
