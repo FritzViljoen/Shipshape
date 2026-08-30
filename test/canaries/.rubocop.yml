@@ -6,23 +6,11 @@
 inherit_from:
   - ../../config/default.yml
 
-# Every file here is a deliberate violation, so the correcting cops must not correct
-# them: `rubocop -A` over this tree rewrites the canaries, and the next run blames
-# the kind globs for a hole the correction made.
-Shipshape/NoSilentCoercion:
-  AutoCorrect: false
-Shipshape/NoUnparsedLookup:
-  AutoCorrect: false
-Shipshape/NoInlineParamParse:
-  AutoCorrect: false
-Shipshape/MixinsAddNothingPublic:
-  AutoCorrect: false
-Shipshape/OneOperationOneClass:
-  AutoCorrect: false
-
-# **Every cop is on for this run, whatever it ships as.** A cop that is off by
-# default is still one the canon claims, so it still has to be shown firing — and a
-# canary that is never inspected reports the same thing as a cop that is broken.
+# Every cop is on for this run whatever it ships as: a cop that is off by default is
+# still one the canon claims, so it still has to be shown firing. And every file here
+# is a deliberate violation, so the correcting cops must not correct them — `rubocop
+# -A` over this tree would rewrite the canaries, and the next run would blame the kind
+# globs for a hole the correction made.
 Shipshape/CallGraph:
   Enabled: true
 Shipshape/EnforcementMessagesAreDocumentation:
@@ -31,6 +19,7 @@ Shipshape/EveryDoorChecksPermission:
   Enabled: true
 Shipshape/MixinsAddNothingPublic:
   Enabled: true
+  AutoCorrect: false
 Shipshape/NoAmbientReads:
   Enabled: true
 Shipshape/NoCallbacks:
@@ -49,21 +38,27 @@ Shipshape/NoGeneratedInterfaces:
   Enabled: true
 Shipshape/NoInlineParamParse:
   Enabled: true
+  AutoCorrect: false
 Shipshape/NoNullableColumns:
   Enabled: true
 Shipshape/NoSilentCoercion:
   Enabled: true
+  AutoCorrect: false
 Shipshape/NoTypeInterrogation:
   Enabled: true
 Shipshape/NoUnparsedLookup:
   Enabled: true
+  AutoCorrect: false
 Shipshape/OneOperationOneClass:
   Enabled: true
+  AutoCorrect: false
 Shipshape/OnlyTheDoorIsCalled:
   Enabled: true
 Shipshape/OperationsAreLeaves:
   Enabled: true
 Shipshape/PersistenceHoldsNoBehaviour:
+  Enabled: true
+Shipshape/QueriesOnlyRead:
   Enabled: true
 Shipshape/ShapeIsComposed:
   Enabled: true

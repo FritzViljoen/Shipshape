@@ -681,3 +681,24 @@ Shipshape/MixinsAddNothingPublic:
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/QueriesOnlyRead:
+  Description: >-
+    A query is one read. It may reach a record, so the call graph allows the call and cannot
+    see that the message sent is a write - and a query opens no transaction, so the write
+    runs outside one.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # The read-only doors. A command may write; that is what it is for.
+  Kinds:
+    - query
+    - io_query
+    - legacy_query
+  RecordKinds:
+    - record
+  # **Tests are exempt.** A test sets up rows directly, which is what a test is for.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
