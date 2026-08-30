@@ -20,9 +20,18 @@ nobody can verify is a rewrite with extra confidence.
 | [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
 | [a personal data trail](a-personal-data-trail.md) | erasure, which is unimplementable without an inventory |
 | [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
+| [a form that fails](a-form-that-fails.md) | the view still holds a record, and every rule here says it may not |
 
 **A nullable column is not in a class**, which is why it is the category most often missed: a
 run scoped to `app/` reports nothing about the schema, and that reads exactly like a clean one.
+
+**"A form that fails" states the cost of adoption**, which no other procedure here does:
+taking this canon all the way means the view layer stops holding ActiveRecord objects, and
+Rails' view layer is built on the assumption that it does. It was written after a real
+refactor hit that wall three times in one afternoon — a failure that could not carry the
+invalid record, a query that must answer shapes, and `form_with model:`. If that cost is not
+acceptable for an application, stopping the boundary at the controller is a legitimate answer
+and pretending the cops are wrong is not.
 
 **The last one is not like the others.** Every procedure above takes one class apart; the
 sweep is one decision repeated across every caller, and it is the step that decides whether an

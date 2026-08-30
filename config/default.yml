@@ -240,6 +240,22 @@ Shipshape/CallGraph:
     shape: []
     record: []
 
+  # **Which kinds may hand work to a queue.** Separate from the matrix on purpose: nothing
+  # may *call* an entry point — it is a way in, not a collaborator — and yet every
+  # application defers work, so `perform_later` had no legal home in any kind at all. That
+  # was found by refactoring a real controller, where the enqueue was an offence before the
+  # extraction and after it.
+  #
+  # A query is deliberately absent: a read that queues work is a write. So are `shape` and
+  # `view_component`, which would be reaching past the presentation layer entirely.
+  Schedules:
+    - workflow
+    - command
+    - io_command
+    - legacy_command
+    - entry_point
+    - request_handling
+
 Shipshape/OneOperationOneClass:
   Description: >-
     An operation is a class with one public method, taking keyword arguments. A second

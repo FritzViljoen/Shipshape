@@ -51,6 +51,13 @@ module RuboCop
       #   end
       class CallGraph < Base
         include Explains
+
+        # Handing work to a queue. `deliver_later` is here because a mailer delivery is the
+        # same act — ActiveJob is what runs it.
+        DEFAULT_SCHEDULING = %w[
+          perform_later perform_async perform_in perform_at set
+          deliver_later deliver_later! enqueue enqueue_at
+        ].freeze
         # No kind calls a sister, and every kind is its own sister. One rule, not a row
         # anyone maintains: a sister call is the shape by which a class quietly becomes
         # the kind above it — a command sequencing commands is a workflow that never said
@@ -88,14 +95,43 @@ module RuboCop
 
           callee_kind = kinds.for_constant(name)
           return if callee_kind.nil?
+          return if scheduling?(node, callee_kind) && may_schedule?(caller_kind)
           return if allowed?(caller_kind, callee_kind)
 
-          add_offense(receiver, message: message_for(caller_kind, callee_kind))
+          add_offense(receiver, message: message_for(caller_kind, callee_kind, node))
         end
 
         alias on_csend on_send
 
         private
+
+        # **Scheduling an entry point is not calling it, and the matrix was conflating the
+        # two.** `NotifyMessageJob.perform_later` hands work to a queue; `NotifyMessageJob.new`
+        # would be reaching through a doorbell. Nothing may do the second — an entry point is
+        # a way in, not a collaborator — and the matrix has no row that permits it, correctly.
+        #
+        # But that left `perform_later` with no legal home in any kind, which is not a
+        # position anybody can hold: every Rails application defers work. Found by using this
+        # on a real controller, where the enqueue was an offence before the refactor and after
+        # it, and moving it into the command only moved the offence.
+        #
+        # So scheduling is its own edge with its own row. A query may not schedule — a read
+        # that queues work is a write — and neither may a shape or a component.
+        def scheduling?(node, callee_kind)
+          callee_kind == entry_point_kind && schedulers.include?(node.method_name.to_s)
+        end
+
+        def may_schedule?(caller_kind)
+          settings.schedulers.include?(caller_kind)
+        end
+
+        def schedulers
+          @schedulers ||= cop_config.fetch("SchedulingMethods", DEFAULT_SCHEDULING)
+        end
+
+        def entry_point_kind
+          cop_config.fetch("EntryPointKind", "entry_point")
+        end
 
         # A sister call is refused before the matrix is consulted, so no configuration can
         # permit one. The matrix says which non-sister kinds are reachable; it is not the
@@ -110,7 +146,36 @@ module RuboCop
           settings.sisters_of(caller_kind).include?(callee_kind)
         end
 
-        def message_for(caller_kind, callee_kind)
+        def message_for(caller_kind, callee_kind, node = nil)
+          return not_a_scheduler(caller_kind, node) if node && scheduling?(node, callee_kind)
+
+          matrix_message(caller_kind, callee_kind)
+        end
+
+        def not_a_scheduler(caller_kind, node)
+          explain(
+            "#{named(caller_kind).capitalize} may not schedule work. " \
+            "`#{node.method_name}` hands this to a queue and #{named(caller_kind)} does not.",
+            because: "Scheduling is a write: something will happen later because this ran. A " \
+                     "query that queues work has done more than read, and a shape or a " \
+                     "component that does it has reached past the presentation layer " \
+                     "entirely. Which kinds may schedule is declared on " \
+                     "`Shipshape/CallGraph`'s `Schedules`, separately from the matrix, " \
+                     "because scheduling an entry point is not the same act as calling one.",
+            instead: <<~RUBY,
+              # the deferral belongs to the operation that decided the work should happen
+              class SettleInvoice < Command
+                def call
+                  invoice = InvoiceRecord.create!(...)
+                  NotifyInvoiceJob.perform_later(invoice.id)
+                  success(invoice.id)
+                end
+              end
+            RUBY
+          )
+        end
+
+        def matrix_message(caller_kind, callee_kind)
           caller_phrase = named(caller_kind).capitalize
           callee_phrase = named(callee_kind)
 

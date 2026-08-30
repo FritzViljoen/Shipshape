@@ -537,6 +537,24 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal 1, [Place.new(code: "ZA"), Place.new(code: "ZA")].uniq.length
   end
 
+  # A code alone cannot render a form, which is the commonest expected failure there is.
+  def test_a_failure_may_carry_what_was_wrong
+    result = Result.failure(:invalid, Place.new(code: "ZA"))
+
+    refute_predicate result, :success?
+    assert_equal :invalid, result.error
+    assert_equal Place.new(code: "ZA"), result.value
+  end
+
+  def test_a_failure_still_carries_nothing_by_default
+    assert_nil Result.failure(:invalid).value
+  end
+
+  # The payload obeys the rule everything a shape holds obeys.
+  def test_a_failure_may_not_carry_a_record
+    assert_raises(TypeError) { Result.failure(:invalid, RECORD.new) }
+  end
+
   def test_an_error_code_is_a_name_not_a_sentence
     assert_raises(ArgumentError) { Result.failure("something went wrong") }
   end

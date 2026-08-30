@@ -18,8 +18,18 @@ class Result < Shape
     new(value: value, error: nil)
   end
 
-  def self.failure(error)
-    new(value: nil, error: error)
+  # **A failure may carry something back**, and for a long time it could not. The commonest
+  # expected failure in a Rails application is invalid input, and the caller needs to say
+  # *what* was wrong — a code alone cannot render a form. Found by refactoring a real
+  # controller, where `failure(:invalid)` left the action with nothing to put on the page.
+  #
+  # The value is subject to the same rule as everything a shape holds: **it may not be a
+  # record.** That is not an accident of this signature — it is the rule doing its job. What
+  # comes back is the fields and the messages, as a shape, and the presentation layer never
+  # holds an ActiveRecord object. See docs/decomposing/a-form-that-fails.md, which is about
+  # what that costs.
+  def self.failure(error, value = nil)
+    new(value: value, error: error)
   end
 
   # `value` is deliberately unasserted: it is whatever the operation made, and only the
