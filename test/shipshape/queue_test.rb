@@ -7,7 +7,9 @@ require "shipshape/queue"
 #
 # - Removing the `tested` term from `ranked` reddens the covered-first test.
 # - Removing the `-unit.cops.length` term reddens the distinct-rules test.
-# - Making `tested?` answer true reddens the untested-warning test.
+# - Making `named_in_a_test?` answer true reddens the coverage tests.
+# - Emptying `TOO_COMMON` reddens the vocabulary test.
+# - Dropping the coverage ratio from `ranked` reddens the best-covered-first test.
 #
 # The ordering is the whole product here. A queue that offers an untested god class first is
 # a queue that turns a refactor into an outage, and nothing in this gem would notice.
@@ -26,7 +28,7 @@ class QueueTest < Minitest::Test
     class CoveredRecord < ApplicationRecord
       before_save :stamp
 
-      def a_rule
+      def settlement_total
         1
       end
     end
@@ -38,11 +40,11 @@ class QueueTest < Minitest::Test
       before_save :stamp
       after_commit :notify
 
-      def a_rule
+      def unwitnessed_rule
         1
       end
 
-      def self.another
+      def self.unwitnessed_scope
         2
       end
     end
@@ -62,11 +64,23 @@ class QueueTest < Minitest::Test
     end
   RUBY
 
-  def test_a_file_a_test_names_comes_first_even_when_it_breaks_fewer_rules
+  # **The ratio, not a boolean.** A file with one covered method of eighty used to outrank
+  # one with all of its methods covered, which is the wrong way round: what matters is how
+  # much of the file can be moved before the work stops being verifiable.
+  def test_the_best_covered_file_comes_first
     units = queue
 
     assert_equal "app/records/covered_record.rb", units.first.path
-    assert units.first.tested
+    assert_empty units.first.unnamed
+    assert_equal 1, units.first.methods
+  end
+
+  # A file-level answer says nothing about the method you are about to move.
+  def test_it_names_the_methods_no_test_mentions
+    uncovered = queue.find { |unit| unit.path.include?("uncovered") }
+
+    assert_equal %w[unwitnessed_rule unwitnessed_scope], uncovered.unnamed
+    assert_equal 0, uncovered.covered
   end
 
   # Among files nothing tests, six kinds of finding is six problems and sixty of one kind is
@@ -87,7 +101,7 @@ class QueueTest < Minitest::Test
     uncovered = queue.find { |unit| unit.path.include?("uncovered") }
 
     refute_nil uncovered
-    refute uncovered.tested, "nothing in test/ names this file"
+    refute uncovered.tested, "no method of this file is named in any test"
   end
 
   # The message is the prompt. A summary would make the unit unactionable on its own.
@@ -102,13 +116,30 @@ class QueueTest < Minitest::Test
     assert_empty build("app/records/clean_record.rb" => "class CleanRecord < ApplicationRecord\nend\n")
   end
 
+  # **Ruby's own vocabulary would mark everything covered.** `call`, `name`, `each` appear in
+  # every test file whether or not this class is tested, so matching them answers yes for a
+  # file nothing exercises — the flattering answer, and the dangerous one here.
+  def test_ruby_s_own_vocabulary_is_not_evidence_of_coverage
+    units = build(
+      "app/records/common_record.rb" =>
+        "class CommonRecord < ApplicationRecord\n  before_save :x\n\n  def call\n    1\n  end\n\n" \
+        "  def name\n    2\n  end\nend\n",
+      "test/records/unrelated_test.rb" =>
+        "class UnrelatedTest\n  def test_it\n    thing.call\n    thing.name\n  end\nend\n",
+    )
+
+    assert_equal 0, units.first.methods, "call and name are not this file's evidence"
+    assert_equal 0, units.first.covered
+  end
+
   private
 
   def queue
     @queue ||= build(
       "app/records/covered_record.rb" => COVERED,
       "app/records/uncovered_record.rb" => UNCOVERED,
-      "test/records/covered_record_test.rb" => "class CoveredRecordTest\nend\n",
+      "test/records/covered_record_test.rb" =>
+        "class CoveredRecordTest\n  def test_it\n    record.settlement_total\n  end\nend\n",
     )
   end
 

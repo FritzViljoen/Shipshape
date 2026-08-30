@@ -156,7 +156,15 @@ def next_work
   units.each_with_index do |unit, index|
     puts "── #{index + 1}. #{unit.path}"
     puts "   breaks #{unit.cops.length} rules, #{unit.offences.length} times"
-    puts(unit.tested ? "   a test names this file — safe to change first" : "   NO TEST NAMES THIS FILE")
+    if unit.methods.zero?
+      puts "   no methods to move"
+    elsif unit.unnamed.empty?
+      puts "   all #{unit.methods} methods are named in tests — safest to start here"
+    else
+      puts "   #{unit.covered} of #{unit.methods} methods named in tests"
+      puts "   NOT NAMED BY ANY TEST: #{unit.unnamed.first(6).join(', ')}#{unit.unnamed.length > 6 ? ', …' : ''}"
+      puts "   extract the covered ones first; nothing here proves behaviour is preserved"
+    end
     puts
     unit.offences.first(3).each do |offence|
       puts "   #{unit.path}:#{offence[:line]}  #{offence[:cop]}"

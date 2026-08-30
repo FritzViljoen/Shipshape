@@ -220,10 +220,23 @@ breaks, and a way to know it finished. Each unit carries the **full offence mess
 reason, example — so it is actionable with nothing else loaded, and `shipshape check` is the
 way it knows it finished: the count must fall.
 
-**Files a test names come first, and the rest say so.** Not because they are worse — because
-they are safe. The ratchet proves the offence count fell; **nothing here proves the code still
-works.** Extracting a rule out of a class nothing tests is how a refactor becomes an outage,
-and no cop in this gem would notice. That remains the honest limit of the whole tool.
+**Best-covered first, counted per method.** For each file it names how many of its methods
+are mentioned anywhere in the suite, and lists the ones that are not:
+
+```
+── 2. app/models/story.rb
+   24 of 80 methods named in tests
+   NOT NAMED BY ANY TEST: accepting_comments?, archiveorg_url, as_json, …
+```
+
+A file-level answer was nearly useless — `story.rb` has a test, and that says nothing about
+the method you are about to move. This is a name match, not a call graph: it answers "would
+anything notice", and a precise answer would mean running the suite.
+
+**The ratchet proves the offence count fell; nothing here proves the code still works.**
+Extracting a rule out of a method nothing exercises is how a refactor becomes an outage, and
+no cop in this gem would notice. That remains the honest limit of the whole tool — this just
+makes the risk visible per method instead of per file.
 
 ## Fixing the mechanical part
 

@@ -56,5 +56,8 @@ over domain literals answering with literals. Nothing enforces it; the judgement
 
 **Nothing here shows the code still works.** `shipshape check` proves the offence count fell.
 Every procedure assumes you write the characterisation test first — call it, record what it
-answers, pin it — and `shipshape next` offers files a test names before the rest for exactly
-that reason.
+answers, pin it.
+
+`shipshape next` makes the risk visible rather than removing it: it counts, per file, how
+many methods are named anywhere in the suite and lists the ones that are not. Move the named
+ones first. A method nothing mentions is one to leave until something does.
