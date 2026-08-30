@@ -73,7 +73,13 @@ inheritance was a way of not using it.
 - **Principle:** `nothing-is-hidden` governs — a guarantee decided two classes away is a
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.
-- **Guard:** `Shipshape/NoEntryPointBypass` holds the call site — `send` and its family,
+- **Guard:** `Shipshape/OnlyTheDoorIsCalled` is the one that does not rely on visibility:
+  it reads the call site, resolves the constant, and refuses any message an operation does
+  not answer — `new`, `build`, `__perform__`, anything but `call` and the small class-level
+  API for asking about an operation without running it. **Everything else here is a
+  convention Ruby steps over**, which is why this exists: `private` is not a wall, `send`
+  undoes `private_class_method`, and a subclass can redeclare a private method public.
+  `Shipshape/NoEntryPointBypass` holds the call site — `send` and its family,
   where they name an entry point, anywhere but the generated base classes.
   `Shipshape/OperationsAreLeaves`, over the operation kinds, Fails a class whose
   superclass is itself an operation **rooted in a base class shipshape installs**, and fails

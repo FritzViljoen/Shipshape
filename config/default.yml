@@ -593,3 +593,35 @@ Shipshape/NoEntryPointBypass:
     - '**/shipshape/*.rb'
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+
+Shipshape/OnlyTheDoorIsCalled:
+  Description: >-
+    An operation answers `call` and nothing else. Read at the call site, so it holds
+    whatever the visibility says — `private` is a convention Ruby will step over.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # The door, plus the class-level API the base classes provide for asking about an
+  # operation without running it.
+  AllowedMessages:
+    - call
+    - permission
+    - permissions
+    - permits?
+    - anonymous?
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query
+  # Tests are exempt: a test builds objects directly and reaches inside, which is what a
+  # test is for. The generated base classes are where the legitimate construction lives.
+  Exclude:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+    - 'app/shipshape/*.rb'
+    - '**/shipshape/*.rb'

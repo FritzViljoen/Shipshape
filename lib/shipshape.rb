@@ -49,6 +49,7 @@ require "rubocop/cop/shipshape/workflow_aggregates_permissions"
 require "rubocop/cop/shipshape/every_door_checks_permission"
 require "rubocop/cop/shipshape/operations_are_leaves"
 require "rubocop/cop/shipshape/no_entry_point_bypass"
+require "rubocop/cop/shipshape/only_the_door_is_called"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),

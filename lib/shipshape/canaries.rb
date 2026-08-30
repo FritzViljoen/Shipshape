@@ -112,6 +112,11 @@ module Shipshape
         rescue StandardError
         end
       RUBY
+      "Shipshape/OnlyTheDoorIsCalled" => { kind: "request_handling", body: <<~RUBY },
+        def show
+          OtherQuery.build_from(params)
+        end
+      RUBY
       "Shipshape/NoEntryPointBypass" => { kind: "request_handling", body: <<~RUBY },
         def show
           Settle.send(:new, amount: 1)
@@ -169,6 +174,7 @@ module Shipshape
     COMPANIONS = {
       "Shipshape/EveryDoorChecksPermission" => { "app/shipshape/permission.rb" => "module Permission\nend\n" },
       "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
+      "Shipshape/OnlyTheDoorIsCalled" => { kind: "query", name: "OtherQuery" },
     }.freeze
 
     DIRECTORY = "test/canaries"
