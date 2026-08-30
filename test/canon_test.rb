@@ -48,7 +48,6 @@ class CanonTest < Minitest::Test
   # enforced; what was unsanctioned was writing it down as law and thereby making it binding.
   UNRATIFIED = %w[
     a-command-is-one-transaction
-    an-operation-answers-a-result
     a-query-only-reads
   ].freeze
 

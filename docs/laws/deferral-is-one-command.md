@@ -55,11 +55,12 @@ Two things follow, and both are refused at enqueue rather than discovered in the
   `generated_base_classes_test.rb`, a listed suite guard.
 - **Guard:** `Shipshape/OnlyTheDoorIsCalled`, whose `DeferrableKinds` decides which kinds may
   be sent `call_later` at a call site.
-- **Guard's limit:** **the failure-is-terminal rule rests on a law that is not ratified.**
-  [`an-operation-answers-a-result`](an-operation-answers-a-result.md) as written permits a
-  transient condition to come back as `failure(:code)`, and this drops such a failure rather
-  than retrying it. Until that law is narrowed, a deferred `failure(:gateway_unavailable)`
-  is lost with no retry and no caller to hear it.
+- **Guard's limit:** **a failure is dropped, and whether that is right depends on the failure
+  being an outcome.** [`an-operation-answers-a-result`](an-operation-answers-a-result.md) says
+  a defect raises rather than coming back as a Result, so a transient condition — a gateway
+  timeout — is a raise and retries. A `failure(:gateway_unavailable)` written anyway is lost
+  here with no retry and no caller to hear it, and nothing catches that: the distinction is a
+  judgement about what an outcome is, made per operation.
 
   `ATTEMPTS` is a count of attempts, not of retries: `ATTEMPTS = 1` runs once and does not
   retry. A `Shape` argument cannot be deferred at all — ActiveJob refuses it, and

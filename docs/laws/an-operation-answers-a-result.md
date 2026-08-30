@@ -30,7 +30,9 @@ asserts the return type of every call and raises `TypeError` when a subclass ans
 something else. A subclass cannot quietly teach its callers a second shape, because the run
 stops rather than the shape spreading.
 
-- **Agreed:** UNRATIFIED — written by an agent during the same audit. Same position: the base classes already asserted the return type, and nobody asked for a law.
+- **Agreed:** Fritz, 2026-08-30 — ratified on review. Written by an agent during an audit
+  rather than in answer to a request for a law, which is why it stood unratified; the rule it
+  describes was already enforced by the generated base classes throughout.
 - **Principle:** `nothing-fails-quietly`
 - **Guard:** the generated `command.rb`, `workflow.rb`, `io_command.rb`, `legacy_command.rb`
   and `result.rb` — architecture rather than a cop. `self.call` asserts `result.is_a?(Result)`
