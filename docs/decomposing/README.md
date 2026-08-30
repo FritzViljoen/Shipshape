@@ -14,6 +14,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
 | [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
+| [a filter chain](a-filter-chain.md) | six `before_action`s and three-line actions — the work moved above them |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
 | [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |
 | [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
@@ -21,6 +22,9 @@ nobody can verify is a rewrite with extra confidence.
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
 | [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
 | [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
+| [a serialized column](a-serialized-column.md) | a JSON or YAML blob holding eleven keys nothing declares |
+| [a polymorphic association](a-polymorphic-association.md) | `commentable_type` — a class name in a data column, with no foreign key |
+| [a primitive that should be a type](a-primitive-that-should-be-a-type.md) | `amount` as a float, `state` as a string, the rule re-derived at every call site |
 | [a personal data trail](a-personal-data-trail.md) | erasure, which is unimplementable without an inventory |
 | [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
 | [a form that fails](a-form-that-fails.md) | the view still holds a record, and every rule here says it may not |

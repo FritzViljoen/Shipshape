@@ -58,7 +58,7 @@ shape you cannot express is not a guard at all.
 | Validations without matching DB constraints | **Partly guarded** | Presence is forced into the schema by `NoNullableColumns`; **uniqueness races are uncovered** |
 | Timezone columns stored inconsistently | **Guarded** | [`a-time-names-its-zone`](laws/a-time-names-its-zone.md), `Shipshape/NoAmbientReads` |
 | Raw SQL string interpolation, SQL injection | **Partly guarded** | `NoUnparsedLookup` stops a raw param reaching a finder; raw SQL itself is **uncovered** → brakeman |
-| Serialized columns that later need querying | **Procedure** | [`a-shape-is-composed-not-flattened`](laws/a-shape-is-composed-not-flattened.md) |
+| Serialized columns that later need querying | **Procedure** | [a serialized column](decomposing/a-serialized-column.md) — a blob is an undeclared schema, and `NoNullableColumns` cannot see inside one |
 | `default_scope` leaking into every query, and into `create` | **Guarded** | `Shipshape/PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. It is implicit behaviour: global state in, distant write out |
 | `unscoped` used to escape a bad `default_scope` | **Unsayable** | There is no `default_scope` left to escape |
 | N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
@@ -66,9 +66,9 @@ shape you cannot express is not a guard at all.
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
 | Enum as array, reordering remaps rows | **Uncovered** | — |
 | Counter drift, `find_each` ignored, `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |
-| Polymorphic associations with no FK integrity | **Uncovered** | — |
+| Polymorphic associations with no FK integrity | **Procedure** | [a polymorphic association](decomposing/a-polymorphic-association.md) — no cop, because the defect is in what the schema cannot say |
 | UUID vs bigint decided late | **Uncovered** | — |
-| Money as float instead of cents | **Uncovered** | Adjacent to value objects; no guard reads column types for meaning |
+| Money as float instead of cents | **Procedure** | [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md). No guard reads column types for meaning, and that stays true |
 | Scopes returning arrays, breaking chaining | **Uncovered** | — |
 | Reading a replica right after writing primary | **Uncovered** | — |
 
@@ -81,7 +81,7 @@ shape you cannot express is not a guard at all.
 | Business rules split across validations, callbacks, controllers | **Guarded** | `CallGraph` + `NoDecisionsInRequestHandling` + `PersistenceHoldsNoBehaviour`. The three together leave one place a rule can be |
 | `to_s` / `as_json` overridden globally | **Guarded** | Any public method on a record is an offence |
 | Model methods hitting external APIs | **Guarded** | `Shipshape/IoIsItsOwnKind` + the call matrix |
-| No value objects, primitives everywhere | **Guarded** | `TypedArguments`, `ShapeIsComposed` |
+| No value objects, primitives everywhere | **Guarded** + **Procedure** | `TypedArguments`, `ShapeIsComposed` — both satisfied by `typed(amount, Float)`, which is the defect declared. [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md) is how you find them |
 | Concerns as dumping grounds | **Guarded** + **Procedure** | `MixinsAddNothingPublic`; [a shared concern](decomposing/a-shared-concern.md), [a record concern](decomposing/a-record-concern.md) |
 | STI overuse, endless `type` conditionals | **Guarded** + **Procedure** | `NoTypeInterrogation`; [a type hierarchy](decomposing/a-type-hierarchy.md) |
 | Delegation chains hiding nil errors | **Guarded on records** | `PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. Elsewhere it stays exempt: `code-is-written-not-generated` draws its line at framework macros and uses `delegate` to draw it |
@@ -96,7 +96,7 @@ shape you cannot express is not a guard at all.
 | Authorization checked in views instead of controllers | **Unsayable** | `permits?` is one predicate — the view asks it to offer the button, the door asks it to refuse. There is no second answer to get out of step |
 | Loose strong params, mass assignment | **Guarded** | `NoInlineParamParse`, `NoUnparsedLookup`, `TypedArguments` |
 | Fat `params` juggling instead of form objects | **Guarded** | Parsed at the seam, typed at construction |
-| `before_action` chains that make flow untraceable | **Uncovered** | Named as the explicit limit in [a fat controller](decomposing/a-fat-controller.md): a filter that finds or decides is invisible to the cop |
+| `before_action` chains that make flow untraceable | **Procedure** | [a filter chain](decomposing/a-filter-chain.md). Still uncovered by any cop — the branching is in `only:`/`except:`, which nothing here reads |
 | No pagination on index actions | **Uncovered** | — |
 | Duplicated logic across formats | **Uncovered** | — |
 | Nested resources more than one level deep | **Uncovered** | Routing, not shape |
@@ -179,8 +179,13 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ## Roughly, the count
 
-Of about 120 rows: **14 unsayable, 26 guarded or partly guarded, 9 held by a procedure, and
-about 70 uncovered.**
+Of about 120 rows: **15 unsayable, 28 guarded or partly guarded, 13 held by a procedure, and
+about 64 uncovered.**
+
+**Those numbers moved because of this document.** It was written as a survey and turned into a
+work list: two gaps became cop clauses, four became procedures, and the counts above are the
+second reading, not the first. That is the use of writing coverage down — the first count was
+16 uncovered rows worse, and none of them were unknown, only unwritten.
 
 **The 70 is the honest headline and it is not an apology.** Around forty of them are runtime,
 volume, or infrastructure questions that a file reader cannot answer and should not claim. What
