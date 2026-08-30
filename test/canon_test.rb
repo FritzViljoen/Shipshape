@@ -43,12 +43,11 @@ class CanonTest < Minitest::Test
   # rather than a defect, and adding to it is a visible act in a diff — which is the whole
   # mechanism. It shrinks; it does not grow without somebody noticing.
   #
-  # Every one of these was written by an agent in answer to a *question* — an audit, a "is
-  # this covered" — rather than a request for a new rule. The code they describe was already
-  # enforced; what was unsanctioned was writing it down as law and thereby making it binding.
-  UNRATIFIED = %w[
-    a-query-only-reads
-  ].freeze
+  # Empty, and it has been: three laws written by an agent in answer to a *question* — an
+  # audit, a "is this covered" — rather than a request for a rule. All three were reviewed and
+  # ratified, one of them only after being corrected: `a-command-is-one-transaction` said
+  # "exactly one write", which is a different rule and a wrong one.
+  UNRATIFIED = [].freeze
 
   # Cops whose offences are not a refactor, each with the reason. Being on this list is what
   # grants the exemption; nothing else confers it, so a cop that becomes app-facing has to
