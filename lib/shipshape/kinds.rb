@@ -51,11 +51,17 @@ module Shipshape
       by_base_class(path, candidates) || candidates.first
     end
 
+    # **A declared base class is its kind, whatever file it lives in.** Resolution normally
+    # goes through the filesystem, which means a constant belonging to a gem resolves to
+    # nothing and is skipped — and `ActiveRecord::Base` is exactly that. So
+    # `ActiveRecord::Base.connection.execute` in a shape reached the database with no rule
+    # objecting, because the one constant naming persistence was the one nothing could see.
+    # The layout already declares these names under `BaseClasses`; this reads them.
     def for_constant(name)
       return nil if name.nil?
 
       typed(name, String)
-      file_for_constant(name) && constant_cache[name].first
+      settings.kind_of_base_class(name) || (file_for_constant(name) && constant_cache[name].first)
     end
 
     # The file a constant resolves to, so a caller can tell a sister call from a class

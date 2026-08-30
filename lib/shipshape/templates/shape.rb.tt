@@ -15,6 +15,56 @@
 class Shape
   include TypedArguments
 
+  # **A shape never holds a record, and an argument is how one gets in.**
+  #
+  # The call graph stops a shape *naming* a record — `PersonRecord.find` in a shape is
+  # refused. It cannot stop `ProfileShape.new(person: PersonRecord.find(1))`, because at the
+  # shape there is no record anywhere in the source: there is a keyword called `person`, and
+  # nothing a cop reads says what it holds. Every rule about shapes leaks through that one
+  # argument. A shape holding a record can lazily load an association, write through it, and
+  # reopen the database from the presentation layer — with `@person.orders` and no constant
+  # for anything to see.
+  #
+  # So it is checked here, where the answer is exact: the object is in hand and it can simply
+  # be asked what it is. Reaching a record smuggled in under any name, in an array, in a
+  # hash, or handed to a nested shape.
+  def self.new(*arguments, **keywords, &block)
+    shape = super
+    refuse_persistence(shape)
+    shape
+  end
+
+  def self.refuse_persistence(shape)
+    shape.instance_variables.each do |name|
+      value = shape.instance_variable_get(name)
+      next unless persistence?(value)
+
+      raise TypeError, "#{shape.class}##{name} holds #{value.class}. A shape is a value " \
+                       "detached from the database — hand it the fields it needs, or a " \
+                       "shape built from them, never the record."
+    end
+  end
+
+  # A collection holding one is holding one. Checked to the element because
+  # `lines: person.orders` is the shape this arrives in far more often than a bare record.
+  def self.persistence?(value)
+    case value
+    when Array then value.any? { |element| persistence?(element) }
+    when Hash then value.any? { |key, element| persistence?(key) || persistence?(element) }
+    else record?(value)
+    end
+  end
+
+  # **Asked of the loaded constant, never of the name.** A repository can call its records
+  # anything; what makes one a record is its ancestry. `defined?` because a shape is a PORO
+  # and this file must load in a suite that never booted Rails.
+  def self.record?(value)
+    (defined?(::ActiveRecord::Base) && value.is_a?(::ActiveRecord::Base)) ||
+      (defined?(::ActiveRecord::Relation) && value.is_a?(::ActiveRecord::Relation))
+  end
+
+  private_class_method :refuse_persistence, :persistence?, :record?
+
   # Value semantics, without a macro. Two shapes of the same class holding the same
   # values are the same shape — which is what lets one be compared, deduplicated and
   # asserted on in a test without anybody writing `==` per class.

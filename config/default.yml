@@ -331,6 +331,11 @@ Shipshape/NoTypeInterrogation:
     - io_command
     - io_query
     - shape
+    # **A view component is the other presentation kind**, and the matrix says so: its whole
+    # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
+    # read at render time, or a constant mutated mid-render are the same defects they are in
+    # a shape, and this kind carried none of the rules until it was audited for it.
+    - view_component
 
 Shipshape/NoAmbientReads:
   Description: >-
@@ -347,6 +352,11 @@ Shipshape/NoAmbientReads:
     - io_command
     - io_query
     - shape
+    # **A view component is the other presentation kind**, and the matrix says so: its whole
+    # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
+    # read at render time, or a constant mutated mid-render are the same defects they are in
+    # a shape, and this kind carried none of the rules until it was audited for it.
+    - view_component
 
 Shipshape/NoDistantWrites:
   Description: >-
@@ -363,6 +373,11 @@ Shipshape/NoDistantWrites:
     - io_command
     - io_query
     - shape
+    # **A view component is the other presentation kind**, and the matrix says so: its whole
+    # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
+    # read at render time, or a constant mutated mid-render are the same defects they are in
+    # a shape, and this kind carried none of the rules until it was audited for it.
+    - view_component
 
 Shipshape/TypedArguments:
   Description: >-

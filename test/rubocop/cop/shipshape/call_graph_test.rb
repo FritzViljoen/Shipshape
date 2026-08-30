@@ -435,7 +435,58 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
+
+  # **A base class is its kind even though it lives in a gem.** Resolution goes through the
+  # filesystem, so `ActiveRecord::Base` resolved to nothing and was skipped — which meant the
+  # one constant that names persistence was the one nothing could see, and
+  # `ActiveRecord::Base.connection.execute` reached the database from a shape unopposed.
+  def test_a_declared_base_class_resolves_to_its_kind
+    found = offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/shapes/place.rb", files: TREE)
+      class Place < Shape
+        def rows
+          ActiveRecord::Base.connection.execute("select 1")
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
+  # **A parent is not a sister.** Once base classes resolve, a record naming the class it
+  # inherits from counted as a record calling a record, and the offence said so — in words
+  # that are not true of a superclass reference.
+  def test_a_class_naming_its_own_base_class_is_not_a_sister_call
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/records/person_record.rb", files: TREE)
+      class PersonRecord < ApplicationRecord
+        def self.recent
+          ApplicationRecord.transaction { 1 }
+        end
+      end
+    RUBY
+  end
+
+  # The exemption is the *own* superclass, not any base class.
+  def test_a_controller_naming_a_record_base_class_is_still_refused
+    found = offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/controllers/things_controller.rb", files: TREE)
+      class ThingsController < ApplicationController
+        def create
+          ActiveRecord::Base.transaction { 1 }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
   private
+
+  WITH_BASES = CONFIG.merge(
+    "BaseClasses" => {
+      "record" => %w[ApplicationRecord ActiveRecord::Base],
+      "request_handling" => %w[ApplicationController],
+      "shape" => %w[Shape],
+    },
+  ).freeze
 
   def check(source, path)
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: TREE)

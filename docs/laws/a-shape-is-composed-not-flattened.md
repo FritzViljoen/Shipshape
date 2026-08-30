@@ -15,6 +15,20 @@ operation.
 
 - **Principle:** `model-concerns-not-groups` governs. `good-boundaries-make-good-neighbours`
   also produces it — a copied field is a second home for one fact.
+**A shape never holds a record, and an argument is how one gets in.** The call graph stops a
+shape *naming* a record. It cannot stop `ProfileShape.new(person: PersonRecord.find(1))`,
+because at the shape there is no record anywhere in the source — there is a keyword called
+`person`, and nothing a cop reads says what it holds. Every other rule about shapes leaks
+through that one argument: a shape holding a record lazily loads associations, writes through
+them, and reopens the database from the presentation layer, with `@person.orders` and no
+constant for anything to see.
+
+So the generated `Shape` refuses it on construction, where the object is in hand and can
+simply be asked what it is — reaching a record smuggled in under any name, in an array, in a
+hash. This is the same instrument as
+[`one-operation-one-class`](one-operation-one-class.md)'s installed test: where a cop can only
+read names, the loaded object answers exactly.
+
 - **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object
   declares the suffix as one of its own.

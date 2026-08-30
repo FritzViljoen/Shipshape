@@ -40,6 +40,9 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
     Object.const_set(:ActiveRecord, Module.new)
     ::ActiveRecord.const_set(:Base, base)
+    # `Shape` refuses to hold either, and asks the constant rather than the name — so the
+    # stand-in has to carry both or the refusal is never exercised.
+    ::ActiveRecord.const_set(:Relation, Class.new)
   end
 
   load_generated_once
@@ -619,5 +622,43 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   def test_something_that_is_not_an_operation_is_left_alone
     assert_empty additions(Class.new { def total; end })
+  end
+  # **A shape never holds a record.** The call graph stops a shape naming one; only this
+  # stops one arriving as an argument, where the source at the shape says nothing at all.
+  RECORD = Class.new(ActiveRecord::Base)
+
+  class Holder < Shape
+    def initialize(thing:)
+      @thing = thing
+    end
+  end
+
+  def test_a_shape_refuses_a_record_handed_to_it
+    error = assert_raises(TypeError) { Holder.new(thing: RECORD.new) }
+
+    assert_includes error.message, "A shape is a value"
+    assert_includes error.message, "@thing"
+  end
+
+  def test_a_shape_refuses_a_relation
+    assert_raises(TypeError) { Holder.new(thing: ActiveRecord::Relation.new) }
+  end
+
+  # `lines: person.orders` is how this arrives far more often than a bare record.
+  def test_a_shape_refuses_a_record_inside_a_collection
+    assert_raises(TypeError) { Holder.new(thing: [RECORD.new]) }
+    assert_raises(TypeError) { Holder.new(thing: { rows: [RECORD.new] }) }
+  end
+
+  def test_a_shape_takes_values_and_other_shapes
+    assert Holder.new(thing: "ZA")
+    assert Holder.new(thing: Place.new(code: "ZA"))
+    assert Holder.new(thing: [1, 2, 3])
+  end
+
+  # The refusal must not cost the value semantics the rest of the file relies on.
+  def test_construction_still_answers_a_working_shape
+    assert_equal Holder.new(thing: 1), Holder.new(thing: 1)
+    refute_equal Holder.new(thing: 1), Holder.new(thing: 2)
   end
 end

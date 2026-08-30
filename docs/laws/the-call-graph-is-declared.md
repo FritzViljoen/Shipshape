@@ -164,6 +164,18 @@ reach becomes the place unrelated things are put.
   looking for that file under each kind's roots. Fails a call whose pair is not in the
   matrix, and fails any same-kind call before the matrix is consulted. Refuses a matrix
   row that names itself.
+
+  **A name listed under `BaseClasses` resolves to its kind without a file.** Resolution
+  otherwise goes through the filesystem, so a constant belonging to a gem resolves to
+  nothing and is skipped — and `ActiveRecord::Base` is exactly that. The one constant in a
+  Rails application that names persistence outright was the one this could not see, so
+  `ActiveRecord::Base.connection.execute` reached the database from a shape, and
+  `ActiveRecord::Base.transaction` opened one from a controller, with nothing objecting.
+
+  **A class naming the base class it inherits from is exempt**, because a parent is not a
+  sister. Without that, a record naming `ApplicationRecord` was refused as a record calling
+  a record — an offence whose message was not true of the code it pointed at, which
+  `enforcement-messages-are-documentation` makes a defect in itself.
 - **Kind resolution:** the superclass decides; the path only decides whether a file is
   governed at all. `Shipshape/CallGraph` reads `BaseClasses` for the mapping. A governed
   file naming no declared base class falls back to its path.

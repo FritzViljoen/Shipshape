@@ -159,10 +159,26 @@ module RuboCop
         # A class naming itself is not a call between two of a kind. `Result.success(...)`
         # inside `Result` is one shape, and the call graph has nothing to say about it.
         def refers_to_itself?(name)
+          own_superclass?(name) || own_file?(name)
+        end
+
+        def own_file?(name)
           resolved = kinds.file_for_constant(name)
           return false if resolved.nil?
 
           File.expand_path(resolved) == File.expand_path(processed_source.file_path)
+        end
+
+        # **A parent is not a sister.** `ApplicationRecord.transaction` inside a record names
+        # the class it inherits from, and once a declared base class resolves to its kind
+        # that read counts as a record calling a record — which the matrix refuses as a
+        # sister call. The refusal would be reported in words that are simply untrue, and
+        # `enforcement-messages-are-documentation` makes a misleading message a defect in its
+        # own right. Whatever is wrong with a record opening a transaction, it is not that.
+        def own_superclass?(name)
+          superclass = kinds.superclass_of(processed_source.file_path)
+
+          !superclass.nil? && superclass.sub(/\A::/, "") == name
         end
 
         def kind_of_inspected_file
