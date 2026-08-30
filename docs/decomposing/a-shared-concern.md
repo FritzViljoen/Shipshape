@@ -8,6 +8,10 @@ The shape: `app/models/concerns/paying.rb`, included by nine services, defining 
 methods. 470 offences across seven repositories, and the reason they are hard to see is that
 **the module looks small**. The class that includes it is where the size went.
 
+**A concern that obliges its includers to carry columns is a different shape** and has its own
+procedure — [a record concern](a-record-concern.md). The test is whether removing the module
+would leave columns behind: if it would, the schema is the problem and the methods are not.
+
 ---
 
 ## 0. Find out who includes it, and what that makes them

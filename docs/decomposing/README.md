@@ -15,6 +15,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a callback web](a-callback-web.md) | work that happens because something was saved |
 | [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
+| [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |
 | [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
 | [inline IO](inline-io.md) | `HTTParty.post` in the middle of a method, inside a transaction |
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
