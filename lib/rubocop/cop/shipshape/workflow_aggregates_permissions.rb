@@ -32,8 +32,8 @@ module RuboCop
       #     STEPS = [SettleInvoice].freeze
       #
       #     def call
-      #       SettleInvoice.call(actor: @actor)
-      #       NotifyCustomer.call(actor: @actor)
+      #       SettleInvoice.call(actor: actor)
+      #       NotifyCustomer.call(actor: actor)
       #     end
       #   end
       #
@@ -42,8 +42,8 @@ module RuboCop
       #     STEPS = [SettleInvoice, NotifyCustomer].freeze
       #
       #     def call
-      #       SettleInvoice.call(actor: @actor)
-      #       NotifyCustomer.call(actor: @actor)
+      #       SettleInvoice.call(actor: actor)
+      #       NotifyCustomer.call(actor: actor)
       #     end
       #   end
       class WorkflowAggregatesPermissions < Base
@@ -161,10 +161,10 @@ module RuboCop
               # the base class checks every step's permission before the first one runs,
               # because after it there is nothing left to refuse
               def call
-                settled = SettleInvoice.call(actor: @actor, invoice_id: @id)
+                settled = SettleInvoice.call(actor: actor, invoice_id: @id)
                 return settled if settled.failure?
 
-                NotifyCustomer.call(actor: @actor, invoice_id: @id)
+                NotifyCustomer.call(actor: actor, invoice_id: @id)
               end
             end
           RUBY

@@ -72,17 +72,16 @@ fails the build, which is the only way this stays true.
 class SettleMonth < Workflow
   STEPS = [SettleInvoice, NotifyCustomer].freeze
 
-  def initialize(actor:, month:)
-    @actor = typed(actor, Actor)
+  def initialize(month:)
     @month = typed(month, Date)
   end
 
   # `Workflow.call` has already refused if the actor may not run every step.
   def call
-    settled = SettleInvoice.call(actor: @actor, invoice_id: ...)
+    settled = SettleInvoice.call(actor: actor, invoice_id: ...)
     return settled if settled.failure?
 
-    NotifyCustomer.call(actor: @actor, invoice_id: ...)
+    NotifyCustomer.call(actor: actor, invoice_id: ...)
   end
 end
 ```

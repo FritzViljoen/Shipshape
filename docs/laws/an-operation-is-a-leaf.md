@@ -61,7 +61,7 @@ Make it a collaborator, not an ancestor. Two operations that share work call a t
 ```ruby
 class AdminUpload < Command
   def call
-    Upload.call(actor: @actor, file: @file)
+    Upload.call(actor: actor, file: @file)
   end
 end
 ```

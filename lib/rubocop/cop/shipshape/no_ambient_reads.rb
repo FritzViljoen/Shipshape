@@ -127,8 +127,7 @@ module RuboCop
         HANDED_IN = <<~RUBY
           # it arrives as an argument, so the signature says what this operation needs
           class SendReceipt < Command
-            def initialize(actor:, api_key:)
-              @actor = typed(actor, Person)
+            def initialize(api_key:)
               @api_key = typed(api_key, String)
             end
           end

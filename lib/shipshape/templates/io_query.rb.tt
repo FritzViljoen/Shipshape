@@ -34,8 +34,8 @@ class IoQuery
   def self.call(actor: nil, **arguments)
     raise Permission::Refused, permission unless permits?(actor)
 
-    operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
-    answer = operation.__perform__
+    operation = new(**arguments)
+    answer = operation.__perform__(actor)
 <%- else -%>
   def self.call(**arguments)
     answer = new(**arguments).__perform__
@@ -53,6 +53,16 @@ class IoQuery
   end
   private_class_method :shapes?
 
+<%- if auth -%>
+
+  private
+
+  # Whoever the door was opened for. Most operations never read it, which is why it is here
+  # rather than in every initializer.
+  attr_reader :actor
+
+<%- end -%>
+
   # **Reaches the private entry point with an implicit receiver**, which is the one form
   # `private` allows — `operation.call` raises, and no amount of inheritance changes that,
   # because Ruby's `private` means "no explicit receiver" rather than "inside the hierarchy".
@@ -63,16 +73,21 @@ class IoQuery
   #
   # Public, and unreachable all the same: `new` is private, so nobody outside can hold an
   # operation to call this on.
-  # `public` on purpose: this sits below the base class's own `private`, and it is called
-  # with an explicit receiver from the class method above. Harmless — `new` is private, so
-  # nobody outside can hold an operation to call it on.
-  public def __perform__
 <%- if auth -%>
+  public def __perform__(actor)
+    # **The actor belongs to the base class, not to the operation's signature.** The check
+    # above needed it; most operations do not, and forcing `actor:` into every initializer
+    # would put a keyword in fifty constructors so that three could read it. Set here, and
+    # available to any operation that wants it through the private reader below.
+    @actor = actor
+
     self.class.anonymous? ? anonymous_call : call
-<%- else -%>
-    call
-<%- end -%>
   end
+<%- else -%>
+  public def __perform__
+    call
+  end
+<%- end -%>
 
   # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
   # that skipped the permission check, the transaction or the return-type assertion.

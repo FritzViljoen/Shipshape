@@ -54,8 +54,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   ANYONE = Anyone.new([]).freeze
 
   class Charge < Command
-    def initialize(actor:, amount:)
-      @actor = actor
+    def initialize(amount:)
       @amount = typed(amount, Integer)
     end
 
@@ -65,10 +64,6 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   class Misbehaving < Command
-    def initialize(actor:)
-      @actor = actor
-    end
-
     def call
       "a bare string"
     end
@@ -81,20 +76,12 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   class ListPlaces < Query
-    def initialize(actor:)
-      @actor = actor
-    end
-
     def call
       [Place.new(code: "ZA")]
     end
   end
 
   class LeakyQuery < Query
-    def initialize(actor:)
-      @actor = actor
-    end
-
     def call
       [{ code: "ZA" }]
     end
@@ -198,10 +185,6 @@ class GeneratedBaseClassesTest < Minitest::Test
         "SettleMonth"
       end
 
-      def initialize(actor:)
-        @actor = actor
-      end
-
       def call
         success(:done)
       end
@@ -218,8 +201,7 @@ class GeneratedBaseClassesTest < Minitest::Test
         "SettleMonth"
       end
 
-      define_method(:initialize) { |actor:| @actor = actor }
-      define_method(:call) { ran = true; success(:done) }
+            define_method(:call) { ran = true; success(:done) }
     end
 
     result = flow.call(actor: Anyone.new([Charge.permission]))
@@ -268,10 +250,6 @@ class GeneratedBaseClassesTest < Minitest::Test
         "WipeEverything"
       end
 
-      def initialize(actor:)
-        @actor = actor
-      end
-
       def call
         success(:wiped)
       end
@@ -286,10 +264,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     forgetful = Class.new(Workflow) do
       def self.name
         "Forgetful"
-      end
-
-      def initialize(actor:)
-        @actor = actor
       end
 
       def call
@@ -310,10 +284,6 @@ class GeneratedBaseClassesTest < Minitest::Test
       const_set(:STEPS, [LogIn, Charge].freeze)
       def self.name
         "Onboard"
-      end
-
-      def initialize(actor:)
-        @actor = actor
       end
 
       def call
@@ -358,10 +328,6 @@ class GeneratedBaseClassesTest < Minitest::Test
         "SettleMonth"
       end
 
-      def initialize(actor:)
-        @actor = actor
-      end
-
       def call
         success(:done)
       end
@@ -380,10 +346,6 @@ class GeneratedBaseClassesTest < Minitest::Test
         "Onboard"
       end
 
-      def initialize(actor:)
-        @actor = actor
-      end
-
       def call
         success(:done)
       end
@@ -398,10 +360,6 @@ class GeneratedBaseClassesTest < Minitest::Test
       const_set(:STEPS, [Charge].freeze)
       def self.name
         "SettleMonth"
-      end
-
-      def initialize(actor:)
-        @actor = actor
       end
 
       def call
@@ -503,14 +461,51 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { command.call }
   end
 
+  # **The actor is the base class's, not the signature's.** Forcing `actor:` into every
+  # initializer would put a keyword in fifty constructors so that three could read it.
+  def test_an_operation_need_not_declare_the_actor
+    silent = Class.new(Command) do
+      def self.name
+        "SilentAboutActors"
+      end
+
+      def initialize(amount:)
+        @amount = amount
+      end
+
+      private
+
+      def call
+        success(@amount)
+      end
+    end
+
+    assert_predicate silent.call(actor: ANYONE, amount: 7), :success?
+  end
+
+  # And an operation that wants it reads it, without ever declaring it.
+  def test_an_operation_may_read_the_actor_it_never_asked_for
+    reader = Class.new(Command) do
+      def self.name
+        "ReadsTheActor"
+      end
+
+      def initialize; end
+
+      private
+
+      def call
+        success(actor)
+      end
+    end
+
+    assert_equal ANYONE, reader.call(actor: ANYONE).value
+  end
+
   def test_an_empty_answer_is_an_answer
     empty = Class.new(Query) do
       def self.name
         "EmptyQuery"
-      end
-
-      def initialize(actor:)
-        @actor = actor
       end
 
       def call
