@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "shipshape/install"
 require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
@@ -72,9 +73,15 @@ module RuboCop
           # **A base class filed with its operations is still a base class.** stratum keeps
           # `Command` in `app/commands/command.rb`, so resolving the constant answers
           # "command" and every correct operation in the repository looked like a second
-          # level. What a class inherits decides its kind; being a declared base class
-          # decides that it is not an operation at all.
+          # level. Being a declared base class decides that it is not an operation at all.
           return if base_class?(name)
+
+          # **Only our own hierarchy has a depth rule.** A class is a second level when its
+          # parent inherits one of the declared base classes — not merely when the parent
+          # resolves to an operation kind, which a plain class in `app/queries/` does by
+          # path alone. Depth is this canon's rule about this canon's base classes, and
+          # applying it to somebody else's hierarchy is a rule nobody agreed to.
+          return unless rooted_in_a_base_class?(name)
 
           kind = kinds.for_constant(name)
           return unless governed_kinds.include?(kind)
@@ -135,10 +142,43 @@ module RuboCop
           )
         end
 
+        # The parent's own superclass, read from the parent's file.
+        def rooted_in_a_base_class?(name)
+          file = kinds.file_for_constant(name)
+          return false unless file
+
+          grandparent = kinds.superclass_of(file)
+          !grandparent.nil? && ours?(grandparent)
+        end
+
+        # Any declared base class — ours or the framework's. A class inheriting one is a
+        # first level, whoever wrote it.
         def base_class?(name)
+          declared?(settings.base_classes.values.flatten, name)
+        end
+
+        # **Only the base classes shipshape installs.** `ApplicationMailer` is named in the
+        # layout so kinds resolve, not because this canon owns Rails' hierarchy — two levels
+        # below it is Rails' business. Derived from what the installer writes, so it cannot
+        # drift from the classes that actually carry the door.
+        def ours?(name)
+          declared?(installed_base_classes, name)
+        end
+
+        def installed_base_classes
+          @installed_base_classes ||=
+            governed_kinds.flat_map { |kind| Array(settings.base_classes[kind]) }
+                          .select { |declared| ::Shipshape::Install::FILES.include?(underscore(declared)) }
+        end
+
+        def underscore(name)
+          name.split("::").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+        end
+
+        def declared?(names, name)
           simple = name.split("::").last
 
-          settings.base_classes.values.flatten.any? { |declared| declared.split("::").last == simple }
+          names.any? { |declared| declared.split("::").last == simple }
         end
 
         def article(kind)

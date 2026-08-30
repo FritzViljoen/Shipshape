@@ -19,7 +19,8 @@ class OperationsAreLeavesTest < Minitest::Test
         "command" => ["app/commands/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      "BaseClasses" => { "command" => ["Command"], "shape" => ["Shape"] },
+      # `ApplicationMailer` is named so kinds resolve; shipshape does not install it.
+      "BaseClasses" => { "command" => %w[Command ApplicationMailer], "shape" => ["Shape"] },
       "Matrix" => { "command" => ["shape"], "shape" => [] },
     },
   }.freeze
@@ -30,6 +31,9 @@ class OperationsAreLeavesTest < Minitest::Test
     # Filed with the operations it is the base class for — which is where stratum keeps it,
     # and where resolving the constant answers "command".
     "app/commands/command.rb" => "class Command\nend\n",
+    # A plain class in a governed tree: `query` by path, inheriting nothing of ours.
+    "app/commands/theirs.rb" => "class Theirs\n  def self.call; end\nend\n",
+    "app/commands/a_mailer.rb" => "class AMailer < ApplicationMailer\nend\n",
   }.freeze
 
   COMMAND = "app/commands/admin_upload.rb"
@@ -80,6 +84,20 @@ class OperationsAreLeavesTest < Minitest::Test
   # operation looked like a second level — 22 of stratum's 80 files, all false.
   def test_a_base_class_kept_beside_its_operations_is_not_a_second_level
     assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
+  end
+
+  # **Depth is this canon's rule about this canon's base classes.** A plain class in a
+  # governed tree resolves to an operation kind by path alone; inheriting from one is
+  # somebody else's hierarchy, and applying our depth rule to it is a rule nobody agreed to.
+  def test_a_parent_that_inherits_nothing_of_ours_is_not_a_second_level
+    assert_empty check("class AdminUpload < Theirs\n  def call; end\nend\n")
+  end
+
+  # `ApplicationMailer` is named in the layout so kinds resolve, not because this canon
+  # owns Rails' hierarchy. Applying our depth rule to it fired on every mailer in
+  # chatwoot — two levels below somebody else's base class is their business.
+  def test_a_framework_hierarchy_has_no_depth_rule
+    assert_empty check("class WelcomeMailer < AMailer\n  def call; end\nend\n")
   end
 
   def test_a_shape_is_outside_the_operation_kinds

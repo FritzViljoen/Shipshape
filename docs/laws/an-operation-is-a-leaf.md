@@ -45,7 +45,14 @@ inheritance was a way of not using it.
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.
 - **Guard:** `Shipshape/OperationsAreLeaves`, over the operation kinds. Fails a class whose
-  superclass is itself an operation, and fails `def self.call` in one.
+  superclass is itself an operation **rooted in a base class shipshape installs**, and fails
+  `def self.call` in one.
+
+  **The depth rule is about this canon's base classes and no others.** A plain class in
+  `app/queries/` resolves to an operation kind by path alone, and `ApplicationMailer` is
+  named in the layout so kinds resolve — neither makes the hierarchy below it ours. Applying
+  the rule to them fired on every mailer in chatwoot and every operation in a repository that
+  files `Command` beside its commands.
   A door spelled `define_singleton_method(:call)` is refused by
   [`code-is-written-not-generated`](code-is-written-not-generated.md) rather than here.
 - **Guard's limit:** it reads the **superclass constant**, so `Class.new(SettleInvoice)` and

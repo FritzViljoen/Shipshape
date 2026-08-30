@@ -78,6 +78,17 @@ module Shipshape
       end.keys
     end
 
+    public
+
+    # The name a file's first class inherits, or nil. `Shipshape/OperationsAreLeaves` needs
+    # it to tell "inherits one of our base classes" from "resolves to an operation kind by
+    # path" — only the first is our hierarchy, and only our hierarchy has a depth rule.
+    def superclass_of(path)
+      superclass_in(path)
+    end
+
+    private
+
     def by_base_class(path, candidates)
       kind = settings.kind_of_base_class(superclass_in(path))
       return nil if kind.nil?
