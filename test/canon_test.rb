@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "shipshape/install"
 
 # The law and the cop are two halves of one fact, and this is what holds them together.
 #
@@ -31,6 +32,14 @@ class CanonTest < Minitest::Test
   # Being on this list is what makes a non-cop guard legitimate; the list cannot go stale
   # because nothing else grants that status.
   SUITE_GUARDS = ["CanonTest", "generated_base_classes_test.rb"].freeze
+
+  # Installed files that carry no rule of their own, each with the reason. Being on this list
+  # is what grants the exemption, so it cannot go stale: a file that grows a rule has to be
+  # taken off it, and nothing else confers the status.
+  ARCHITECTURE_WITHOUT_A_LAW = {
+    "boolean" => "a name, so `Boolean` can be written in a type guard. It decides nothing.",
+    "persistence" => "one definition of what a record is, used by the guards that have laws.",
+  }.freeze
 
   def test_every_law_names_a_cop_that_exists_or_says_it_does_not
     missing = laws.reject do |law|
@@ -99,6 +108,45 @@ class CanonTest < Minitest::Test
                  "A guard that does not say what it misses is read as covering everything."
   end
 
+  # **The third direction.** Code here is constrained from three sides — the documentation
+  # says the rule, a cop catches it after it is written, and the generated base classes make
+  # it impossible to write. The first two hold each other above: no law without a cop, no cop
+  # without a law. Nothing held the third, so a base class could enforce something no
+  # document stated and nobody would find out.
+  #
+  # It had happened twice by the time this was written. "A command is exactly one
+  # transaction" lived as reasoning inside another law, and the Result contract — a `TypeError`
+  # raised at every door — was written down nowhere at all. Both were real rules, enforced on
+  # every call, invisible to the canon.
+  #
+  # Named in a **Guard line**, not merely mentioned somewhere in the prose: that line is where
+  # a law says what holds it, and matching the body would pass on an offhand reference.
+  def test_every_installed_file_is_named_by_a_law
+    guards = laws.map { |law| law[:guard] }.join("\n")
+
+    unclaimed = installed.reject do |file|
+      ARCHITECTURE_WITHOUT_A_LAW.key?(file) || guards.include?("#{file}.rb")
+    end
+
+    assert_empty unclaimed,
+                 "These are installed into an application and constrain what it can do, and " \
+                 "no law's Guard line names them. Write the law, name the file in its Guard " \
+                 "line, or declare it on ARCHITECTURE_WITHOUT_A_LAW with the reason."
+  end
+
+  # The other direction: a law may not claim a base class that is not installed.
+  def test_no_law_names_a_file_that_is_not_installed
+    # A suite guard is named the same way and is not installed anywhere — it ships with the
+    # gem and runs here.
+    suite = SUITE_GUARDS.map { |guard| guard.sub(/\.rb\z/, "") }
+    named = laws.flat_map { |law| law[:guard].scan(/`(\w+)\.rb`/).flatten }.uniq
+    missing = named - installed - suite
+
+    assert_empty missing,
+                 "A law naming a generated file that nobody installs is a rule with no " \
+                 "mechanism behind it."
+  end
+
   def test_the_index_lists_every_law
     index = File.read(File.expand_path("../docs/laws/README.md", __dir__))
 
@@ -106,6 +154,10 @@ class CanonTest < Minitest::Test
   end
 
   private
+
+  def installed
+    Shipshape::Install::FILES + Shipshape::Install::TESTS
+  end
 
   def laws
     @laws ||= LAWS.sort.map do |path|

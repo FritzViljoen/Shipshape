@@ -31,6 +31,8 @@ generated `ApplicationViewComponent` — also sweep what they ended up holding, 
 the sweep cannot be skipped and is the better guarantee. Each was watched to fail with the
 other in place, which is what says they are not one guard written twice.
 
+- **Guard:** the generated `typed_arguments.rb` — architecture. `typed` asserts and never
+  coerces, and refuses a record before it matches the type.
 - **Guard:** `Shipshape/TypedArguments`. Within a governed tree the **superclass decides
   the kind**, so an operation stays covered wherever it is filed inside one. Every keyword
   must reach a

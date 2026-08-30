@@ -169,6 +169,8 @@ in doubt.
 
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
+- **Guard:** the generated `permission.rb` — architecture. The permission IS `name.to_sym`,
+  so there is no mapping to drift and no second name to keep in step.
 - **Guard:** `Shipshape/EveryDoorChecksPermission` holds the half the base classes cannot
   hold themselves — `install` never overwrites, so an installed door that lost its check
   would disable authorisation for every operation of that kind with nothing else failing.

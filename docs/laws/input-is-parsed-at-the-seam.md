@@ -27,6 +27,8 @@ only one of them is absence.
 - **Implementation:** `shipshape install` writes `TypedParams` into the application, beside
   the base classes. The law needed something to parse *with*, and a law whose only
   implementation is private is a law nobody can keep.
+- **Guard:** the generated `typed_params.rb` — architecture. The parsers raise on input
+  they cannot read, so a seam has no way to coerce silently.
 - **Guard:** `Shipshape/NoInlineParamParse` flags parse, strptime, iso8601 on any receiver,
   the raising conversions, and the casts, whenever the value came from request parameters.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an

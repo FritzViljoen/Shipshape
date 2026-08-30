@@ -75,6 +75,10 @@ inheritance was a way of not using it.
 - **Principle:** `nothing-is-hidden` governs — a guarantee decided two classes away is a
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.
+- **Guard:** the generated `command.rb`, `query.rb`, `workflow.rb`, `io_command.rb`,
+  `io_query.rb`, `legacy_command.rb` and `legacy_query.rb` — architecture. Each owns
+  `self.call`, and `private_class_method :new, :allocate` means a caller cannot build one
+  to go around it.
 - **Guard:** `Shipshape/OnlyTheDoorIsCalled` is the one that does not rely on visibility:
   it reads the call site, resolves the constant, and refuses any message an operation does
   not answer — `new`, `build`, `__perform__`, anything but `call` and the small class-level

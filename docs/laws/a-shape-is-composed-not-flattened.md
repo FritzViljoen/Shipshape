@@ -36,6 +36,9 @@ itself is general and belongs to
 [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) — a record is
 not an argument anywhere; this is where the presentation layer is held to it.
 
+- **Guard:** the generated `shape.rb`, `application_view_component.rb` and
+  `holds_no_records.rb` — architecture. Both presentation kinds sweep what they were built
+  holding and refuse a record, whatever name it arrived under.
 - **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
   whose name is prefixed with the name of another declared domain object, where that object
   declares the suffix as one of its own.

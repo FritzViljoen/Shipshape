@@ -24,6 +24,8 @@ not make it hold.
 | Law | Principle |
 |---|---|
 | [`one-operation-one-class`](one-operation-one-class.md) | `one-way-to-say-each-thing` |
+| [`an-operation-answers-a-result`](an-operation-answers-a-result.md) | `nothing-fails-quietly` |
+| [`a-command-is-one-transaction`](a-command-is-one-transaction.md) | `make-the-wrong-thing-impossible` |
 | [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
 | [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) | `good-boundaries-make-good-neighbours` |
