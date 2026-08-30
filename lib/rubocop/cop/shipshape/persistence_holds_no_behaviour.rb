@@ -51,9 +51,17 @@ module RuboCop
 
         # `scope :recent, -> { where(...) }` is a filter. `scope :billable, -> { joins(...)
         # .merge(Other.rule) }` reaches another class, and the law says that one passes.
+        #
+        # **`default_scope` is judged on neither test**, because its harm is not the one this
+        # law usually names. It is ambient state wearing a declaration: a filter that enters
+        # every read without being called for, and attributes that leave with every `create`
+        # without being handed in. That is `nothing-travels-off-the-call-path` in both
+        # directions, declared on a record — which is why it is caught here, where it is
+        # written, rather than at the thousand call sites where it acts.
         def on_send(node)
-          return unless node.method_name == :scope
           return unless one_of?(record_kinds)
+          return add_offense(node, message: default_scope_message) if node.method_name == :default_scope
+          return unless node.method_name == :scope
           return unless reaches_another_class?(node)
 
           add_offense(node, message: scope_message(node))
@@ -84,6 +92,38 @@ module RuboCop
             instead: SPLIT,
           )
         end
+
+        # The one scope that is never written at the call site, so it cannot be read there
+        # either. It is also the only one that reaches `create`.
+        def default_scope_message
+          explain(
+            "`default_scope` is implicit behaviour: global state on every read, and a distant write on `create`.",
+            because: "A named scope is a rule you can see in the chain that used it. This " \
+                     "one is not written anywhere it acts. Every association, every `find`, " \
+                     "every count silently receives a filter nobody asked for, so a query's " \
+                     "result cannot be predicted from the query — the definition of action " \
+                     "at a distance. It also sets attributes on `create`, so a record is " \
+                     "born carrying a filter's opinion its caller never handed in. Both " \
+                     "halves are `nothing-travels-off-the-call-path`, and the escape hatch " \
+                     "makes it worse: `unscoped` is a second way to say one read, and now " \
+                     "neither the rule nor its exception is visible where the reading is.",
+            instead: FILTERED,
+          )
+        end
+
+        FILTERED = <<~RUBY
+          # the record maps rows, and says nothing about which of them anyone wants
+          class BookingRecord < ApplicationRecord
+            belongs_to :supplier_record
+          end
+
+          # the filter is named, and it is read where it is used
+          class ListLiveBookings < Query
+            def call
+              success(BookingRecord.where(cancelled_at: nil).map { |row| Booking.from(row) })
+            end
+          end
+        RUBY
 
         def scope_message(node)
           explain(

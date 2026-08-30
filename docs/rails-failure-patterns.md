@@ -59,8 +59,8 @@ shape you cannot express is not a guard at all.
 | Timezone columns stored inconsistently | **Guarded** | [`a-time-names-its-zone`](laws/a-time-names-its-zone.md), `Shipshape/NoAmbientReads` |
 | Raw SQL string interpolation, SQL injection | **Partly guarded** | `NoUnparsedLookup` stops a raw param reaching a finder; raw SQL itself is **uncovered** → brakeman |
 | Serialized columns that later need querying | **Procedure** | [`a-shape-is-composed-not-flattened`](laws/a-shape-is-composed-not-flattened.md) |
-| `default_scope` leaking into every query | **Uncovered** | `PersistenceHoldsNoBehaviour` matches `scope` and not `default_scope`. **A gap, found writing this** |
-| `unscoped` used to escape a bad `default_scope` | **Uncovered** | Same gap |
+| `default_scope` leaking into every query, and into `create` | **Guarded** | `Shipshape/PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. It is implicit behaviour: global state in, distant write out |
+| `unscoped` used to escape a bad `default_scope` | **Unsayable** | There is no `default_scope` left to escape |
 | N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
 | Missing indexes | **Uncovered** | `lol_dba`, `strong_migrations` |
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |

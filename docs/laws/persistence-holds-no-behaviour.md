@@ -21,11 +21,18 @@ one without the other just moves the pile.
   record answering questions about itself is the record deciding on the caller's behalf.
 - **Guard:** `Shipshape/PersistenceHoldsNoBehaviour`, over the record tree. Fails any public
   method outside a declared allowlist: association and attribute declarations, and scopes
-  whose body only filters on this table's own columns.
+  whose body only filters on this table's own columns. **`default_scope` fails on neither
+  test**: it is implicit behaviour rather than a declared rule — global state entering every
+  read, and a distant write leaving with every `create`. It is caught here because a record
+  is where it is written, but the law it offends is
+  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md), in both
+  directions at once.
 
 - **Guard's limit:** it cannot tell a filtering scope from a rule-bearing one beyond a
   syntactic check on the block, so a scope that reaches another class inside a lambda passes.
   It sees the record tree only — behaviour moved into a helper, a module included from
-  outside that tree, or a query object filed elsewhere is not covered. And it says nothing
-  about whether the record's columns belong together, which is the actual god-object
-  question and the one no check answers.
+  outside that tree, or a query object filed elsewhere is not covered. **`delegate` is not
+  covered**: it writes public methods onto the record, which is exactly what this law
+  forbids, and it is neither a `def` nor a scope. And it says nothing about whether the
+  record's columns belong together, which is the actual god-object question and the one no
+  check answers.

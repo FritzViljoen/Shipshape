@@ -8,6 +8,9 @@ require "test_helper"
 # - Making `on_defs` return early reddens the class-method test.
 # - Making `reaches_another_class?` answer true reddens the filtering-scope test, which is
 #   the shape the law explicitly allows.
+# - Dropping the `default_scope` branch reddens three of the four `default_scope` tests.
+#   The fourth asserts silence outside the record tree, so it stays green — which is what
+#   makes it the false-positive guard rather than a fourth copy of the same assertion.
 class PersistenceHoldsNoBehaviourTest < Minitest::Test
   include CopRunner
 
@@ -24,6 +27,54 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
   }.freeze
 
   RECORD = "app/records/booking_record.rb"
+
+  # **`default_scope` was invisible to this cop**, which matched `scope` exactly — so the one
+  # scope reaching every read in the application passed the guard that exists to stop rules
+  # living on records. Found by surveying the canon against a list of Rails failures it did
+  # not write.
+  def test_a_default_scope_is_a_rule_on_every_read
+    found = check(<<~RUBY)
+      class BookingRecord < ApplicationRecord
+        default_scope { where(cancelled_at: nil) }
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "implicit behaviour: global state on every read"
+  end
+
+  # A named scope is judged on whether it reaches another class. This one is not: it needs no
+  # other class to be a rule, because it is a rule about reads nobody wrote.
+  def test_a_default_scope_touching_only_its_own_columns_is_still_an_offence
+    assert_equal 1, check(<<~RUBY).length
+      class BookingRecord < ApplicationRecord
+        default_scope { order(created_at: :desc) }
+      end
+    RUBY
+  end
+
+  def test_the_default_scope_offence_names_create_and_offers_a_named_query
+    message = check(<<~RUBY).first.message
+      class BookingRecord < ApplicationRecord
+        default_scope { where(cancelled_at: nil) }
+      end
+    RUBY
+
+    assert_includes message, "WHY:"
+    assert_includes message, "nothing-travels-off-the-call-path"
+    assert_includes message, "sets attributes on `create`"
+    assert_includes message, "class ListLiveBookings < Query"
+  end
+
+  # The kind decides, as everywhere. A `default_scope` is not a shape this cop hunts outside
+  # the record tree.
+  def test_a_default_scope_outside_a_record_is_not_this_cops_business
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
+      class ListBookings < Query
+        default_scope { where(cancelled_at: nil) }
+      end
+    RUBY
+  end
 
   def test_a_method_on_a_record_is_behaviour
     found = check(<<~RUBY)
