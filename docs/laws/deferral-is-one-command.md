@@ -10,8 +10,8 @@ A workflow spans several transactions. One job holding three of them retries ste
 already committed, so deferral belongs to the steps and never to the sequence. A query
 answers shapes to a caller, and a deferred query answers nothing to nobody.
 
-So `call_later` exists on the writing doors alone — and the guard that admits it is told which
-kinds those are. Putting it on a flat list of permitted messages let `SomeWorkflow.call_later`
+So `call_later` exists on the writing operations alone — and the guard that admits it is
+told which kinds those are. Putting it on a flat list of permitted messages let `SomeWorkflow.call_later`
 pass the build and fail in production with `NoMethodError`, which is a guard moving a failure
 rather than catching one.
 
@@ -26,15 +26,15 @@ double-applies turns one retry into two charges.
 ## The Result describes the enqueue, never the work
 
 `success(:enqueued)` means it was accepted. There is no caller to tell what happened, which is
-why [`every-door-reports-what-it-did`](every-door-reports-what-it-did.md) is what makes this
-legal at all: the deferred outcome is recorded exactly where a synchronous one is.
+why [`every-operation-reports-what-it-did`](every-operation-reports-what-it-did.md) is what
+makes this legal at all: the deferred outcome is recorded exactly where a synchronous one is.
 
-**A raise retries; a `failure` does not.** A failure is expected and the door has already
+**A raise retries; a `failure` does not.** A failure is expected and the operation has already
 recorded it, so repeating it would repeat a decision that will not change.
 
 ## Everything that goes on the queue must survive the trip
 
-Two things follow, and both are refused at the door rather than discovered in the job:
+Two things follow, and both are refused at enqueue rather than discovered in the job:
 
 - **The arguments are asserted at enqueue.** The operation is built and thrown away, so
   `call_later` refuses exactly what `call` refuses. Without it a wrong type was accepted,
@@ -48,9 +48,9 @@ Two things follow, and both are refused at the door rather than discovered in th
   `Schedules` row on the call graph, on the grounds that application code should never name a
   job class.
 - **Principle:** `good-boundaries-make-good-neighbours`
-- **Guard:** the generated `operation_job.rb` and the three writing doors — architecture. The
-  door asserts, refuses an unnameable actor, and enqueues; the job rebuilds the actor and
-  calls the door. `perform_later` appears nowhere else, so the call graph needs no edge to an
+- **Guard:** the generated `operation_job.rb` and the three writing operations — architecture.
+  The operation asserts, refuses an unnameable actor, and enqueues; the job rebuilds the
+  actor and calls the operation. `perform_later` appears nowhere else, so the call graph needs no edge to an
   entry point and the rule that nothing may call one stays absolute. Proven by
   `generated_base_classes_test.rb`, a listed suite guard.
 - **Guard:** `Shipshape/OnlyTheDoorIsCalled`, whose `DeferrableKinds` decides which kinds may

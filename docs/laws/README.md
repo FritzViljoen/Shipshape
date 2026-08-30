@@ -30,7 +30,7 @@ not make it hold.
 | [`io-is-its-own-kind`](io-is-its-own-kind.md) | `good-boundaries-make-good-neighbours` |
 | [`personal-data-is-declared-and-erasable`](personal-data-is-declared-and-erasable.md) | `nothing-is-hidden` |
 | [`a-command-runs-twice`](a-command-runs-twice.md) | `tell-dont-ask` |
-| [`every-door-reports-what-it-did`](every-door-reports-what-it-did.md) | `nothing-fails-quietly` |
+| [`every-operation-reports-what-it-did`](every-operation-reports-what-it-did.md) | `nothing-fails-quietly` |
 | [`deferral-is-one-command`](deferral-is-one-command.md) | `good-boundaries-make-good-neighbours` |
 | [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
