@@ -171,6 +171,11 @@ def edges
   return puts(JSON.pretty_generate(report.uncovered.map(&:to_h))) || 0 if ARGV.include?("--json")
 
   puts "#{report.edges.length} edges, #{report.actions} actions."
+
+  if report.covered.empty? && !report.edges.empty?
+    warn "No edge is named anywhere in test/ or spec/. Check the suite is where this expects"
+    warn "it — a repository that keeps tests per engine reads as entirely untested otherwise."
+  end
   puts
 
   if report.ready?

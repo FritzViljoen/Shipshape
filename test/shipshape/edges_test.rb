@@ -84,6 +84,18 @@ class EdgesTest < Minitest::Test
     assert_empty report.edges
   end
 
+  # **A monorepo keeps its suites per engine.** Solidus has `core/spec` and no top-level
+  # `spec/`, and looking only at the root reported every one of its 111 edges untested — a
+  # false 100%, which sends somebody writing tests that already exist.
+  def test_a_suite_one_level_down_still_counts
+    report = report_for(
+      "app/controllers/stories_controller.rb" => CONTROLLER,
+      "core/spec/requests/stories_spec.rb" => "RSpec.describe StoriesController do\nend\n",
+    )
+
+    assert_empty report.uncovered
+  end
+
   private
 
   def report_for(files)

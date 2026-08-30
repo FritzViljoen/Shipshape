@@ -14,7 +14,11 @@ module Shipshape
   class TestMentions
     include TypedArguments
 
-    DIRECTORIES = %w[test spec].freeze
+    # **One level deep as well as at the root.** A monorepo keeps its suites per engine —
+    # solidus has `core/spec`, `api/spec`, `admin/spec` and no top-level `spec/` at all — and
+    # looking only at the root found nothing there and reported every edge untested. A false
+    # 100% sends somebody writing tests that already exist.
+    DIRECTORIES = %w[test spec */test */spec].freeze
 
     # Ruby's own vocabulary, and the words every test file contains anyway. Matching these
     # would mark everything covered.

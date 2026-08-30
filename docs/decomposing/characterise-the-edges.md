@@ -53,8 +53,14 @@ says `get "/stories"`, a controller spec says `describe StoriesController`, and 
 them name the action. Matching `show` against a suite answers yes for any file containing the
 word — the flattering answer, and the dangerous one.
 
-**Check:** the count is a number you recognise. If it is zero, check that a tree is declared —
-until one is, nothing looks at it and this reports a clean zero.
+Measured across seven public Rails codebases: **1,871 edges, 4,940 actions, and between 18%
+and 63% of them named by nothing in the suite.** That is the work this step is asking for, and
+it is why it is a step rather than a sentence in someone's head.
+
+**Check:** the count is a number you recognise, and the covered count is not zero. Two ways to
+get a confident wrong answer here, and both have happened: a tree nobody declared reports a
+clean zero, and a suite the command could not find reports everything untested. It warns on
+the second.
 
 ---
 
