@@ -118,35 +118,50 @@ the argument for doing the work.
 
 ---
 
-## 4. Cache — sanctioned, last resort, and it must say what invalidates it
+## 4. Cache — sanctioned, last resort, and it carries three rules
 
 A saved query answer, kept because the query is genuinely too slow. **Legitimate, and the last
 thing to reach for.**
 
-**Name it `*_cache_record`.** The naming half of "the two hard problems" is free now; there is
-no excuse left for a cache that does not announce itself, and one word in the name makes every
-cache in the system greppable. What is not free is invalidation, which is the entire remaining
-cost — so the gate is:
+**Name it `{query_name}_cache_record`.** `ListOrderTotals` gets `ListOrderTotalsCacheRecord`.
+The name is not decoration: it says which query owns the row, so the pairing is derivable in
+both directions and every cache in the system is one grep away. The naming half of "the two
+hard problems" is free now, which leaves invalidation as the entire remaining cost — so there
+is no excuse left for a cache that does not announce what it is a cache *of*.
 
-> **You may add a cache record when you can name what invalidates it.** Slowness is the
-> motivation, not the permission.
+**It always has a matching Query, and that query rebuilds it.** Not "the source still exists
+somewhere" — one query, named by the record, which returns exactly what the record holds.
+Rebuilding is running it. A cache record with no matching query is not a cache; it is a
+denormalisation that has been given a reassuring name.
 
-Four obligations, all of them consequences of it being a cache and not a fact:
+**Invalidation happens in the commands that wrote the rows the query reads.** Not a TTL, not a
+callback, not a subscriber — the command that changed the underlying data is the thing that
+knows the cache is now wrong, and it says so in the same transaction as the write
+([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md)). There is no window
+in which the rows have moved and the cache has not.
 
-- **the query still exists**, and it is the source of truth
-- **nothing writes to the record** except the thing that rebuilds it from that query
-- **dropping it loses nothing** — if dropping it loses information, it is a snapshot wearing a
-  cache's name, and it is now a snapshot with no protection
-- **the event that makes it stale is written down**, next to the record
+**This is only enumerable because the query is a class.** A query is one read in one file, so
+its source tables can be listed; from those, the commands that write them can be listed; and
+that set is exactly the set that must invalidate. In a codebase where reads are scope chains
+scattered across models, nobody can produce that list, which is why cache invalidation is hard
+there and merely tedious here.
+
+```sh
+# the query names its tables; these are the commands that must invalidate
+grep -rn "OrderLineRecord\|OrderRecord" app/commands app/io_commands
+```
 
 **Reach for it last**, after the cheaper answers: an index
 ([an unindexed foreign key](an-unindexed-foreign-key.md)), a bound
-([an unbounded read](an-unbounded-read.md)), or the query doing its work in the database
-rather than in Ruby.
+([an unbounded read](an-unbounded-read.md)), or the query doing its work in the database rather
+than in Ruby. Slowness is the motivation, not the permission.
 
-**Check:** drop the table in a staging environment and rebuild it from the query. Nothing is
-lost and nothing else broke — and if that is not a thing you are willing to try, you have a
-denormalisation with a better name.
+**Check:** drop the table in a staging environment and rebuild it by running the query. Nothing
+is lost and nothing else broke. If dropping it loses information, it is a snapshot wearing a
+cache's name; if you are unwilling to try it, you have a denormalisation with a better name.
+
+**Check:** every command in the list above either invalidates the cache or is one you can say
+does not touch what the query reads.
 
 ---
 
@@ -166,9 +181,16 @@ a rebuild.
 
 ## What none of this proves
 
-**Nothing here is checkable by a guard**, and that is why it is a procedure. All four look the
-same in `db/schema.rb`: a column holding a value that appears elsewhere. The classification
-lives in why the write happens, which no cop reads.
+**The classification is not checkable by a guard**, and that is why this is a procedure. All
+four look the same in `db/schema.rb`: a column holding a value that appears elsewhere. Why the
+write happens is not in the schema, and no cop reads a reason.
+
+**The cache's pairing is checkable, and that is a cop that could exist.** `{query_name}_cache_record`
+makes the query's name derivable from the record's, so a guard could fail a `*CacheRecord` with
+no matching `Query` class — the shape this procedure calls a denormalisation with a reassuring
+name. It has not been written. What no guard can add is the other half: that every command
+writing the query's source tables invalidates it, which needs to know what the query reads, and
+that is the judgement in step 4.
 
 **And a label is not an invalidation.** Writing `_cache_record` on the end of a name records
 the decision; it does not rebuild anything, and a cache with a name and no rebuild path is the
