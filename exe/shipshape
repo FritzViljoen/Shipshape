@@ -65,7 +65,7 @@ end
 # from the cop registry, so it cannot fall behind the code — regenerate it, never edit it.
 def rules
   store = RuboCop::ConfigStore.new
-  target = ARGV.include?("--out") ? ARGV[ARGV.index("--out") + 1] : "CLAUDE.md"
+  target = option("out", "CLAUDE.md")
 
   if File.exist?(target) && !ARGV.include?("--force")
     warn "shipshape: #{target} exists. It is generated — regenerate with --force, or pass"
@@ -85,7 +85,7 @@ end
 # one known violation per cop, under this application's own paths, and fails on any cop that
 # stayed silent.
 def canaries
-  root = ARGV.include?("--dir") ? ARGV[ARGV.index("--dir") + 1] : Shipshape::Canaries::DIRECTORY
+  root = option("dir", Shipshape::Canaries::DIRECTORY)
   canaries = Shipshape::Canaries.new(config: RuboCop::ConfigStore.new.for_pwd, root: root)
 
   if ARGV.include?("--plant")
@@ -136,13 +136,31 @@ end
 # the layout, and nothing of the application's config — or its plugins — is loaded at all.
 def config_store
   store = RuboCop::ConfigStore.new
-  path = ARGV.include?("--config") ? ARGV[ARGV.index("--config") + 1] : nil
+  path = option("config")
   store.options_config = path if path
   store
 end
 
 def chosen_config
-  ARGV.include?("--config") ? ARGV[ARGV.index("--config") + 1] : nil
+  option("config")
+end
+
+# **Both spellings, because only one of them worked.** `--config path` was read and
+# `--config=path` was ignored in silence — the run then measured with the application's own
+# config, or with none, and said nothing about it. A flag quietly dropped is worse than one
+# refused, so a value that is missing or is itself a flag raises here.
+def option(name, default = nil)
+  flag = "--#{name}"
+  joined = ARGV.find { |argument| argument.start_with?("#{flag}=") }
+  return joined.split("=", 2).last if joined
+
+  index = ARGV.index(flag)
+  return default unless index
+
+  value = ARGV[index + 1]
+  raise Shipshape::Error, "shipshape: #{flag} needs a value" if value.nil? || value.start_with?("--")
+
+  value
 end
 
 # A file that resolves to no kind is skipped by every kind-scoped cop, silently and
@@ -215,7 +233,7 @@ def edges
 end
 
 def next_work
-  count = ARGV.include?("--count") ? ARGV[ARGV.index("--count") + 1].to_i : 3
+  count = option("count", "3").to_i
   units = Shipshape::Queue.new(root: Dir.pwd).call(limit: count)
 
   return puts("Nothing left. Every file this configuration reaches is clean.") || 0 if units.empty?
@@ -286,6 +304,7 @@ end
 
 command = ARGV.shift
 
+begin
 case command
 when "install" then exit install(ARGV.include?("--auth"), ARGV.include?("--view-components"))
 when "rules" then exit rules
@@ -294,12 +313,19 @@ when "coverage" then exit coverage
 when "edges" then exit edges
 when "next" then exit next_work
 when "report" then exit report
-when "check" then exit check(ARGV.include?("--trunk") ? ARGV[ARGV.index("--trunk") + 1] : nil)
+when "check" then exit check(option("trunk"))
 when "version", "--version", "-v" then puts Shipshape::VERSION
 else
-  warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant] | coverage | edges | next | check | report | version"
-  warn "       shipshape report"
-  warn "       shipshape check [--trunk <ref>]"
+  warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant]"
+  warn "       shipshape coverage [--config <path>] | edges [--config <path>] | next | report"
+  warn "       shipshape check [--trunk <ref>] [--config <path>]"
   warn "       shipshape version"
+  exit 1
+end
+# **The gem's own errors are messages, not backtraces.** Every one of them is written for a
+# reader — a config that cannot work, a flag with no value — and a stack trace buries the
+# sentence that says what to do.
+rescue Shipshape::Error => e
+  warn e.message
   exit 1
 end
