@@ -7,8 +7,15 @@ one: what it is for, where it usually goes wrong, and what shipshape does about 
 Its companion, [what shipshape covers](rails-failure-patterns.md), takes the same subject from
 the other end — the failures themselves, and which of them a guard actually catches.
 
-**The shape of nearly every answer here is the same: keep the half that was worth having and
-refuse the half that costs.** CQRS is the clearest case. What it is for is that a read cannot
+**Two rules do most of the work below, and they are worth stating before the tables.** An
+operation is sized by **authorisation** — it is an auth container, big enough to be permitted or
+refused whole and no bigger — and split by **direction**, into a thing that writes and a thing
+that reads. "How big should this service be?" and "may this one class do both?" are the two
+questions the service-object pattern never answers, and most of what goes wrong downstream
+follows from that.
+
+**Otherwise the shape of nearly every answer here is the same: keep the half that was worth
+having and refuse the half that costs.** CQRS is the clearest case. What it is for is that a read cannot
 write and a write is not shaped like a read. What it costs is two models, two paths, and
 projections nobody maintains. So this canon splits reads from writes **at the operation** —
 `Command` and `Query`, enforced by `Shipshape/QueriesOnlyRead` — over one table, one record
@@ -29,7 +36,7 @@ Read the verdicts as:
 
 | Pattern | Where it goes wrong | What this canon does |
 |---|---|---|
-| **Service objects** — one class, one `call`, logic out of controllers and models | The `call` grows to 200 lines, or you end up with 400 of them in one flat directory and no structure | **Is this.** `Command` is exactly it. `one-operation-one-class` holds the first failure; the kind globs hold the second, because namespacing by domain is what the layout is made of rather than a convention somebody has to keep |
+| **Service objects** — one class, one `call`, logic out of controllers and models | Three ways. The `call` grows to 200 lines. You end up with 400 of them in one flat directory. And the one that compounds: services start calling services, which rewards splitting into ever smaller services that then need each other, until the call graph is real, undeclared and unreadable | **Is this, with a sizing rule and a direction.** What decides how big an operation is, is **authorisation**: it is an auth container, sized so it can be permitted or refused whole (`one-operation-one-class`), and split by direction into `Command` and `Query`. Sister calls are refused *before the matrix is consulted*, so no configuration can permit one — a command sequencing commands is a workflow that never said so, and a query composing queries is the read that becomes an N+1. The flat directory is the kind globs' business |
 | **Result objects** — return `Success`/`Failure` rather than `true`/`nil`/raise | Nothing, except reaching for a gem to get twenty lines | **Is this.** `an-operation-answers-a-result`, and the `Result` is hand-rolled and installed into your repository — `code-is-written-not-generated`, because a base class you can read and edit beats a dependency you cannot |
 | **Value objects** — `Money`, `EmailAddress`, `DateRange` as real types | Cheap and high payoff, and most teams never do it | **Is this.** `arguments-are-typed-at-construction` and `a-shape-is-composed-not-flattened` assume the types exist; [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md) is how you find the ones that should |
 | **Query objects** — a complex scope chain in a class | Common advice is to return a relation, so the caller can chain further | **Is this, with one disagreement.** A `Query` returns **shapes, not relations**. A relation hands the caller a live record and an open invitation to keep querying, which is what `an-operation-is-a-leaf` and the call graph exist to stop. This is the one piece of usual advice here that shipshape rejects outright |
