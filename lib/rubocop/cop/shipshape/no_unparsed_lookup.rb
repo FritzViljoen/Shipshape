@@ -6,24 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the lookup half of `input-is-parsed-at-the-seam`.
-      #
-      # **`find(params[:id])` works, which is the trap.** The adapter coerces the string, so
-      # `/people/1abc` serves person 1 and nothing anywhere fails. There is no exception to
-      # find, no log line, and no test that fails — the request was wrong and the answer
-      # looked right.
-      #
-      # WHAT IT DOES NOT CATCH: the finder list is **closed**, so a finder it does not name
-      # is uncovered. The parameter must be reached syntactically inside the call, so a local
-      # assigned from `params` earlier is invisible. Views are not covered.
-      #
-      # @example
-      #   # bad — /people/1abc serves person 1, silently
-      #   PersonRecord.find(params[:id])
-      #   BookingRecord.where(state: params[:state])
-      #
-      #   # good — parsed once, at the edge, and refused if it is not what it claims
-      #   PersonRecord.find(integer_param!(:id))
-      #   BookingRecord.where(state: enum_param!(:state, %w[held sold]))
       class NoUnparsedLookup < Base
         include ReadsKinds
         extend AutoCorrector
@@ -49,7 +31,6 @@ module RuboCop
 
         private
 
-        # In an argument, in a hash value, nested any depth down.
         def param_reads(argument)
           found = []
           found << argument if params_read?(argument)
@@ -65,16 +46,10 @@ module RuboCop
           receiver&.send_type? && receiver.method_name == :params && receiver.receiver.nil?
         end
 
-        # **Only `find(params[:id])` is corrected**, and only positionally: that is the
-        # primary key, and Rails makes it an integer.
-        #
-        # Nothing else is safe, because **the parser cannot be derived from a name**. This
-        # was found by running the correction over lobsters, where
-        # `where(short_id: params[:story_id])` was rewritten to `integer_param!` — `short_id`
-        # is base 36, and the correction would have broken every one of those lookups. A
-        # `_id` suffix says nothing about the type; only the column does, and the column is
-        # not in the source. Everything else is reported and left for a person, because
-        # replacing a silent wrong answer with a confident one is worse than the offence.
+        # Only `find(params[:id])`, positionally: that is the primary key and Rails makes it an
+        # integer. The parser cannot be derived from a name — over lobsters
+        # `where(short_id: params[:story_id])` was rewritten to `integer_param!`, and
+        # `short_id` is base 36. Everything else is reported and left for a person.
         def correction_for(read)
           return unless positional_find?(read)
 

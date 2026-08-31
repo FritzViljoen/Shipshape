@@ -6,34 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `every-operation-reports-what-it-did` over the **installed** base classes.
-      #
-      # The generated base classes record every attempt, and this gem's own suite proves each
-      # of them does. That proof covers the templates. **It covers nothing once they are
-      # installed**, because a generated file is the application's to edit — and a base class
-      # that quietly lost its audit call disables the trail for every operation of that kind
-      # while nothing else fails. Exactly the gap `Shipshape/EveryDoorChecksPermission` exists
-      # to close for the permission check, and this is its sibling.
-      #
-      # **A query is not here.** A read is not an attempt to change anything, and recording
-      # every read is how an audit log becomes a log.
-      #
-      # WHAT IT DOES NOT CATCH: it looks for the message `AuditLog.record` anywhere in the
-      # file, so an application that renamed the recorder, or wrapped it, reads as missing —
-      # a false positive to be argued rather than suppressed. It cannot tell an entry that is
-      # written from one that is written *correctly*, or that the call is on a path that runs.
-      # It says nothing about an operation that reaches the database without going through a
-      # base class at all.
-      #
-      # @example
-      #   # bad — app/shipshape/command.rb with the line deleted
-      #   def self.call(**arguments)
-      #     result = ActiveRecord::Base.transaction { new(**arguments).__perform__ }
-      #     result
-      #   end
-      #
-      #   # good
-      #   AuditLog.record(operation: name, outcome: result.success? ? :succeeded : :failed,
-      #                   error: result.error)
       class OperationsReportWhatTheyDid < Base
         include Explains
 

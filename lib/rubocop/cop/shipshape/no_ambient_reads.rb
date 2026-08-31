@@ -7,26 +7,6 @@ module RuboCop
     module Shipshape
       # Holds the entering half of `nothing-travels-off-the-call-path`, and the ambient-zone
       # half of `a-time-names-its-zone`.
-      #
-      # An operation reads what it was given. The current time, the current user, a thread
-      # local, an environment variable, a setting fetched mid-operation — each is a
-      # dependency that is not on the call path, so the call site cannot see it and the test
-      # cannot set it without reaching around the object.
-      #
-      # WHAT IT DOES NOT CATCH: the list is **closed**, so a new ambient source is uncovered
-      # until it is named here — the list is the authority on what the law means in practice.
-      # A `send`-based read is invisible, as is a gem reading ambient state on your behalf.
-      #
-      # @example
-      #   # bad — nobody at the call site chose this
-      #   def call
-      #     BookingRecord.where("starts_at > ?", Time.now)
-      #   end
-      #
-      #   # good — the caller knows where it is running; the operation does not
-      #   def initialize(now:)
-      #     @now = typed(now, ActiveSupport::TimeWithZone)
-      #   end
       class NoAmbientReads < Base
         include ReadsKinds
 

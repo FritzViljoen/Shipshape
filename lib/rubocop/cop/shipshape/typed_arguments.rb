@@ -6,33 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `arguments-are-typed-at-construction`.
-      #
-      # Every keyword an operation takes passes through a type guard, in a hand-written
-      # initializer, once. Past that line nothing re-checks: a failure at the guard is the
-      # caller's defect, and after it the operation's own.
-      #
-      # **Anything that is not a named keyword is its own offence** — `**rest`, `(...)`, a
-      # positional parameter — because a keyword-less initializer silently accepts the
-      # caller's keywords as one Hash and the call succeeds, which is worse than failing.
-      #
-      # WHAT IT DOES NOT CATCH: it checks that a keyword **is** guarded, never that the type
-      # named is the right one — `typed(person, Date)` passes. It cannot see a guard called
-      # through a helper it does not know by name.
-      #
-      # @example
-      #   # bad — the keyword is stored unasserted
-      #   def initialize(on:)
-      #     @on = on
-      #   end
-      #
-      #   # bad — a keyword-less initializer swallows the caller's keywords as one Hash
-      #   def initialize(**options)
-      #
-      #   # good
-      #   def initialize(on:, party:)
-      #     @on = typed(on, Date)
-      #     @party = typed(party, Party)
-      #   end
       class TypedArguments < Base
         include ReadsKinds
 

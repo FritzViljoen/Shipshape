@@ -5,46 +5,6 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `io-is-its-own-kind` (docs/laws/io-is-its-own-kind.md).
-      #
-      # **The call matrix cannot see this.** It stops a command reaching `io_command` and
-      # `io_query`, which are the kinds that talk to the outside — but `Net::HTTP` belongs to
-      # a gem, resolves to no file under any declared glob, and is therefore skipped. So the
-      # rule held for IO an application had filed as a kind and not for IO written inline,
-      # which is the form it actually arrives in.
-      #
-      # **The cost is the transaction.** A command is exactly one transaction, opened by the
-      # base class before `call` runs. An HTTP request inside it holds a database connection
-      # open across a network round trip — for a timeout, for a retry, for however long the
-      # far end takes. A query is worse: it has no transaction to blame, so a slow call there
-      # is a read nobody thinks twice about.
-      #
-      # **The list is the fact, not a description of one.** Being named here is what makes a
-      # constant IO; nothing infers it. That is why it cannot go stale — a client this list
-      # does not know is invisible rather than wrongly classified, and an application adds its
-      # own vendors to `Constants`.
-      #
-      # WHAT IT DOES NOT CATCH: a client the list does not name — every vendor SDK, and every
-      # wrapper an application wrote around one. IO reached through a local or handed in as a
-      # collaborator, since there is no constant to read. And the filesystem: `File` and `Dir`
-      # are deliberately absent from the defaults, because `File.join` is a string operation
-      # and separating it from `File.read` needs a per-constant method list that would drift.
-      # An application that wants them adds them. **Tests are exempt.**
-      #
-      # @example
-      #   # bad — in a command, which is holding a transaction open across the network
-      #   class SettleInvoice < Command
-      #     def call
-      #       Net::HTTP.post(uri, body)
-      #     end
-      #   end
-      #
-      #   # good — the call is its own operation, and a workflow sequences the two
-      #   class ChargeCard < IoCommand
-      #     def call
-      #       success(Net::HTTP.post(uri, body))
-      #     end
-      #   end
       class IoIsItsOwnKind < Base
         include ReadsKinds
 

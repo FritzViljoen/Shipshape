@@ -6,34 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the second half of `personal-data-is-declared-and-erasable`.
-      #
-      # **An association with no `dependent:` decides nothing, and the default is to leave the
-      # children behind.** Delete a user and their comments remain, pointing at an id that no
-      # longer resolves. For an erasure request that is the whole failure: the row the person
-      # asked about is gone, and everything they wrote is still there with their name on it.
-      #
-      # The point is not that `:destroy` is right. Often it is not — comments usually should
-      # survive, anonymised. **The point is that nobody chose.** `dependent:` is where the
-      # choice is written, and an association without one is the only shape where the answer
-      # is decided by ActiveRecord's default rather than by a person.
-      #
-      # This is also the cheapest erasure guard there is: it needs no inventory, no
-      # declaration and no schema — the answer is in the association line.
-      #
-      # WHAT IT DOES NOT CATCH: whether the option chosen is the right one. `dependent:
-      # :destroy` on something that should have been anonymised passes, and so does
-      # `:nullify` on a column the schema declares NOT NULL — which fails at runtime, on the
-      # delete, which is the worst moment to find out. It says nothing about rows in another
-      # database, another service, or a warehouse. **Tests are exempt.**
-      #
-      # @example
-      #   # bad — the children outlive the parent and nobody decided that
-      #   has_many :comments
-      #
-      #   # good — any of these, because each one is a decision
-      #   has_many :comments, dependent: :destroy
-      #   has_many :comments, dependent: :nullify
-      #   has_many :comments, dependent: :restrict_with_error
       class AssociationsSurviveErasure < Base
         include ReadsKinds
 

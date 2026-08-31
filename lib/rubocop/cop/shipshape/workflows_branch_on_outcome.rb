@@ -6,38 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the workflow half of `no-decisions-in-request-handling`.
-      #
-      # **A workflow is closer to a controller than to a command.** It sequences; it does not
-      # work. It opens no transaction of its own, it writes nothing, and the only thing it is
-      # entitled to know about a step is whether the step succeeded.
-      #
-      # So it branches on the **outcome** — `success?`, `failure?`, the error code — and never
-      # on what the step answered with. `charge.value.total > 100` is a rule about totals
-      # living in the coordinator, where it applies to one sequence instead of to every caller
-      # of the thing that owns totals.
-      #
-      # **`Shipshape/NoDecisionsInRequestHandling` cannot reach this**, which is why it is a
-      # second cop rather than a wider `Kinds` list. That one looks for an instance variable
-      # being interrogated, because a controller's subject is `@story`; a workflow's is a
-      # local holding the last step's `Result`, and adding locals to that cop would fire on
-      # every controller branching on something it parsed.
-      #
-      # WHAT IT DOES NOT CATCH: it keys on the message `value`, so a decision made from
-      # something a workflow fetched another way — a query result assigned earlier, a constant
-      # — is invisible. A local that happens to answer `value` and is not a `Result` is a false
-      # positive, to be argued rather than suppressed. It says nothing about a decision made
-      # outside a condition, because passing a value on is the whole point of having one.
-      # **Tests are exempt.**
-      #
-      # @example
-      #   # bad — a rule about totals, living in the sequence
-      #   if charge.value.total > 100
-      #
-      #   # good — the only thing a workflow is entitled to know
-      #   return failure(charge.error) if charge.failure?
-      #
-      #   # good — the step decides, and says so in its code
-      #   if charge.error == :over_limit
       class WorkflowsBranchOnOutcome < Base
         include ReadsKinds
 

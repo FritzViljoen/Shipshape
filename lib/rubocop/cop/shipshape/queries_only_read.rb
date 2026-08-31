@@ -5,40 +5,7 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-query-only-reads` (docs/laws/a-query-only-reads.md).
-      #
-      # **A query is one read.** It may reach a record — that is its whole job, and the call
-      # matrix allows it — so `Shipshape/CallGraph` has nothing to say when the read turns out
-      # to be a `create!`. The matrix governs *which kinds talk*, never *what they say*, and a
-      # query writing through a record is the one defect that gap leaves open.
-      #
-      # It matters more than it looks. A query has no transaction, because a read needs none:
-      # the generated `Query` deliberately opens nothing. So a write from inside one runs
-      # outside any transaction this canon knows about, and a caller sequencing two queries
-      # has no rollback for the second — while every name involved says nothing happened.
-      #
-      # WHAT IT DOES NOT CATCH: the write has to be rooted in a **record constant this
-      # configuration resolves**. `PersonRecord.create!` and `PersonRecord.find(1).update!` are
-      # seen; a write through a local, an ivar, or a value handed back by another object is
-      # not — there is no constant to resolve and nothing that says what the receiver holds.
-      # It reads method names, so a writer this list does not know is invisible, and a method
-      # of the same name on something that is not a record is a false positive.
-      # **Tests are exempt.**
-      #
-      # @example
-      #   # bad
-      #   class ListPeople < Query
-      #     def call
-      #       PersonRecord.create!(name: "x")
-      #     end
-      #   end
-      #
-      #   # good — the write is a command, and a workflow sequences the two
-      #   class CreatePerson < Command
-      #     def call
-      #       success(PersonRecord.create!(name: @name))
-      #     end
-      #   end
+      # Holds `a-query-only-reads`.
       class QueriesOnlyRead < Base
         include ReadsKinds
 

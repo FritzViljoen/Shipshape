@@ -24,4 +24,9 @@ namespace :test do
   end
 end
 
-task default: :test
+desc "Hold this gem to `a-comment-is-a-second-copy`, the one cop that is not kind-scoped"
+task :lint do
+  sh "rubocop --config .rubocop-dogfood.yml"
+end
+
+task default: %i[test lint]

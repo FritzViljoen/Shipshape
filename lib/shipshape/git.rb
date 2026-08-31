@@ -5,12 +5,8 @@ require "shipshape/error"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The only place that shells out to git.
-  #
-  # Every call goes through `Open3.capture3` with an argument array — never a shell string —
-  # so a branch name containing a space, a semicolon or a backtick is an argument and not a
-  # command. A double-quoted shell string is how a gate hook silently became a no-op in the
-  # sibling repository, and this is the same hazard one layer down.
+  # The only place that shells out to git, always through an argument array and never a shell
+  # string: a branch name holding a semicolon or a backtick is an argument, not a command.
   class Git
     include TypedArguments
 
@@ -18,16 +14,12 @@ module Shipshape
       @root = typed(root, String)
     end
 
-    # The commit the branch diverged from. That, and not the tip of the trunk, is the right
-    # baseline: an offence somebody else added to the trunk after you branched is not yours,
-    # and comparing against the tip would hand you their bill.
+    # The merge base, not the tip: an offence added to the trunk after you branched is not
+    # yours, and comparing against the tip would hand you their bill.
     def merge_base(trunk)
       run("merge-base", "HEAD", typed(trunk, String)).strip
     end
 
-    # `origin/HEAD` is what the remote says its default branch is, so nothing here has to
-    # guess between main and master. A repository without it says so rather than being
-    # guessed at.
     def default_trunk
       run("rev-parse", "--abbrev-ref", "origin/HEAD").strip
     rescue Error
@@ -35,9 +27,6 @@ module Shipshape
                    "`git remote set-head origin --auto`."
     end
 
-    # A detached worktree at one commit, removed afterwards whether or not the block raised.
-    # The application's own tree is never checked out, moved or stashed — a tool that
-    # disturbs the working copy to measure it is one nobody runs twice.
     def at(sha)
       path = Dir.mktmpdir("shipshape-base")
       run("worktree", "add", "--detach", "--quiet", path, typed(sha, String))

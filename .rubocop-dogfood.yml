@@ -1,0 +1,22 @@
+# `rake lint`. Deliberately NOT named `.rubocop.yml`: RuboCop merges every ancestor config into
+# the one it finds, so a file at this root reached into `test/canaries/` and its `Exclude` took
+# all 35 planted violations out of inspection — every canary went silent while passing.
+#
+# The one cop that is not scoped at an application's operations. The rest read kinds —
+# command, query, record — and this repository has none.
+require:
+  - ./lib/rubocop/cop/shipshape/comment_budget
+
+AllCops:
+  DisabledByDefault: true
+  NewCops: disable
+  Include:
+    - 'lib/**/*.rb'
+    - 'test/**/*.rb'
+    - 'exe/*'
+  Exclude:
+    - 'test/canaries/**/*'
+    - 'tmp/**/*'
+
+Shipshape/CommentBudget:
+  Enabled: true

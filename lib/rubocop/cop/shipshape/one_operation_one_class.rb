@@ -5,48 +5,6 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `one-operation-one-class` (docs/laws/one-operation-one-class.md).
-      #
-      # An operation is a class with one public method, `call`, taking keyword arguments.
-      # A second public method is a second operation, and it gets a second class.
-      #
-      # `call` itself stays public, and the guard that keeps a caller out of it is
-      # `Shipshape/OnlyTheDoorIsCalled`, which refuses `SettleInvoice.new` at the call site —
-      # so nobody can hold an operation to call anything on. Hiding `call` too was tried and
-      # dropped: it bought a runtime backstop against a hole already refused, and cost the
-      # shape every Rails developer already writes.
-      #
-      # The uniform shape is what lets one wrapper serve every call site — logging,
-      # instrumentation, an audit trail, a migration seam. Four call conventions and none
-      # of those can exist. It is also what leaves a new case nowhere to go but a new
-      # class: a single-method class has no branch to grow.
-      #
-      # A collected parameter is refused as its own offence rather than tolerated, because
-      # it is a hole in every other rule that inspects a signature — a keyword-less
-      # initializer silently accepts a caller's keywords as one positional Hash and the
-      # call succeeds.
-      #
-      # WHAT IT DOES NOT CATCH, and the law says so too: it cannot tell whether the one
-      # method does one thing. A two-hundred-line `call` passes. Length is a separate
-      # concern and this cop does not cover it.
-      #
-      # @example
-      #   # bad — two public methods
-      #   class SettleMonth < Workflow
-      #     def call; end
-      #     def preview; end
-      #   end
-      #
-      #   # bad — a collected parameter
-      #   class CreatePerson < Command
-      #     def initialize(**options); end
-      #   end
-      #
-      #   # good
-      #   class CreatePerson < Command
-      #     def initialize(name:); end
-      #     def call; end
-      #   end
       class OneOperationOneClass < Base
         include VisibilityHelp
         extend AutoCorrector
@@ -71,17 +29,14 @@ module RuboCop
 
         READERS = %i[attr_reader attr_accessor attr_writer].freeze
 
-        # `initialize` is private in Ruby whatever the file says, and the law requires a
-        # hand-written one — so it is never the public method this cop is counting.
-        # `respond_to_missing?` is the same case: an override the language asks for.
+        # `initialize` is private whatever the file says, and `respond_to_missing?` is an
+        # override the language asks for. Neither is a public method this counts.
         NOT_PUBLIC = %i[initialize initialize_copy respond_to_missing?].freeze
 
         def on_class(node)
           return unless operation?
-          # **A nested class is a part, not the operation.** `ReplyDraft::Draft` is a shape,
-          # and a shape's whole job is to expose the fields it was handed — judging it by
-          # the operation's rules flags `attr_reader` on the one class that must have it.
-          # Found by using this on a real refactor rather than by reading it.
+          # A nested class is a part: judging `ReplyDraft::Draft` by the operation's rules
+          # flags `attr_reader` on the one class that must have it. Found on a real refactor.
           return if node.each_ancestor(:class).any?
 
           body = node.body
@@ -94,13 +49,8 @@ module RuboCop
           statements.each { |statement| check_reader(statement) }
         end
 
-        # Only the operation's own entry points. A private helper taking positional
-        # arguments is internal and nobody's business — the law is about what a CALLER may
-        # hand an operation, and a caller can hand it only `initialize` and `call`.
-        #
-        # This checked every `def` at first, and on a well-built application it reported
-        # sixteen offences that were all private helpers. A guard that fires on correct
-        # code is not strict, it is wrong, and it is how a cop gets disabled wholesale.
+        # Only the operation's own entry points: the law is about what a caller may hand one.
+        # Checking every `def` reported sixteen offences on a good application, all helpers.
         def on_def(node)
           return unless operation?
           return unless entry_point?(node)
@@ -173,12 +123,8 @@ module RuboCop
           node.method_name == :initialize || entry_names.include?(node.method_name.to_s)
         end
 
-        # **The entry point is defined here, never inherited.** The base class's `call` runs
-        # whichever of the two this class implements, so a class implementing neither has no
-        # work to run — and one that inherits its entry point from another operation is the
-        # shape `an-operation-is-a-leaf` refuses, where the parent's `anonymous_call` made
-        # the child public with nothing at the child saying so.
-        # Whatever its visibility — this asks only whether it is there at all.
+        # Defined here, never inherited: one inheriting its entry point is the shape
+        # `an-operation-is-a-leaf` refuses, where a parent's `anonymous_call` made the child
         def check_entry_point(node, statements)
           entries = definitions_in(statements).select do |definition|
             entry_names.include?(definition.method_name.to_s)
@@ -187,16 +133,13 @@ module RuboCop
           return add_offense(node.identifier, message: no_entry_point(node.identifier.source)) if entries.empty?
           return if entries.length == 1
 
-          # **Both, and both private, is a fail-open.** `anonymous?` answers true, so the base
-          # class dispatches to `anonymous_call` and the operation runs unauthenticated —
-          # while the file appears to define an authorised `call`. Visibility cannot catch
-          # this, because the correct shape is private too.
+          # Both, and both private, is a fail-open: `anonymous?` answers true and the operation
+          # runs unauthenticated while the file appears to define an authorised `call`.
           entries.drop(1).each { |entry| add_offense(entry, message: two_entry_points(entry)) }
         end
 
-        # `private def call; end` is a `send` wrapping a `def`, so a check that looks only at
-        # direct children misses it — and then reports the class as defining no entry point
-        # at all, which is the opposite of true.
+        # `private def call; end` is a `send` wrapping a `def`: looking only at direct children
+        # reports the class as defining no entry point at all.
         def definitions_in(statements)
           statements.flat_map do |statement|
             next statement if statement.def_type?
@@ -236,10 +179,8 @@ module RuboCop
           )
         end
 
-        # **Instance methods and class methods have different rules, and mixing them was a
-        # bug:** one list meant a class method counted towards the instance budget, so a
-        # command with `def self.for` had its perfectly correct `def call` reported as a
-        # third public method.
+        # Separate lists: one meant `def self.for` pushed a correct `def call` over the budget
+        # and reported it as a third public method.
         def check_methods(node, statements)
           public_defs = statements.select { |statement| public_method?(statement) }
 
@@ -247,36 +188,25 @@ module RuboCop
           check_class_methods(public_defs.select(&:defs_type?))
         end
 
-        # **The entry point, and nothing else.** `initialize` and `call` are what a caller
-        # hands arguments to; every other method is the operation's own business.
         def check_instance_methods(_node, definitions)
           helpers = definitions.reject { |definition| entry_names.include?(definition.method_name.to_s) }
 
           helpers.each_with_index do |definition, index|
             add_offense(definition, message: second_operation(definition)) do |corrector|
-              # **One `private` above the first helper fixes every one of them at once.**
-              # Attached to the first offence only — a second insert would stack two
-              # `private` lines. Indexed over the helpers, not over every definition: the
-              # entry point is usually first, and counting it meant the scaffold was pinned
-              # to an offence that never came.
+              # Attached to the first offence only, or a second insert stacks two `private`
+              # lines. Indexed over the helpers: the entry point is usually first.
               scaffold_private(corrector, definition) if index.zero?
             end
           end
         end
 
-        # **Above the first helper, below the entry point.** `initialize` and `call` stay
-        # public: what stops a caller reaching them is `Shipshape/OnlyTheDoorIsCalled`, which
-        # refuses `SettleInvoice.new` at the call site, so nobody can obtain an operation to
-        # call anything on. Hiding `call` as well bought a runtime backstop against a hole
-        # that already required constructing one — and cost the shape every Rails developer
-        # already writes.
+        # Above the first helper, below the entry point. `call` stays public because
+        # `Shipshape/OnlyTheDoorIsCalled` refuses `SettleInvoice.new` at the call site.
         def scaffold_private(corrector, definition)
           corrector.insert_before(definition, "private\n\n#{' ' * definition.loc.column}")
         end
 
-        # **None.** The only class method an operation has is the base class's `call`, and
-        # redefining that is `Shipshape/OperationsAreLeaves`' business — reporting it here
-        # too would be one defect wearing two offences.
+        # None: redefining the base class's `call` is `Shipshape/OperationsAreLeaves`' business.
         def check_class_methods(definitions)
           definitions.reject { |definition| definition.method?(expected_name.to_sym) }
                      .each { |definition| add_offense(definition, message: class_method(definition)) }
@@ -322,8 +252,6 @@ module RuboCop
           add_offense(node, message: exposed_state(node))
         end
 
-        # Every input is a named keyword. Anything else is refused with the reason spelled
-        # out, because "use keywords" without the why gets worked around rather than fixed.
         def check_parameter(argument)
           why = reason_to_refuse(argument)
           return if why.nil?
@@ -352,12 +280,8 @@ module RuboCop
           @expected_name ||= cop_config.fetch("PublicMethod", "call")
         end
 
-        # **A closed pair, not an open list.** `anonymous_call` is the second because the
-        # permission model requires it — an operation that runs before anyone is identified
-        # says so by which method it implements. Without this the canon forbade the shape it
-        # also demanded. A class defining BOTH is already refused as a second public method,
-        # which is the answer that matters: two entry points would be two operations with
-        # different authorisation wearing one class.
+        # A closed pair: an operation running before anyone is identified says so by which of
+        # the two it implements. Defining both is already refused as a second public method.
         def entry_names
           @entry_names ||= [expected_name, cop_config.fetch("AnonymousMethod", "anonymous_call")]
         end

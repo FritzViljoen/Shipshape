@@ -6,28 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the leaving half of `nothing-travels-off-the-call-path`.
-      #
-      # **This is the action-at-a-distance cop, and nothing else in the canon catches it.**
-      # The other guards work because the cause is findable by reading. Here the cause is
-      # perfectly visible and it is the *effect* that cannot be found: something changed, and
-      # the place it changed has no textual connection to the place that changed it.
-      #
-      # WHAT IT DOES NOT CATCH: the list is **closed**. **Reopening another class is not
-      # caught**, deliberately — nothing syntactic separates reopening from defining, and a
-      # guard that fires on an ordinary nested class is a guard somebody switches off.
-      # Mutating a collaborator reached
-      # *through* a handed-in object is legal here and can still act at a distance — nothing
-      # catches that. `send`-based writes are invisible, as is a gem doing this on your
-      # behalf.
-      #
-      # @example
-      #   # bad — the effect is unfindable from the code it breaks
-      #   $current_tenant = tenant
-      #   Settings::CACHE[:rate] = rate
-      #   Config.rate = rate
-      #
-      #   # good — it comes back as a value the caller can see
-      #   success(Receipt.new(tenant: tenant, rate: rate))
       class NoDistantWrites < Base
         include ReadsKinds
 
@@ -39,13 +17,10 @@ module RuboCop
           offend(node, "`#{node.children.first}` is a class variable shared with every subclass.")
         end
 
-        # Ruby spells comparison with a trailing `=` too, so a name ending in `=` is not
-        # enough to mean assignment. `Booking::HELD == @state` reads nothing and writes
-        # nothing, and reporting it was how this cop fired on every guard clause in the
-        # codebase.
+        # A name ending in `=` is not assignment: `Booking::HELD == @state` reads and writes
+        # nothing, and reporting it fired this cop on every guard clause in the codebase.
         COMPARISONS = %i[== != <= >= === =~ !~].freeze
 
-        # `SETTINGS[:rate] = 1` and `SETTINGS << row` — mutating a constant in place.
         def on_send(node)
           return if COMPARISONS.include?(node.method_name)
           return unless %i[[]= <<].include?(node.method_name) || node.method_name.to_s.end_with?("=")

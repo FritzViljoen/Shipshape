@@ -6,25 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the parsing half of `input-is-parsed-at-the-seam`.
-      #
-      # A parameter is a string somebody typed. Turning it into a Date or an Integer inline,
-      # in an action, turns a typo into a 500 — the parsers bounce instead, with the reason.
-      #
-      # `to_i` and `to_f` are **not** here: they cannot raise, so they are silent coercion
-      # and `Shipshape/NoSilentCoercion` holds them.
-      #
-      # WHAT IT DOES NOT CATCH: the method list is **closed**, so a parser it does not name
-      # is uncovered. The parameter must be reached syntactically inside the call, so a local
-      # assigned from `params` earlier is invisible. Views are not covered.
-      #
-      # @example
-      #   # bad — a typo here is a 500, and the reason never reaches the requester
-      #   Date.parse(params[:on])
-      #   Integer(params[:id])
-      #
-      #   # good — one parser, at the edge, that bounces with the reason
-      #   date_param!(:on, time_zone: time_zone_param!(:zone))
-      #   integer_param!(:id)
       class NoInlineParamParse < Base
         include ReadsKinds
         extend AutoCorrector
@@ -53,15 +34,12 @@ module RuboCop
             node.receiver && TYPES.include?(node.receiver.source.sub(/\A::/, ""))
         end
 
-        # `Integer(params[:id])` parses as a receiverless send.
         def conversion?(node)
           node.receiver.nil? && CONVERSIONS.include?(node.method_name)
         end
 
-        # **The date and time parsers are never corrected**, because their replacement takes a
-        # zone — `date_param!(:on, time_zone: ...)` — and which zone is a decision the source
-        # does not contain. `a-time-names-its-zone` says a zone nobody stated is a fact nobody
-        # declared, so inventing one here would be the cop writing the defect it forbids.
+        # Date and time are never corrected: the replacement takes a zone, and which zone is a
+        # decision the source does not contain. Inventing one writes the defect it forbids.
         CORRECTABLE = {
           Integer: "integer_param!",
           Float: "decimal_param!",
@@ -71,8 +49,7 @@ module RuboCop
 
         def correction_for(node)
           return unless node.receiver.nil?
-          # `Integer(params[:code], 16)` carries a base the rewrite would drop, turning
-          # "ff" from 255 into a bounce.
+          # `Integer(params[:code], 16)` carries a base the rewrite would drop.
           return unless node.arguments.length == 1
 
           parser = CORRECTABLE[node.method_name]
@@ -90,9 +67,6 @@ module RuboCop
           "#{parser}(#{key.value.to_sym.inspect})"
         end
 
-        # The example names the parser for the type actually being parsed. A generic one
-        # would be a rule restated rather than an answer, and the reader would still have to
-        # go and find which parser applies.
         def suggestion_for(named)
           case named
           when "Date" then "date_param!(:on, time_zone: time_zone_param!(:zone))"
@@ -123,8 +97,6 @@ module RuboCop
           )
         end
 
-        # `params[:id]`, `params.fetch(:id)`, `params.require(:booking)` — anywhere inside
-        # this call, at any depth.
         def reads_params?(node)
           node.each_descendant(:send).any? { |inner| inner.method_name == :params && inner.receiver.nil? }
         end

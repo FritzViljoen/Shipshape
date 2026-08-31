@@ -6,45 +6,8 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the call site's half of `an-operation-is-a-leaf`, and does not rely on `private`
-      # to do it.
-      #
-      # **Everything else guarding the door is a convention Ruby will step over.** `private`
-      # is not a wall, `private_class_method :new` is undone by `send`, and a subclass can
-      # make a private method public by redeclaring it. Each of those is worth having and
-      # none of them is a check. This is the check: read the call site, resolve the constant,
-      # and refuse any message an operation does not answer.
-      #
-      # `SettleInvoice.call(...)` is the door. `SettleInvoice.new`, `.build`, `.for`,
-      # `.__perform__` and anything else is refused wherever it is written, whatever the
-      # visibility of the thing it names.
-      #
-      # WHAT IT DOES NOT CATCH: the receiver must be a **constant this configuration can
-      # resolve to a governed file**. An operation held in a variable is invisible — a
-      # `command = SettleInvoice; command.new(...)` passes here, and so does anything reached
-      # through `constantize` or a registry lookup.
-      #
-      # **What catches those is the runtime, and it was checked rather than assumed.**
-      # `private_class_method :new, :allocate` refuses both through a variable, and an
-      # operation has no other public class method to call because
-      # `Shipshape/OneOperationOneClass` refuses declaring one. So the variable form fails on
-      # its first run; this cop's job is to fail it at build time instead, in the form people
-      # actually write. Chasing a constant through an assignment would buy the honest mistake
-      # nothing — that mistake is written as a constant — and would not stop a deliberate
-      # bypass, which has `constantize` either way.
-      #
-      # **Tests are exempt**: a test builds objects directly and reaches inside, which is what
-      # a test is for.
-      #
-      # @example
-      #   # bad
-      #   SettleInvoice.new(invoice_id: 1)
-      #   SettleInvoice.build_from(params)
-      #
-      #   # good
-      #   SettleInvoice.call(actor: actor, invoice_id: 1)
-      #
-      #   # good — the small class-level API the base class provides
-      #   SettleMonth.permissions
+      # to do it: `private_class_method :new` is undone by `send`. This reads the call site,
+      # resolves the constant, and refuses any message an operation does not answer.
       class OnlyTheDoorIsCalled < Base
         include ReadsKinds
 
@@ -64,14 +27,7 @@ module RuboCop
 
         private
 
-        # **A sequence runs its steps, it does not post them.** `call_later` inside a workflow
-        # enqueues a step and carries on, so step three can start before step two has happened
-        # and the order the workflow exists to state is not the order that runs. The workflow
-        # then answers success for work that has not been done.
-        #
-        # The callee is deferrable — that is `DeferrableKinds` — and it is the *caller* that
-        # may not defer. Both halves are needed: one says which operations own the method, the
-        # other says from where it may be sent.
+        # `call_later` inside a workflow lets step three start before step two has happened.
         def deferred_inside_a_sequence?(node)
           deferring.include?(node.method_name.to_s) && one_of?(sequencing_kinds)
         end
@@ -108,8 +64,7 @@ module RuboCop
           # not keep
         RUBY
 
-        # A class naming itself is not a call site reaching in. `Result.success(...)` inside
-        # `Result` is one class talking to itself, and the door has nothing to say about it.
+        # A class naming itself is not a call site reaching in.
         def refers_to_itself?(name)
           resolved = kinds.file_for_constant(name)
 
@@ -141,23 +96,9 @@ module RuboCop
           )
         end
 
-        # The door, plus the one class-level reader a caller may use: `permission`, which is
-        # the operation's name and is what a label table and a seed are keyed by.
-        #
-        # **Neither `permits?` nor `permissions` is here, and they were removed together.**
-        # `permits?` went private because the only reason to ask is to branch. Leaving
-        # `permissions` allowed would have kept the same question in a longer spelling —
-        # `SettleMonth.permissions.all? { |p| actor.may?(p) }` — and worse, one that disagrees
-        # with the door: an anonymous operation reaching a guarded one demands nothing at its
-        # own door and reports the inner permission here, so a view would hide a button the
-        # door opens. A page offers the action and places the refusal, or a query hands it a
-        # shape that already says what is offerable.
-        #
-        # **Per kind, not one flat list.** `call_later` exists only on the writing doors: a
-        # workflow spans several transactions and a query answers nothing to nobody, so
-        # neither has the method. Allowing it everywhere made `SomeWorkflow.call_later(…)`
-        # pass this cop and fail at runtime with `NoMethodError` — the guard moving a failure
-        # from the build to production, which is the opposite of its job.
+        # `permissions` went with `permits?`: it keeps the branch in a longer spelling, and one
+        # that disagrees with the door for an anonymous operation. Per kind, because `call_later`
+        # exists only on the writing doors — allowing it everywhere raised at runtime instead.
         def allowed_for(kind)
           return allowed + deferring if deferrable_kinds.include?(kind)
 
@@ -165,10 +106,8 @@ module RuboCop
         end
 
         def allowed
-          # **The fallback and `config/default.yml` say the same thing.** They drifted once —
-          # the YAML dropped `permits?` and this kept it — and because `CopRunner` builds a
-          # bare config, the cop's own test exercised the stale list and asserted the rule the
-          # shipped config had just removed.
+          # Keep in step with `config/default.yml`: they drifted once, and `CopRunner` builds a
+          # bare config, so the cop's own test asserted the rule the shipped config had removed.
           @allowed ||= cop_config.fetch("AllowedMessages", %w[call permission anonymous?])
         end
 

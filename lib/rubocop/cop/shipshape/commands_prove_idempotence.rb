@@ -6,54 +6,15 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-command-runs-twice` (docs/laws/a-command-runs-twice.md).
-      #
-      # **`tell-dont-ask` already obliges a command to survive being called twice**, and this
-      # is the check that somebody thought about how. A caller may not ask "has this happened
-      # already" — branching *is* asking — so it cannot guard the call, and the command must
-      # own repetition itself. That obligation exists whether or not anybody noticed it.
-      #
-      # It stops being theoretical the moment work is deferred: a queue retries, and a command
-      # that double-applies turns one retry into two charges.
-      #
-      # **The append is the case that needs the most thought and gets the least.** A command
-      # that settles an invoice can consult `settled_at`; a command that posts a comment has
-      # nothing to consult, because two identical comments are both legal. Tell-don't-ask makes
-      # it own the decision and hands it nothing to decide on — so idempotence there is a
-      # unique index or a key from the caller, and that is a schema change rather than a
-      # judgement.
-      #
-      # **What it checks is that the claim was written**, in the command's own test, naming
-      # what makes the second run safe. It cannot check that the test proves anything — the
-      # same position `a-guard-states-its-limit` takes about `Watched to fail`, and for the
-      # same reason: writing the sentence is the act, and the check makes the act compulsory
-      # rather than optional.
-      #
-      # WHAT IT DOES NOT CATCH: whether the claim is **true**. A command whose test says
-      # "Idempotent: the unique index refuses the second row" passes with no such index. It
-      # cannot tell a real double-run test from a comment. It finds tests by **file name**, so
-      # a command tested from a differently-named file — a shared example, a request spec that
-      # covers four commands — reads as untested and is a false positive to be argued rather
-      # than suppressed.
-      #
-      # @example
-      #   # bad — no test names how a second run behaves
-      #   class SettleInvoice < Command; end
-      #
-      #   # good — test/commands/settle_invoice_test.rb
-      #   # Idempotent: the second call finds settled_at set and answers :already_settled.
-      #   def test_settling_twice_settles_once
+      # Holds `a-command-runs-twice`.
       class CommandsProveIdempotence < Base
         include ReadsKinds
 
-        # The claim, written where the test is. A phrase rather than a heuristic, because
-        # writing it is the act being required — exactly as `Watched to fail` is.
+        # A phrase, not a heuristic: writing it is the act being required.
         CLAIM = "Idempotent:"
 
         def on_class(node)
-          # `:class` only, matching the two sibling cops. Including `:module` skipped every
-          # command declared inside one — `Billing::SettleInvoice` needed no claim at all,
-          # which is most commands in most applications.
+          # `:class` only: including `:module` let `Billing::SettleInvoice` skip the claim.
           return if node.each_ancestor(:class).any?
           return unless one_of?(governed_kinds)
 
@@ -65,15 +26,9 @@ module RuboCop
 
         private
 
-        # By file name, across every declared test root. A command at
-        # `app/commands/settle_invoice.rb` is looked for as `settle_invoice_test.rb` or
-        # `settle_invoice_spec.rb` anywhere beneath them, so a repository that files its tests
-        # by kind, by path, or flat is all one case.
-        #
-        # **Indexed by name once, not scanned per command.** RuboCop builds a cop per file, so
-        # the memo below is per file too — the earlier version re-globbed the whole test tree
-        # and built a fresh Regexp for every (command, test file) pair. Measured at 300
-        # commands and 5,000 test files, that was thirteen seconds of a lint run.
+        # By file name, so a repository filing tests by kind, by path or flat is one case.
+        # Indexed once rather than scanned per command: re-globbing and building a Regexp per
+        # (command, test file) pair was thirteen seconds at 300 commands and 5,000 test files.
         def tests_for(path)
           stem = File.basename(path, ".rb")
 

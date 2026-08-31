@@ -5,28 +5,6 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-shape-is-composed-not-flattened`.
-      #
-      # `Booking` holding `supplier_name`, `supplier_email`, `supplier_phone` has taken three
-      # of `Supplier`'s fields and made them its own. **A flattened field is the first column
-      # of the next god object** — this is the mechanism by which a hundred-column table
-      # happens, one reasonable addition at a time.
-      #
-      # WHAT IT DOES NOT CATCH — and this one matters: **the prefix rule is a heuristic and
-      # the general law is unguarded.** It catches the naming convention that flattening
-      # usually arrives in, and nothing else. A copied field under a different name is
-      # invisible. A legitimate field that happens to share a prefix is a false positive, to
-      # be argued in review rather than suppressed in silence. Whether two things belong in
-      # one object is a judgement, and no check makes it.
-      #
-      # @example
-      #   # bad — three of Supplier's fields, copied
-      #   def initialize(supplier_name:, supplier_email:)
-      #
-      #   # good — it holds the supplier, so a change to what a supplier is touches one class
-      #   def initialize(supplier:)
-      #     @supplier = typed(supplier, Supplier)
-      #   end
       class ShapeIsComposed < Base
         include ReadsKinds
 

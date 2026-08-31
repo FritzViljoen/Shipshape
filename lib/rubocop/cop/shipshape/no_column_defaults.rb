@@ -6,39 +6,17 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `no-database-defaults`. Creation and update timestamps excepted.
-      #
-      # A default in the schema is a second place deciding a value, and it drifts from the
-      # first. The column refuses the gap; the domain names the fallback.
-      #
-      # **A general-purpose cop that wants a default alongside NOT NULL** so a migration
-      # survives a populated table conflicts with this directly. Turn that cop off — the
-      # promotion rule in `Shipshape/NoNullableColumns` is the answer it was reaching for.
-      #
-      # WHAT IT DOES NOT CATCH: migrations only, so a default applied by hand or by a
-      # database-side trigger is invisible. It also cannot see a default expressed as a
-      # column's generated-value clause rather than as a default, or one whose column is not
-      # a literal — built in a loop, or from a constant.
-      #
-      # @example
-      #   # bad — two declarations of one fact, and they drift
-      #   t.string :state, null: false, default: "held"
-      #
-      #   # good — the column refuses the gap, the domain names the fallback
-      #   t.string :state, null: false
       class NoColumnDefaults < Base
         include Explains
 
         TIMESTAMPS = %w[created_at updated_at].freeze
 
-        # Table first, column second.
         TABLE_FIRST = %i[
           add_column add_reference add_belongs_to change_column change_column_default
         ].freeze
 
         def on_send(node)
-          # `change_column_default :people, :state, "held"` states the default positionally,
-          # with no `default:` key to find. It is the direct API for exactly what this
-          # forbids, so it is read on its own terms.
+          # `change_column_default` states the default positionally, with no `default:` to find.
           return positional_default(node) if node.method_name == :change_column_default
 
           default = default_option(node)
@@ -59,7 +37,6 @@ module RuboCop
           stated = node.arguments[2]
           return unless stated
 
-          # `change_column_default :people, :rank, from: nil, to: 0` — the default is `to:`.
           if stated.hash_type?
             pair = stated.pairs.find { |candidate| named?(candidate, :to) }
             return unless pair
@@ -67,8 +44,7 @@ module RuboCop
             stated = pair.value
           end
 
-          # `change_column_default :people, :state, nil` and `..., to: nil` REMOVE a
-          # default. They are the canonical spelling of the fix this cop asks for.
+          # A nil default REMOVES one: the canonical spelling of the fix this cop asks for.
           return if stated.nil_type?
 
           add_offense(node, message: message_for(column, stated.source))
@@ -81,8 +57,7 @@ module RuboCop
           options.pairs.find { |candidate| named?(candidate, :default) }
         end
 
-        # `NULL => false` is legal Ruby. `candidate.key.value` raises on it, and a cop that
-        # raises leaves the file reported as clean.
+        # `NULL => false` is legal Ruby, and a cop that raises leaves the file reported clean.
         def named?(pair, key)
           pair.key.respond_to?(:value) && pair.key.value == key
         end

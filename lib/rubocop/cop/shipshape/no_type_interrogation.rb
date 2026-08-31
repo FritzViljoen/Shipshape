@@ -5,32 +5,6 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `no-type-interrogation`.
-      #
-      # Asking an object what class it is, in order to decide what to do with it. The ask is
-      # the branch that should have been a class.
-      #
-      # **Asserting a type is a different act and is allowed.** The difference is what
-      # happens next: an assertion has one outcome, a dispatch has two. So the argument guard
-      # is exempt by name, and nothing else is.
-      #
-      # WHAT IT DOES NOT CATCH: a `when` naming a SCREAMING_CASE constant is read as a
-      # value rather than a class, so a class named that way is missed. A genuine boundary
-      # check written outside that helper is a
-      # false positive, and it is meant to be argued in review rather than suppressed in
-      # silence — a disable comment on this cop should be rare enough to notice.
-      # Deserialisation and adapter code at a real edge often need the ask, which is why
-      # those trees sit outside the cop's scope rather than being exempted inside it.
-      #
-      # @example
-      #   # bad — two outcomes, so it is a dispatch. All four spell the same ask.
-      #   @party.is_a?(Group) ? group_rate : single_rate
-      #   @party.class == Group
-      #   @party.class.name == "Group"
-      #   Group === @party
-      #
-      #   # good — the variants answer for themselves
-      #   @party.rate
       class NoTypeInterrogation < Base
         include ReadsKinds
 
@@ -49,7 +23,6 @@ module RuboCop
           end
         end
 
-        # `case supplier when Contract then ... end` — a dispatch spelled as a case.
         def on_case(node)
           return unless node.condition
           return unless one_of?(governed_kinds)
@@ -63,11 +36,9 @@ module RuboCop
 
         private
 
-        # `when Group` dispatches on a class. `when Booking::HELD` compares against a value
-        # that happens to be a constant — Ruby's own convention separates them, and failing
-        # the second was this cop firing on every state machine in the codebase.
-        # `@party.class == Group`, `@party.class.name == "Group"` and `Group === @party` ask
-        # exactly what `is_a?` asks. The law names the act, not the spelling.
+        # `when Booking::HELD` compares against a value that happens to be a constant, and
+        # failing it fired this cop on every state machine in the codebase. `@party.class ==
+        # Group` and `Group === @party` ask what `is_a?` asks: the law names the act.
         def compares_class?(node)
           return true if node.method_name == :=== && dispatches_on_a_class?(node.receiver)
           return false unless %i[== !=].include?(node.method_name)
@@ -131,8 +102,7 @@ module RuboCop
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])
         end
 
-        # `typed(value, Date)` is an assertion; a bare `value.is_a?(Date)` inside the guard
-        # itself is that assertion's own implementation.
+        # Inside the guard, `value.is_a?(Date)` is the assertion's own implementation.
         def asserting?(node)
           node.each_ancestor(:send).any? { |ancestor| ASSERTS.include?(ancestor.method_name) } ||
             node.each_ancestor(:def).any? { |ancestor| ASSERTS.include?(ancestor.method_name) }

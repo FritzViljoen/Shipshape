@@ -6,31 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the caller's half of `an-operation-is-a-leaf`.
-      #
-      # An operation's constructor is private, so `SettleInvoice.call(...)` is the only way
-      # in: nobody outside can build one, which is what makes the public `call` on the
-      # instance harmless. **`private` in Ruby is a convention, not a wall** — `send` steps
-      # around it, and a caller that builds an operation directly then reaches its `call` has
-      # skipped the permission check, the transaction and the return-type assertion while
-      # writing something that reads like ordinary code.
-      #
-      # This is the one cop whose subject is the **call site** rather than the class. The
-      # class cannot defend itself here: nothing an operation does can stop `send`.
-      #
-      # WHAT IT DOES NOT CATCH: the method name must be a **literal**. `send(verb)` where
-      # `verb` is a variable is invisible, and so is `method(:call).to_proc`, and so is
-      # anything reached through `instance_eval`. It is a closed list of three senders, and a
-      # gem that wraps `send` on your behalf is outside it. **Tests are exempt**: a test
-      # reaching a private method is what a test is for, and refusing it would make this the
-      # first cop a team turns off. The generated base classes are excluded by path — they are where the legitimate `send` lives, and excluding them by
-      # name would have excluded every application file called `command.rb`.
-      #
-      # @example
-      #   # bad — the door is right there, and this went around it
-      #   SettleInvoice.send(:new, invoice_id: 1).call
-      #
-      #   # good
-      #   SettleInvoice.call(actor: actor, invoice_id: 1)
       class NoEntryPointBypass < Base
         include Explains
 
@@ -73,13 +48,8 @@ module RuboCop
           )
         end
 
-        # **Construction is what is closed**, so this is what a bypass reaches for. `call`
-        # is public and harmless — there is no operation to call it on unless somebody built
-        # one, and `private_class_method :new` is what stops that.
-        # **Both doors.** `new` and `allocate` build an operation without going through
-        # `call`; `__perform__` runs one without the permission check, the transaction or the
-        # return-type assertion. Neither is reachable without `send`, which is why this cop
-        # is the one that closes them.
+        # Construction is what is closed: `new` and `allocate` build an operation without
+        # `call`, `__perform__` runs one without the check, and both need `send` to reach.
         def entry_names
           @entry_names ||= Array(cop_config.fetch("Constructor", %w[new allocate])) +
                            Array(cop_config.fetch("Forwarder", "__perform__"))

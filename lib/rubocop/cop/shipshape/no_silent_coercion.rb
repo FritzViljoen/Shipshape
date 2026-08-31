@@ -6,46 +6,17 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the cast half of `no-silent-coercion`.
-      #
-      # `"1abc".to_i` is `1`. `"banana".to_i` is `0`. `nil.to_s` is `""`. None raises, so
-      # rubbish becomes a plausible value and the request is answered with something nobody
-      # asked for.
-      #
-      # WHAT IT DOES NOT CATCH: a cast on a value already asserted as the right type is
-      # harmless and **syntactically identical** to the forbidden one. So the cop covers only
-      # the same-expression traceable case — the cast is applied directly to something read
-      # from request parameters — and **misses every value that passed through a local
-      # first**. That is a deliberate trade: the alternative fires on correct code.
-      #
-      # @example
-      #   # bad — "banana".to_i is 0, and page 0 is a real page
-      #   params[:page].to_i
-      #
-      #   # good — it bounces, with the reason, naming the field
-      #   integer_param!(:page)
-      #
-      #   # good — a default you chose, rather than one the cast invented
-      #   integer_param(:page, default: 1)
       class NoSilentCoercion < Base
         include ReadsKinds
         extend AutoCorrector
 
-        # **A correction is only ever emitted for `params`.** `session`, `cookies`, `env` and
-        # `request` are reported — they are untrusted in the sense the law means — but
-        # rewriting one to `text_param!` moves the read from the session to the query string.
-        # That is not a refactor, it is a vulnerability: over lobsters this turned an OAuth
-        # state check into `text_param!(:state) != text_param!(:github_state)`, comparing a
-        # parameter to itself, and put the 2FA re-authentication window under the requester's
-        # control. Found by running the correction over real code.
+        # A correction is only ever emitted for `params`. Rewriting a `session` read moves it to
+        # the query string: over lobsters that turned an OAuth state check into
+        # `text_param!(:state) != text_param!(:github_state)`, comparing a parameter to itself.
         CORRECTABLE_SOURCE = "params"
 
-        # **The correction is deliberately not behaviour-preserving**, which is why this cop
-        # is `SafeAutoCorrect: false` and the fix arrives under `-A` rather than `-a`.
-        # `"banana".to_i` is 0 today and a bounce afterwards — that IS the rule, and applying
-        # it silently to a running application would be the same sin the cop is named for.
-        #
-        # Only a literal key is rewritten: `params[key].to_i` names a parameter this cannot
-        # read, so it is reported and left alone.
+        # Not behaviour-preserving, hence `SafeAutoCorrect: false`: `"banana".to_i` is 0 today
+        # and a bounce afterwards. Only a literal key is rewritten.
         PARSERS = {
           to_i: "integer_param!",
           to_f: "decimal_param!",
@@ -65,9 +36,6 @@ module RuboCop
           to_a: "enum_param!(:state, %w[held sold])",
         }.freeze
 
-        # `nil.to_s` is `""` and `nil.to_a` is `[]`, so absence becomes a present-looking
-        # value. The numeric casts invent a number; these invent a *shape*, which is worse,
-        # because nothing downstream can tell an empty answer from an absent one.
         SHAPES = %i[to_s to_a].freeze
 
         UNTRUSTED = %i[params request env session cookies].freeze
@@ -76,9 +44,8 @@ module RuboCop
           suggestion = CASTS[node.method_name]
           return unless suggestion
           return unless untrusted?(node.receiver)
-          # A shape cast is only a coercion when applied DIRECTLY to the parameter.
-          # `url_for(params.permit(:q)).to_s` is a String being made a String, and scanning
-          # the whole receiver for a `params` anywhere inside made that an offence.
+          # Only when applied directly: scanning the whole receiver made
+          # `url_for(params.permit(:q)).to_s` an offence.
           return if SHAPES.include?(node.method_name) && !reads_a_parameter?(node.receiver)
 
           add_offense(node, message: message_for(node.source, node.method_name, suggestion)) do |corrector|
@@ -89,16 +56,12 @@ module RuboCop
 
         private
 
-        # Traceable in the same expression: `params[:page].to_i`. A value that passed
-        # through a local is not covered, and the law says so.
         def untrusted?(receiver)
           return false unless receiver
 
           receiver.each_node(:send).any? { |inner| source?(inner) } || source?(receiver)
         end
 
-        # `params[:name]`, `session.fetch(:x)` — the read itself, not any expression that
-        # happens to contain one.
         def reads_a_parameter?(node)
           return false unless node.respond_to?(:send_type?) && node.send_type?
           return false unless %i[[] fetch require dig].include?(node.method_name)
@@ -111,13 +74,10 @@ module RuboCop
             UNTRUSTED.include?(node.method_name)
         end
 
-        # `params[:page].to_i` → `integer_param!(:page)`.
         def correction_for(node)
           parser = PARSERS[node.method_name]
           return unless parser
-          # `integer_param!` comes from the TypedParams concern, which the installer wires
-          # into ApplicationController and nowhere else. Correcting a plain object that
-          # happens to expose `params` emits a call to a method that does not exist there.
+          # `integer_param!` is wired into ApplicationController and nowhere else.
           return unless one_of?(door_kinds)
 
           key = literal_key(node.receiver)
@@ -126,9 +86,7 @@ module RuboCop
           "#{parser}(#{key})"
         end
 
-        # The read must be `params[:literal]`, whole and unchained. A nested read names a
-        # different parameter than its inner key; `fetch(:page, "7")` carries a default the
-        # author chose and the rewrite would delete.
+        # Whole and unchained: `fetch(:page, "7")` carries a default the rewrite would delete.
         def literal_key(receiver)
           return unless receiver.respond_to?(:send_type?) && receiver.send_type?
           return unless %i[[] fetch].include?(receiver.method_name)

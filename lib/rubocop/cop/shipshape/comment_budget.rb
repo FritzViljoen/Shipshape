@@ -5,11 +5,7 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-comment-is-a-second-copy` (docs/laws/a-comment-is-a-second-copy.md).
-      #
-      # Comment tokens, not lines matching `#`: `# or :delete_row` inside a cop's `instead:`
-      # heredoc is the offence message, and a line counter deletes it as prose.
-      #
+      # Holds `a-comment-is-a-second-copy`.
       class CommentBudget < Base
         include Explains
 

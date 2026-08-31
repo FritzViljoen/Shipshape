@@ -7,34 +7,6 @@ module RuboCop
     module Shipshape
       # Holds the half of `a-permission-is-the-class-name` that the base classes cannot hold
       # themselves.
-      #
-      # **`shipshape install` never overwrites a file.** Once written, `app/shipshape/` is
-      # the application's — which is the right contract, and it leaves a hole: deleting one
-      # line from `command.rb` disables authorisation for every command in the application,
-      # and nothing anywhere fails. The guard was the shape of the generated code, so it held
-      # exactly as long as nobody edited it.
-      #
-      # This is what notices. It runs only where authorisation was installed at all — the
-      # presence of `permission.rb` beside the doors — so an application that has not opted
-      # in is not nagged about a check it never asked for.
-      #
-      # WHAT IT DOES NOT CATCH: it looks for the **call**, not for what the call does. A
-      # `permits?` redefined to answer true passes, and so does one whose result is
-      # discarded. It cannot see an operation that overrides `self.call` in its own class to
-      # go around the door, and it says nothing about the operations a workflow sequences.
-      #
-      # @example
-      #   # bad — the door still exists, and every command through it is unauthorised
-      #   class Command
-      #     def self.call(**arguments)
-      #       result = ActiveRecord::Base.transaction { new(**arguments).call }
-      #
-      #   # good
-      #   class Command
-      #     extend Permission
-      #
-      #     def self.call(actor: nil, **arguments)
-      #       return Result.failure(:forbidden) unless permits?(actor)
       class EveryDoorChecksPermission < Base
         include Explains
 

@@ -6,42 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `a-permission-is-the-class-name`.
-      #
-      # An operation implementing `anonymous_call` runs before anyone is identified: no actor,
-      # no check. That is a declaration about this class, and it is audited by grep.
-      #
-      # **It has to be closed downward.** An anonymous operation that calls a guarded one runs
-      # that operation for nobody — a login page reaching `ChargeCard` charges the card, and
-      # every check the model has was satisfied by the outer declaration. Aggregation closes the
-      # loophole one level up; this closes it one level down, and without it the escape hatch
-      # for "this read needs no grant" is a way to launder any write.
-      #
-      # So an `anonymous_call` names anonymous operations, or none at all.
-      #
-      # WHAT IT DOES NOT CATCH: it resolves the callee to a file and looks for
-      # `def anonymous_call` in it, so an operation whose constant resolves to no file — a gem's,
-      # or one the layout does not govern — is skipped rather than guessed at. It reads
-      # `anonymous_call` only, so an anonymous operation reaching a guarded one through a private
-      # helper, a variable or `send` is invisible here, exactly as it is to the base class.
-      #
-      # It says nothing about whether a class *should* be anonymous. A read declared anonymous
-      # that ought to have been granted is unguarded and looks correct; that judgement is the
-      # one `grep -rn "def anonymous_call"` exists for.
-      #
-      # @example
-      #   # bad — the login runs a guarded command for nobody
-      #   class LogIn < Command
-      #     def anonymous_call
-      #       ChargeCard.call(actor: nil, amount: @amount)
-      #     end
-      #   end
-      #
-      #   # good — anonymity is closed: what it reaches is anonymous too
-      #   class LogIn < Command
-      #     def anonymous_call
-      #       FindPersonByEmail.call(email: @email)
-      #     end
-      #   end
       class AnonymityIsClosedDownward < Base
         include ReadsKinds
 
@@ -66,8 +30,6 @@ module RuboCop
           end
         end
 
-        # An operation the layout does not govern, or one belonging to a gem, resolves to no
-        # file. Guessing there would fail correct code, so it is skipped.
         def guarded?(name)
           return false unless step_kinds.include?(kinds.for_constant(name))
 
@@ -77,9 +39,8 @@ module RuboCop
           !declares_anonymous_call?(path, name.split("::").last)
         end
 
-        # **The callee class's own body, never the file's text.** Matching the whole file meant
-        # a second class in it — or a heredoc — answered for the class actually being called,
-        # and an anonymous caller reaching a guarded operation went unreported.
+        # The callee class's own body, never the file's text: matching the whole file let a
+        # second class in it answer for the one being called.
         def declares_anonymous_call?(path, short)
           klass = class_named(path, short)
           return false unless klass&.body
@@ -123,9 +84,8 @@ module RuboCop
           # this operation implements `call`, takes an actor, and aggregates what it reaches
         RUBY
 
-        # **The legacy trees are named in both lists.** They were omitted, which left the cop
-        # blind in exactly the place laundering is likeliest — a legacy door still calls
-        # `permits?`, and an `anonymous_call` inside one was never inspected at all.
+        # The legacy trees are in both lists: omitting them left the cop blind where laundering
+        # is likeliest.
         def step_kinds
           cop_config.fetch("StepKinds", KINDS)
         end

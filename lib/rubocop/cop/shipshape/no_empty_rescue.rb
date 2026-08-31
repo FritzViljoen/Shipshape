@@ -6,32 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the rescue half of `no-silent-coercion`.
-      #
-      # **The failure mode is not the unknown error; it is the known error, swallowed.** Yuan
-      # et al. found 92% of catastrophic failures in production distributed systems came from
-      # mishandling errors that had already been signalled — and that a third of those were
-      # trivial: an empty handler, a bare log, a `TODO`.
-      #
-      # WHAT IT DOES NOT CATCH: a **predicate** rescuing to `true` or `false` is exempt —
-      # there the literal is the answer, not a default, because the question had exactly two
-      # outcomes and the failure produced one of them. "Only logs" is a **closed list** of
-      # logger receivers. A rescue that swallows by returning a computed value rather than
-      # a literal is invisible, and that is the hardest case, not the rarest.
-      #
-      # @example
-      #   # bad — the error was signalled, and this is where it stopped
-      #   rescue StandardError
-      #   end
-      #
-      #   # bad — a log is not a handler; nothing downstream knows
-      #   rescue StandardError => e
-      #     Rails.logger.error(e)
-      #   end
-      #
-      #   # good — an expected failure comes back as a value the caller can act on
-      #   rescue Supplier::Rejected => e
-      #     failure(:supplier_rejected, detail: e.message)
-      #   end
       class NoEmptyRescue < Base
         include Explains
 
@@ -55,12 +29,8 @@ module RuboCop
 
         private
 
-        # `def repository?; run("rev-parse"); true; rescue Error; false; end`
-        #
-        # The one shape where a literal is the answer rather than a default. A predicate has
-        # exactly two answers, and the failure produces one of them — nothing is swallowed,
-        # because there was no other outcome the caller was waiting for. Ruby offers no
-        # other way to write it, which is why this is a clause rather than a code change.
+        # A predicate has two answers and the failure produces one, so nothing is swallowed.
+        # Ruby offers no other way to write it, hence a clause rather than a code change.
         def answering_a_predicate?(node, body)
           return false unless body
           return false unless %i[true false].include?(body.type)

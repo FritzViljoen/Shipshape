@@ -5,39 +5,12 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `persistence-holds-no-behaviour`.
-      #
-      # A record declares its columns and its associations. Nothing else. A method here is
-      # reachable from everywhere a record is, which is how one concern after another settles
-      # on the same class until it has 113 columns and nobody can say what it is for.
-      #
-      # WHAT IT DOES NOT CATCH: it separates a filtering scope from a rule-bearing one by
-      # one syntactic test — whether the block *calls* another class. A constant used as a
-      # value is a filter and passes; a rule expressed without naming a class passes too. It sees the record tree only — behaviour moved into a helper, a module
-      # included from outside, or a query object filed elsewhere is not covered. And it says
-      # nothing about whether the record's columns belong together, which is the actual
-      # god-object question and the one no check answers.
-      #
-      # @example
-      #   # bad — a rule reachable from everywhere a BookingRecord is
-      #   class BookingRecord < ApplicationRecord
-      #     def total = lines.sum(&:amount) * (1 + tax_rate)
-      #   end
-      #
-      #   # good — the record maps rows; the operation computes
-      #   class TotalBooking < Query
-      #     def call
-      #       success(BookingRecord.find(@id).lines.sum(&:amount) * (1 + @tax_rate))
-      #     end
-      #   end
       class PersistenceHoldsNoBehaviour < Base
         include ReadsKinds
         include VisibilityHelp
 
         def on_def(node)
           return unless one_of?(record_kinds)
-          # The law says "any public method". A private helper is still behaviour, but it
-          # is not reachable from everywhere a record is, which is the harm being named.
           return if node_visibility(node) == :private
 
           add_offense(node, message: message_for("`##{node.method_name}`"))
@@ -49,19 +22,9 @@ module RuboCop
           add_offense(node, message: message_for("`.#{node.method_name}`"))
         end
 
-        # `scope :recent, -> { where(...) }` is a filter. `scope :billable, -> { joins(...)
-        # .merge(Other.rule) }` reaches another class, and the law says that one passes.
-        #
-        # **`default_scope` is judged on neither test**, because its harm is not the one this
-        # law usually names. It is ambient state wearing a declaration: a filter that enters
-        # every read without being called for, and attributes that leave with every `create`
-        # without being handed in. That is `nothing-travels-off-the-call-path` in both
-        # directions, declared on a record — which is why it is caught here, where it is
-        # written, rather than at the thousand call sites where it acts.
-        # **`delegate` is exempt from `code-is-written-not-generated`**, which draws its line
-        # at the framework's public conventions and uses this macro to draw it. That line
-        # holds: a Rails reader knows what `delegate` does. It says nothing about a record
-        # being allowed to have the methods, and this law does.
+        # `default_scope` is judged on neither test: it is ambient state wearing a declaration,
+        # entering every read uncalled-for and leaving with every `create`. Caught here, where
+        # it is written, rather than at the thousand call sites where it acts.
         DELEGATORS = %i[delegate delegate_missing_to].freeze
 
         def on_send(node)
@@ -76,10 +39,8 @@ module RuboCop
 
         private
 
-        # Reaching *into* another class means calling it: `SupplierRecord.active`. A
-        # constant used as a value — `where(state: Booking::ACTIVE)` — is a filter on this
-        # table's own column, which the law explicitly permits, and failing it was this
-        # cop's worst false positive.
+        # A constant used as a value — `where(state: Booking::ACTIVE)` — is a filter on this
+        # table's own column, and failing it was this cop's worst false positive.
         def reaches_another_class?(node)
           block = node.each_descendant(:block).first
           return false unless block
@@ -100,10 +61,8 @@ module RuboCop
           )
         end
 
-        # `delegate ..., private: true` writes what a private `def` writes, and `on_def` exempts
-        # that — a private helper is still behaviour, but it is not reachable from everywhere a
-        # record is, which is the harm this law names. Flagging one and not the other made the
-        # rule depend on which spelling was used.
+        # `delegate ..., private: true` writes what a private `def` writes, which `on_def`
+        # exempts. Flagging one and not the other made the rule depend on the spelling.
         def public_delegate?(node)
           return false unless DELEGATORS.include?(node.method_name)
 
@@ -113,8 +72,6 @@ module RuboCop
           options.pairs.none? { |pair| pair.key.value == :private && pair.value.true_type? }
         end
 
-        # `def name; supplier.name; end` is an offence here, and `delegate :name, to: :supplier`
-        # writes the same method — so it was the one way left to put behaviour on a record.
         def delegate_message(name)
           explain(
             "`#{name}` puts public methods on a record, which maps rows and holds no rules.",
@@ -129,9 +86,8 @@ module RuboCop
           )
         end
 
-        # **The example is the thing that gets copied**, so it must not hand the reader the next
-        # defect: `Booking.new(supplier_name: ...)` is the flattening `a-shape-is-composed-not-flattened`
-        # names, and it is the planted violation in that cop's own canary.
+        # The example is what gets copied, so it must not hand the reader the flattening
+        # `a-shape-is-composed-not-flattened` names.
         ASKED = <<~RUBY
           # the record maps rows and nothing else
           class BookingRecord < ApplicationRecord
@@ -147,8 +103,7 @@ module RuboCop
           end
         RUBY
 
-        # The one scope that is never written at the call site, so it cannot be read there
-        # either. It is also the only one that reaches `create`.
+        # Never written at the call site, so never read there. Also the only one reaching `create`.
         def default_scope_message
           explain(
             "`default_scope` is implicit behaviour: global state on every read, and a distant write on `create`.",
@@ -165,9 +120,7 @@ module RuboCop
           )
         end
 
-        # The filter reads a row's absence rather than a column's NULL: `no-nullable-columns`
-        # refuses `cancelled_at` in the first place, so an example filtering on one would
-        # prescribe a schema this canon does not allow.
+        # A row's absence, not a column's NULL: `no-nullable-columns` refuses `cancelled_at`.
         FILTERED = <<~RUBY
           # the record maps rows, and says nothing about which of them anyone wants
           class BookingRecord < ApplicationRecord

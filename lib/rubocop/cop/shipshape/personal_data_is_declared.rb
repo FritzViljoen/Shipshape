@@ -6,52 +6,11 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `personal-data-is-declared-and-erasable`
-      # (docs/laws/personal-data-is-declared-and-erasable.md).
-      #
-      # **The right to erasure is unimplementable without an inventory.** Not difficult —
-      # unimplementable. You cannot delete what nobody can enumerate, and in a schema of two
-      # hundred tables nobody enumerates it from memory. Every request becomes fresh
-      # archaeology, answered by whoever is on duty, differently each time.
-      #
-      # So this reads the schema, and for every column whose name suggests a person it asks
-      # `app/shipshape/personal_data.rb` what happens to that column on erasure. A column
-      # nobody has classified is the offence. **`:not_personal` is one of the four answers** —
-      # the point is that somebody decided, once, while they still remembered.
-      #
-      # **THIS IS NOT A COMPLIANCE CHECK AND MUST NEVER BE DESCRIBED AS ONE.** It says where
-      # data is and what was decided about it. It says nothing about whether you had a lawful
-      # basis to collect it, whether the retention is justified, or whether an anonymisation
-      # is irreversible in fact. Those are judgements, and a green build that somebody reads
-      # as legal assurance is worse than no check at all.
-      #
-      # **A repository whose schema is `structure.sql` gets nothing from this, silently.**
-      # Discourse is one, and it reported zero — which is indistinguishable from a clean
-      # schema. The installed `personal_data_is_erasable_test.rb` asks the connection instead
-      # and does not care how the schema is stored, which is the answer for those repositories.
-      #
-      # WHAT IT DOES NOT CATCH: it matches **column names**, so `contact_ref`, `handle`, and
-      # every field named for the business rather than for the person are invisible until
-      # added to `Names`. It reads `db/schema.rb`, so a column created by a hand-run statement
-      # or by another service sharing the database is not there — the installed
-      # `personal_data_is_erasable_test.rb` asks the connection instead, which is the stronger
-      # question. And **most personal data is not in a database at all**: logs, backups,
-      # analytics, a warehouse, a third party's store. A repository-scoped tool sees a
-      # fraction, and this one does not know what fraction.
-      #
-      # @example
-      #   # bad — the schema has it and nothing says what happens to it
-      #   create_table "users" do |t|
-      #     t.string "email"
-      #   end
-      #
-      #   # good — app/shipshape/personal_data.rb
-      #   COLUMNS = { "users" => { "email" => :anonymise } }.freeze
+      # Holds `personal-data-is-declared-and-erasable`.
       class PersonalDataIsDeclared < Base
         include Explains
 
-        # The list is the fact. A name not here is not "permitted" — it is unexamined, which
-        # is why the law says so in as many words rather than leaving it to be discovered.
+        # The list is the fact: a name not here is unexamined, not permitted.
         NAMES = %w[
           email phone mobile telephone address postcode zipcode ip_address
           first_name last_name full_name surname forename maiden_name
@@ -61,20 +20,15 @@ module RuboCop
 
         REGISTRY = "app/shipshape/personal_data.rb"
 
-        # Blocks whose body declares columns on one named table.
         TABLE_BLOCKS = %i[create_table change_table].freeze
 
         def on_new_investigation
           @table = nil
         end
 
-        # `create_table "users" do |t|` — everything inside belongs to that table, and so does
-        # everything inside a `change_table`. Reading only `create_table` left `@table` holding
-        # the previous one, so a `change_table "leads"` had its columns judged against `users` —
-        # the cross-table blindness this cop was fixed to remove, one block type over.
-        #
-        # Any other block clears it, so a column reached through something unrecognised is
-        # attributed to no table rather than to whichever came last.
+        # `change_table` too: reading only `create_table` left `@table` holding the previous
+        # one, so a `change_table "leads"` had its columns judged against `users`. Any other
+        # block clears it, so an unrecognised one attributes to no table rather than the last.
         def on_block(node)
           @table = table_of(node.send_node)
         end
@@ -97,8 +51,6 @@ module RuboCop
 
         private
 
-        # `t.string "email"` inside a create_table block, and `add_column "users", "email"`
-        # outside one. Only the column name is needed — the table is context.
         def column_of(node)
           return nil if holds_a_flag?(node)
           return literal(node.arguments[1]) if node.method?(:add_column)
@@ -107,10 +59,8 @@ module RuboCop
           literal(node.first_argument)
         end
 
-        # **A boolean cannot hold a person.** `is_from_email` and `show_email` both end in a
-        # name on the list and are flags — found by running this against two real schemas,
-        # where they were two of six findings. Asking somebody to classify a boolean as
-        # `:not_personal` is a guard firing on correct code, which is not strict but wrong.
+        # A boolean cannot hold a person: `is_from_email` and `show_email` end in a listed name
+        # and are flags. Two of six findings on the two real schemas this was run against.
         def holds_a_flag?(node)
           return node.method?(:boolean) if node.receiver&.lvar_type?
           return false unless node.method?(:add_column)
@@ -129,20 +79,13 @@ module RuboCop
           names.any? { |name| column == name || column.end_with?("_#{name}") }
         end
 
-        # **Parsed, not text-matched**, and per table.
-        #
-        # Matching the file as text failed twice over. The registry `shipshape install` writes
-        # carries commented-out examples, so a fresh install was already blind to `email` and
-        # `ip_address` while `COLUMNS` was genuinely empty — and any prose did it, so a
-        # `# TODO: decide about "passport"` cleared `passport`. And the column was matched
-        # without its table, so classifying `users.email` cleared `email` on every other table
-        # in the schema. Both were green builds over exactly what this exists to catch.
+        # Parsed, not text-matched, and per table. Text matching read the registry's own
+        # commented-out examples as declarations, and matched a column without its table — so
+        # classifying `users.email` cleared `email` everywhere. Both were green over the gap.
         def declared?(table, column)
           registry.fetch(table, []).include?(column)
         end
 
-        # table => [column, …], read from the `COLUMNS` literal. A computed entry is invisible,
-        # which is why the template says to write it flat, and which the law states as a limit.
         def registry
           @registry ||= parse(registry_path)
         end

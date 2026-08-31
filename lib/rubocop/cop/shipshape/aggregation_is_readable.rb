@@ -6,70 +6,9 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `a-permission-is-the-class-name`.
-      #
-      # An operation demands its own permission and every permission it reaches, read out of the
-      # syntax tree of `call`. **So what it reaches has to be readable from `call`**, or the
-      # aggregate is short — and a short aggregate is a fail-open: the door demands less than the
-      # work performs, and the refusal arrives partway instead of at the door.
-      #
-      # It is short at the endpoint too. `CallGraph.routes` prints what a route demands by
-      # walking the same trees, so a call site this cannot read makes that number wrong for
-      # every route above it.
-      #
-      # Three shapes, and the first is the only one specific to workflows:
-      #
-      # - a **workflow** whose `call` names no operation, which sequences nothing and so
-      #   aggregates nothing
-      # - a `call`/`call_later` receiver that is not a constant, which nothing can resolve
-      # - an operation called from a method other than the one the base class reads
-      #
-      # WHAT IT DOES NOT CATCH: it reads constants syntactically, so a step reached through
-      # `const_get` or `send` is invisible here and to the base class alike. It does not check
-      # that a named constant is called rather than merely mentioned, nor the order, nor whether
-      # the actor is threaded through.
-      #
-      # @example
-      #   # bad — a workflow that sequences nothing refuses nobody
-      #   class SettleMonth < Workflow
-      #     def call
-      #       success(:done)
-      #     end
-      #   end
-      #
-      #   # bad — the query is reached from a helper, so the command demands nothing for it
-      #   class CancelBooking < Command
-      #     def call
-      #       booking = load
-      #       ...
-      #     end
-      #
-      #     private
-      #
-      #     def load
-      #       FindBooking.call(actor: actor, id: @id)
-      #     end
-      #   end
-      #
-      #   # bad — nothing can say which operation this is
-      #   class CancelBooking < Command
-      #     def call
-      #       step = FindBooking
-      #       step.call(actor: actor)
-      #     end
-      #   end
-      #
-      #   # good — what it reaches is named where the aggregate is read from
-      #   class CancelBooking < Command
-      #     def call
-      #       booking = FindBooking.call(actor: actor, id: @id)
-      #       ...
-      #     end
-      #   end
       class AggregationIsReadable < Base
         include ReadsKinds
 
-        # `call_later` is the same work deferred, so the permission is still owed and the edge
-        # is still an edge.
         RUNS = %i[call call_later].freeze
         SEQUENCES = %i[call anonymous_call].freeze
 
@@ -84,9 +23,8 @@ module RuboCop
 
         private
 
-        # **Only a workflow.** A command that names no operation is an ordinary command; a
-        # workflow that names none is not a workflow, and answering `[]` would let it run for an
-        # actor holding no grants at all.
+        # Only a workflow: one naming no operation is not a workflow, and answering `[]` would
+        # let it run for an actor holding no grants at all.
         def sequences_nothing(node)
           return unless one_of?(sequencing_kinds)
           return if operations_called(sequencing_method(node)).any?
@@ -94,15 +32,11 @@ module RuboCop
           add_offense(node.identifier, message: names_nothing(node.identifier.source))
         end
 
-        # An operation reached from any method other than the one the base class reads. The
-        # constant must resolve to a real operation, so a helper building a shape is not swept up.
         def hidden_reaches(node)
           methods_of(node).reject { |method| SEQUENCES.include?(method.method_name) }
                           .flat_map { |method| operation_sends(method) }
         end
 
-        # `step.call(...)`, `@steps.each { |s| s.call }` — legal Ruby that resolves to no
-        # permission.
         def unreadable_receivers(node)
           method = sequencing_method(node)
           return [] unless method
@@ -127,8 +61,7 @@ module RuboCop
           operation_sends(method).map { |send| constant_name(send.receiver) }.uniq
         end
 
-        # Only this class's own methods — a `call` on a class nested inside is that class's
-        # business and must not answer for this one.
+        # Only this class's own methods: a nested class answers for itself.
         def methods_of(node)
           return [] unless node.body
 
@@ -204,9 +137,8 @@ module RuboCop
           cop_config.fetch("StepKinds", %w[command query io_command io_query legacy_command legacy_query])
         end
 
-        # **Every operation aggregates, so every operation is read.** Scoping this to workflows
-        # left a command reaching a query through a helper unreported, which is the same
-        # fail-open one kind down.
+        # Every operation aggregates, so every operation is read: scoping this to workflows left
+        # a command reaching a query through a helper unreported.
         def governed_kinds
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query legacy_command legacy_query])
         end

@@ -6,31 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `no-lifecycle-callbacks`.
-      #
-      # A callback hides work behind a save: the caller reads one method and gets several, in
-      # an order nothing states, with a failure in any of them attributed to the save. It is
-      # the commonest form of action at a distance in a Rails application, and a codebase
-      # with them cannot be read by following calls — which is the one thing a new developer
-      # and an agent both depend on.
-      #
-      # WHAT IT DOES NOT CATCH: `HOOKS` is a **closed list**, and it is a copy of a
-      # vocabulary Rails owns — a macro the framework adds later is uncovered until it is
-      # named here. A callback registered dynamically, or registered by a gem on your
-      # records' behalf, is invisible: it sees the registration, not the behaviour.
-      #
-      # @example
-      #   # bad
-      #   class BookingRecord < ApplicationRecord
-      #     before_save :recalculate_totals
-      #   end
-      #
-      #   # good — the command that wanted it says so
-      #   class ConfirmBooking < Command
-      #     def call
-      #       RecalculateTotals.call(booking: @booking)
-      #       success(@booking)
-      #     end
-      #   end
       class NoCallbacks < Base
         include ReadsKinds
 

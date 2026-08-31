@@ -6,54 +6,13 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds the mixin half of `one-operation-one-class`
-      # (docs/laws/one-operation-one-class.md).
-      #
-      # An operation has one public method. A module included into one can put back
-      # everything `Shipshape/OneOperationOneClass` just took away, and it does it in a file
-      # that cop never looks at — it walks classes, and a concern is a module.
-      #
-      # **A module cannot be judged by its own file.** `Paying` is correct in a shape, whose
-      # whole job is to be read, and wrong in a command, which answers one message. So this
-      # scans the operation trees for what they include, and a module named there is held to
-      # the operation's rules wherever it lives.
-      #
-      # WHAT IT DOES NOT CATCH: the include is read with a regular expression, so a module
-      # mixed in dynamically — `include Object.const_get(name)` — is invisible, and so is one
-      # reached through an alias. It matches a written `include Paying` against a module
-      # declared `Paying` or `Billing::Paying`, which **over-fires** where two modules share a
-      # last segment and only one is a mixin. Over-firing says "make these private", which is
-      # a defensible thing to be told; under-firing would be silence. **Tests are exempt.**
-      #
-      # **The exact version of this runs in the application's own suite**, as
-      # `test/shipshape/operations_expose_nothing_test.rb`, which subtracts the base class's
-      # public surface from the loaded operation's and so sees every route a mixin can take.
-      # This cop exists because that one needs a booted application; it is the fast
-      # approximation, and it names the file to fix.
-      #
-      # @example
-      #   # bad — included into a command, so `total` is public on every command that has it
-      #   module Paying
-      #     def total
-      #       @lines.sum(&:amount)
-      #     end
-      #   end
-      #
-      #   # good
-      #   module Paying
-      #     private
-      #
-      #     def total
-      #       @lines.sum(&:amount)
-      #     end
-      #   end
+      # Holds the mixin half of `one-operation-one-class`.
       class MixinsAddNothingPublic < Base
         include VisibilityHelp
         extend AutoCorrector
         include ReadsKinds
 
-        # `initialize` is private whatever the file says, and `respond_to_missing?` and
-        # `included` are hooks the language and Ruby's own module protocol ask for.
+        # `initialize` is private regardless; the rest are hooks the language asks for.
         NOT_PUBLIC = %i[initialize initialize_copy respond_to_missing? included prepended].freeze
 
         READERS = %i[attr_reader attr_accessor attr_writer].freeze
@@ -102,8 +61,7 @@ module RuboCop
           node_visibility(node) == :public
         end
 
-        # A class method on a mixin is `def self.x`, which does not travel through `include`
-        # at all — it lands on the module object. Nothing an operation gets, so nothing here.
+        # `def self.x` lands on the module object and does not travel through `include`.
         def public_in_a_mixin(definition)
           explain(
             "`#{definition.method_name}` is public, and this module is mixed into an " \
@@ -157,11 +115,8 @@ module RuboCop
           mixins.mixed_into_an_operation?(declared_name(node))
         end
 
-        # **The name as the file declares it, namespace and all.** An earlier version read
-        # `node.identifier` alone and skipped anything nested, so `module Billing; module
-        # Paying` was never checked — the outer module is not the mixin and the inner one was
-        # thrown away before it was asked about. Nesting is also what stops one module being
-        # reported twice: an inner `Paying::Inner` matches no written `include Paying`.
+        # Namespace and all: reading `node.identifier` alone never checked `module Billing;
+        # module Paying`. Nesting also stops one module being reported twice.
         def declared_name(node)
           outer = node.each_ancestor(:module, :class).map { |scope| scope.identifier.source }
 

@@ -6,32 +6,6 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds `code-is-written-not-generated`.
-      #
-      # **This law does not forbid metaprogramming. It forbids yours.** The framework's own
-      # conventions are exempt, deliberately: they have a large public corpus, so any reader
-      # — person or agent — arrives already knowing what they mean. A convention invented
-      # here has a corpus of one repository, so it has to be re-derived from source on every
-      # read, by every reader, and it is re-derived wrong sometimes.
-      #
-      # Generation compresses the writing and expands the reading. That was a good trade when
-      # writing was the expensive half.
-      #
-      # WHAT IT DOES NOT CATCH: it names **constructs, not intent**. A gem doing this on your
-      # behalf is invisible, and so is anything generated at build time and committed, which
-      # reads as ordinary code because by then it is. It cannot judge whether a given macro
-      # is a public convention or a private one — the tree scoping draws that line, and the
-      # scoping is a judgement nobody checks.
-      #
-      # @example
-      #   # bad — the method a reader greps for does not exist in the source
-      #   FIELDS.each { |field| define_method(field) { @row[field] } }
-      #
-      #   # bad
-      #   class_eval "def #{name}; @#{name}; end"
-      #   def method_missing(name, *args) = @row[name]
-      #
-      #   # good — greppable, and the reader is done in one line
-      #   def reference = @reference
       class NoGeneratedInterfaces < Base
         include ReadsKinds
 

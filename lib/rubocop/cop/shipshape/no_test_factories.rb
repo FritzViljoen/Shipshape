@@ -5,43 +5,6 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `no-test-factories`.
-      #
-      # A factory is a second way to construct domain state, running beside the commands and
-      # obeying none of their rules: no permission checked, no argument typed, no audit entry,
-      # no sequence respected.
-      #
-      # **So it can build a state the application cannot.** A confirmed booking with no
-      # payment, an order line priced in a currency its order does not use — a row the commands
-      # would refuse, which a test then asserts behaviour on. That test passes, stays green for
-      # years, and describes a system that does not exist. The inverse is quieter: if a command
-      # cannot reach a state it should, the factory reached it instead and nothing noticed.
-      #
-      # A test builds what it needs by calling operations. Setup pain is then a signal about
-      # the model rather than a problem to be tooled around.
-      #
-      # WHAT IT DOES NOT CATCH: **it reads how state is built, never whether the state is
-      # right.** A test calling the correct operations to reach a state nobody wants passes.
-      #
-      # It knows the factory libraries by name, so a helper of your own — `def a_booking(...)`
-      # wrapping a raw `create!` — is not caught, and that is the shape a suite reaches for the
-      # day after this lands. A bare `Record.create!` in a test is not matched either:
-      # separating it from a legitimately seeded reference row needs a judgement no cop makes.
-      #
-      # @example
-      #   # bad — sets columns, obeys no rule, and may build what no command could
-      #   booking = create(:booking, status: "confirmed")
-      #
-      #   # bad — the same door, named differently
-      #   booking = FactoryBot.create(:booking)
-      #   booking = Fabricate(:booking)
-      #
-      #   # bad — fixtures are the same second construction, loaded earlier
-      #   fixtures :all
-      #
-      #   # good — the state exists because the application can produce it
-      #   booking = CreateBooking.test_call(offer_id: offer.id).value
-      #   ConfirmBooking.test_call(booking_id: booking.id)
       class NoTestFactories < Base
         include Explains
 

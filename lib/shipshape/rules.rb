@@ -5,16 +5,9 @@ require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # Writes the rules file an agent is handed — `CLAUDE.md`, `AGENTS.md`, whatever the host
-  # calls it.
-  #
-  # **Everything here is derived.** The kinds and the call matrix come from the application's
-  # own configuration; the cops come from the registry; whether authorisation is installed
-  # comes from the base class on disk. Nothing is transcribed, so nothing can fall behind the
-  # code — a checked-in rules file that *described* the layout would be a second copy of it,
-  # and the copy is the one that rots.
-  #
-  # Regenerate it rather than editing it. That is the whole contract.
+  # Writes the rules file an agent is handed. Everything in it is derived — kinds and matrix from
+  # the configuration, cops from the registry, authorisation from the base class on disk — so
+  # nothing can fall behind the code. Regenerate it rather than editing it.
   class Rules
     include TypedArguments
 
@@ -115,8 +108,7 @@ module Shipshape
                                       .sort
     end
 
-    # The one-line Description the cop already declares. Squeezed because YAML folds it
-    # across lines and a rules file wants it on one.
+    # Squeezed because YAML folds the Description and a rules file wants it on one line.
     def description_of(name)
       config.for_cop(name).fetch("Description", "").gsub(/\s+/, " ").strip
     end
