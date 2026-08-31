@@ -895,6 +895,8 @@ Shipshape/AnonymityIsClosedDownward:
     - query
     - io_command
     - io_query
+    - legacy_command
+    - legacy_query
 
 Shipshape/NoTestFactories:
   Description: >-

@@ -46,7 +46,7 @@ module RuboCop
         include ReadsKinds
 
         RUNS = %i[call call_later].freeze
-        DECLARATION = /^\s*(?:private\s+)?def\s+anonymous_call\b/.freeze
+        KINDS = %w[workflow command query io_command io_query legacy_command legacy_query].freeze
 
         def on_def(node)
           return unless node.method_name == :anonymous_call
@@ -74,7 +74,27 @@ module RuboCop
           path = kinds.file_for_constant(name)
           return false unless path
 
-          !DECLARATION.match?(::Shipshape::SourceText.read(path))
+          !declares_anonymous_call?(path, name.split("::").last)
+        end
+
+        # **The callee class's own body, never the file's text.** Matching the whole file meant
+        # a second class in it — or a heredoc — answered for the class actually being called,
+        # and an anonymous caller reaching a guarded operation went unreported.
+        def declares_anonymous_call?(path, short)
+          klass = class_named(path, short)
+          return false unless klass&.body
+
+          statements = klass.body.begin_type? ? klass.body.children : [klass.body]
+          statements.any? { |statement| statement.def_type? && statement.method_name == :anonymous_call }
+        end
+
+        def class_named(path, short)
+          source = ::RuboCop::ProcessedSource.new(::Shipshape::SourceText.read(path), RUBY_VERSION.to_f, path)
+          return nil unless source.valid_syntax? && source.ast
+
+          [source.ast, *source.ast.each_descendant].find do |node|
+            node.class_type? && node.identifier.source.split("::").last == short
+          end
         end
 
         def message_for(name)
@@ -103,12 +123,15 @@ module RuboCop
           # this operation implements `call`, takes an actor, and aggregates what it reaches
         RUBY
 
+        # **The legacy trees are named in both lists.** They were omitted, which left the cop
+        # blind in exactly the place laundering is likeliest — a legacy door still calls
+        # `permits?`, and an `anonymous_call` inside one was never inspected at all.
         def step_kinds
-          cop_config.fetch("StepKinds", %w[command query io_command io_query workflow])
+          cop_config.fetch("StepKinds", KINDS)
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow command query io_command io_query])
+          cop_config.fetch("Kinds", KINDS)
         end
       end
     end

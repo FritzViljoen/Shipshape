@@ -819,6 +819,26 @@ class GeneratedBaseClassesTest < Minitest::Test
            "the outer name alone must not admit an actor refused the inner read"
   end
 
+  # **A nil actor is a caller's defect whatever the demand turns out to be.** Behind the empty
+  # check it passed in silence for a workflow whose steps are all anonymous — a controller that
+  # forgot `actor:` succeeding instead of failing loud.
+  class AllAnonDoor < Workflow; end
+
+  class AllAnonFlow < AllAnonDoor
+    def initialize(**); end
+
+    def call
+      GeneratedBaseClassesTest::GraphedHelper.call
+      success(:done)
+    end
+  end
+
+  def test_an_empty_demand_still_refuses_a_missing_actor
+    assert_empty AllAnonFlow.permissions
+
+    assert_raises(ArgumentError) { AllAnonFlow.permits?(nil) }
+  end
+
   # Two operations reaching each other must not recurse until the stack ends: a stack overflow
   # at boot is a worse way to learn about a cycle than the graph is.
   class GraphedLeft < GraphedDoor

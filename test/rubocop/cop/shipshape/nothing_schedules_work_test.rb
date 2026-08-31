@@ -6,8 +6,8 @@ require "test_helper"
 #
 # - Making `declaration?` answer false reddens the `every` and `recurring` tests.
 # - Making `scheduler?` answer false reddens the Sidekiq and Clockwork tests.
-# - Loosening `CRON` to match any string reddens the not-a-cadence test, which is the shape
-#   that would fail correct code — a version number is five fields of digits and dots away.
+# - Adding any constant-string clause back reddens the cron-in-a-constant test, which is the
+#   shape that would fail correct code: the value the offence's own `instead:` recommends.
 class NothingSchedulesWorkTest < Minitest::Test
   include CopRunner
 

@@ -138,12 +138,15 @@ module Permission
   # **`permissions` is what the work needs; this is whether the door refuses.** They differ for
   # an anonymous operation: it aggregates what it reaches so a caller can demand it, and refuses
   # nobody itself, because running before anyone is identified is what it declared.
+  # **The nil check comes first.** Behind an empty demand it let a caller that forgot `actor:`
+  # through in silence — a workflow whose steps are all anonymous opened for `nil` where it used
+  # to raise. Absence of an actor is a caller's defect whatever the demand turns out to be.
   def permits?(actor)
     return true if anonymous?
+    raise ArgumentError, "#{name} requires an actor" if actor.nil?
 
     demanded = permissions
     return true if demanded.empty?
-    raise ArgumentError, "#{name} requires an actor" if actor.nil?
 
     demanded.all? { |granted| actor.may?(granted) }
   end

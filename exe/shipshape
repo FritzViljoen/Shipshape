@@ -152,7 +152,12 @@ end
 def option(name, default = nil)
   flag = "--#{name}"
   joined = ARGV.find { |argument| argument.start_with?("#{flag}=") }
-  return joined.split("=", 2).last if joined
+  if joined
+    value = joined.split("=", 2).last
+    raise Shipshape::Error, "shipshape: #{flag} needs a value" if value.empty?
+
+    return value
+  end
 
   index = ARGV.index(flag)
   return default unless index

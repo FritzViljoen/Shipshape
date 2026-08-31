@@ -59,9 +59,18 @@ class Workflow
   # **A workflow contributes no permission of its own**, which is the one place it differs
   # from every other operation: granting `:SettleMonth` does nothing, because a workflow is
   # only the acts it sequences. Its steps aggregate the same way anything else does.
+  # **Memoised at the top of the walk**, the way `Permission#permissions` is. Recursing with a
+  # non-empty `seen` bypassed that memo, so every `permits?` re-parsed the syntax tree of every
+  # operation in the closure — 24 parses and 4.2ms for a six-step workflow, on the request path,
+  # and again for every view asking whether to show a button.
   def self.permissions(seen = [])
-    return [] if anonymous? || seen.include?(self)
+    return [] if anonymous?
+    return @permissions ||= aggregate_steps([]) if seen.empty?
 
+    seen.include?(self) ? [] : aggregate_steps(seen)
+  end
+
+  def self.aggregate_steps(seen)
     onward = seen + [self]
     found = steps
     # **A workflow with no steps is not a workflow**, and answering `[]` here would be the
@@ -74,6 +83,7 @@ class Workflow
 
     found.flat_map { |step| step.permissions(onward) }.uniq
   end
+  private_class_method :aggregate_steps
 
   # The operations `call` names, read by `Calls` — the same reader the call graph uses, so a
   # step and an edge are one fact found one way. Memoised per class: the tree is parsed from the
