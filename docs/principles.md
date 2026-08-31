@@ -50,18 +50,14 @@ That is what action at a distance is, and why nothing else here catches it. The 
 perfectly visible; it is the *effect* that cannot be found by reading. A reader can follow
 what a call does only if what it does is bounded by what it was given.
 
-**Grounding.** The placement half is Parnas's decomposition criterion, older than the term
-"single responsibility": modules are drawn around the decisions they hide, so a changed
-decision touches one module (Parnas 1972). Cohesion and coupling were then made measurable
-by Chidamber and Kemerer, and Basili, Briand and Melo validated those metrics as defect
-predictors across eight C++ systems (Basili et al. 1996). The reachability half is the Law
-of Demeter — an object talks to its immediate collaborators, not to their internals
-(Lieberherr and Holland 1989). The symmetric half is the oldest result here: Wulf and Shaw
-nominated the non-local variable for abolition on the ground that it is a major
-contributing factor in programs that are difficult to understand (SIGPLAN Notices, 1973).
-Meyer's command–query separation is the same boundary read once more — asking a question
-does not change the answer, so a reader can tell which calls can move the world by their
-shape alone (Meyer 1988).
+**Grounding.** Placement is Parnas's decomposition criterion, older than "single responsibility": modules are
+drawn around the decisions they hide, so a changed decision touches one module (Parnas 1972).
+Chidamber and Kemerer made cohesion and coupling measurable; Basili, Briand and Melo validated
+them as defect predictors across eight C++ systems (Basili et al. 1996). Reachability is the Law
+of Demeter (Lieberherr and Holland 1989). The symmetric half is older still: Wulf and Shaw
+nominated the non-local variable for abolition as a major contributor to programs that are hard
+to understand (SIGPLAN Notices, 1973). Meyer's command-query separation is the same boundary
+again (Meyer 1988).
 
 *Produces* `the-call-graph-is-declared`, `nothing-travels-off-the-call-path`.
 
@@ -83,12 +79,11 @@ is also what stops a change to one side of a boundary being a change to both.
 macro generated, moves the failure away from the line that caused it — which is the one
 place a reader will look.
 
-**Grounding.** Meyer's Design by Contract states it as an obligation with a side: a
-precondition is the caller's to meet, and the callee is entitled to assume it (Meyer 1988).
-The counter-tradition is Postel's robustness principle, "be liberal in what you accept";
-the IETF's own later assessment is that this hurts, because tolerated variation becomes
-load-bearing and can never be withdrawn (Thomson, *The Harmful Consequences of the
-Robustness Principle*). Where the two conflict here, Meyer wins: an interface that accepts
+**Grounding.** Meyer's Design by Contract states it as an obligation with a side: the precondition is the
+caller's to meet, and the callee may assume it (Meyer 1988). The counter-tradition is Postel's
+"be liberal in what you accept" — and the IETF's own later assessment is that this hurts,
+because tolerated variation becomes load-bearing and can never be withdrawn (Thomson, *The
+Harmful Consequences of the Robustness Principle*). Meyer wins here: an interface that accepts
 what it cannot state has no boundary, only a habit.
 
 *Produces* `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`,
@@ -110,19 +105,15 @@ drift. Both leave a reader unable to say what the system holds — one because n
 states it, the other because two things do and they disagree. A fact is stated once,
 somewhere a reader can name.
 
-**Grounding.** Hoare calls the null reference his billion-dollar mistake, put into ALGOL
-W in 1965 because it was easy to implement, and blames it for innumerable errors and
-crashes since (QCon London, 2009). In the relational tradition Codd introduced nulls and
-Date and Darwen rejected them outright, on the ground that three-valued logic makes query
-results that no user can interpret. The industry has been steadily paying to undo it:
-option types in ML and Rust, Kotlin's null-safe types, Swift's optionals, C#'s nullable
-reference types, and the null-checkers built at scale inside Uber (NullAway) and Meta
-(Nullsafe) all exist to reintroduce the distinction the value erased.
+**Grounding.** Hoare calls the null reference his billion-dollar mistake, added to ALGOL W in 1965 because it
+was easy to implement (QCon London, 2009). Codd introduced nulls to the relational model; Date
+and Darwen rejected them, because three-valued logic produces results no user can interpret. The
+industry has been paying to undo it since: option types in ML and Rust, Kotlin's null-safe
+types, Swift's optionals, C#'s nullable references, and NullAway at Uber and Nullsafe at Meta.
 
-**And the evidence for the schema half is weaker than for the language half.** The claim
-that a nullable column marks two concepts sharing a table is Parnas's cohesion argument
-applied to data, not a measured result. It is held here because it has predicted well in
-practice, and that is a weaker warrant than the paragraph above.
+**The schema half is weaker.** That a nullable column marks two concepts sharing a table is
+Parnas's cohesion argument applied to data, not a measured result. It has predicted well in
+practice, which is a weaker warrant than the paragraph above.
 
 *Produces* `no-nullable-columns`, `no-database-defaults`.
 
@@ -151,26 +142,21 @@ rows are two concepts sharing a table, and the nulls mark the seam — which is 
 **And a god object comes apart along the concerns that own it**, never by being moved
 wholesale somewhere better. Relocating a grouping produces a grouping.
 
-**Grounding.** Lanza and Marinescu make the defect operational: their God Class detection
-strategy is high foreign-data access, high complexity, **and low cohesion together** —
-cohesion, not size, is the defining term. Khomh et al. then measured the consequence across
-real systems: classes participating in antipatterns are more change- and fault-prone, and
-**size alone cannot explain the difference** (ESE 2012). That is the empirical form of this
-principle — bulk is a symptom, and the disease is unrelated concerns sharing a name.
-Composition over flattening is Evans's shapes and value objects.
+**Grounding.** Lanza and Marinescu make it operational: God Class is high foreign-data access, high complexity
+**and low cohesion together** — cohesion, not size, is the defining term. Khomh et al. measured
+the consequence across real systems: classes in antipatterns are more change- and fault-prone,
+and **size alone cannot explain the difference** (ESE 2012). Composition over flattening is
+Evans.
 
-**The tension, stated rather than avoided.** Fowler's *anemic domain model* is an argument
-against exactly this separation: data over here, behaviour over there, which he calls an
-anti-pattern. In this canon behaviour lives in operations rather than on the record, so the
-objection lands. The answer is that his target is a procedural script with no model at all,
-whereas here the operations are named domain concepts and the values are typed — the model
-exists, it is just not expressed as methods hanging off a table. What decides it in practice
-is whether the operations carry domain names or CRUD names, and no check makes that call.
+**The tension.** Fowler's *anemic domain model* argues against exactly this separation, and here
+behaviour does live in operations rather than on the record, so the objection lands. The answer:
+his target is a procedural script with no model, where here the operations are named domain
+concepts and the values are typed. What decides it is whether operations carry domain names or
+CRUD names, and no check makes that call.
 
-**A grouping is not always code, either.** Where the shared noun is a word the business
-owns rather than a thing the code does, the concern belongs in rows —
-`no-industry-terms-in-code` is that case, and it is the one to check first because it
-shrinks the class before anything is moved.
+Where the shared noun is a word the business owns, the concern belongs in rows —
+`no-industry-terms-in-code`, which is the one to check first because it shrinks the class before
+anything moves.
 
 *Produces* `persistence-holds-no-behaviour`, `a-shape-is-composed-not-flattened`.
 
@@ -207,18 +193,16 @@ without a deploy, differ per tenant, be listed on a screen, be totalled in a rep
 corrected by the person who knows the answer. Held as code it can do none of those, and each
 one becomes a ticket.
 
-**Grounding.** This is Parnas's criterion read literally: modules are decomposed around the
-decisions likely to change, and a business vocabulary is the fastest-changing thing in a
-commercial codebase. Evans's ubiquitous language argues the domain's words belong in the
-model — this principle adds where: in rows, because the people who own the words cannot edit
-Ruby. The failure mode is Evans's *anaemic* one inverted — not a model with no behaviour,
-but behaviour that has swallowed the model's vocabulary.
+**Grounding.** Parnas's criterion read literally: decompose around the decisions likely to change, and a
+business vocabulary is the fastest-changing thing in a commercial codebase. Evans's ubiquitous
+language argues the domain's words belong in the model; this adds *where* — in rows, because the
+people who own the words cannot edit Ruby. The failure mode is Evans's *anaemic* one inverted:
+behaviour that has swallowed the model's vocabulary.
 
-**The limit, stated rather than avoided.** Some vocabularies genuinely are structural. A
-payment that clears through a different network needs different code, not a different row,
-and forcing it into data produces a configuration language nobody can debug — the opposite
-mistake, and a worse one. The signal you have gone too far is a row whose value is the name
-of a class.
+**The limit.** Some vocabularies are structural. A payment clearing through a different network
+needs different code, not a different row, and forcing it into data produces a configuration
+language nobody can debug. The signal you have gone too far is a row whose value is the name of
+a class.
 
 *Produces* the "Rules that are really data" measure, and the shared first step of every
 procedure in [`docs/decomposing/`](decomposing/).
@@ -241,11 +225,10 @@ So the callee must report — every outcome the caller is entitled to act on com
 a value, not as a state to be inspected afterwards. Tell-don't-ask without
 `nothing-fails-quietly` is just silence with better manners.
 
-**Grounding.** The formulation is Sharp's, carried by Hunt and Thomas and set out by
-Fowler; the measurable form is the Law of Demeter, whose whole content is that reaching
-through an object to decide on its behalf couples you to its internals (Lieberherr and
-Holland 1989). It is also the diagnosis behind the "feature envy" and "anemic domain
-model" smells (Fowler): behaviour that has migrated away from the data it acts on.
+**Grounding.** The formulation is Sharp's, carried by Hunt and Thomas and set out by Fowler. The measurable
+form is the Law of Demeter, whose whole content is that reaching through an object to decide on
+its behalf couples you to its internals (Lieberherr and Holland 1989). It is also the diagnosis
+behind *feature envy* and *anemic domain model* (Fowler).
 
 *Produces* `no-lifecycle-callbacks`, `no-decisions-in-request-handling`.
 
@@ -274,28 +257,20 @@ architecture.
 Never scope work by diff size. One transform across a hundred files is a small change; six
 files holding five judgements is a large one. Count the decisions.
 
-**Grounding.** Engler et al. inferred bugs directly from *deviation*: where code implies a
-belief the programmer must hold, the sites contradicting the dominant pattern are the
-defects — real errors found across operating-system code with no specification at all
-(SOSP 2001). Variation is not merely untidy; it is the signal a detector runs on.
-The open/closed principle is Meyer's (1988), restated by Martin for dynamic dispatch
-(1996); the stopping rule is the correction the literature itself supplies, since Fowler
-names *speculative
-generality* as a smell in its own right and a wrong abstraction is harder to remove than a
-conditional is to add.
+**Grounding.** Engler et al. inferred bugs from *deviation*: where code implies a belief the programmer must
+hold, the sites contradicting the dominant pattern are the defects — found across
+operating-system code with no specification at all (SOSP 2001). Variation is the signal a
+detector runs on. Open/closed is Meyer (1988), restated by Martin (1996); the stopping rule is
+the literature's own, since Fowler names *speculative generality* a smell and a wrong
+abstraction is harder to remove than a conditional is to add.
 
-**On duplication, and this is a prediction rather than a finding.** Industry telemetry
-reports duplicated blocks rising eightfold in 2024, with moved-and-refactored code falling
-from 24.8% of changed lines in 2021 to 9.5% (GitClear 2025) — the sprawl this canon exists
-to answer. The claim here is that the shape prevents it structurally: when the unit is a
-one-method class and the call graph is declared, a shared step has nowhere to live except
-its own class that both callers call, and a thousand-line file cannot form at all. No
-clone detector is needed because there is no place for a clone to accumulate.
-
-**That claim is untested.** The telemetry measures codebases with no such constraint, so it
-cannot confirm or refute this. What would falsify it: near-identical bodies appearing across
-sibling operation classes. If that shows up, the prevention failed and detection has to come
-back.
+**On duplication this is a prediction, not a finding.** Industry telemetry reports duplicated
+blocks rising eightfold in 2024, with moved-and-refactored code falling from 24.8% of changed
+lines in 2021 to 9.5% (GitClear 2025). The claim here is that the shape prevents that
+structurally: when the unit is a one-method class and the call graph is declared, a shared step
+has nowhere to live but its own class, and a thousand-line file cannot form. **Untested** — that
+telemetry measures codebases with no such constraint, so it can neither confirm nor refute it.
+What would falsify it: near-identical bodies across sibling operation classes.
 
 *Produces* `one-operation-one-class`, `no-type-interrogation`.
 
@@ -311,21 +286,17 @@ every reader, forever — and the writer never pays it.
 The measure is whether a reader can tell where a thing lives, what it does, and whether a
 change to it is finished — **without reading it**. Predictable beats short.
 
-**Grounding.** Reading dominates. Xia et al. instrumented 78 professional developers over
-3,148 working hours across seven real projects and found roughly 58% of working time goes
-to program comprehension (TSE 2018); Minelli et al. report a comparable share from IDE
-interaction data (ICPC 2015). Any construct that trades reading cost for writing cost is
-therefore trading against the larger number. The generation-cost collapse that makes this
-sharper is recent and the evidence for it is industry telemetry rather than peer-reviewed:
-GitClear's 2025 analysis of 211 million changed lines is the clearest public dataset, and
-it should be cited as such.
+**Grounding.** Reading dominates. Xia et al. instrumented 78 developers over 3,148 working hours across seven
+real projects and found roughly 58% of working time goes to program comprehension (TSE 2018);
+Minelli et al. report a comparable share from IDE interaction data (ICPC 2015). Any construct
+trading reading cost for writing cost trades against the larger number. The generation-cost
+collapse that sharpens this is industry telemetry rather than peer-reviewed — GitClear's 2025
+analysis of 211 million changed lines — and should be cited as such.
 
-**The tension, stated rather than avoided.** Ousterhout argues for *deep* modules — a
-simple interface over a large implementation — and would call some of what this principle
-forbids good design. The distinction drawn here is between hiding an implementation, which
-is Parnas's point and is right, and hiding *where the rule is written*, which defeats the
-reader looking for it. A deep module whose interface is greppable satisfies both. A macro
-that generates the interface satisfies neither.
+**The tension.** Ousterhout argues for *deep* modules and would call some of what this forbids
+good design. The distinction: hiding an implementation is Parnas's point and is right; hiding
+*where the rule is written* defeats the reader looking for it. A deep module whose interface is
+greppable satisfies both. A macro that generates the interface satisfies neither.
 
 *Produces* `code-is-written-not-generated`, `no-lifecycle-callbacks`, and the delivered
 rule files.
@@ -342,14 +313,13 @@ validation is a courtesy to the user, the constraint is what makes the rule true
 restore it. An unproven guard reads as coverage while catching nothing, which is worse
 than no guard at all.
 
-**Grounding.** This is poka-yoke from the Toyota Production System (Shingo): design the
-fixture so the part cannot be fitted the wrong way round, rather than training the
-operator not to. Minsky's "make illegal states unrepresentable" is the same move in a type
-system. The delivery half is settled empirically: Sadowski et al. report that at Google,
-filing tool-found bugs as tickets did not scale — 84% went unfixed — and that what worked
-was surfacing findings inside the workflow, at review time, with a low false-positive
-budget (CACM 2018). A guard nobody is forced to look at is not a guard, which is the whole
-argument for the ratchet.
+**Grounding.** Poka-yoke from the Toyota Production System (Shingo): shape the fixture so the part cannot be
+fitted the wrong way round, rather than training the operator. Minsky's "make illegal states
+unrepresentable" is the same move in a type system. The delivery half is settled empirically:
+Sadowski et al. report that at Google, filing tool-found bugs as tickets did not scale — 84%
+went unfixed — and what worked was surfacing findings in the workflow, at review time, on a low
+false-positive budget (CACM 2018). A guard nobody is forced to look at is not a guard, which is
+the argument for the ratchet.
 
 *Produces* every law's guard, and the rule that each guard is tested by removal.
 
