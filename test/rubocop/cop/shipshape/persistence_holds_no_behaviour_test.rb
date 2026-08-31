@@ -30,10 +30,6 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
 
   RECORD = "app/records/booking_record.rb"
 
-  # **`delegate` was the one way left to put behaviour on a record.** `def name; supplier.name; end`
-  # is an offence; the macro writes the same method and the guard reading `def` saw nothing.
-  # `code-is-written-not-generated` exempts it deliberately — that law draws its line at the
-  # framework's public conventions — which decides where it is caught, not whether.
   def test_delegate_puts_methods_on_a_record
     found = check(<<~RUBY)
       class BookingRecord < ApplicationRecord
@@ -43,7 +39,8 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`delegate` puts public methods on a record"
+    assert_includes found.first.message, "`delegate` puts public methods on a record",
+      "**`delegate` was the one way left to put behaviour on a record.** `def name; supplier.name; end` is an offence; the macro writes the same method and the guard reading `def` saw nothing. `code-is-written-not-generated` exempts it deliberately — that law draws its line at the framework's public conventions — which decides where it is caught, not whether."
   end
 
   # **Judged on visibility, the way a `def` already is.** `on_def` exempts a private method
@@ -76,10 +73,6 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
   end
 
-  # **`default_scope` was invisible to this cop**, which matched `scope` exactly — so the one
-  # scope reaching every read in the application passed the guard that exists to stop rules
-  # living on records. Found by surveying the canon against a list of Rails failures it did
-  # not write.
   def test_a_default_scope_is_a_rule_on_every_read
     found = check(<<~RUBY)
       class BookingRecord < ApplicationRecord
@@ -88,7 +81,8 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "implicit behaviour: global state on every read"
+    assert_includes found.first.message, "implicit behaviour: global state on every read",
+      "**`default_scope` was invisible to this cop**, which matched `scope` exactly — so the one scope reaching every read in the application passed the guard that exists to stop rules living on records. Found by surveying the canon against a list of Rails failures it did not write."
   end
 
   # A named scope is judged on whether it reaches another class. This one is not: it needs no

@@ -61,7 +61,6 @@ class IoTest < Minitest::Test
     "app/records/invoice_record.rb" => "class InvoiceRecord < ApplicationRecord\nend\n",
   }.freeze
 
-  # The rule this whole split exists for.
   def test_a_command_may_not_write_to_the_outside
     found = check(<<~RUBY, "app/commands/charge_account.rb")
       class ChargeAccount < Command
@@ -73,10 +72,10 @@ class IoTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A command may not call an io_command"
-    assert_includes found.first.message, "They are sisters"
+    assert_includes found.first.message, "They are sisters",
+      "The rule this whole split exists for."
   end
 
-  # And not read from it either: the transaction is held open just the same by a read.
   def test_a_command_may_not_read_from_the_outside
     found = check(<<~RUBY, "app/commands/charge_account.rb")
       class ChargeAccount < Command
@@ -87,7 +86,8 @@ class IoTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A command may not call an io_query"
+    assert_includes found.first.message, "A command may not call an io_query",
+      "And not read from it either: the transaction is held open just the same by a read."
   end
 
   def test_a_query_may_not_read_from_the_outside
@@ -116,8 +116,6 @@ class IoTest < Minitest::Test
     RUBY
   end
 
-  # Two kinds, one tree, told apart by what they inherit — the same mechanism as the legacy
-  # doors, so the `Io` prefix marks the call site and the base class carries the shape.
   def test_the_two_io_kinds_are_told_apart_by_their_base_class
     found = check(<<~RUBY, "app/io/io_fetch_rates.rb")
       class IoFetchRates < IoQuery
@@ -128,11 +126,10 @@ class IoTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "An io_query may not call an io_command"
+    assert_includes found.first.message, "An io_query may not call an io_command",
+      "Two kinds, one tree, told apart by what they inherit — the same mechanism as the legacy doors, so the `Io` prefix marks the call site and the base class carries the shape."
   end
 
-  # It touches no record: the external call and the write recording its result are two
-  # steps, so a failed remote call leaves no half-written row behind.
   def test_an_io_command_may_not_write_to_the_local_store
     found = check(<<~RUBY, "app/io/io_send_invoice.rb")
       class IoSendInvoice < IoCommand
@@ -143,7 +140,8 @@ class IoTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "An io_command may not call a record"
+    assert_includes found.first.message, "An io_command may not call a record",
+      "It touches no record: the external call and the write recording its result are two steps, so a failed remote call leaves no half-written row behind."
   end
 
   # A write may read first — fetching a token before posting. The read it may do is the one
@@ -158,8 +156,6 @@ class IoTest < Minitest::Test
     RUBY
   end
 
-  # Reaching back across the boundary it just crossed. Anything it needs from here should
-  # have been handed to it, like every other input.
   def test_an_io_command_may_not_read_the_local_store
     found = check(<<~RUBY, "app/io/io_send_invoice.rb")
       class IoSendInvoice < IoCommand
@@ -170,7 +166,8 @@ class IoTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "An io_command may not call a query"
+    assert_includes found.first.message, "An io_command may not call a query",
+      "Reaching back across the boundary it just crossed. Anything it needs from here should have been handed to it, like every other input."
   end
 
   def test_an_io_operation_may_build_shapes

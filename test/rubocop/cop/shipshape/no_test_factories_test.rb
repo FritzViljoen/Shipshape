@@ -42,11 +42,11 @@ class NoTestFactoriesTest < Minitest::Test
     end
   end
 
-  # Fixtures are the same second construction, loaded earlier and shared by everything.
   def test_fixtures_are_the_same_defect
     found = check("fixtures :all\n")
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "Fixtures are the same second construction, loaded earlier and shared by everything."
     assert_includes found.first.message, "Fixtures build domain state without going through an operation"
   end
 

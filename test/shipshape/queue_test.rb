@@ -64,35 +64,31 @@ class QueueTest < Minitest::Test
     end
   RUBY
 
-  # **The ratio, not a boolean.** A file with one covered method of eighty used to outrank
-  # one with all of its methods covered, which is the wrong way round: what matters is how
-  # much of the file can be moved before the work stops being verifiable.
   def test_the_best_covered_file_comes_first
     units = queue
 
     assert_equal "app/records/covered_record.rb", units.first.path
     assert_empty units.first.unnamed
-    assert_equal 1, units.first.methods
+    assert_equal 1, units.first.methods,
+      "**The ratio, not a boolean.** A file with one covered method of eighty used to outrank one with all of its methods covered, which is the wrong way round: what matters is how much of the file can be moved before the work stops being verifiable."
   end
 
-  # A file-level answer says nothing about the method you are about to move.
   def test_it_names_the_methods_no_test_mentions
     uncovered = queue.find { |unit| unit.path.include?("uncovered") }
 
     assert_equal %w[unwitnessed_rule unwitnessed_scope], uncovered.unnamed
-    assert_equal 0, uncovered.covered
+    assert_equal 0, uncovered.covered,
+      "A file-level answer says nothing about the method you are about to move."
   end
 
-  # Among files nothing tests, six kinds of finding is six problems and sixty of one kind is
-  # one problem repeated — so the file breaking more distinct rules comes first, even though
-  # the other has far more offences.
   def test_more_distinct_rules_outranks_more_offences
     units = build(
       "app/records/many_rules_record.rb" => UNCOVERED,
       "app/records/one_rule_record.rb" => REPETITIVE,
     )
 
-    assert_equal "app/records/many_rules_record.rb", units.first.path
+    assert_equal "app/records/many_rules_record.rb", units.first.path,
+      "Among files nothing tests, six kinds of finding is six problems and sixty of one kind is one problem repeated — so the file breaking more distinct rules comes first, even though the other has far more offences."
     assert_operator units.first.offences.length, :<, units.last.offences.length
     assert_operator units.first.cops.length, :>, units.last.cops.length
   end
@@ -104,21 +100,18 @@ class QueueTest < Minitest::Test
     refute uncovered.tested, "no method of this file is named in any test"
   end
 
-  # The message is the prompt. A summary would make the unit unactionable on its own.
   def test_each_offence_carries_the_whole_teaching_message
     message = queue.first.offences.first.fetch(:message)
 
     assert_includes message, "WHY:"
-    assert_includes message, "INSTEAD:"
+    assert_includes message, "INSTEAD:",
+      "The message is the prompt. A summary would make the unit unactionable on its own."
   end
 
   def test_it_answers_nothing_when_everything_is_clean
     assert_empty build("app/records/clean_record.rb" => "class CleanRecord < ApplicationRecord\nend\n")
   end
 
-  # **Ruby's own vocabulary would mark everything covered.** `call`, `name`, `each` appear in
-  # every test file whether or not this class is tested, so matching them answers yes for a
-  # file nothing exercises — the flattering answer, and the dangerous one here.
   def test_ruby_s_own_vocabulary_is_not_evidence_of_coverage
     units = build(
       "app/records/common_record.rb" =>
@@ -129,7 +122,8 @@ class QueueTest < Minitest::Test
     )
 
     assert_equal 0, units.first.methods, "call and name are not this file's evidence"
-    assert_equal 0, units.first.covered
+    assert_equal 0, units.first.covered,
+      "**Ruby's own vocabulary would mark everything covered.** `call`, `name`, `each` appear in every test file whether or not this class is tested, so matching them answers yes for a file nothing exercises — the flattering answer, and the dangerous one here."
   end
 
   private

@@ -41,10 +41,10 @@ class SourceTextTest < Minitest::Test
     end
   end
 
-  # `Kinds` reads a file to find its superclass, so the bad file broke classification.
   def test_kinds_still_classifies_a_file_holding_an_invalid_byte
     in_tree("app/commands/latin.rb" => LATIN) do |root|
-      assert_equal "command", kinds(root).for_path(File.join(root, "app/commands/latin.rb"))
+      assert_equal "command", kinds(root).for_path(File.join(root, "app/commands/latin.rb")),
+        "`Kinds` reads a file to find its superclass, so the bad file broke classification."
     end
   end
 

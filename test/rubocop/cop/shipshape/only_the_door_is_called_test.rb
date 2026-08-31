@@ -77,8 +77,6 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_equal 1, check("d = SettleMonth.permissions.all? { |p| actor.may?(p) }\n").length
   end
 
-  # **A sequence runs its steps, it does not post them.** Deferred, step three can start before
-  # step two has happened, and the workflow answers success for work that has not been done.
   def test_a_workflow_may_not_defer_a_step
     found = offences(<<~RUBY, cop_class: COP, path: "app/workflows/settle_month.rb", files: TREE, other_cops: LAYOUT)
       class SettleMonth < Workflow
@@ -89,7 +87,8 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "defers a step of a sequence"
+    assert_includes found.first.message, "defers a step of a sequence",
+      "**A sequence runs its steps, it does not post them.** Deferred, step three can start before step two has happened, and the workflow answers success for work that has not been done."
     assert_includes found.first.message, "answers success for work that has not been done"
   end
 
@@ -98,15 +97,14 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_empty check("SettleInvoice.call_later(actor: actor)\n")
   end
 
-  # It does not rely on visibility, so a bypass the other guards miss is still refused.
   def test_the_forwarder_is_refused_by_name
-    assert_equal 1, check("SettleInvoice.__perform__(actor)").length
+    assert_equal 1, check("SettleInvoice.__perform__(actor)").length,
+      "It does not rely on visibility, so a bypass the other guards miss is still refused."
   end
 
-  # The route `private_class_method :new` alone left open: `allocate` is public on every Ruby
-  # class and skips `initialize` entirely.
   def test_allocate_is_not_the_door_either
-    assert_equal 1, check("SettleInvoice.allocate").length
+    assert_equal 1, check("SettleInvoice.allocate").length,
+      "The route `private_class_method :new` alone left open: `allocate` is public on every Ruby class and skips `initialize` entirely."
   end
 
   # A variable holding the class is the stated blind spot. `private_class_method :new,
@@ -120,18 +118,16 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_empty check("Invoice.new(number: '1')")
   end
 
-  # **Deferring is running, at a different time**, so the writing doors answer it.
   def test_a_command_may_be_deferred
-    assert_empty check("SettleInvoice.call_later(actor: actor, invoice_id: 1)")
+    assert_empty check("SettleInvoice.call_later(actor: actor, invoice_id: 1)"),
+      "**Deferring is running, at a different time**, so the writing doors answer it."
   end
 
-  # **Per kind, not one flat list.** `call_later` exists only on the writing doors, so
-  # allowing it everywhere let `SomeWorkflow.call_later(…)` pass this cop and fail at runtime
-  # with `NoMethodError` — the guard moving a failure from the build into production.
   def test_a_workflow_may_not_be_deferred
     found = check("SettleMonth.call_later(actor: actor)")
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "**Per kind, not one flat list.** `call_later` exists only on the writing doors, so allowing it everywhere let `SomeWorkflow.call_later(…)` pass this cop and fail at runtime with `NoMethodError` — the guard moving a failure from the build into production."
     assert_includes found.first.message, "is not the door"
   end
 

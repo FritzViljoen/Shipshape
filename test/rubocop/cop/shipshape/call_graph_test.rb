@@ -147,8 +147,6 @@ class CallGraphTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  # One rule, applied to every kind: no kind calls its own kind. The per-kind reasons
-  # below are consequences of it, not separate rules.
   def test_a_query_may_not_call_a_query
     found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
@@ -160,7 +158,8 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a query"
-    assert_includes found.first.message, "They are sisters."
+    assert_includes found.first.message, "They are sisters.",
+      "One rule, applied to every kind: no kind calls its own kind. The per-kind reasons below are consequences of it, not separate rules."
   end
 
   def test_a_command_may_not_call_a_command
@@ -220,8 +219,6 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  # Whose store it is changes nothing. A read of somebody else's is a query, so a query
-  # reaching one is the same sister call as a query reaching a local query.
   def test_a_remote_read_is_a_query
     found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
@@ -232,7 +229,8 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A query may not call a query"
+    assert_includes found.first.message, "A query may not call a query",
+      "Whose store it is changes nothing. A read of somebody else's is a query, so a query reaching one is the same sister call as a query reaching a local query."
   end
 
   def test_a_remote_write_is_a_command
@@ -272,8 +270,6 @@ class CallGraphTest < Minitest::Test
     assert_includes found.first.message, "A shape may not call a shape"
   end
 
-  # The rule lives in the cop, not in the matrix — so no configuration can permit a
-  # sister call, and a row that tries is a contradiction rather than a permission.
   def test_a_matrix_row_naming_itself_is_refused
     permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query shape record]))
 
@@ -287,11 +283,10 @@ class CallGraphTest < Minitest::Test
       RUBY
     end
 
-    assert_includes error.message, "lists query, which is a sister of it"
+    assert_includes error.message, "lists query, which is a sister of it",
+      "The rule lives in the cop, not in the matrix — so no configuration can permit a sister call, and a row that tries is a contradiction rather than a permission."
   end
 
-  # A Packwerk layout has no top-level app/. The glob's trailing wildcards are dropped and
-  # what remains is expanded on disk, giving one autoload root per pack.
   def test_a_packwerk_layout_resolves_per_pack
     packs = {
       "Kinds" => {
@@ -317,7 +312,8 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a command"
-    assert_includes found.first.message, "Declared: record."
+    assert_includes found.first.message, "Declared: record.",
+      "A Packwerk layout has no top-level app/. The glob's trailing wildcards are dropped and what remains is expanded on disk, giving one autoload root per pack."
   end
 
   # Each pack is its own autoload root, so two packs may hold the same constant name and
@@ -387,10 +383,6 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  # A glob may name one file rather than a tree, which is how an application says two kinds
-  # share a directory before it has moved anything. Treating such a glob as a root resolved
-  # constants against its DIRECTORY and matched nothing — so a controller reaching straight
-  # into a record came back clean.
   def test_a_glob_naming_one_file_classifies_that_constant
     mixed = {
       "Kinds" => {
@@ -411,7 +403,8 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A request_handling may not call a record"
+    assert_includes found.first.message, "A request_handling may not call a record",
+      "A glob may name one file rather than a tree, which is how an application says two kinds share a directory before it has moved anything. Treating such a glob as a root resolved constants against its DIRECTORY and matched nothing — so a controller reaching straight into a record came back clean."
   end
 
   # And only that one. Resolving against the directory would classify every neighbour the
@@ -436,10 +429,6 @@ class CallGraphTest < Minitest::Test
   end
 
 
-  # **A base class is its kind even though it lives in a gem.** Resolution goes through the
-  # filesystem, so `ActiveRecord::Base` resolved to nothing and was skipped — which meant the
-  # one constant that names persistence was the one nothing could see, and
-  # `ActiveRecord::Base.connection.execute` reached the database from a shape unopposed.
   def test_a_declared_base_class_resolves_to_its_kind
     found = offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/shapes/place.rb", files: TREE)
       class Place < Shape
@@ -449,7 +438,8 @@ class CallGraphTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "**A base class is its kind even though it lives in a gem.** Resolution goes through the filesystem, so `ActiveRecord::Base` resolved to nothing and was skipped — which meant the one constant that names persistence was the one nothing could see, and `ActiveRecord::Base.connection.execute` reached the database from a shape unopposed."
   end
 
   # **A parent is not a sister.** Once base classes resolve, a record naming the class it
@@ -465,7 +455,6 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  # The exemption is the *own* superclass, not any base class.
   def test_a_controller_naming_a_record_base_class_is_still_refused
     found = offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/controllers/things_controller.rb", files: TREE)
       class ThingsController < ApplicationController
@@ -475,7 +464,8 @@ class CallGraphTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "The exemption is the *own* superclass, not any base class."
   end
 
   private

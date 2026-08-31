@@ -85,13 +85,12 @@ class MixinsAddNothingPublicTest < Minitest::Test
     assert_empty check("module Paying\n  def self.build; end\nend\n")
   end
 
-  # An operation inside a namespace writes the short form, and nothing here loads the
-  # application to resolve it.
   def test_a_namespaced_module_matches_the_short_form_written_at_the_include
     found = check("module Billing\n  module Paying\n    def total; end\n  end\nend\n",
                   path: "app/models/concerns/billing/paying.rb")
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "An operation inside a namespace writes the short form, and nothing here loads the application to resolve it."
   end
 
   # A nested module is reached through its parent's name, which is what the operation

@@ -51,12 +51,12 @@ class IoIsItsOwnKindTest < Minitest::Test
     assert_includes message, "class ChargeCard < IoCommand"
   end
 
-  # The worse case, because nothing about a read looks dangerous.
   def test_io_from_a_query_is_refused_and_named_as_a_query
     found = check("RestClient.get(\"http://example.com\")", "app/queries/list_people.rb",
                   "class ListPeople < Query")
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "The worse case, because nothing about a read looks dangerous."
     assert_includes found.first.message, "and a query does not"
   end
 
@@ -74,9 +74,9 @@ class IoIsItsOwnKindTest < Minitest::Test
     assert_empty check("Money.from_cents(1)")
   end
 
-  # The stated limit, pinned so the silence is deliberate rather than discovered.
   def test_a_vendor_the_list_does_not_name_is_the_stated_blind_spot
-    assert_empty check("Stripe::Charge.create(amount: 1)")
+    assert_empty check("Stripe::Charge.create(amount: 1)"),
+      "The stated limit, pinned so the silence is deliberate rather than discovered."
   end
 
   # `File.join` is a string operation; `File.read` is not. Separating them needs a

@@ -57,9 +57,6 @@ class LegacyDoorTest < Minitest::Test
     RUBY
   end
 
-  # A legacy command IS a command — it only wraps something old. So a command calling one
-  # is a write sequencing a write, and the reason is the transaction: a command is exactly
-  # one, and it has just nested or silently widened it without anybody deciding to.
   def test_a_command_may_not_reach_the_writing_door
     found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson < Command
@@ -71,7 +68,8 @@ class LegacyDoorTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A command may not call a legacy_command"
-    assert_includes found.first.message, "They are sisters"
+    assert_includes found.first.message, "They are sisters",
+      "A legacy command IS a command — it only wraps something old. So a command calling one is a write sequencing a write, and the reason is the transaction: a command is exactly one, and it has just nested or silently widened it without anybody deciding to."
   end
 
   # A workflow is several transactions, which is exactly why it is the one that may
@@ -95,7 +93,6 @@ class LegacyDoorTest < Minitest::Test
     RUBY
   end
 
-  # The whole reason there are two doors: the return shape survives the crossing.
   def test_a_query_may_not_reach_the_reading_door_either_it_is_a_sister
     found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople < Query
@@ -107,7 +104,8 @@ class LegacyDoorTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A query may not call a legacy_query"
-    assert_includes found.first.message, "They are sisters"
+    assert_includes found.first.message, "They are sisters",
+      "The whole reason there are two doors: the return shape survives the crossing."
   end
 
   def test_a_query_may_not_reach_the_writing_door
@@ -123,7 +121,6 @@ class LegacyDoorTest < Minitest::Test
     assert_includes found.first.message, "A query may not call a legacy_command"
   end
 
-  # Two files under one glob, told apart only by what they inherit.
   def test_the_two_doors_are_told_apart_by_their_base_class
     found = check(<<~RUBY, "app/legacy/find_booking_legacy.rb")
       class FindBookingLegacy < LegacyQuery
@@ -134,7 +131,8 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A legacy_query may not call a legacy_command"
+    assert_includes found.first.message, "A legacy_query may not call a legacy_command",
+      "Two files under one glob, told apart only by what they inherit."
   end
 
   def test_one_door_may_not_call_its_own_kind

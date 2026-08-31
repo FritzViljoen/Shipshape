@@ -50,14 +50,12 @@ class InstallTest < Minitest::Test
     end
   end
 
-  # **The one generated file that can stop a boot**, because it inherits from the
-  # view_component gem. Everything else here is a PORO that loads anywhere, so everything
-  # else is written unconditionally.
   def test_the_view_component_base_is_written_only_when_asked_for
     in_app do |root|
       Shipshape::Install.new(root: root, auth: true).call
 
-      refute_path_exists File.join(root, "app/shipshape/application_view_component.rb")
+      refute_path_exists File.join(root, "app/shipshape/application_view_component.rb"),
+        "**The one generated file that can stop a boot**, because it inherits from the view_component gem. Everything else here is a PORO that loads anywhere, so everything else is written unconditionally."
       assert_path_exists File.join(root, "app/shipshape/holds_no_records.rb"),
                          "the rule itself is not optional; only the class that needs the gem is"
     end
@@ -67,17 +65,15 @@ class InstallTest < Minitest::Test
     in_app { |root| assert_path_exists File.join(install(root) && root, "app/shipshape/application_view_component.rb") }
   end
 
-  # A guard that needs the application loaded is a test, not a cop, and it lands in the
-  # suite rather than in `app/`.
   def test_it_writes_the_guards_that_need_a_booted_application
     in_app do |root|
       install(root)
 
-      assert_path_exists File.join(root, "test/shipshape/operations_expose_nothing_test.rb")
+      assert_path_exists File.join(root, "test/shipshape/operations_expose_nothing_test.rb"),
+        "A guard that needs the application loaded is a test, not a cop, and it lands in the suite rather than in `app/`."
     end
   end
 
-  # Once written, the file is the application's.
   def test_it_never_overwrites
     in_app do |root|
       install(root)
@@ -88,7 +84,8 @@ class InstallTest < Minitest::Test
       report = install(root)
 
       assert_empty report[:written]
-      assert_equal everything.length, report[:skipped].length
+      assert_equal everything.length, report[:skipped].length,
+        "Once written, the file is the application's."
       assert_equal "# mine now\n", File.read(target)
     end
   end
@@ -103,14 +100,13 @@ class InstallTest < Minitest::Test
     end
   end
 
-  # The base classes define the shapes; they are not instances of them. `Command` is not a
-  # command, so they sit outside the governed trees and no cop classifies them.
   def test_they_land_outside_the_governed_trees
     in_app do |root|
       install(root)
 
       refute_path_exists File.join(root, "app/commands")
-      refute_path_exists File.join(root, "app/queries")
+      refute_path_exists File.join(root, "app/queries"),
+        "The base classes define the shapes; they are not instances of them. `Command` is not a command, so they sit outside the governed trees and no cop classifies them."
     end
   end
 

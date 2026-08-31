@@ -42,11 +42,11 @@ class AssociationsSurviveErasureTest < Minitest::Test
     assert_includes message, "dependent: :nullify"
   end
 
-  # **The law is that somebody chose**, not that they chose to delete. Every option passes.
   def test_any_decision_is_accepted
     assert_empty check("has_many :comments, dependent: :destroy")
     assert_empty check("has_many :comments, dependent: :nullify")
-    assert_empty check("has_many :comments, dependent: :restrict_with_error")
+    assert_empty check("has_many :comments, dependent: :restrict_with_error"),
+      "**The law is that somebody chose**, not that they chose to delete. Every option passes."
   end
 
   def test_it_covers_the_associations_that_own_children
@@ -54,9 +54,9 @@ class AssociationsSurviveErasureTest < Minitest::Test
     assert_equal 1, check("has_and_belongs_to_many :groups").length
   end
 
-  # `belongs_to` points the other way: the row it names is not this row's to delete.
   def test_belongs_to_is_not_this_cops_business
-    assert_empty check("belongs_to :account")
+    assert_empty check("belongs_to :account"),
+      "`belongs_to` points the other way: the row it names is not this row's to delete."
   end
 
   def test_an_association_outside_a_record_is_left_alone

@@ -42,9 +42,9 @@ class GeneratedTypedParamsTest < Minitest::Test
   end
 
   # `"1abc".to_i` is 1, and `find` on it serves record 1 while nothing anywhere fails.
-  # This is the single trap the seam exists to close.
   def test_a_number_with_rubbish_after_it_is_not_a_number
-    assert_nil action(id: "1abc").integer_param(:id)
+    assert_nil action(id: "1abc").integer_param(:id),
+      "This is the single trap the seam exists to close."
     assert_raises(TypedParams::BadParam) { action(id: "1abc").integer_param!(:id) }
   end
 
@@ -58,12 +58,11 @@ class GeneratedTypedParamsTest < Minitest::Test
     assert_nil action(amount: "Infinity").decimal_param(:amount)
   end
 
-  # `false.blank?` is true, so a genuine false read after a blank guard comes back as the
-  # default — the parameter says no and the application hears nothing.
   def test_a_genuine_false_is_not_the_default
     assert_equal false, action(tie: "false").boolean_param(:tie, default: true)
     assert_equal false, action(tie: false).boolean_param(:tie, default: true)
-    assert_equal true, action(tie: "1").boolean_param(:tie)
+    assert_equal true, action(tie: "1").boolean_param(:tie),
+      "`false.blank?` is true, so a genuine false read after a blank guard comes back as the default — the parameter says no and the application hears nothing."
   end
 
   def test_a_boolean_that_is_neither_bounces
@@ -71,13 +70,13 @@ class GeneratedTypedParamsTest < Minitest::Test
   end
 
   # The default is "no search", so falling back to it would answer an over-long search
-  # with the whole list — the broadest possible answer to a question nobody asked.
   def test_an_over_long_search_bounces_from_both_forms
     long = "x" * 201
 
     assert_raises(TypedParams::BadParam) { action(q: long).text_param(:q) }
     assert_raises(TypedParams::BadParam) { action(q: long).text_param!(:q) }
-    assert_equal "ok", action(q: "  ok  ").text_param(:q)
+    assert_equal "ok", action(q: "  ok  ").text_param(:q),
+      "with the whole list — the broadest possible answer to a question nobody asked."
   end
 
   def test_a_value_outside_a_closed_set_is_refused

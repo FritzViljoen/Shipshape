@@ -54,9 +54,9 @@ class EveryDoorChecksPermissionTest < Minitest::Test
     RUBY
   end
 
-  # An application that never opted in is not nagged about a check it did not ask for.
   def test_an_application_without_authorisation_is_left_alone
-    assert_empty offences(GUTTED, cop_class: COP, path: "app/shipshape/command.rb")
+    assert_empty offences(GUTTED, cop_class: COP, path: "app/shipshape/command.rb"),
+      "An application that never opted in is not nagged about a check it did not ask for."
   end
 
   def test_a_file_that_is_not_a_door_is_left_alone

@@ -42,9 +42,6 @@ class WireTypedParamsTest < Minitest::Test
     end
   end
 
-  # Run it twice and the second run changes nothing. A legacy base controller has years of
-  # other people's decisions in it, and an installer that edits it again on every run is
-  # one nobody will let near their repository.
   def test_it_is_idempotent
     in_app(CONTROLLER) do |root|
       Shipshape::WireTypedParams.new(root: root).call
@@ -53,18 +50,19 @@ class WireTypedParamsTest < Minitest::Test
       outcome, = Shipshape::WireTypedParams.new(root: root).call
 
       assert_equal :already, outcome
-      assert_equal once, read(root)
+      assert_equal once, read(root),
+        "Run it twice and the second run changes nothing. A legacy base controller has years of other people's decisions in it, and an installer that edits it again on every run is one nobody will let near their repository."
     end
   end
 
-  # Saying nothing here would leave the seam open while the install reported success.
   def test_a_missing_controller_is_reported_not_created
     Dir.mktmpdir("shipshape-app") do |root|
       outcome, path = Shipshape::WireTypedParams.new(root: root).call
 
       assert_equal :no_controller, outcome
       assert_equal "app/controllers/application_controller.rb", path
-      refute_path_exists File.join(root, path)
+      refute_path_exists File.join(root, path),
+        "Saying nothing here would leave the seam open while the install reported success."
     end
   end
 

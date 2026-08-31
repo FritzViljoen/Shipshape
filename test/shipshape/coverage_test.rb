@@ -31,7 +31,6 @@ class CoverageTest < Minitest::Test
     assert_equal 100, result.percentage
   end
 
-  # The failure this exists for: everything looks clean because nothing was inspected.
   def test_an_engine_monorepo_reports_nothing_governed
     result = measure(
       "core/app/models/spree/order.rb" => "module Spree\n  class Order\n  end\nend\n",
@@ -41,7 +40,8 @@ class CoverageTest < Minitest::Test
     assert_equal 2, result.total
     assert_equal 0, result.governed
     assert_equal 0, result.percentage
-    assert_includes result.ungoverned, "core/app/models/spree/order.rb"
+    assert_includes result.ungoverned, "core/app/models/spree/order.rb",
+      "The failure this exists for: everything looks clean because nothing was inspected."
   end
 
   def test_it_names_what_no_cop_can_reach
@@ -53,8 +53,6 @@ class CoverageTest < Minitest::Test
     assert_equal ["app/services/legacy_thing.rb"], result.ungoverned
   end
 
-  # Vendored code is somebody else's, and counting it would make every repository look worse
-  # than it is for a reason nobody can act on.
   def test_vendored_and_generated_trees_are_not_the_denominator
     result = measure(
       "app/commands/settle.rb" => "class Settle < Command\nend\n",
@@ -63,7 +61,8 @@ class CoverageTest < Minitest::Test
       "config/routes.rb" => "Rails.application.routes.draw {}\n",
     )
 
-    assert_equal 1, result.total
+    assert_equal 1, result.total,
+      "Vendored code is somebody else's, and counting it would make every repository look worse than it is for a reason nobody can act on."
   end
 
   private

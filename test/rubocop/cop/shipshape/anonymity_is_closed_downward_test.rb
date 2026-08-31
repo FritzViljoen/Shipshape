@@ -39,8 +39,6 @@ class AnonymityIsClosedDownwardTest < Minitest::Test
 
   CALLER = "app/commands/log_in.rb"
 
-  # **The loophole one level down.** Every permission below this line was satisfied by one
-  # declaration at the top of the file.
   def test_an_anonymous_operation_reaching_a_guarded_command_is_an_offence
     found = check(<<~RUBY)
       class LogIn < Command
@@ -51,7 +49,8 @@ class AnonymityIsClosedDownwardTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`ChargeCard` is guarded, and this operation is anonymous"
+    assert_includes found.first.message, "`ChargeCard` is guarded, and this operation is anonymous",
+      "**The loophole one level down.** Every permission below this line was satisfied by one declaration at the top of the file."
   end
 
   def test_the_offence_says_why_anonymity_is_a_claim_about_a_subtree
@@ -150,8 +149,6 @@ class AnonymityIsClosedDownwardTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  # **The callee class's own body, never the file's text.** A second class in the file — or a
-  # heredoc — answered for the class actually being called.
   def test_a_second_anonymous_class_in_the_file_does_not_excuse_the_callee
     found = check(<<~RUBY)
       class LogIn < Command
@@ -162,7 +159,8 @@ class AnonymityIsClosedDownwardTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`FindRate` is guarded"
+    assert_includes found.first.message, "`FindRate` is guarded",
+      "**The callee class's own body, never the file's text.** A second class in the file — or a heredoc — answered for the class actually being called."
   end
 
   private

@@ -164,8 +164,6 @@ class OneOperationOneClassTest < Minitest::Test
     assert_includes found.first.message, "is positional"
   end
 
-  # A keyword-less initializer silently accepts a caller's keywords as one positional
-  # Hash and the call succeeds — which is why this is its own offence and not tolerated.
   def test_a_collected_keyword_parameter_is_refused
     found = check(<<~RUBY)
       class CreatePerson
@@ -176,7 +174,8 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "a collected keyword"
+    assert_includes found.first.message, "a collected keyword",
+      "A keyword-less initializer silently accepts a caller's keywords as one positional Hash and the call succeeds — which is why this is its own offence and not tolerated."
   end
 
   def test_a_collected_positional_parameter_is_refused
@@ -278,8 +277,6 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
-  # `initialize` and the entry point are what a caller hands arguments to, so both are
-  # checked — and the entry point being private does not exempt it.
   def test_the_entry_points_are_still_checked
     found = check(<<~RUBY)
       class CreatePerson
@@ -295,12 +292,10 @@ class OneOperationOneClassTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 2, found.length
+    assert_equal 2, found.length,
+      "`initialize` and the entry point are what a caller hands arguments to, so both are checked — and the entry point being private does not exempt it."
   end
 
-  # The base class runs whichever of the two this class implements, so a class implementing
-  # neither has nothing to run — and one inheriting an entry point inherits that operation's
-  # answers, including whether it needs an actor at all.
   def test_an_operation_must_define_its_own_entry_point
     found = check(<<~RUBY)
       class CreatePerson
@@ -311,7 +306,8 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "defines neither `call` nor `anonymous_call`"
+    assert_includes found.first.message, "defines neither `call` nor `anonymous_call`",
+      "The base class runs whichever of the two this class implements, so a class implementing neither has nothing to run — and one inheriting an entry point inherits that operation's answers, including whether it needs an actor at all."
   end
 
   # A shape's whole job is to expose the fields it was handed, so judging a nested part by
@@ -373,10 +369,6 @@ class OneOperationOneClassTest < Minitest::Test
     RUBY
   end
 
-  # **Both, and both private, is a fail-open.** `anonymous?` answers true, so the base class
-  # dispatches to `anonymous_call` and the operation runs unauthenticated — while the file
-  # appears to define an authorised `call`. Visibility cannot catch this: the correct shape
-  # is private too.
   def test_defining_both_entry_points_is_refused_even_when_both_are_private
     found = check(<<~RUBY)
       class CreatePerson
@@ -390,11 +382,10 @@ class OneOperationOneClassTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "`anonymous_call` is a second entry point"
-    assert_includes found.first.message, "runs unauthenticated"
+    assert_includes found.first.message, "runs unauthenticated",
+      "**Both, and both private, is a fail-open.** `anonymous?` answers true, so the base class dispatches to `anonymous_call` and the operation runs unauthenticated — while the file appears to define an authorised `call`. Visibility cannot catch this: the correct shape is private too."
   end
 
-  # The advice matters as much as the finding: a public helper is almost never a second
-  # operation, it is a method that forgot to go under `private`.
   def test_a_public_helper_is_told_to_go_private
     message = check(<<~RUBY).first.message
       class CreatePerson
@@ -412,7 +403,8 @@ class OneOperationOneClassTest < Minitest::Test
 
     assert_includes message, "`total` is public"
     assert_includes message, "it is a helper, and it goes under `private`"
-    assert_includes message, "occasionally: it is a second operation"
+    assert_includes message, "occasionally: it is a second operation",
+      "The advice matters as much as the finding: a public helper is almost never a second operation, it is a method that forgot to go under `private`."
   end
 
   # A private helper is the shape, and there may be as many as the operation needs.

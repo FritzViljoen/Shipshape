@@ -132,7 +132,6 @@ class NoTypeInterrogationTest < Minitest::Test
     RUBY
   end
 
-  # Four spellings of one ask. The law names the act, not the syntax.
   def test_comparing_the_class_is_the_same_ask
     found = check(<<~RUBY)
       class PriceParty
@@ -145,7 +144,8 @@ class NoTypeInterrogationTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 3, found.length
+    assert_equal 3, found.length,
+      "Four spellings of one ask. The law names the act, not the syntax."
   end
 
   # A value constant in a `when` is a comparison, not a dispatch on type. Failing these was

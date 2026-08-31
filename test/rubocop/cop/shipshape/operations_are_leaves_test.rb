@@ -38,13 +38,12 @@ class OperationsAreLeavesTest < Minitest::Test
 
   COMMAND = "app/commands/admin_upload.rb"
 
-  # The fail-open review found: `AdminUpload < PublicUpload` was public, inheriting an
-  # `anonymous_call` nothing at its own definition mentioned.
   def test_a_second_level_of_inheritance_is_an_offence
     found = check("class AdminUpload < LogIn\nend\n")
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`AdminUpload` inherits from `LogIn`, which is already a command"
+    assert_includes found.first.message, "`AdminUpload` inherits from `LogIn`, which is already a command",
+      "The fail-open review found: `AdminUpload < PublicUpload` was public, inheriting an `anonymous_call` nothing at its own definition mentioned."
   end
 
   def test_the_offence_carries_the_reason_and_an_example
@@ -60,7 +59,6 @@ class OperationsAreLeavesTest < Minitest::Test
     assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
   end
 
-  # The door is where the permission check, the transaction and the type assertion live.
   def test_overriding_the_door_is_an_offence
     found = check(<<~RUBY)
       class AdminUpload < Command
@@ -70,7 +68,8 @@ class OperationsAreLeavesTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "The door is where the permission check, the transaction and the type assertion live."
     assert_includes found.first.message, "owns `self.call`, which is the door"
   end
 

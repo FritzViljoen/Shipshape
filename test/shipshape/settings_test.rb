@@ -19,12 +19,11 @@ class SettingsTest < Minitest::Test
     assert_empty settings.reachable_from("query")
   end
 
-  # It bounces rather than defaulting. A kind nobody declared answers nothing, and
-  # answering nothing is how a cop reports zero offences while protecting nothing.
   def test_an_unknown_kind_answers_nothing_rather_than_raising
     settings = Shipshape::Settings.new(kinds: KINDS, matrix: MATRIX)
 
-    assert_empty settings.reachable_from("workflow")
+    assert_empty settings.reachable_from("workflow"),
+      "It bounces rather than defaulting. A kind nobody declared answers nothing, and answering nothing is how a cop reports zero offences while protecting nothing."
   end
 
   def test_a_row_naming_itself_is_refused
@@ -43,12 +42,11 @@ class SettingsTest < Minitest::Test
     assert_includes error.message, "which no Kinds entry declares"
   end
 
-  # A mid-path wildcard is legitimate — it is how a Packwerk layout is expressed — and
-  # Kinds expands it into one autoload root per pack.
   def test_a_glob_with_a_wildcard_in_the_middle_is_accepted
     kinds = KINDS.merge("query" => ["packs/*/queries/**/*.rb"])
 
-    assert_equal ["query"], Shipshape::Settings.new(kinds: kinds, matrix: MATRIX).reachable_from("command")
+    assert_equal ["query"], Shipshape::Settings.new(kinds: kinds, matrix: MATRIX).reachable_from("command"),
+      "A mid-path wildcard is legitimate — it is how a Packwerk layout is expressed — and Kinds expands it into one autoload root per pack."
   end
 
   # The arguments are asserted where they arrive, and the assertion raises rather than

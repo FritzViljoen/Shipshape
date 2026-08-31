@@ -31,12 +31,12 @@ class RulesTest < Minitest::Test
     assert_includes generate, "## What may call what"
   end
 
-  # The section is written only where the base classes actually carry a permission check.
   def test_it_is_silent_about_authorisation_when_none_is_installed
     Dir.mktmpdir("rules-off") do |root|
       Shipshape::Install.new(root: root, auth: false).call
 
-      refute_includes generate(root: root), "## Authorisation"
+      refute_includes generate(root: root), "## Authorisation",
+        "The section is written only where the base classes actually carry a permission check."
     end
   end
 

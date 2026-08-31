@@ -67,14 +67,12 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     assert_empty check("add_column \"users\", \"show_email\", :boolean\n")
   end
 
-  # **The registry `shipshape install` writes, verbatim.** Its commented-out examples used to
-  # clear `email` and `ip_address` on a fresh install, while `COLUMNS` was genuinely empty —
-  # the feature was born blind to the two commonest personal columns and the build was green.
   def test_the_shipped_registry_declares_nothing
     shipped = File.read(File.expand_path("../../../../lib/shipshape/templates/personal_data.rb.tt", __dir__))
     body = create_table("t.string \"email\"\n    t.string \"ip_address\"")
 
-    assert_equal 2, check(body, shipped).length
+    assert_equal 2, check(body, shipped).length,
+      "**The registry `shipshape install` writes, verbatim.** Its commented-out examples used to clear `email` and `ip_address` on a fresh install, while `COLUMNS` was genuinely empty — the feature was born blind to the two commonest personal columns and the build was green."
   end
 
   # Prose is not a declaration.
@@ -84,8 +82,6 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     assert_equal 1, check(create_table("t.string \"passport\""), registry).length
   end
 
-  # **Per table, not per column name.** Classifying `users.email` used to clear `email`
-  # everywhere in the schema.
   def test_classifying_one_table_does_not_clear_another
     registry = "module PersonalData\n  COLUMNS = { \"users\" => { \"email\" => :anonymise } }.freeze\nend\n"
     schema = create_table("t.string \"email\"") +
@@ -93,7 +89,8 @@ class PersonalDataIsDeclaredTest < Minitest::Test
 
     found = check(schema, registry)
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "**Per table, not per column name.** Classifying `users.email` used to clear `email` everywhere in the schema."
   end
 
   def test_add_column_is_read_against_its_own_table

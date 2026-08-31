@@ -95,9 +95,6 @@ class AutocorrectionTest < Minitest::Test
     assert_unchanged "Integer(params[:code], 16)", RuboCop::Cop::Shipshape::NoInlineParamParse
   end
 
-  # `integer_param!` lives in TypedParams, wired into ApplicationController and nowhere
-  # else. Correcting a plain object that happens to expose `params` emits a call to a method
-  # that does not exist there — 203 of these went into discourse before this guard.
   def test_a_file_that_is_not_a_door_is_reported_and_left_alone
     source = "class Report\n  def call\n    params[:page].to_i\n  end\nend\n"
     path = "app/queries/report.rb"
@@ -106,7 +103,8 @@ class AutocorrectionTest < Minitest::Test
 
     refute_empty offences(source, cop_class: RuboCop::Cop::Shipshape::NoSilentCoercion,
                                   path: path, other_cops: layout)
-    assert_equal source, correct(source, RuboCop::Cop::Shipshape::NoSilentCoercion, path: path, layout: layout)
+    assert_equal source, correct(source, RuboCop::Cop::Shipshape::NoSilentCoercion, path: path, layout: layout),
+      "`integer_param!` lives in TypedParams, wired into ApplicationController and nowhere else. Correcting a plain object that happens to expose `params` emits a call to a method that does not exist there — 203 of these went into discourse before this guard."
   end
 
   def test_a_raising_conversion_is_rewritten

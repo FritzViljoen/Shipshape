@@ -103,8 +103,6 @@ class NoNullableColumnsTest < Minitest::Test
     assert_includes found.first.message, "`supplier` is nullable"
   end
 
-  # The case the cop missed entirely at first: a column with no `null:` is nullable, and
-  # that is how nearly every nullable column arrives.
   def test_a_column_that_says_nothing_is_nullable
     found = check(<<~RUBY)
       class AddNicknameToPeople < ActiveRecord::Migration[7.0]
@@ -119,7 +117,8 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
 
     assert_equal 3, found.length
-    assert_includes found.first.message, "says nothing about `null:`, which means nullable"
+    assert_includes found.first.message, "says nothing about `null:`, which means nullable",
+      "The case the cop missed entirely at first: a column with no `null:` is nullable, and that is how nearly every nullable column arrives."
   end
 
   def test_declarations_that_are_not_columns_are_left_alone

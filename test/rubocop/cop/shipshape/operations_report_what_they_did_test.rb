@@ -69,11 +69,9 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
     end
   end
 
-  # **A workflow performs no act**, so it records nothing of its own: each step records what it
-  # did, and an entry here would be a second row saying the rows beneath it happened. Holding
-  # the installed `workflow.rb` to an audit call made a correct install fail this cop.
   def test_a_workflow_is_not_held_to_it
-    assert_empty check(SILENT, "app/shipshape/workflow.rb")
+    assert_empty check(SILENT, "app/shipshape/workflow.rb"),
+      "**A workflow performs no act**, so it records nothing of its own: each step records what it did, and an entry here would be a second row saying the rows beneath it happened. Holding the installed `workflow.rb` to an audit call made a correct install fail this cop."
   end
 
   # A read is not an attempt to change anything.
@@ -83,10 +81,9 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
     end
   end
 
-  # The base classes are installed under `app/shipshape/`; an application class that happens
-  # to be called `command.rb` elsewhere is not one of them.
   def test_only_the_installed_base_classes_are_checked
-    assert_empty offences(SILENT, cop_class: COP, path: "app/commands/command.rb", files: INSTALLED)
+    assert_empty offences(SILENT, cop_class: COP, path: "app/commands/command.rb", files: INSTALLED),
+      "The base classes are installed under `app/shipshape/`; an application class that happens to be called `command.rb` elsewhere is not one of them."
   end
 
   private

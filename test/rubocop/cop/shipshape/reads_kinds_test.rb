@@ -43,8 +43,6 @@ class ReadsKindsTest < Minitest::Test
     end
   end
 
-  # The reverse order too: nil is falsy, so a plain `||=` never memoised an unclassified
-  # file and this direction passed either way. It is here so the pair reads as one claim.
   def test_the_order_does_not_matter
     in_tree do |root, config|
       cop = RuboCop::Cop::Shipshape::PersistenceHoldsNoBehaviour.new(config)
@@ -53,7 +51,8 @@ class ReadsKindsTest < Minitest::Test
       record = investigate(cop, File.join(root, "app/models/thing.rb"))
 
       assert_equal 0, command
-      assert_equal 1, record
+      assert_equal 1, record,
+        "The reverse order too: nil is falsy, so a plain `||=` never memoised an unclassified file and this direction passed either way. It is here so the pair reads as one claim."
     end
   end
 

@@ -90,11 +90,10 @@ class TypedArgumentsTest < Minitest::Test
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: Object.new) }
   end
 
-  # A gem that reopened TrueClass and FalseClass would change two objects nobody owns,
-  # from a dev dependency, invisibly. Boolean is a name and is included nowhere.
   def test_boolean_does_not_reopen_the_core_classes
     refute_includes true.class.ancestors, Shipshape::Boolean
-    refute_includes false.class.ancestors, Shipshape::Boolean
+    refute_includes false.class.ancestors, Shipshape::Boolean,
+      "A gem that reopened TrueClass and FalseClass would change two objects nobody owns, from a dev dependency, invisibly. Boolean is a name and is included nowhere."
   end
 
   # The guard is private, so it cannot be reached from outside the object that declared

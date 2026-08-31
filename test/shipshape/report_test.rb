@@ -138,24 +138,19 @@ class ReportTest < Minitest::Test
     RUBY
   }.freeze
 
-  # No label: the path names the file, the source line shown beneath names the class, and a
-  # third copy of the same word is the report stuttering at its reader.
-  # A class nested inside another CLASS is that class's own business — an implementation
-  # detail of the thing around it, which is the thing that needs a kind. Counting them put
-  # five entries in the report for one file and stripped the namespace off every one.
   def test_a_class_owned_by_another_class_is_not_a_stray_object
     relatives = row("Classes that inherit from nothing").findings.map(&:relative)
 
-    assert_equal 1, relatives.count("app/models/basket.rb")
+    assert_equal 1, relatives.count("app/models/basket.rb"),
+      "No label: the path names the file, the source line shown beneath names the class, and a third copy of the same word is the report stuttering at its reader. A class nested inside another CLASS is that class's own business — an implementation detail of the thing around it, which is the thing that needs a kind. Counting them put five entries in the report for one file and stripped the namespace off every one."
   end
 
-  # A class nested only in modules is namespaced, not owned — and its source line reads
-  # `class Bin`, which says nothing about Warehouse. So the label carries the real name.
   def test_a_namespaced_class_is_named_in_full
     found = row("Classes that inherit from nothing").findings
 
     assert_includes found.map(&:label), "Warehouse::Bin"
-    assert_includes found.map(&:label), ""
+    assert_includes found.map(&:label), "",
+      "A class nested only in modules is namespaced, not owned — and its source line reads `class Bin`, which says nothing about Warehouse. So the label carries the real name."
   end
 
   def test_it_finds_classes_doing_several_things
@@ -174,14 +169,13 @@ class ReportTest < Minitest::Test
     refute_includes row("Classes doing several things").findings.map(&:relative).join, "controllers"
   end
 
-  # One line per ACTION, not per branch: fifteen hundred branch locations is a list nobody
-  # reads. The fixture has one action holding two branches.
   def test_it_reports_the_branchiest_actions_not_every_branch
     branches = row("Branches inside request handling")
 
     assert_equal 1, branches.count
     assert_equal ["#show — 3 branches"], branches.findings.map(&:label)
-    assert_includes branches.headline, "3 branches in all"
+    assert_includes branches.headline, "3 branches in all",
+      "One line per ACTION, not per branch: fifteen hundred branch locations is a list nobody reads. The fixture has one action holding two branches."
   end
 
   def test_it_finds_request_handling_reaching_persistence
@@ -202,32 +196,29 @@ class ReportTest < Minitest::Test
     assert_equal ["to_i"], labels("Request input cast where it is used")
   end
 
-  # Cohesion is the defining term, not size. A class whose methods share no state is
-  # several classes wearing one name — and one that shares state is just long.
   def test_a_long_but_cohesive_class_is_not_a_god_class
-    assert_empty labels("God classes")
+    assert_empty labels("God classes"),
+      "Cohesion is the defining term, not size. A class whose methods share no state is several classes wearing one name — and one that shares state is just long."
   end
 
   def test_the_widest_tables_are_listed_in_order
     assert_equal ["orders — 4 columns"], labels("Widest tables")
   end
 
-  # Timestamps are exempt; a column with a default is reported as a default rather than
-  # counted twice.
   def test_it_reads_the_schema
     found = labels("Nullable columns and database defaults")
 
-    assert_equal ["note — nullable", "count — has a default"], found
+    assert_equal ["note — nullable", "count — has a default"], found,
+      "Timestamps are exempt; a column with a default is reported as a default rather than counted twice."
   end
 
-  # A suggestion written in the reader's own nouns is one they can argue with; one written
-  # in `YourCommand` and `SomeModel` is a slide.
   def test_it_proposes_a_shape_named_from_their_own_code
     proposal = row("Request handling reaching straight into persistence").proposal
 
     assert_includes proposal, "class FindOrder < Query"
     assert_includes proposal, "app/queries/find_order.rb"
-    assert_includes proposal, "@id = typed(id, Integer)"
+    assert_includes proposal, "@id = typed(id, Integer)",
+      "A suggestion written in the reader's own nouns is one they can argue with; one written in `YourCommand` and `SomeModel` is a slide."
   end
 
   def test_a_proposal_with_no_inputs_has_no_empty_initializer
@@ -237,68 +228,59 @@ class ReportTest < Minitest::Test
     refute_includes proposal, "initialize()"
   end
 
-  # A controller building a value object is the one thing a controller is entitled to do,
-  # and counting it would inflate the number that matters most in this report.
   def test_a_value_object_in_app_models_is_not_persistence
-    refute_includes labels("Request handling reaching straight into persistence").join, "Basket"
+    refute_includes labels("Request handling reaching straight into persistence").join, "Basket",
+      "A controller building a value object is the one thing a controller is entitled to do, and counting it would inflate the number that matters most in this report."
   end
 
-  # `#find_user_from_rss_token` already says what it does. Appending the subject produced
-  # `FindUserFromRssTokenUser`, a stutter that made the whole suggestion look generated.
   def test_an_action_outside_the_seven_keeps_its_own_name
     assert_equal "ArchiveOrder", Shipshape::Measures::Naming.operation_for(action: :archive_order, subject: "Order")
-    assert_equal "ListOrders", Shipshape::Measures::Naming.operation_for(action: :index, subject: "Order")
+    assert_equal "ListOrders", Shipshape::Measures::Naming.operation_for(action: :index, subject: "Order"),
+      "`#find_user_from_rss_token` already says what it does. Appending the subject produced `FindUserFromRssTokenUser`, a stutter that made the whole suggestion look generated."
   end
 
-  # The message is better evidence than the action name: `User.where` is a read whatever
-  # the method around it is called, and guessing Command from silence is how a report gets
-  # laughed at.
   def test_the_message_decides_read_or_write_where_the_action_cannot
     assert_equal "Query", Shipshape::Measures::Naming.kind_for(:archive_order, message: :where)
-    assert_equal "Command", Shipshape::Measures::Naming.kind_for(:index, message: :create!)
+    assert_equal "Command", Shipshape::Measures::Naming.kind_for(:index, message: :create!),
+      "The message is better evidence than the action name: `User.where` is a read whatever the method around it is called, and guessing Command from silence is how a report gets laughed at."
   end
 
-  # Framework contract methods describe how the object is addressed, not what the business
-  # does with it. `Category#to_param` was the first thing this report proposed extracting.
   def test_framework_methods_are_not_rules
-    refute_includes labels("Rules living on persistence").join, "to_param"
+    refute_includes labels("Rules living on persistence").join, "to_param",
+      "Framework contract methods describe how the object is addressed, not what the business does with it. `Category#to_param` was the first thing this report proposed extracting."
   end
 
-  # `if @order.paid?` — the caller taking a decision that belonged to the thing it asked.
   def test_it_finds_asking_then_branching
-    assert_equal ["@order.paid?"], labels("Asking, then branching on the answer")
+    assert_equal ["@order.paid?"], labels("Asking, then branching on the answer"),
+      "`if @order.paid?` — the caller taking a decision that belonged to the thing it asked."
   end
 
-  # `request.xhr?` is a property of the call being served, not an object the caller was
-  # handed. Asking it is placement, which is this layer's job.
   def test_a_framework_object_is_not_asked
-    refute_includes labels("Asking, then branching on the answer").join, "request"
+    refute_includes labels("Asking, then branching on the answer").join, "request",
+      "`request.xhr?` is a property of the call being served, not an object the caller was handed. Asking it is placement, which is this layer's job."
   end
 
-  # THE ROOT OF THE CHAIN IS WHAT MATTERS. `Rails.env.development?` has a send as its
-  # receiver, so checking only the immediate one let every configuration read through.
   def test_a_chain_rooted_in_a_constant_is_not_asking
-    refute_includes labels("Asking, then branching on the answer").join, "Rails"
+    refute_includes labels("Asking, then branching on the answer").join, "Rails",
+      "THE ROOT OF THE CHAIN IS WHAT MATTERS. `Rails.env.development?` has a send as its receiver, so checking only the immediate one let every configuration read through."
   end
 
-  # Counting `Time`, `Rails` and a local constant made the worst action a list of
-  # libraries rather than a sequence anybody would extract.
   def test_only_classes_this_repository_declares_count_as_orchestration
     found = labels("Actions orchestrating several classes")
 
     assert_equal 1, found.length
     assert_includes found.first, "Basket, Order"
-    refute_includes found.first, "Time"
+    refute_includes found.first, "Time",
+      "Counting `Time`, `Rails` and a local constant made the worst action a list of libraries rather than a sequence anybody would extract."
   end
 
-  # A report with no denominator is an accusation. One that says four in five of your
-  # actions are already dispatch is a measurement.
   def test_it_reports_the_share_that_is_already_right
     orchestration = row("Actions orchestrating several classes")
 
     assert_equal 1, orchestration.count
     assert_equal 1, orchestration.population
-    assert_equal 0, orchestration.clean
+    assert_equal 0, orchestration.clean,
+      "A report with no denominator is an accusation. One that says four in five of your actions are already dispatch is a measurement."
   end
 
   # SUBTRACT UNITS, NOT FINDINGS. 186 sites across 45 controllers is not −141 clean
@@ -310,14 +292,11 @@ class ReportTest < Minitest::Test
     assert_operator rules.clean, :>=, 0
   end
 
-  # Their own code, doing it right. Every codebase has some, and holding it up turns a
-  # diagnostic from a verdict into a direction.
   def test_it_holds_up_their_own_clean_examples
-    assert_includes row("Lifecycle callbacks").exemplars.map(&:relative), "app/models/basket.rb"
+    assert_includes row("Lifecycle callbacks").exemplars.map(&:relative), "app/models/basket.rb",
+      "Their own code, doing it right. Every codebase has some, and holding it up turns a diagnostic from a verdict into a direction."
   end
 
-  # The gem can see which it is, so it says so rather than handing the reader a judgement
-  # it was perfectly able to make — and it names the write it found as the evidence.
   def test_it_infers_command_or_query_from_what_the_method_does
     proposals = row("Rules living on persistence").findings.map { |finding| finding.context }
 
@@ -326,7 +305,8 @@ class ReportTest < Minitest::Test
 
     assert settle[:writes]
     assert_equal :update!, settle[:write]
-    refute total[:writes]
+    refute total[:writes],
+      "The gem can see which it is, so it says so rather than handing the reader a judgement it was perfectly able to make — and it names the write it found as the evidence."
   end
 
   def test_the_proposal_names_the_evidence
@@ -340,23 +320,20 @@ class ReportTest < Minitest::Test
   end
 
   # "98% of your classes are not god classes" reassures, and it is the wrong reading: one
-  # is enough to slow a team down, so a denominator makes a concentrated harm look diffuse.
-  # Many branches land in one action, so clean actions are actions without any — not
-  # actions minus branches, which is not a number about anything.
   def test_branches_count_clean_actions_not_clean_branches
     branches = row("Branches inside request handling")
 
     assert_equal 1, branches.affected
     assert_equal 1, branches.population
-    assert_equal 0, branches.clean
+    assert_equal 0, branches.clean,
+      "is enough to slow a team down, so a denominator makes a concentrated harm look diffuse. Many branches land in one action, so clean actions are actions without any — not actions minus branches, which is not a number about anything."
   end
 
-  # The file-frequency sort was quietly undoing the branch-count sort underneath it, so the
-  # worst action sat below the fold while a one-branch action from the same file showed.
   def test_a_measure_that_ranks_itself_is_not_re_sorted
     counts = row("Branches inside request handling").findings.map { |finding| finding.context[:branches] }
 
-    assert_equal counts.sort.reverse, counts
+    assert_equal counts.sort.reverse, counts,
+      "The file-frequency sort was quietly undoing the branch-count sort underneath it, so the worst action sat below the fold while a one-branch action from the same file showed."
   end
 
   # Findings arrive in directory order, so the first five examples were five lines from
@@ -368,44 +345,36 @@ class ReportTest < Minitest::Test
     assert_equal relatives.sort_by { |path| -relatives.count(path) }, relatives
   end
 
-  # A bare count says nothing about scale. Two measures decline a denominator on purpose —
-  # god classes, because one is enough to hurt, and widest tables, because a threshold there
-  # would be invented — and both have to SAY so in text that always renders.
   def test_every_row_reports_a_share_or_states_why_it_will_not
     silent = report_rows.reject { |candidate| candidate.share || candidate.caveat }
 
-    assert_empty silent.map(&:title), "a bare count with no denominator says nothing about scale"
+    assert_empty silent.map(&:title),
+                 "a bare count says nothing about scale. Two measures decline a denominator on " \
+                 "purpose — god classes, and widest tables — and both have to SAY so, in text " \
+                 "that always renders"
   end
 
-  # An abbreviation asks every reader to have been in the room where it was learned. The
-  # published names stay in the source, where somebody is checking it against the paper.
-  # An earlier version matched the node's SOURCE TEXT for the word `params`, so every
-  # expression enclosing a parameter read counted as another read. The denominator came out
-  # at 8,311 on an application with a few hundred, and the share it produced was meaningless.
   def test_a_parameter_read_is_counted_once_however_deeply_it_is_nested
     parsing = row("Request input cast where it is used")
 
     assert_equal 1, parsing.population
-    assert_equal 1, parsing.count
+    assert_equal 1, parsing.count,
+      "An abbreviation asks every reader to have been in the room where it was learned. The published names stay in the source, where somebody is checking it against the paper. An earlier version matched the node's SOURCE TEXT for the word `params`, so every expression enclosing a parameter read counted as another read. The denominator came out at 8,311 on an application with a few hundred, and the share it produced was meaningless."
   end
 
   # A FINDING NEVER RENDERS AS A BARE PATH, and that one rule decides both ways.
   #
   # Where the label carries the point — "4 public methods" — the class line repeats what
-  # the path already said, so it is left out. Where there is no label, the line is all the
-  # reader has: `offered_services_presenter.rb:70` says nothing about which of the three
-  # classes in that file is meant.
   def test_a_finding_never_renders_as_a_bare_path
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_includes text, "`before_save :stamp`"
     assert_includes text, "`if @order.paid?`"
     assert_includes text, "`class Basket`"
-    refute_includes text, "`class Order < ApplicationRecord`"
+    refute_includes text, "`class Order < ApplicationRecord`",
+      "the path already said, so it is left out. Where there is no label, the line is all the reader has: `offered_services_presenter.rb:70` says nothing about which of the three classes in that file is meant."
   end
 
-  # The reference and its code sit on two lines, so the invariant is about the pair: a
-  # bullet carrying nothing but a path must be followed by the line it points at.
   def test_every_example_says_something_the_path_does_not
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
     lines = text.lines.map(&:rstrip)
@@ -414,41 +383,36 @@ class ReportTest < Minitest::Test
       line.match?(/\A- `[^`]+:\d+`\z/) && !lines[index + 1].to_s.match?(/\A  `.+`\z/)
     end
 
-    assert_empty bare.map(&:first), "a path and a line number on their own tell the reader nothing"
+    assert_empty bare.map(&:first),
+                 "a path and a line number on their own tell the reader nothing. The reference " \
+                 "and its code sit on two lines, so a bullet carrying nothing but a path must " \
+                 "be followed by the line it points at"
   end
 
-  # `Paid@order.call(@order: @order)` is what came out before anybody read the generated
-  # line. The sigil is Ruby punctuation; the word under it is the subject.
   def test_a_proposal_strips_the_sigil_from_an_instance_variable
     proposal = row("Asking, then branching on the answer").proposal
 
     assert_includes proposal, "PaidOrder.call(order: @order)"
-    refute_includes proposal, "Paid@order"
+    refute_includes proposal, "Paid@order",
+      "`Paid@order.call(@order: @order)` is what came out before anybody read the generated line. The sigil is Ruby punctuation; the word under it is the subject."
   end
 
-  # Twelve lists tell a reader who knows the codebase what they knew. What they cannot see
-  # by reading down the page is that one file appears in eight of the twelve.
-  # A file name is the first index anybody has. Three classes in one file means two cannot
-  # be found by the name they are used under.
   def test_it_finds_a_file_declaring_several_classes
     found = row("Files declaring several classes").findings
 
     assert_equal ["app/models/order.rb", "app/models/order_error.rb"], found.map(&:relative)
-    assert_includes found.first.label, "2 classes"
+    assert_includes found.first.label, "2 classes",
+      "Twelve lists tell a reader who knows the codebase what they knew. What they cannot see by reading down the page is that one file appears in eight of the twelve. A file name is the first index anybody has. Three classes in one file means two cannot be found by the name they are used under."
   end
 
-  # Twelve lists of findings with no argument around them is a tool showing off. The reader
-  # needs the claim before the counts, or every number reads as a complaint about a decision
-  # somebody made for a good reason in 2016.
   def test_it_makes_the_argument_before_the_counts
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
     assert_operator text.index("## What this is measuring"), :<, text.index("| What | Found")
-    assert_includes text, "Nothing here is a bug."
+    assert_includes text, "Nothing here is a bug.",
+      "Twelve lists of findings with no argument around them is a tool showing off. The reader needs the claim before the counts, or every number reads as a complaint about a decision somebody made for a good reason in 2016."
   end
 
-  # A report that only says what is wrong leaves the reader to invent the alternative, and
-  # they will invent the one they already know.
   def test_it_shows_the_shape_it_is_asking_for
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }
 
@@ -503,59 +467,53 @@ class ReportTest < Minitest::Test
     # A guard clause reads as "should I proceed", which is deciding. Two arms read as
     # "which of these", which is placing — and placing is this layer's job.
     assert_includes text, "CHOOSING WHICH RESPONSE TO SEND IS THIS LAYER'S JOB"
-    refute_includes text, %(return redirect_to invoice_path, notice: "Settled." if result.success?)
+    refute_includes text, %(return redirect_to invoice_path, notice: "Settled." if result.success?),
+      "A report that only says what is wrong leaves the reader to invent the alternative, and they will invent the one they already know."
     assert_operator text.index("## What the shape is"), :<, text.index("## Classes that inherit")
   end
 
-  # A BASE CLASS IS NOT A STRAY OBJECT. `ApplicationRecord` inherits from nothing on
-  # purpose, and it is the answer to that measure rather than an instance of it. Derived
-  # from the code — a class is a base if something else here inherits from it.
   def test_a_base_class_is_not_counted_as_inheriting_from_nothing
     relatives = row("Classes that inherit from nothing").findings.map(&:relative)
 
     refute_includes relatives, "app/models/application_record.rb"
-    assert_includes relatives, "app/models/basket.rb"
+    assert_includes relatives, "app/models/basket.rb",
+      "A BASE CLASS IS NOT A STRAY OBJECT. `ApplicationRecord` inherits from nothing on purpose, and it is the answer to that measure rather than an instance of it. Derived from the code — a class is a base if something else here inherits from it."
   end
 
   # Ruby has single inheritance, so "more than one" means depth: a chain of three, where
-  # the middle class is a place somebody keeps things.
   def test_it_finds_inheritance_deeper_than_one_level
     found = row("Inheritance deeper than one level").findings
 
-    assert_equal ["PaidOrder < Order < ApplicationRecord"], found.map(&:label)
+    assert_equal ["PaidOrder < Order < ApplicationRecord"], found.map(&:label),
+      "the middle class is a place somebody keeps things."
   end
 
-  # An error taxonomy has no behaviour to accrete, and Ruby requires the depth. Counting
-  # them buried the finding — nine hundred, of which most were one error file.
   def test_an_error_hierarchy_is_not_accreted_behaviour
-    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Error/)
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Error/),
+      "An error taxonomy has no behaviour to accrete, and Ruby requires the depth. Counting them buried the finding — nine hundred, of which most were one error file."
   end
 
-  # `class Base < StandardError` is an error hierarchy that does not say so in its name.
-  # The chain was invisible because the map skipped nested classes.
   def test_an_error_base_named_base_is_still_an_error_hierarchy
-    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/PollUnsupported/)
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/PollUnsupported/),
+      "`class Base < StandardError` is an error hierarchy that does not say so in its name. The chain was invisible because the map skipped nested classes."
   end
 
-  # The map is keyed by simple name, so a class inheriting from a namespaced class of the
-  # same name looked the parent up and found itself — `Response < Mercator::Response <
-  # Mercator::Response`. Two classes sharing a word is not depth.
   def test_a_name_collision_is_not_a_chain
-    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Mercator/)
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/Mercator/),
+      "The map is keyed by simple name, so a class inheriting from a namespaced class of the same name looked the parent up and found itself — `Response < Mercator::Response < Mercator::Response`. Two classes sharing a word is not depth."
   end
 
-  # Rails asks for one Application* base per framework class, so that depth is the
-  # framework's rather than the application's.
   def test_a_conventional_application_base_is_not_accreted_behaviour
-    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/TableComponent/)
+    assert_empty row("Inheritance deeper than one level").findings.map(&:label).grep(/TableComponent/),
+      "Rails asks for one Application* base per framework class, so that depth is the framework's rather than the application's."
   end
 
-  # A point in time carries its zone; a calendar date does not.
   def test_it_finds_moments_built_without_a_zone
     labels = row("Times built without naming a zone").findings.map(&:label)
 
     assert_includes labels.join, "Time.now — takes whatever offset the process has"
-    assert_includes labels.join, "Date.today"
+    assert_includes labels.join, "Date.today",
+      "A point in time carries its zone; a calendar date does not."
   end
 
   # Unzoned first: `Time.now` produces a booking an hour out, `Time.current` produces one
@@ -577,36 +535,35 @@ class ReportTest < Minitest::Test
     assert_includes row("Times built without naming a zone").exemplars.map(&:label).join, "find_zone!"
   end
 
-  # The extraction list, not a complaint: these move with no new operation and no decision.
   def test_it_finds_methods_that_move_to_a_shape_unchanged
     labels = row("Rules that could move to a shape as they are").findings.map(&:label)
 
-    assert_includes labels.join, "#activity_date"
+    assert_includes labels.join, "#activity_date",
+      "The extraction list, not a complaint: these move with no new operation and no decision."
   end
 
-  # A database call means it needs something it was not handed.
   def test_a_method_that_reaches_the_database_does_not_move
     labels = row("Rules that could move to a shape as they are").findings.map(&:label)
 
     refute_includes labels.join, "#auto_settled?"
-    refute_includes labels.join, "#settle!"
+    refute_includes labels.join, "#settle!",
+      "A database call means it needs something it was not handed."
   end
 
-  # The extraction list, not a complaint: these move with no new operation and no decision.
   def test_it_finds_rules_that_move_to_a_shape_unchanged
     labels = row("Rules that could move to a shape as they are").findings.map(&:label)
 
     assert_includes labels.join, "#activity_date"
-    assert_includes labels.join, "#paid?"
+    assert_includes labels.join, "#paid?",
+      "The extraction list, not a complaint: these move with no new operation and no decision."
   end
 
-  # Not a matter of taste: a shape has no database, so a method needing one cannot exist on
-  # it. `auto_settled?` becomes a field the query fills, not a Query class of its own.
   def test_a_method_that_reaches_the_database_cannot_move
     labels = row("Rules that could move to a shape as they are").findings.map(&:label)
 
     refute_includes labels.join, "#auto_settled?"
-    refute_includes labels.join, "#settle!"
+    refute_includes labels.join, "#settle!",
+      "Not a matter of taste: a shape has no database, so a method needing one cannot exist on it. `auto_settled?` becomes a field the query fills, not a Query class of its own."
   end
 
   def test_the_proposal_says_what_happens_to_the_ones_that_cannot_move
@@ -616,24 +573,19 @@ class ReportTest < Minitest::Test
     assert_includes proposal, "nobody would write it twice"
   end
 
-  # A measure registered twice renders twice, and the report claims the same finding as two
-  # independent ones. Nothing else would have caught it: every count was right.
-  # Every finding is in one file, so the report's rank-by-file-frequency had nothing to
-  # order by and fell back to line number — listing a 39-column table above a 145-column one.
   def test_the_widest_table_is_listed_first
     columns = row("Widest tables").findings.map { |finding| finding.label[/(\d+) columns/, 1].to_i }
 
-    assert_equal columns.sort.reverse, columns
+    assert_equal columns.sort.reverse, columns,
+      "A measure registered twice renders twice, and the report claims the same finding as two independent ones. Nothing else would have caught it: every count was right. Every finding is in one file, so the report's rank-by-file-frequency had nothing to order by and fell back to line number — listing a 39-column table above a 145-column one."
   end
 
-  # The law is `no-decisions-in-request-handling`, and a count was only ever a proxy for it.
-  # An action calling three operations and examining none of their results has decided
-  # nothing — so this measure ranks sequences worth naming rather than reporting violations.
   def test_orchestration_is_ranked_not_condemned
     row = row("Actions orchestrating several classes")
 
     assert_includes row.why, "Not a violation"
-    assert_includes row.caveat, "A ranking rather than a defect count"
+    assert_includes row.caveat, "A ranking rather than a defect count",
+      "The law is `no-decisions-in-request-handling`, and a count was only ever a proxy for it. An action calling three operations and examining none of their results has decided nothing — so this measure ranks sequences worth naming rather than reporting violations."
   end
 
   def test_the_rules_list_says_deciding_not_counting
@@ -644,48 +596,45 @@ class ReportTest < Minitest::Test
   end
 
   # The checkable half of "decides nothing": a predicate sent to an instance variable is
-  # the action interrogating what it is about to render.
   def test_it_finds_an_action_deciding_on_domain_state
     found = row("Actions deciding on domain state").findings
 
     assert_equal 1, found.length
-    assert_includes found.first.label, "@order.paid?"
+    assert_includes found.first.label, "@order.paid?",
+      "the action interrogating what it is about to render."
   end
 
-  # A request property is placement, not deciding, and neither is an outcome it was told.
   def test_a_request_property_is_not_domain_state
     label = row("Actions deciding on domain state").findings.first.label
 
     refute_includes label, "request.xhr?"
-    refute_includes label, "Rails.env"
+    refute_includes label, "Rails.env",
+      "A request property is placement, not deciding, and neither is an outcome it was told."
   end
 
   # "Just like a controller" — a job is a controller with a different doorbell, so the row
-  # is identical rather than nearly identical. A distinction with no reason behind it is one
-  # somebody has to learn for nothing.
   def test_an_entry_point_has_the_same_row_as_request_handling
     matrix = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s)
                  .fetch("Shipshape/CallGraph").fetch("Matrix")
 
-    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point")
+    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point"),
+      "is identical rather than nearly identical. A distinction with no reason behind it is one somebody has to learn for nothing."
   end
 
   # "Just like a controller" — a job is a controller with a different doorbell, so the row
-  # is identical rather than nearly identical. A distinction with no reason behind it is one
-  # somebody has to learn for nothing.
   def test_an_entry_point_has_the_same_row_as_request_handling
     matrix = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s).fetch("Shipshape/CallGraph").fetch("Matrix")
 
-    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point")
+    assert_equal matrix.fetch("request_handling"), matrix.fetch("entry_point"),
+      "is identical rather than nearly identical. A distinction with no reason behind it is one somebody has to learn for nothing."
   end
 
-  # Sending mail leaves the process, so a mailer is a write to the outside rather than a
-  # door into the application. In the target shape there is no mailer directory at all.
   def test_a_mailer_is_an_outbound_write_not_an_entry_point
     kinds = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s).fetch("Shipshape/CallGraph").fetch("Kinds")
 
     assert_includes kinds.fetch("io_command").join, "app/mailers"
-    refute_includes kinds.fetch("entry_point").join, "app/mailers"
+    refute_includes kinds.fetch("entry_point").join, "app/mailers",
+      "Sending mail leaves the process, so a mailer is a write to the outside rather than a door into the application. In the target shape there is no mailer directory at all."
   end
 
   def test_no_measure_is_registered_twice
@@ -702,22 +651,19 @@ class ReportTest < Minitest::Test
     assert_match(%r{- `app/models/order\.rb` — \d+ kinds:}, text)
   end
 
-  # Ranked by breadth, not volume: a thousand findings of one kind is one problem, and six
-  # kinds is six.
   def test_where_to_start_ranks_by_how_many_measures_not_how_many_findings
     persistence = section_of("Persistence").scan(/- `([^`]+)` — (\d+) kind/)
     counts = persistence.map { |_path, count| count.to_i }
 
-    assert_equal counts.sort.reverse, counts
+    assert_equal counts.sort.reverse, counts,
+      "Ranked by breadth, not volume: a thousand findings of one kind is one problem, and six kinds is six."
   end
 
-  # Half the measures only look at controllers, so one list ranks every controller above
-  # every model — which says more about the measures than about the code. `booking.rb` at
-  # 186 methods and 113 columns did not appear on that list at all.
   def test_files_are_compared_within_their_own_kind
     assert_includes section_of("Request handling"), "app/controllers/orders_controller.rb"
     assert_includes section_of("Persistence"), "app/models/order.rb"
-    refute_includes section_of("Persistence"), "controllers"
+    refute_includes section_of("Persistence"), "controllers",
+      "Half the measures only look at controllers, so one list ranks every controller above every model — which says more about the measures than about the code. `booking.rb` at 186 methods and 113 columns did not appear on that list at all."
   end
 
   def test_no_abbreviations_reach_the_reader

@@ -64,14 +64,13 @@ class CheckTest < Minitest::Test
     end
   end
 
-  # An inherited pile is survivable, which is the only reason this can be installed on a
-  # legacy application at all.
   def test_an_inherited_pile_is_not_the_branch_s_bill
     in_repo(baseline: DIRTY_QUERY) do |root|
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
       assert_empty report[:risen]
-      assert_equal 1, report[:head]["Shipshape/CallGraph"]
+      assert_equal 1, report[:head]["Shipshape/CallGraph"],
+        "An inherited pile is survivable, which is the only reason this can be installed on a legacy application at all."
     end
   end
 
@@ -86,9 +85,6 @@ class CheckTest < Minitest::Test
     end
   end
 
-  # Both trees are measured with the HEAD tree's config. Without that, turning a cop on
-  # would find its offences in head and none in base, and enabling a cop would be a
-  # five-hundred-offence event on any real application.
   def test_enabling_a_cop_on_the_branch_is_free
     in_repo(baseline: DIRTY_QUERY, config: RUBOCOP_YML.sub("Shipshape/CallGraph:", "Shipshape/CallGraph:\n  Enabled: false\n")) do |root|
       write(root, ".rubocop.yml", format(RUBOCOP_YML, gem: gem_root))
@@ -97,27 +93,22 @@ class CheckTest < Minitest::Test
 
       assert_empty report[:risen], "enabling a cop should not bill the branch for old code"
       assert_equal 1, report[:head]["Shipshape/CallGraph"]
-      assert_equal 1, report[:base]["Shipshape/CallGraph"]
+      assert_equal 1, report[:base]["Shipshape/CallGraph"],
+        "Both trees are measured with the HEAD tree's config. Without that, turning a cop on would find its offences in head and none in base, and enabling a cop would be a five-hundred-offence event on any real application."
     end
   end
 
-  # The working copy is never checked out, moved or stashed. A tool that disturbs the tree
-  # to measure it is one nobody runs twice.
   def test_it_leaves_the_working_copy_alone
     in_repo do |root|
       write(root, "app/queries/list_people.rb", DIRTY_QUERY)
       Shipshape::Check.new(root: root, trunk: "trunk").call
 
       assert_equal DIRTY_QUERY, File.read(File.join(root, "app/queries/list_people.rb"))
-      assert_empty capture(root, "worktree", "list", "--porcelain").scan(/^worktree/).drop(1)
+      assert_empty capture(root, "worktree", "list", "--porcelain").scan(/^worktree/).drop(1),
+        "The working copy is never checked out, moved or stashed. A tool that disturbs the tree to measure it is one nobody runs twice."
     end
   end
 
-  # **An application's own `.rubocop.yml` is frequently unloadable here**, because it
-  # `require:`s plugins pinned to RuboCop 0.x, which cannot be activated beside the 1.x this
-  # gem needs. Measured against a real legacy repository the run died in config loading before
-  # reading a file, which reads like the gem not working. `--config` is the way out, and it
-  # has to reach both trees or the comparison is between two different rulebooks.
   def test_an_explicit_config_is_used_for_both_trees
     in_repo(baseline: DIRTY_QUERY) do |root|
       write(root, ".rubocop-shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
@@ -127,7 +118,9 @@ class CheckTest < Minitest::Test
       report = Shipshape::Check.new(root: root, trunk: "trunk", config: ".rubocop-shipshape.yml").call
 
       assert_equal 1, report[:head]["Shipshape/CallGraph"], "head did not use the given config"
-      assert_equal 1, report[:base]["Shipshape/CallGraph"], "the base tree did not use the given config"
+      assert_equal 1, report[:base]["Shipshape/CallGraph"],
+                   "the base tree did not use the given config: --config has to reach both " \
+                   "trees, or the comparison is between two different rulebooks"
     end
   end
 
@@ -147,8 +140,6 @@ class CheckTest < Minitest::Test
     end
   end
 
-  # **A config outside the repository cannot work and must not half-work.** Same cause, one
-  # step further out: nothing in the base tree would resolve against a tree root at all.
   def test_a_config_outside_the_repository_is_refused
     in_repo do |root|
       outside = File.join(Dir.mktmpdir("shipshape-outside"), ".rubocop.yml")
@@ -158,17 +149,17 @@ class CheckTest < Minitest::Test
         Shipshape::Check.new(root: root, trunk: "trunk", config: outside).call
       end
 
-      assert_includes error.message, "must name a file inside"
+      assert_includes error.message, "must name a file inside",
+        "**A config outside the repository cannot work and must not half-work.** Same cause, one step further out: nothing in the base tree would resolve against a tree root at all."
     end
   end
 
-  # Watched to fail: passing the config to head only reddens the assertion above, because the
-  # base tree falls back to the unloadable one and reports nothing.
   def test_a_directory_that_is_not_a_repository_says_so
     Dir.mktmpdir("shipshape-none") do |root|
       error = assert_raises(Shipshape::Error) { Shipshape::Check.new(root: root).call }
 
-      assert_includes error.message, "not a git repository"
+      assert_includes error.message, "not a git repository",
+        "Watched to fail: passing the config to head only reddens the assertion above, because the base tree falls back to the unloadable one and reports nothing."
     end
   end
 

@@ -104,8 +104,6 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  # A shape is not a step. Holding one needs no permission, so it aggregates nothing — and a
-  # workflow that only builds shapes is still a workflow that sequences nothing.
   def test_a_constant_that_is_not_an_operation_is_not_a_step
     found = check(<<~RUBY)
       class SettleMonth < Workflow
@@ -115,12 +113,10 @@ class AggregationIsReadableTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "A shape is not a step. Holding one needs no permission, so it aggregates nothing — and a workflow that only builds shapes is still a workflow that sequences nothing."
   end
 
-  # **The blind spot the base class has, held here rather than left to production.**
-  # `RubyVM::AbstractSyntaxTree.of` reads `call` and nothing else, so a step behind a helper
-  # is a permission never demanded.
   def test_a_step_reached_from_a_private_helper_is_an_offence
     found = check(<<~RUBY)
       class SettleMonth < Workflow
@@ -137,13 +133,11 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
 
     # Two: `call` names nothing, and the step is somewhere the reading does not reach.
-    assert_equal 2, found.length
+    assert_equal 2, found.length,
+      "**The blind spot the base class has, held here rather than left to production.** `RubyVM::AbstractSyntaxTree.of` reads `call` and nothing else, so a step behind a helper is a permission never demanded."
     assert(found.any? { |offence| offence.message.include?("reached from somewhere the permissions are not read from") })
   end
 
-  # **The fail-open the old shape allowed through.** One visible step satisfied the cop, and
-  # the hidden one was demanded of nobody — so the workflow ran, committed step one, then
-  # refused at the step nothing had checked.
   def test_one_visible_step_does_not_excuse_a_hidden_one
     found = check(<<~RUBY)
       class SettleMonth < Workflow
@@ -161,7 +155,8 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`NotifyCustomer` is reached from somewhere"
+    assert_includes found.first.message, "`NotifyCustomer` is reached from somewhere",
+      "**The fail-open the old shape allowed through.** One visible step satisfied the cop, and the hidden one was demanded of nobody — so the workflow ran, committed step one, then refused at the step nothing had checked."
   end
 
   # Legal Ruby that no reader can resolve to a permission.
@@ -259,8 +254,6 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  # **The widening.** Scoped to workflows, this was unreported — and it is the same fail-open
-  # one kind down: the command demands nothing for a query it performs.
   def test_a_command_reaching_a_query_from_a_helper_is_an_offence
     found = offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
       class SettleInvoice < Command
@@ -277,7 +270,8 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`ListInvoices` is reached from somewhere"
+    assert_includes found.first.message, "`ListInvoices` is reached from somewhere",
+      "**The widening.** Scoped to workflows, this was unreported — and it is the same fail-open one kind down: the command demands nothing for a query it performs."
   end
 
   def test_a_command_naming_its_query_in_call_is_the_shape
@@ -308,8 +302,6 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  # A `call` on a NESTED class must not satisfy the outer workflow, which would then run
-  # with no steps and refuse nobody — green over the defect the cop exists for.
   def test_a_nested_classs_call_does_not_satisfy_the_workflow
     found = check(<<~RUBY)
       class SettleMonth < Workflow
@@ -325,7 +317,8 @@ class AggregationIsReadableTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "A `call` on a NESTED class must not satisfy the outer workflow, which would then run with no steps and refuse nobody — green over the defect the cop exists for."
   end
 
   # `Billing::SettleInvoice` names one step, and the base class resolves it through the

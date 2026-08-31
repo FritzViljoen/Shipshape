@@ -188,12 +188,11 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal :not_positive, result.error
   end
 
-  # The contract is enforced at the class method, so a subclass cannot teach its callers a
-  # second shape.
   def test_a_command_that_answers_with_anything_else_stops_the_run
     error = assert_raises(TypeError) { Misbehaving.call(actor: ANYONE) }
 
-    assert_includes error.message, "must answer with a Result"
+    assert_includes error.message, "must answer with a Result",
+      "The contract is enforced at the class method, so a subclass cannot teach its callers a second shape."
   end
 
   def test_arguments_are_asserted_at_construction
@@ -206,18 +205,16 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal [Place.new(code: "ZA")], answer
   end
 
-  # Whatever the old code returned, the door decides the shape. A query leaking hashes is
-  # the leak this check exists to stop.
   def test_a_query_that_answers_with_anything_else_stops_the_run
     error = assert_raises(TypeError) { LeakyQuery.call(actor: ANYONE) }
 
-    assert_includes error.message, "must answer with shapes"
+    assert_includes error.message, "must answer with shapes",
+      "Whatever the old code returned, the door decides the shape. A query leaking hashes is the leak this check exists to stop."
   end
 
-  # The permission IS the class name — no transform, because every transform is lossy and
-  # a lossy one collides. `FooBar` and `Foo::Bar` both underscored to `:foo_bar`.
   def test_a_permission_is_the_class_name
-    assert_equal :"GeneratedBaseClassesTest::Charge", Charge.permission
+    assert_equal :"GeneratedBaseClassesTest::Charge", Charge.permission,
+      "The permission IS the class name — no transform, because every transform is lossy and a lossy one collides. `FooBar` and `Foo::Bar` both underscored to `:foo_bar`."
   end
 
   def test_two_classes_that_would_underscore_alike_keep_distinct_permissions
@@ -235,14 +232,14 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_equal flat.permission, nested.permission
   end
 
-  # The whole point: a new operation is denied until someone grants it deliberately.
   def test_a_command_refused_answers_with_a_value
     refuser = Anyone.new([Charge.permission])
 
     result = Charge.call(actor: refuser, amount: 5)
 
     refute_predicate result, :success?
-    assert_equal :forbidden, result.error
+    assert_equal :forbidden, result.error,
+      "The whole point: a new operation is denied until someone grants it deliberately."
   end
 
   # A query has no envelope, so refusal raises like every other query failure.
@@ -252,14 +249,14 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(Permission::Refused) { ListPlaces.call(actor: refuser) }
   end
 
-  # A refusal costs no lock: the check runs before the transaction opens.
   def test_a_refused_command_never_opens_a_transaction
     opened = false
     ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| opened = true; block.call }
 
     Charge.call(actor: Anyone.new([Charge.permission]), amount: 5)
 
-    refute opened
+    refute opened,
+      "A refusal costs no lock: the check runs before the transaction opens."
   ensure
     ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| block.call }
   end
@@ -349,9 +346,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_predicate wipe.call(actor: Anyone.new([wipe.permission])), :success?
   end
 
-  # **A workflow whose `call` names no operations is not a workflow**, and answering `[]`
-  # would be a fail-open: `[].all?` is true, so it would run for an actor holding no grants.
-  # This is also what a step hidden behind a private helper looks like from here.
   def test_a_workflow_that_sequences_nothing_raises_rather_than_running
     forgetful = Class.new(Workflow) do
       def self.name
@@ -365,12 +359,10 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     error = assert_raises(NotImplementedError) { forgetful.call(actor: ANYONE) }
 
-    assert_includes error.message, "names no operations"
+    assert_includes error.message, "names no operations",
+      "**A workflow whose `call` names no operations is not a workflow**, and answering `[]` would be a fail-open: `[].all?` is true, so it would run for an actor holding no grants. This is also what a step hidden behind a private helper looks like from here."
   end
 
-  # An anonymous step is never granted — that is what anonymous means — so aggregating its
-  # name demanded a grant nobody could hold and made the whole workflow permanently
-  # forbidden.
   def test_an_anonymous_step_contributes_no_permission
     flow = Class.new(Workflow) do
       def self.name
@@ -386,11 +378,10 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     assert_equal [Charge.permission], flow.permissions
     # Refuses only `:LogIn` — the permission an anonymous step must never contribute.
-    assert_predicate flow.call(actor: Anyone.new([LogIn.permission])), :success?
+    assert_predicate flow.call(actor: Anyone.new([LogIn.permission])), :success?,
+      "An anonymous step is never granted — that is what anonymous means — so aggregating its name demanded a grant nobody could hold and made the whole workflow permanently forbidden."
   end
 
-  # A signup sequence runs before anyone is identified, and says so the same way an
-  # operation does.
   def test_a_workflow_may_be_anonymous
     flow = Class.new(Workflow) do
       def self.name
@@ -409,7 +400,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     result = flow.call(email: "a@b.c")
 
     assert_predicate result, :success?
-    assert_equal "a@b.c", result.value
+    assert_equal "a@b.c", result.value,
+      "A signup sequence runs before anyone is identified, and says so the same way an operation does."
   end
 
   # The guarded path still demands one, so anonymity stays a property of the class.
@@ -463,19 +455,17 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_predicate flow.call(actor: refuser), :success?
   end
 
-  # The catalogue is read off the classes, so it cannot fall behind them. An operation in no
-  # capability is unreachable — fail-closed, correct, and invisible — and this is the half
-  # shipshape can supply: the other half is the application's own table.
   def test_the_catalogue_is_every_grantable_permission
     catalogue = Permission.catalogue(Command, Query)
 
     assert_includes catalogue, Charge.permission
-    assert_includes catalogue, ListPlaces.permission
+    assert_includes catalogue, ListPlaces.permission,
+      "The catalogue is read off the classes, so it cannot fall behind them. An operation in no capability is unreachable — fail-closed, correct, and invisible — and this is the half shipshape can supply: the other half is the application's own table."
   end
 
-  # Never granted, so demanding a capability contain one would fail every check for ever.
   def test_the_catalogue_leaves_out_anonymous_operations
-    refute_includes Permission.catalogue(Command), LogIn.permission
+    refute_includes Permission.catalogue(Command), LogIn.permission,
+      "Never granted, so demanding a capability contain one would fail every check for ever."
   end
 
   # **Every shape the reader could not see was a permission never demanded.** Each of these
@@ -581,10 +571,9 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal [Billing::Charge.permission, Billing::Notify.permission].sort, DeepColons.permissions.sort
   end
 
-  # Compact form and nested form read the same constant differently, and Ruby is the
-  # authority on which — so the nesting is rebuilt from the file, not from the class name.
   def test_the_compact_form_resolves_the_way_ruby_resolves_it
-    assert_equal [Charge.permission], Billing::Compact.permissions
+    assert_equal [Charge.permission], Billing::Compact.permissions,
+      "Compact form and nested form read the same constant differently, and Ruby is the authority on which — so the nesting is rebuilt from the file, not from the class name."
     refute_predicate Billing::Compact.call(actor: Anyone.new([Charge.permission])), :success?
   end
 
@@ -602,14 +591,12 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal [Charge.permission], WithAProc.permissions
   end
 
-  # **Setup asks what state is legal, not who may reach it**, so `test_call` skips the
-  # permission check and skips nothing else. Watched to fail: making `test_call` delegate to
-  # `call` reddens the refused-actor test, because the check would come back.
   def test_test_call_runs_a_command_a_refusing_actor_could_not
     refused = Anyone.new([Charge.permission])
 
     refute_predicate Charge.call(actor: refused, amount: 5), :success?
-    assert_predicate Charge.test_call(amount: 5), :success?
+    assert_predicate Charge.test_call(amount: 5), :success?,
+      "**Setup asks what state is legal, not who may reach it**, so `test_call` skips the permission check and skips nothing else. Watched to fail: making `test_call` delegate to `call` reddens the refused-actor test, because the check would come back."
   end
 
   def test_test_call_runs_a_query_the_same_way
@@ -680,14 +667,14 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_empty CallGraph.edges(GraphedDoor).fetch(GraphedInner.name)
   end
 
-  # **An operation demands what it reaches**, so being called from inside another does not
-  # excuse the actor from holding it — and a screen that hid it would produce a refusal nobody
-  # could explain.
   def test_everything_an_actor_can_be_asked_for_is_grantable
     grantable = CallGraph.grantable(GraphedDoor)
 
     assert_includes grantable, GraphedOuter.permission
-    assert_includes grantable, GraphedInner.permission, "reached from inside, and still held by the actor"
+    assert_includes grantable, GraphedInner.permission,
+                    "an operation demands what it reaches, so being called from inside another " \
+                    "does not excuse the actor from holding it; a screen that hid it would " \
+                    "produce a refusal nobody could explain"
   end
 
   # **The declared way for a read to need no grant of its own.** A query that only serves the
@@ -725,26 +712,24 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # **Reported, never raised.** A catalogue that died on one bad declaration would report none
-  # of the good rows, and the build already fails on this through the cop.
   def test_a_leak_is_a_row_rather_than_a_dead_catalogue
     assert_equal({ GraphedLeaky.name => [GraphedInner.name] }, CallGraph.leaks(LeakyDoor))
-    assert_includes CallGraph.grantable(LeakyDoor), GraphedInner.permission
+    assert_includes CallGraph.grantable(LeakyDoor), GraphedInner.permission,
+      "**Reported, never raised.** A catalogue that died on one bad declaration would report none of the good rows, and the build already fails on this through the cop."
   end
 
-  # What it reaches aggregates upward, so a guarded caller still demands it; the anonymous door
-  # itself refuses nobody, because running before anyone is identified is what it declared.
   def test_what_an_anonymous_operation_reaches_travels_up
     # Not called: this fixture is the leak, so running it reaches a guarded operation with no
     # actor. What it demands is the point — the permission travelled up out of it.
-    assert_equal [GraphedInner.permission], GraphedLeaky.permissions
+    assert_equal [GraphedInner.permission], GraphedLeaky.permissions,
+      "What it reaches aggregates upward, so a guarded caller still demands it; the anonymous door itself refuses nobody, because running before anyone is identified is what it declared."
   end
 
-  # Anonymous reaching anonymous is the shape the rule allows, and it demands nothing.
   def test_an_anonymous_operation_reaching_another_demands_nothing
     assert_empty GraphedHelper.permissions
     assert_empty CallGraph.leaks(GraphedDoor)
-    assert_predicate GraphedHelper.call, :success?
+    assert_predicate GraphedHelper.call, :success?,
+      "Anonymous reaching anonymous is the shape the rule allows, and it demands nothing."
   end
 
   def test_an_anonymous_operation_is_never_granted_and_never_aggregated
@@ -789,31 +774,27 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal [GraphedInner.permission], row[:permissions]
   end
 
-  # **A route demanding nothing is kept, and it is the row worth reading.** It reaches no
-  # governed operation, or only anonymous ones — one of those is a decision and the other is an
-  # endpoint nobody has looked at, and dropping the row hid both.
   def test_an_endpoint_that_demands_nothing_is_still_a_row
     row = CallGraph.routes(self.class.stub_routes)
                    .find { |candidate| candidate[:endpoint].end_with?("#index") }
 
-    assert_empty row[:permissions]
+    assert_empty row[:permissions],
+      "**A route demanding nothing is kept, and it is the row worth reading.** It reaches no governed operation, or only anonymous ones — one of those is a decision and the other is an endpoint nobody has looked at, and dropping the row hid both."
   end
 
-  # A route whose controller cannot be loaded is skipped, not raised on.
   def test_a_route_whose_controller_will_not_load_is_skipped
     endpoints = CallGraph.routes(self.class.stub_routes).map { |row| row[:endpoint] }
 
-    assert_equal 2, endpoints.length
+    assert_equal 2, endpoints.length,
+      "A route whose controller cannot be loaded is skipped, not raised on."
     refute(endpoints.any? { |endpoint| endpoint.include?("NoSuch") })
   end
 
-  # **The gap this closed.** `GraphedInner` is called by `GraphedOuter`, so on the operations
-  # alone it read as internal and a screen would not have offered it — while an endpoint
-  # demanded it the whole time.
   def test_a_query_an_action_calls_is_grantable_even_though_an_operation_calls_it_too
     reached = CallGraph.routes(self.class.stub_routes).flat_map { |row| row[:permissions] }
 
-    assert_includes reached, GraphedInner.permission
+    assert_includes reached, GraphedInner.permission,
+      "**The gap this closed.** `GraphedInner` is called by `GraphedOuter`, so on the operations alone it read as internal and a screen would not have offered it — while an endpoint demanded it the whole time."
     assert_includes CallGraph.edges(GraphedDoor).fetch(GraphedOuter.name),
                     GraphedInner.name
   end
@@ -871,10 +852,9 @@ class GeneratedBaseClassesTest < Minitest::Test
                  GraphedLeft.permissions.sort
   end
 
-  # No Rails in this process, so it says nothing rather than guessing — a fact about the
-  # process, not about the application.
   def test_routes_are_empty_where_there_is_no_application_to_ask
-    assert_empty CallGraph.routes(nil)
+    assert_empty CallGraph.routes(nil),
+      "No Rails in this process, so it says nothing rather than guessing — a fact about the process, not about the application."
   end
 
   # **The keys are class names**, which is what a label table is keyed by. Nothing here holds
@@ -938,12 +918,11 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_includes catalogue, SettleMonthFlow.permission
   end
 
-  # Not a wart: that workflow would otherwise refuse nothing at its first real call, in
-  # production. Walking the catalogue at boot is the cheapest place to find it.
   def test_the_catalogue_raises_on_a_workflow_that_sequences_nothing
     error = assert_raises(NotImplementedError) { Permission.catalogue(Workflow) }
 
-    assert_includes error.message, "names no operations"
+    assert_includes error.message, "names no operations",
+      "Not a wart: that workflow would otherwise refuse nothing at its first real call, in production. Walking the catalogue at boot is the cheapest place to find it."
   end
 
   # **Publicness is declared by the class that is public.** `method_defined?` walked the
@@ -978,8 +957,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { command.call }
   end
 
-  # **The actor is the base class's, not the signature's.** Forcing `actor:` into every
-  # initializer would put a keyword in fifty constructors so that three could read it.
   def test_an_operation_need_not_declare_the_actor
     silent = Class.new(Command) do
       def self.name
@@ -997,10 +974,10 @@ class GeneratedBaseClassesTest < Minitest::Test
       end
     end
 
-    assert_predicate silent.call(actor: ANYONE, amount: 7), :success?
+    assert_predicate silent.call(actor: ANYONE, amount: 7), :success?,
+      "**The actor is the base class's, not the signature's.** Forcing `actor:` into every initializer would put a keyword in fifty constructors so that three could read it."
   end
 
-  # And an operation that wants it reads it, without ever declaring it.
   def test_an_operation_may_read_the_actor_it_never_asked_for
     reader = Class.new(Command) do
       def self.name
@@ -1016,7 +993,8 @@ class GeneratedBaseClassesTest < Minitest::Test
       end
     end
 
-    assert_equal ANYONE, reader.call(actor: ANYONE).value
+    assert_equal ANYONE, reader.call(actor: ANYONE).value,
+      "And an operation that wants it reads it, without ever declaring it."
   end
 
   def test_an_empty_answer_is_an_answer
@@ -1033,21 +1011,20 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_empty empty.call(actor: ANYONE)
   end
 
-  # Value semantics without a macro: two shapes of a class holding the same values are
-  # the same shape, so they compare, deduplicate and assert equal.
   def test_shapes_compare_by_value
     assert_equal Place.new(code: "ZA"), Place.new(code: "ZA")
     refute_equal Place.new(code: "ZA"), Place.new(code: "GB")
-    assert_equal 1, [Place.new(code: "ZA"), Place.new(code: "ZA")].uniq.length
+    assert_equal 1, [Place.new(code: "ZA"), Place.new(code: "ZA")].uniq.length,
+      "Value semantics without a macro: two shapes of a class holding the same values are the same shape, so they compare, deduplicate and assert equal."
   end
 
-  # A code alone cannot render a form, which is the commonest expected failure there is.
   def test_a_failure_may_carry_what_was_wrong
     result = Result.failure(:invalid, Place.new(code: "ZA"))
 
     refute_predicate result, :success?
     assert_equal :invalid, result.error
-    assert_equal Place.new(code: "ZA"), result.value
+    assert_equal Place.new(code: "ZA"), result.value,
+      "A code alone cannot render a form, which is the commonest expected failure there is."
   end
 
   def test_a_failure_still_carries_nothing_by_default
@@ -1095,12 +1072,12 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal :nope, entries.first.error
   end
 
-  # The entry nobody has when they need it.
   def test_a_refusal_is_recorded
     entries = audited { Charge.call(actor: Anyone.new([Charge.permission]), amount: 5) }
 
     assert_equal :refused, entries.first.outcome
-    assert_equal :forbidden, entries.first.error
+    assert_equal :forbidden, entries.first.error,
+      "The entry nobody has when they need it."
   end
 
   # **Arguments are recorded, and the personal ones are not.** An audit log is the classic
@@ -1139,22 +1116,22 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # For what is not a column, and so is in no registry.
   def test_an_excluded_argument_is_redacted
     with_registry({}) do
       entries = audited { Registers.call(actor: ANYONE, email: "a@b.c", account_id: 1, token: "s") }
 
-      assert_equal "[redacted]", entries.first.arguments[:token]
+      assert_equal "[redacted]", entries.first.arguments[:token],
+        "For what is not a column, and so is in no registry."
     end
   end
 
-  # A redaction records that the argument was there, never what it held.
   def test_redaction_keeps_the_name_and_drops_the_value
     with_registry("users" => { "email" => :anonymise }) do
       entries = audited { Registers.call(actor: ANYONE, email: "a@b.c", account_id: 1, token: "s") }
 
       assert_equal %i[email account_id token].sort, entries.first.arguments.keys.sort
-      refute_includes entries.first.arguments.values, "a@b.c"
+      refute_includes entries.first.arguments.values, "a@b.c",
+        "A redaction records that the argument was there, never what it held."
     end
   end
 
@@ -1208,23 +1185,23 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal({ amount: 5 }, jobs.first[:arguments])
   end
 
-  # The Result describes the enqueue, never the work.
   def test_call_later_answers_that_it_was_accepted
     result = nil
     enqueued { result = Slow.call_later(actor: NAMED, amount: 5) }
 
     assert_predicate result, :success?
-    assert_equal :enqueued, result.value
+    assert_equal :enqueued, result.value,
+      "The Result describes the enqueue, never the work."
   end
 
-  # Checked here so the caller learns immediately, and again when the job runs.
   def test_call_later_refuses_before_enqueuing
     jobs = nil
     result = nil
     jobs = enqueued { result = Slow.call_later(actor: Anyone.new([Slow.permission]), amount: 5) }
 
     assert_equal :forbidden, result.error
-    assert_empty jobs
+    assert_empty jobs,
+      "Checked here so the caller learns immediately, and again when the job runs."
   end
 
   def test_the_queue_is_declared_on_the_operation
@@ -1232,14 +1209,12 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal :default, Charge.send(:queue_name)
   end
 
-  # **Per-operation, from one job class.** `retry_on` would capture one limit for every
-  # command; reading `RETRIES` at the moment the decision is made is what makes it per
-  # operation.
   def test_the_retry_limit_is_read_from_the_operation
     job = OperationJob.new
 
     assert_equal 2, job.send(:attempts_for, "GeneratedBaseClassesTest::Slow")
-    assert_equal OperationJob::DEFAULT_ATTEMPTS, job.send(:attempts_for, "GeneratedBaseClassesTest::Charge")
+    assert_equal OperationJob::DEFAULT_ATTEMPTS, job.send(:attempts_for, "GeneratedBaseClassesTest::Charge"),
+      "**Per-operation, from one job class.** `retry_on` would capture one limit for every command; reading `RETRIES` at the moment the decision is made is what makes it per operation."
   end
 
   # **An id is not an Integer.** A UUID primary key is an ordinary Rails choice, and this
@@ -1263,51 +1238,45 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal "7", entries.first.actor_id
   end
 
-  # **A broken sink does not fail the command.** The write has committed by the time the log
-  # runs, so raising here would have the audit trail deciding the outcome of the thing it is
-  # auditing.
   def test_a_sink_that_raises_does_not_fail_a_committed_command
     previous = AuditLog.sink
     AuditLog.sink = ->(_entry) { raise "sink down" }
 
     result = Charge.call(actor: ANYONE, amount: 5)
 
-    assert_predicate result, :success?
+    assert_predicate result, :success?,
+      "**A broken sink does not fail the command.** The write has committed by the time the log runs, so raising here would have the audit trail deciding the outcome of the thing it is auditing."
   ensure
     AuditLog.sink = previous
   end
 
-  # **A shape is a hash with a declared shape.** The documented audit sink writes `entry.to_h`
-  # to a table; that method is on `Shape`, so every shape has it and the round trip is
-  # `new(**shape.to_h)` with nothing in between — no packer and no serialiser.
   def test_a_shape_is_its_hash
     entry = AuditLog::Entry.new(operation: "X", outcome: :succeeded, actor_id: "1", error: nil)
 
     assert_equal({ operation: "X", outcome: :succeeded, actor_id: "1", error: nil, arguments: {} },
                  entry.to_h)
-    assert_equal Place.new(code: "ZA"), Place.new(**Place.new(code: "ZA").to_h)
+    assert_equal Place.new(code: "ZA"), Place.new(**Place.new(code: "ZA").to_h),
+      "**A shape is a hash with a declared shape.** The documented audit sink writes `entry.to_h` to a table; that method is on `Shape`, so every shape has it and the round trip is `new(**shape.to_h)` with nothing in between — no packer and no serialiser."
   end
 
-  # **`call_later` refuses what `call` refuses.** Without building the operation it answered
-  # `success(:enqueued)` for arguments that could never run, which then burned the whole
-  # retry budget failing.
   def test_call_later_asserts_its_arguments_before_enqueuing
     assert_raises(ArgumentError) do
       enqueued { Slow.call_later(actor: NAMED, amount: "not an integer") }
     end
-    assert_empty OperationJob.enqueued
+    assert_empty OperationJob.enqueued,
+      "**`call_later` refuses what `call` refuses.** Without building the operation it answered `success(:enqueued)` for arguments that could never run, which then burned the whole retry budget failing."
   end
 
   # **An actor that cannot be named cannot be deferred.** It used to be dropped in silence:
   # the caller was told `success(:enqueued)`, the job died "requires an actor", exhausted its
-  # retries and wrote no audit entry at all.
   def test_call_later_refuses_an_actor_it_could_not_rebuild
     error = assert_raises(ArgumentError) do
       enqueued { Slow.call_later(actor: ANYONE, amount: 5) }
     end
 
     assert_includes error.message, "needs an actor with an id to defer"
-    assert_empty OperationJob.enqueued
+    assert_empty OperationJob.enqueued,
+      "retries and wrote no audit entry at all."
   end
 
   def test_call_later_refuses_an_actor_whose_id_is_nil
@@ -1409,9 +1378,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # **Derived, so a new door cannot ship unaudited.** The doors exercised above must be
-  # exactly the generated base classes that contain an audit call — add a fifth that records
-  # and this reddens until it is covered.
   def test_every_generated_door_that_records_is_exercised
     recording = Shipshape::Install::FILES.select do |name|
       path = File.expand_path("../../lib/shipshape/templates/#{name}.rb.tt", __dir__)
@@ -1420,7 +1386,8 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     covered = AUDITED_DOORS.map { |door| door.superclass.name.gsub(/([a-z])([A-Z])/, '\1_\2').downcase }
 
-    assert_equal recording.sort, covered.sort
+    assert_equal recording.sort, covered.sort,
+      "**Derived, so a new door cannot ship unaudited.** The doors exercised above must be exactly the generated base classes that contain an audit call — add a fifth that records and this reddens until it is covered."
   end
 
   def test_an_error_code_is_a_name_not_a_sentence
@@ -1473,8 +1440,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_empty additions(Class.new(Command) { def anonymous_call; end })
   end
 
-  # **The case no cop can see.** The module is named by a variable, so nothing reading source
-  # knows this class includes it.
   def test_a_module_included_through_a_variable_is_still_seen
     helpers = Module.new { def total; end }
     operation = Class.new(Command) do
@@ -1483,7 +1448,8 @@ class GeneratedBaseClassesTest < Minitest::Test
       def call; end
     end
 
-    assert_equal %i[total], additions(operation)
+    assert_equal %i[total], additions(operation),
+      "**The case no cop can see.** The module is named by a variable, so nothing reading source knows this class includes it."
   end
 
   def test_a_method_made_by_define_method_is_still_seen
@@ -1506,9 +1472,6 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_equal %i[build], additions(operation)
   end
 
-  # Measured from the door rather than from `superclass`, so a hierarchy that broke
-  # `an-operation-is-a-leaf` does not also make this go quiet. Comparing a leaf against its
-  # parent operation would have reported nothing at all.
   def test_a_second_level_still_reports_what_the_first_added
     parent = Class.new(Command) do
       def call; end
@@ -1517,7 +1480,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
     child = Class.new(parent)
 
-    assert_equal %i[total], additions(child)
+    assert_equal %i[total], additions(child),
+      "Measured from the door rather than from `superclass`, so a hierarchy that broke `an-operation-is-a-leaf` does not also make this go quiet. Comparing a leaf against its parent operation would have reported nothing at all."
   end
 
   def test_something_that_is_not_an_operation_is_left_alone
@@ -1556,9 +1520,9 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert Holder.new(thing: [1, 2, 3])
   end
 
-  # The refusal must not cost the value semantics the rest of the file relies on.
   def test_construction_still_answers_a_working_shape
-    assert_equal Holder.new(thing: 1), Holder.new(thing: 1)
+    assert_equal Holder.new(thing: 1), Holder.new(thing: 1),
+      "The refusal must not cost the value semantics the rest of the file relies on."
     refute_equal Holder.new(thing: 1), Holder.new(thing: 2)
   end
   # A view component is the other presentation kind, and the matrix gives it one row:
@@ -1570,22 +1534,21 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # Refused at the argument, because the component typed it — the same guard every kind gets
-  # from `TypedArguments`, not a rule about components.
   def test_a_view_component_refuses_a_record_too
     error = assert_raises(ArgumentError) { Panel.new(thing: RECORD.new) }
 
-    assert_includes error.message, "is not an argument"
+    assert_includes error.message, "is not an argument",
+      "Refused at the argument, because the component typed it — the same guard every kind gets from `TypedArguments`, not a rule about components."
   end
 
   def test_a_view_component_takes_values_and_shapes
     assert Panel.new(thing: Place.new(code: "ZA"))
   end
 
-  # One rule, one implementation. Two copies of it is how the two kinds come to disagree.
   def test_both_presentation_kinds_refuse_through_the_same_module
     assert_includes Shape.singleton_class.ancestors, HoldsNoRecords
-    assert_includes ApplicationViewComponent.singleton_class.ancestors, HoldsNoRecords
+    assert_includes ApplicationViewComponent.singleton_class.ancestors, HoldsNoRecords,
+      "One rule, one implementation. Two copies of it is how the two kinds come to disagree."
   end
   # **A record is never an argument — into anything.** Every generated base class includes
   # `TypedArguments`, so the one guard covers every kind at the one moment every argument

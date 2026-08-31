@@ -81,8 +81,6 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
     RUBY
   end
 
-  # The common bad shape: a message that names the construct and stops. Interpolation makes
-  # it a `dstr`, which is a different node than a plain string and has to be read as one.
   def test_an_interpolated_message_is_read_and_still_bare
     found = check(<<~'RUBY')
       class NoShouting < Base
@@ -92,7 +90,8 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "The common bad shape: a message that names the construct and stops. Interpolation makes it a `dstr`, which is a different node than a plain string and has to be read as one."
   end
 
   # The reason `explain` exists: a call cannot be read, so it is trusted, and its signature
@@ -130,8 +129,6 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
     RUBY
   end
 
-  # Checking only that the markers appear accepted a message with no reason and no example
-  # — the one cop policing message quality taking exactly what it forbids.
   def test_markers_with_nothing_after_them_are_not_a_message
     found = check(<<~RUBY)
       class NoShouting < Base
@@ -143,11 +140,10 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "Checking only that the markers appear accepted a message with no reason and no example — the one cop policing message quality taking exactly what it forbids."
   end
 
-  # Checking only that the markers appear accepted a message with no reason and no example
-  # — the one cop policing message quality taking exactly what it forbids.
   def test_markers_with_nothing_after_them_are_not_a_message
     found = check(<<~RUBY)
       class NoShouting < Base
@@ -159,7 +155,8 @@ class EnforcementMessagesAreDocumentationTest < Minitest::Test
       end
     RUBY
 
-    assert_equal 1, found.length
+    assert_equal 1, found.length,
+      "Checking only that the markers appear accepted a message with no reason and no example — the one cop policing message quality taking exactly what it forbids."
   end
 
   private
