@@ -35,10 +35,9 @@ class Query
 
   # **Setup asks what state is legal, not who may reach it.** A test building a booking to
   # cancel is not testing who may build one, and assembling a grant bag to get there teaches
-  # nothing. `test_call` skips the permission check and skips nothing else: typed arguments,
-  # the transaction, the rules and the audit entry all still run, so the state it produces is
-  # a state the application can produce — which is the whole point of
-  # `no-test-factories`.
+  # nothing. `test_call` skips the permission check and nothing else — a query writes no audit
+  # entry to skip. The typed arguments and the shapes assertion still run, so what it answers is
+  # what the application would answer, which is the whole point of `no-test-factories`.
   #
   # **A test uses it for the subject too, not only for setup.** A permission is the class name,
   # so authorisation is class-sized — an actor holds the permission or does not — and the check

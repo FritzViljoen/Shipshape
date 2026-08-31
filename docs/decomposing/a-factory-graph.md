@@ -84,7 +84,8 @@ it takes; the cop's count falls per file, and a failure is attributable to the f
 changed.
 
 **`test_call` is what a test uses — for setup and for the subject alike.** It skips the
-permission check and nothing else, and raises outside the test environment.
+permission check and the audit entry — the two things about the caller rather than the state —
+and raises outside the test environment.
 
 **No actor is threaded through any of it**, and that is not a shortcut. A permission is the
 class name, so authorisation is class-sized: an actor holds `:CancelBooking` or does not, there
@@ -131,8 +132,8 @@ that relied on it, immediately and by name.
 
 ## What none of this proves
 
-**It is slower, and that is the deliberate cost.** Every setup now pays typed arguments, a
-transaction and an audit entry — the permission check is the one thing `test_call` skips. On a
+**It is slower, and that is the deliberate cost.** Every setup now pays typed arguments and a
+transaction; the permission check and the audit entry are what `test_call` skips. On a
 large suite that is minutes, and the law spends them on purpose — but nothing here tells you whether your suite can afford it, and the
 answer is sometimes that a hot test file needs its setup narrowed rather than its factories
 back.

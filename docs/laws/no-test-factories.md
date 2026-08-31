@@ -43,9 +43,11 @@ booking = CreateBooking.test_call(offer_id: offer.id).value
 result  = CancelBooking.test_call(booking_id: booking.id)
 ```
 
-**It skips the permission check and skips nothing else.** Typed arguments, the transaction, the
-business rules and the audit entry all still run, so the state it produces is a state the
-application can produce — which is the entire point of this law.
+**It skips the permission check and the audit entry, and nothing else.** Typed arguments, the
+transaction and the business rules all still run, so the state it produces is a state the
+application can produce — which is the entire point of this law. The two it skips are the two
+about the caller rather than the state: who asked, and the record that they did. A suite writing
+an audit row per fixture fills the trail with rows no operator ever performed.
 
 **And it is used on the operation under test as well, not only on setup.** A permission *is*
 [the class name](a-permission-is-the-class-name.md), so authorisation here is class-sized: an
@@ -65,8 +67,8 @@ including in production. A method that refuses to exist outside tests cannot be.
 
 ## What it costs, and it is real
 
-Building state through commands is slower than an `INSERT`: every setup pays typed arguments, a
-transaction and an audit entry. On a large suite that is minutes, and this law
+Building state through commands is slower than an `INSERT`: every setup pays typed arguments
+and a transaction. On a large suite that is minutes, and this law
 spends them deliberately, because a fast suite that proves the wrong thing is not a saving.
 
 Reference data — currencies, countries, a tenant — that no operation creates is seeded, not

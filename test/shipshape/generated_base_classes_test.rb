@@ -625,11 +625,11 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { Charge.test_call(amount: "5") }
   end
 
-  def test_test_call_still_records_to_the_audit_log
-    entries = audited { Charge.test_call(amount: 5) }
-
-    assert_equal [Charge.name], entries.map(&:operation)
-    assert_equal :succeeded, entries.first.outcome
+  # **The two it skips are the two about the caller, not the state.** A suite writing an audit
+  # row per fixture fills the trail with rows no operator ever performed.
+  def test_test_call_writes_no_audit_entry
+    assert_empty audited { Charge.test_call(amount: 5) }
+    assert_equal [Charge.name], audited { Charge.call(actor: ANYONE, amount: 5) }.map(&:operation)
   end
 
   # **The one thing an unchecked door must promise.** A method that exists everywhere and is

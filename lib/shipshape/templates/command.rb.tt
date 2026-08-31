@@ -38,15 +38,32 @@ class Command
       return Result.failure(:forbidden)
     end
 
-    perform(actor, arguments)
+    result = perform(actor, arguments)
+
+    # **After the transaction, never inside it.** An entry written inside is erased by the
+    # rollback it exists to explain.
+    AuditLog.record(
+      operation: name,
+      outcome: result.success? ? :succeeded : :failed,
+      actor: actor,
+      error: result.error,
+      arguments: arguments,
+      excluded: excluded_from_audit,
+    )
+
+    result
   end
 
   # **Setup asks what state is legal, not who may reach it.** A test building a booking to
   # cancel is not testing who may build one, and assembling a grant bag to get there teaches
-  # nothing. `test_call` skips the permission check and skips nothing else: typed arguments,
-  # the transaction, the rules and the audit entry all still run, so the state it produces is
-  # a state the application can produce — which is the whole point of
-  # `no-test-factories`.
+  # nothing.
+  #
+  # **It skips the permission check and the audit entry, and nothing else.** Typed arguments,
+  # the transaction and the rules all still run, so the state it produces is a state the
+  # application can produce — which is the whole point of `no-test-factories`. The two it skips
+  # are the two that are about the caller rather than the state: who asked, and the record that
+  # they did. A suite writing an audit row per fixture fills the trail with rows no operator
+  # ever performed.
   #
   # **A test uses it for the subject too, not only for setup.** A permission is the class name,
   # so authorisation is class-sized — an actor holds the permission or does not — and the check
@@ -65,8 +82,9 @@ class Command
     perform(actor, arguments)
   end
 
-  # The half of `call` that runs once the door has been opened. Both entry points share it,
-  # so the only difference between them is the check itself.
+  # The work itself: everything that decides whether the state is legal, and nothing about who
+  # asked for it. Both entry points share it, so a state reached in a test is reached the way
+  # the application reaches it.
   def self.perform(actor, arguments)
     operation = new(**arguments)
     result = ActiveRecord::Base.transaction { operation.__perform__(actor) }
@@ -77,17 +95,6 @@ class Command
 
 <%- if auth -%>
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
-
-    # **After the transaction, never inside it.** An entry written inside is erased by the
-    # rollback it exists to explain.
-    AuditLog.record(
-      operation: name,
-      outcome: result.success? ? :succeeded : :failed,
-      actor: actor,
-      error: result.error,
-      arguments: arguments,
-      excluded: excluded_from_audit,
-    )
 
     result
   end
