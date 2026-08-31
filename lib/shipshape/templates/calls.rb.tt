@@ -1,0 +1,121 @@
+# frozen_string_literal: true
+
+# **What one method calls, read from its own syntax tree rather than by running it.**
+#
+# `RubyVM::AbstractSyntaxTree.of` hands back the tree of a method as written, so the operations
+# a `call` names can be listed without executing anything. A workflow uses it to aggregate its
+# steps' permissions before the first one runs; the call graph uses it to say which operations
+# are reachable only from other operations, and so need no grant of their own.
+#
+# **It is deliberately syntactic.** A constant named in the source is found; a class reached
+# through a variable, `const_get` or `send` is not. That is a floor rather than a ceiling, and
+# both callers state it as a limit rather than implying coverage they do not have.
+#
+# **`RubyVM` is MRI's.** On an interpreter without it, this raises rather than answering an
+# empty list, because answering "calls nothing" would be the fail-open both callers must avoid.
+module Calls
+  RUNS = %i[call call_later].freeze
+
+  class << self
+    # The operations `owner` sends `call` or `call_later` to inside `method_name`, resolved to
+    # classes. Anything that resolves to no class, or to something that is not an operation, is
+    # dropped — a `Proc` in a constant carries no permission and is not a step.
+    def in(owner, method_name)
+      return [] unless owner.method_defined?(method_name) || owner.private_method_defined?(method_name)
+
+      tree = ::RubyVM::AbstractSyntaxTree.of(owner.instance_method(method_name))
+      return [] if tree.nil?
+
+      constants_in(tree).filter_map { |name| resolve(owner, name) }.select { |found| operation?(found) }
+    rescue ArgumentError
+      # `of` raises this when the source is unavailable — an eval'd or dynamically defined
+      # method. Nothing broader is rescued: a `NameError` here means the file could not be read
+      # the way this depends on, and swallowing it is how four steps become zero.
+      []
+    end
+
+    def operation?(found)
+      found.respond_to?(:permission) && found.respond_to?(:anonymous?)
+    end
+
+    private
+
+    # **A constant is resolved the way Ruby resolved it, which is by lexical nesting.** Walking
+    # the class's own *name* instead is wrong for the compact form: inside `class Billing::Flow`,
+    # `Charge` means `::Charge`, because `Billing` is not in `Module.nesting` — and resolving it
+    # to `Billing::Charge` names an operation that never runs.
+    #
+    # A leading `::` is Ruby being told to skip the nesting, so it is skipped here too.
+    def resolve(owner, constant)
+      return Object.const_get(constant[2..]) if constant.start_with?("::")
+
+      head = constant.split("::").first
+      scope = nesting(owner).find { |candidate| candidate.const_defined?(head, false) }
+
+      (scope || Object).const_get(constant)
+    rescue ::NameError
+      nil
+    end
+
+    # `Module.nesting` as it was at the `def`, rebuilt from the file. There is no runtime handle
+    # on it — `Module.nesting` is only meaningful while the body is being read — so the
+    # enclosing `class`/`module` nodes are what says whether `Billing` is in scope.
+    def nesting(owner)
+      @nesting ||= {}
+      @nesting[owner] ||= read_nesting(owner)
+    end
+
+    def read_nesting(owner)
+      file, line = owner.instance_method(:call).source_location
+      scopes = enclosing_scopes(::RubyVM::AbstractSyntaxTree.parse_file(file), line)
+
+      scopes.each_index.map { |depth| Object.const_get(scopes[0..depth].join("::")) }.reverse
+    rescue ::NameError, ::TypeError
+      []
+    end
+
+    # Each `class`/`module` whose body contains the `def`, outermost first, named as written —
+    # `class Billing::Flow` contributes one entry and not two, which is the whole point.
+    def enclosing_scopes(node, line, found = [])
+      return found unless node.is_a?(::RubyVM::AbstractSyntaxTree::Node)
+      return found unless node.first_lineno <= line && line <= node.last_lineno
+
+      found << constant_name(node.children.first) if %i[CLASS MODULE].include?(node.type)
+      node.children.each { |child| enclosing_scopes(child, line, found) }
+      found
+    end
+
+    def constants_in(node, found = [])
+      return found unless node.is_a?(::RubyVM::AbstractSyntaxTree::Node)
+
+      found << constant_name(node.children.first) if runs_a_constant?(node)
+      node.children.each { |child| constants_in(child, found) }
+      found.uniq
+    end
+
+    # `call_later` is the same step deferred. The work still runs, so the permission is still
+    # owed and the edge is still an edge.
+    def runs_a_constant?(node)
+      return false unless node.type == :CALL
+
+      receiver, message, = node.children
+      RUNS.include?(message) && receiver.is_a?(::RubyVM::AbstractSyntaxTree::Node) &&
+        %i[CONST COLON2 COLON3].include?(receiver.type)
+    end
+
+    # `COLON2` is `Billing::Reconcile`, whose left side is another constant node. `COLON3` is a
+    # leading `::`, whose only child is a bare Symbol — recursing into it raised `NoMethodError`,
+    # and because that is a `NameError` a rescue swallowed it and took every constant found so
+    # far with it.
+    def constant_name(node)
+      return nil if node.nil?
+
+      case node.type
+      when :CONST then node.children.first.to_s
+      when :COLON3 then "::#{node.children.first}"
+      # `module Billing` at the top level is a `COLON2` with no left side.
+      else [constant_name(node.children.first), node.children.last].compact.join("::")
+      end
+    end
+  end
+end

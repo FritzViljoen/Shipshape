@@ -652,6 +652,58 @@ class GeneratedBaseClassesTest < Minitest::Test
     ::Rails.env.answer = true
   end
 
+  # **The graph exists so a permissions screen offers switches that do something.** A command's
+  # door is the check, so an operation reached only from inside another needs no grant, and
+  # listing it offers an administrator a toggle with no effect.
+  class GraphedDoor < Command; end
+
+  class GraphedInner < GraphedDoor
+    def initialize(**); end
+
+    def call
+      success(:inner)
+    end
+  end
+
+  class GraphedOuter < GraphedDoor
+    def initialize(**); end
+
+    def call
+      GeneratedBaseClassesTest::GraphedInner.call(actor: actor)
+      success(:outer)
+    end
+  end
+
+  def test_the_graph_names_what_each_operation_calls
+    assert_equal ["GeneratedBaseClassesTest::GraphedInner"],
+                 CallGraph.edges(GraphedDoor).fetch(GraphedOuter.name)
+    assert_empty CallGraph.edges(GraphedDoor).fetch(GraphedInner.name)
+  end
+
+  # The operation an actor arrives at. Nothing else calls it, so this is where a grant is asked
+  # for and where a screen should offer one.
+  def test_an_operation_nothing_calls_is_grantable
+    assert_equal [GraphedOuter.permission], CallGraph.grantable(GraphedDoor)
+  end
+
+  # Reached from inside another operation, so the command's door was already the check.
+  def test_an_operation_reached_from_another_needs_no_grant
+    assert_equal [GraphedInner.permission], CallGraph.internal(GraphedDoor)
+  end
+
+  # A permission is never granted for an anonymous operation, so it belongs on neither list.
+  def test_an_anonymous_operation_is_on_neither_list
+    refute_includes CallGraph.grantable(Command), LogIn.permission
+    refute_includes CallGraph.internal(Command), LogIn.permission
+  end
+
+  # **The keys are class names**, which is what a label table is keyed by. Nothing here holds
+  # a label: a screen wants "Cancel a booking", and that is content, edited without a deploy.
+  def test_the_keys_are_class_names
+    assert(CallGraph.edges(GraphedDoor).keys.all? { |key| key.is_a?(String) })
+    assert(CallGraph.grantable(GraphedDoor).all? { |key| key.is_a?(Symbol) })
+  end
+
   # A door of its own, so the catalogue under test is this file's classes and not every
   # subclass any other test in the process happened to create.
   class CataloguedFlow < Workflow; end

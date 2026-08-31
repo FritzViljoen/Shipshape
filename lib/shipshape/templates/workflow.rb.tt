@@ -72,119 +72,17 @@ class Workflow
   # **Memoised per class**, because the tree is parsed from the file on disk and a workflow is
   # asked this on every invocation. `instance_variable_defined?` so a subclass does not
   # inherit the answer computed for its parent.
+  # The operations `call` names, read from its own syntax tree by `Calls` — which the call
+  # graph reads with too, so a step and an edge are the same fact found the same way.
+  #
+  # **Memoised per class**, because the tree is parsed from the file on disk and a workflow is
+  # asked this on every invocation. `instance_variable_defined?` so a subclass does not inherit
+  # the answer computed for its parent.
   def self.steps
     return @steps if instance_variable_defined?(:@steps)
 
-    @steps = read_steps
+    @steps = Calls.in(self, anonymous? ? :anonymous_call : :call)
   end
-
-  # A constant receiving `call` that is not an operation — a `Proc` in a constant, a class
-  # with a `call` of its own — carries no permission, so it is not a step. It must be
-  # dropped here rather than by rescuing later: a `NameError` raised while resolving one
-  # constant used to discard every step already found.
-  def self.read_steps
-    # An abstract workflow implements no `call` at all. It sequences nothing, which
-    # `permissions` turns into a raise — the same answer, said in the right place.
-    return [] unless method_defined?(:call) || private_method_defined?(:call)
-
-    tree = ::RubyVM::AbstractSyntaxTree.of(instance_method(:call))
-    return [] if tree.nil?
-
-    operations_in(tree).filter_map { |constant| resolve(constant) }.select { |step| operation?(step) }
-  rescue ArgumentError
-    # `of` raises this when the source is not available — an eval'd or dynamically defined
-    # `call`. Answering `[]` would fail open, and `permissions` turns it into a raise.
-    # Nothing broader is rescued: a `NameError` here means the file could not be read the way
-    # this depends on, and swallowing it is how four steps became zero.
-    []
-  end
-
-  def self.operation?(step)
-    step.respond_to?(:permission) && step.respond_to?(:anonymous?)
-  end
-
-  # **A constant is resolved the way Ruby resolved it, which is by lexical nesting.** Walking
-  # the class's own *name* instead is wrong for the compact form: inside
-  # `class Billing::Flow`, `Charge` means `::Charge`, because `Billing` is not in
-  # `Module.nesting` — and demanding `Billing::Charge` there permits an actor refused the
-  # operation that actually runs.
-  #
-  # A leading `::` is Ruby being told to skip the nesting, so it skips it here too.
-  def self.resolve(constant)
-    return Object.const_get(constant[2..]) if constant.start_with?("::")
-
-    head = constant.split("::").first
-    scope = nesting.find { |candidate| candidate.const_defined?(head, false) }
-
-    (scope || Object).const_get(constant)
-  rescue ::NameError
-    nil
-  end
-
-  # `Module.nesting` as it was at the `def`, rebuilt from the file. There is no runtime
-  # handle on it — `Module.nesting` is only meaningful while the body is being read — so the
-  # enclosing `class`/`module` nodes are what says whether `Billing` is in scope.
-  def self.nesting
-    return @nesting if instance_variable_defined?(:@nesting)
-
-    @nesting = read_nesting
-  end
-
-  def self.read_nesting
-    file, line = instance_method(:call).source_location
-    scopes = enclosing_scopes(::RubyVM::AbstractSyntaxTree.parse_file(file), line)
-
-    scopes.each_index
-          .map { |depth| Object.const_get(scopes[0..depth].join("::")) }
-          .reverse
-  end
-
-  # Each `class`/`module` whose body contains the `def`, outermost first, named as written —
-  # `class Billing::Flow` contributes one entry and not two, which is the whole point.
-  def self.enclosing_scopes(node, line, found = [])
-    return found unless node.is_a?(::RubyVM::AbstractSyntaxTree::Node)
-    return found unless node.first_lineno <= line && line <= node.last_lineno
-
-    found << constant_name(node.children.first) if %i[CLASS MODULE].include?(node.type)
-    node.children.each { |child| enclosing_scopes(child, line, found) }
-    found
-  end
-
-  def self.operations_in(node, found = [])
-    return found unless node.is_a?(::RubyVM::AbstractSyntaxTree::Node)
-
-    found << constant_name(node.children.first) if sends_call_to_a_constant?(node)
-    node.children.each { |child| operations_in(child, found) }
-    found.uniq
-  end
-
-  # `call_later` is the same step deferred, and dropping it demanded no permission for work
-  # that still runs.
-  def self.sends_call_to_a_constant?(node)
-    return false unless node.type == :CALL
-
-    receiver, message, = node.children
-    %i[call call_later].include?(message) && receiver.is_a?(::RubyVM::AbstractSyntaxTree::Node) &&
-      %i[CONST COLON2 COLON3].include?(receiver.type)
-  end
-
-  # `COLON2` is `Billing::Reconcile`, whose left side is another constant node. `COLON3` is
-  # a leading `::`, whose only child is a bare Symbol — recursing into it raised
-  # `NoMethodError`, and because that is a `NameError` the rescue swallowed it and took
-  # every step found so far with it.
-  def self.constant_name(node)
-    return nil if node.nil?
-
-    case node.type
-    when :CONST then node.children.first.to_s
-    when :COLON3 then "::#{node.children.first}"
-    # `module Billing` at the top level is a `COLON2` with no left side.
-    else [constant_name(node.children.first), node.children.last].compact.join("::")
-    end
-  end
-
-  private_class_method :read_steps, :operation?, :resolve, :nesting, :read_nesting, :enclosing_scopes,
-                       :operations_in, :sends_call_to_a_constant?, :constant_name
 
   # **One predicate, asked twice.** A view asks it to decide whether to offer the button;
   # `call` asks it to refuse. Overriding the inherited singular check matters: that one

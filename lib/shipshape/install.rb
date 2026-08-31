@@ -31,6 +31,8 @@ module Shipshape
       persistence
       typed_arguments
       permission
+      calls
+      call_graph
       holds_no_records
       shape
       result
@@ -60,7 +62,7 @@ module Shipshape
     TEST_DIRECTORY = "test/shipshape"
 
     # Written only when authorisation is asked for. Everything else is written either way.
-    AUTH_ONLY = %w[permission].freeze
+    AUTH_ONLY = %w[permission calls call_graph].freeze
 
     # **Written only on request, because it is the one file that can stop a boot.** It
     # inherits from the `view_component` gem, and an application without that gem cannot load

@@ -1,0 +1,80 @@
+# frozen_string_literal: true
+
+# **Which operations exist, and which of them call which — read at boot, from the code.**
+#
+# The permission model is class-sized: a permission *is* the class name, and a command's door
+# is where the actor is checked. An operation reached only from inside another operation is
+# therefore never asked for a grant, and listing it on a permissions screen offers an
+# administrator a switch that does nothing.
+#
+# This is what tells the two apart. `grantable` is what a screen should offer; `internal` is
+# what it should not.
+#
+#   Shipshape::CallGraph.edges
+#   # => { "CancelBooking" => ["FindBooking", "NotifyCustomer"], "FindBooking" => [] }
+#
+#   Shipshape::CallGraph.grantable   # => [:CancelBooking]
+#   Shipshape::CallGraph.internal    # => [:FindBooking, :NotifyCustomer]
+#
+# **The keys are class names, and nothing here holds a label.** A permission is its class name
+# and a screen wants "Cancel a booking", so the label belongs in a row keyed by the name —
+# translated, edited and versioned like any other content, without a deploy.
+#
+# **Stated limit, and it is the one that matters: this reads operations only.** It cannot see a
+# controller, so a query called both from an action and from inside a command reads as
+# `internal` here and is genuinely grantable. The application knows its own routes; union this
+# with what they reach. Answering `internal` for such a query is the safe direction — it offers
+# too few switches rather than too many — but it is not the whole answer.
+class CallGraph
+  class << self
+    # `{ "CancelBooking" => ["FindBooking"] }`, for every operation of the given doors.
+    def edges(*doors)
+      operations(*doors).each_with_object({}) do |operation, found|
+        found[operation.name] = Calls.in(operation, entry_point(operation)).map(&:name).uniq.sort
+      end
+    end
+
+    # Reached by no other operation, so this is where an actor arrives. Anonymous operations are
+    # left out: they are never granted, which is what anonymous means.
+    def grantable(*doors)
+      reached = internal_names(*doors)
+
+      operations(*doors).reject { |operation| reached.include?(operation.name) }
+                        .reject(&:anonymous?)
+                        .map(&:permission)
+                        .uniq
+                        .sort
+    end
+
+    # Reached from another operation, so under a class-sized permission model no actor needs to
+    # hold these: the command's door was the check, and the work inside it is how that one act
+    # is done.
+    def internal(*doors)
+      reached = internal_names(*doors)
+
+      operations(*doors).select { |operation| reached.include?(operation.name) }
+                        .reject(&:anonymous?)
+                        .map(&:permission)
+                        .uniq
+                        .sort
+    end
+
+    private
+
+    def internal_names(*doors)
+      edges(*doors).values.flatten.uniq
+    end
+
+    # Nameless classes have no permission — a `Class.new` subclass has no constant — and asking
+    # one for its name would put `nil` in the graph.
+    def operations(*doors)
+      doors.flat_map { |door| door.descendants }.select(&:name).uniq
+    end
+
+    # A workflow sequences in `call`; an operation that runs before anyone is identified
+    # implements `anonymous_call` instead, and its body names steps the same way.
+    def entry_point(operation)
+      operation.anonymous? ? :anonymous_call : :call
+    end
+  end
+end

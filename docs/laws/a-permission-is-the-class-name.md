@@ -123,6 +123,33 @@ A checked-in list of permissions would be a copy of a fact the classes already s
 copy is the one that rots. Data holds what code cannot derive: the label, the description,
 who has been granted it.
 
+## A command does not aggregate, and the graph says which permissions are real
+
+A command calls queries to do its work. **It does not aggregate their permissions**, and the
+distinction is the one this law rests on: a workflow is the multi-permission thing, and if a
+command aggregated too, the difference between them would be only that one spans transactions.
+`one-operation-one-class` sizes a command so it can be permitted or refused **whole**; a
+command that demanded a grant per internal read would make an internal refactor a production
+authorisation change, which is how a permission model dies.
+
+**So the command's door is the check, and a query reached from inside it is not re-checked.**
+The cost is stated rather than hidden: a command *can* launder a read, returning something
+derived from data the actor could not have queried directly. That is a defect in the command —
+by this law's own sizing rule, one that reads salaries and cancels bookings is two operations —
+and aggregation would mask it while charging every well-behaved command for it.
+
+The consequence for the catalogue is that not every permission is grantable. An operation
+reached only from inside another is never asked for a grant, so offering it on a screen is a
+switch that does nothing. `CallGraph` reads the operations at boot and separates them:
+
+```ruby
+Shipshape::CallGraph.grantable(Command, Query)   # => [:CancelBooking]
+Shipshape::CallGraph.internal(Command, Query)    # => [:FindBooking]
+```
+
+**The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
+content — translated, edited, versioned — and belongs in a row, not in a constant.
+
 Introspection is also what lets a caller ask before it acts — hiding a button the actor
 cannot use, rather than offering it and refusing afterwards.
 
@@ -185,6 +212,16 @@ in doubt.
   That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.
+- **Guard:** the generated `call_graph.rb` and `calls.rb` — architecture. `Calls` reads a
+  method's syntax tree for the operations it names, and `CallGraph` turns that into edges,
+  `grantable` and `internal`. A workflow's steps are read with the same code, so a step and an
+  edge are one fact found one way. Exercised by `generated_base_classes_test.rb`.
+- **Guard's limit:** `CallGraph` **reads operations only, and cannot see a controller.** A
+  query called both from an action and from inside a command reads as `internal` and is
+  genuinely grantable, so an application must union this with what its own routes reach.
+  Answering `internal` offers too few switches rather than too many, which is the safe
+  direction and not the whole answer. `Calls` is syntactic: a class reached through a variable,
+  `const_get` or `send` is not an edge here.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real
   one, and nothing checks that request handling passes the requester rather than a system
   actor. It cannot see an operation invoked with `new(...).call` directly, going around
