@@ -45,13 +45,19 @@ module Shipshape
     end
 
     def kinds_section
-      rows = settings.kinds.map { |kind, globs| "| `#{kind}` | #{globs.map { |g| "`#{g}`" }.join(', ')} |" }
+      rows = settings.kinds.map do |kind, globs|
+        "| `#{kind}` | #{globs.map { |g| "`#{g}`" }.join(', ')} | " \
+          "#{settings.retiring?(kind) ? 'on its way out — never move code here' : 'yes'} |"
+      end
 
       <<~TEXT.strip
         ## The kinds
 
-        | kind | where it lives |
-        |---|---|
+        A kind marked on its way out is a waypoint, not a destination. Code leaves it; nothing
+        new arrives. Refactoring into one is how a migration stops half way.
+
+        | kind | where it lives | a destination? |
+        |---|---|---|
         #{rows.join("\n")}
       TEXT
     end

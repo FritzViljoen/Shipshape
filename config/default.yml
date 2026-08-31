@@ -135,6 +135,12 @@ Shipshape/CallGraph:
   # inheriting one looked like a second level of inheritance to
   # Shipshape/OperationsAreLeaves, which fired on every mailer in forem. Being on this list
   # is what makes a name a base class, and a rename buys nothing, so it cannot go stale.
+  # A waypoint, not a destination: code leaves a legacy door and nothing new arrives. Declared
+  # here, beside the kinds, because an agent reading what the kinds are must read this in the
+  # same breath — a refactor into a kind on its way out is how a migration stops half way.
+  Retiring:
+    - legacy_command
+    - legacy_query
   BaseClasses:
     workflow: [Workflow]
     command: [Command]

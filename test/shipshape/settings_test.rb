@@ -49,6 +49,26 @@ class SettingsTest < Minitest::Test
       "A mid-path wildcard is legitimate — it is how a Packwerk layout is expressed — and Kinds expands it into one autoload root per pack."
   end
 
+  # A sibling repository refactored INTO a shape that was itself deprecated.
+  def test_a_kind_may_be_declared_on_its_way_out
+    settings = Shipshape::Settings.new(kinds: { "command" => ["app/commands/**/*.rb"],
+                                                "legacy_command" => ["app/legacy/**/*.rb"] },
+                                       matrix: { "command" => [], "legacy_command" => [] },
+                                       retiring: ["legacy_command"])
+
+    assert settings.retiring?("legacy_command")
+    refute settings.retiring?("command"), "everything else is a destination"
+  end
+
+  def test_retiring_a_kind_nobody_declared_is_refused_at_the_seam
+    error = assert_raises(Shipshape::Error) do
+      Shipshape::Settings.new(kinds: { "command" => ["app/commands/**/*.rb"] },
+                              matrix: { "command" => [] }, retiring: ["nonesuch"])
+    end
+
+    assert_includes error.message, "Retiring names nonesuch"
+  end
+
   # The arguments are asserted where they arrive, and the assertion raises rather than
   # coercing: a Hash of the wrong shape is the caller's defect.
   def test_a_wrongly_shaped_configuration_raises_at_the_seam

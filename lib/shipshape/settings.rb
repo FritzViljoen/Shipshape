@@ -21,18 +21,25 @@ module Shipshape
                               "declares. A base class mapped to a kind that does not exist " \
                               "classifies nothing and hides a typo."
 
-    attr_reader :kinds, :matrix, :base_classes, :sisters
+    attr_reader :kinds, :matrix, :base_classes, :sisters, :retiring
 
-    def initialize(kinds:, matrix:, base_classes: {}, sisters: [])
+    def initialize(kinds:, matrix:, base_classes: {}, sisters: [], retiring: [])
       @kinds = typed_hash(kinds, String, Array)
       @matrix = typed_hash(matrix, String, Array)
       @base_classes = typed_hash(base_classes, String, Array)
       @sisters = typed_array(sisters, Array)
+      @retiring = typed_array(retiring, String)
 
       assert_globs_are_strings
       refuse_rows_naming_a_sister
       refuse_rows_naming_an_undeclared_kind
       refuse_base_classes_for_an_undeclared_kind
+      refuse_retiring_kinds_that_do_not_exist
+    end
+
+    # Beside the layout, where an agent already reads what the kinds are.
+    def retiring?(kind)
+      retiring.include?(kind)
     end
 
     # Every kind is its own sister; a declared group adds the rest.
@@ -58,6 +65,7 @@ module Shipshape
         matrix: cop_config.fetch("Matrix", {}),
         base_classes: cop_config.fetch("BaseClasses", {}),
         sisters: cop_config.fetch("Sisters", []),
+        retiring: cop_config.fetch("Retiring", []),
       )
     end
 
@@ -73,6 +81,15 @@ module Shipshape
     end
 
     private
+
+    def refuse_retiring_kinds_that_do_not_exist
+      retiring.each do |kind|
+        next if kinds.key?(kind)
+
+        raise Error, "Shipshape: Retiring names #{kind}, which no Kinds entry declares. " \
+                     "A kind nobody can be in is not on its way out of anywhere."
+      end
+    end
 
     def assert_globs_are_strings
       kinds.each_value { |globs| typed_array(globs, String) }
