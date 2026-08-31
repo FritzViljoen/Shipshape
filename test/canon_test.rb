@@ -68,6 +68,10 @@ class CanonTest < Minitest::Test
   }.freeze
 
   ARCHITECTURE_WITHOUT_A_LAW = {
+    "shipshape_routes" =>
+      "a report, and `one-mechanism-guards-everything` says a guard is not one: it prints " \
+      "every route with the permissions needed to reach it and fails nothing. Naming it on a " \
+      "Guard line to satisfy this check would have made the word mean less.",
     "boolean" => "a name, so `Boolean` can be written in a type guard. It decides nothing.",
     "persistence" => "one definition of what a record is, used by the guards that have laws.",
   }.freeze

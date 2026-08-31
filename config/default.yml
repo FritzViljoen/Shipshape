@@ -656,12 +656,13 @@ Shipshape/OnlyTheDoorIsCalled:
     - '**/*.rb'
   # The door, plus the class-level API the base classes provide for asking about an
   # operation without running it.
-  # `permits?` is not here: the only reason a caller asks is to branch, and a decision has one
-  # home. The door asks it, and it is private.
+  # **Neither `permits?` nor `permissions`.** The only reason a caller asks either is to
+  # branch, and `permissions` is the same question in a longer spelling — one that disagrees
+  # with the door for an anonymous operation. `permission` stays: it is the name, which a
+  # label table and a seed are keyed by.
   AllowedMessages:
     - call
     - permission
-    - permissions
     - anonymous?
   Kinds:
     - workflow

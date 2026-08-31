@@ -25,7 +25,7 @@ namespace :shipshape do
     rows = CallGraph.routes.sort_by { |row| [row[:endpoint], row[:verb]] }
 
     if rows.empty?
-      puts "No routes reach a governed operation. Declare the trees in Shipshape/CallGraph's Kinds."
+      puts "No route resolved to a controller class. Nothing here can say what any of them demand."
       next
     end
 

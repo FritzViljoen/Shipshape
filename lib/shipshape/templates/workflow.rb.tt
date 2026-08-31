@@ -94,10 +94,10 @@ class Workflow
     @steps = Calls.in(self, anonymous? ? :anonymous_call : :call)
   end
 
-  # `permits?` is inherited and needs no override: every operation demands what it reaches,
-  # and a workflow's steps are that same aggregation. **One predicate, asked twice** — a view
-  # asks it to decide whether to offer the button, `call` asks it to refuse, and there is no
-  # second answer to get out of step with the first.
+  # `permits?` is inherited and needs no override: every operation demands what it reaches, and
+  # a workflow's steps are that same aggregation. It is private — the door asks it and nobody
+  # else may, because the only reason to ask is to branch. A page offers the action and places
+  # the refusal that comes back.
 
 <%- end -%>
 <%- if auth -%>

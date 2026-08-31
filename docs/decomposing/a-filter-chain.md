@@ -61,7 +61,7 @@ filter is not moved anywhere — it stops existing, and the operation refuses on
 # before: two places decide, and they can disagree
 before_action :require_editable, only: %i[edit update]
 
-# after: one place decides, and the view asks the same predicate to hide the button
+# after: one place decides, and the action places what came back
 def update
   result = UpdateStory.call(actor: current_user, id: integer_param!(:id), ...)
   ...

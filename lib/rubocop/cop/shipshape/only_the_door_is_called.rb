@@ -96,9 +96,17 @@ module RuboCop
           )
         end
 
-        # The door, plus the small class-level API the base classes provide for asking about
-        # an operation without running it — a view hiding a button it may not offer needs
-        # `permissions`, and the permission catalogue needs `permission`.
+        # The door, plus the one class-level reader a caller may use: `permission`, which is
+        # the operation's name and is what a label table and a seed are keyed by.
+        #
+        # **Neither `permits?` nor `permissions` is here, and they were removed together.**
+        # `permits?` went private because the only reason to ask is to branch. Leaving
+        # `permissions` allowed would have kept the same question in a longer spelling —
+        # `SettleMonth.permissions.all? { |p| actor.may?(p) }` — and worse, one that disagrees
+        # with the door: an anonymous operation reaching a guarded one demands nothing at its
+        # own door and reports the inner permission here, so a view would hide a button the
+        # door opens. A page offers the action and places the refusal, or a query hands it a
+        # shape that already says what is offerable.
         #
         # **Per kind, not one flat list.** `call_later` exists only on the writing doors: a
         # workflow spans several transactions and a query answers nothing to nobody, so
@@ -112,7 +120,11 @@ module RuboCop
         end
 
         def allowed
-          @allowed ||= cop_config.fetch("AllowedMessages", %w[call permission permissions permits? anonymous?])
+          # **The fallback and `config/default.yml` say the same thing.** They drifted once —
+          # the YAML dropped `permits?` and this kept it — and because `CopRunner` builds a
+          # bare config, the cop's own test exercised the stale list and asserted the rule the
+          # shipped config had just removed.
+          @allowed ||= cop_config.fetch("AllowedMessages", %w[call permission anonymous?])
         end
 
         def deferring

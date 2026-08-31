@@ -64,15 +64,17 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_empty check("SettleInvoice.call(actor: actor, invoice_id: 1)")
   end
 
-  # Asking an operation what it needs, without running it — a view hiding a button it may
-  # not offer, or the permission catalogue.
-  def test_the_class_level_api_is_allowed
-    assert_empty check(<<~RUBY)
-      a = SettleMonth.permissions
-      b = SettleInvoice.permission
-      c = SettleMonth.permits?(actor)
-      [a, b, c]
-    RUBY
+  # The name, which a label table and a seed are keyed by.
+  def test_the_class_level_name_is_allowed
+    assert_empty check("b = SettleInvoice.permission\n")
+  end
+
+  # **The predicate and its respelling are both refused.** `permits?` is private, and
+  # `permissions` asks the same question in more words — and disagrees with the door for an
+  # anonymous operation, so a view using it hides a button the door would open.
+  def test_asking_whether_an_actor_may_is_refused_in_either_spelling
+    assert_equal 1, check("c = SettleMonth.permits?(actor)\n").length
+    assert_equal 1, check("d = SettleMonth.permissions.all? { |p| actor.may?(p) }\n").length
   end
 
   # It does not rely on visibility, so a bypass the other guards miss is still refused.

@@ -59,9 +59,13 @@ three disagree the design is not finished.
 
 **Half of this is structural, not advisory.** Because
 [the permission is the class name](a-permission-is-the-class-name.md), an operation has
-exactly one — there is nowhere to put a second, so a command spanning two permitted acts
-cannot be expressed. The first time someone needs to grant half of one, the only available
+exactly one **of its own** — there is nowhere to put a second, so a class cannot *declare*
+itself to be two acts. The first time someone needs to grant half of one, the only available
 move is to split it.
+
+What it *demands* is that name plus everything it reaches, derived rather than declared, so
+work spanning several permitted acts is expressed by calling them and is refused whole. That is
+not a second way to be two acts; it is the same rule reading further.
 
 What stays a judgement is whether the single act you named should have been two.
 `SettleAndNotifyInvoice` has one permission and grants both halves, and nothing refuses it —
