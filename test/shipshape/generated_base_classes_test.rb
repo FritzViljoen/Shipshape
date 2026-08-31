@@ -125,7 +125,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   ANYONE = Anyone.new([]).freeze
 
   # **An actor a deferred job can find again.** `Anyone` has no `id`, which is legitimate —
-  # `permits?` needs only `may?` — and is precisely the shape `call_later` used to drop.
+  # The door needs only `may?` — and this is precisely the shape `call_later` used to drop.
   Named = Struct.new(:id) do
     def may?(_permission)
       true
@@ -442,8 +442,9 @@ class GeneratedBaseClassesTest < Minitest::Test
       end
     end
 
-    assert flow.permits?(Anyone.new([LogIn.permission])), "an anonymous step must not gate the view"
-    refute flow.permits?(Anyone.new([Charge.permission]))
+    assert_predicate flow.call(actor: Anyone.new([LogIn.permission])), :success?,
+                     "an anonymous step must not gate the sequence"
+    refute_predicate flow.call(actor: Anyone.new([Charge.permission])), :success?
   end
 
   def test_the_view_predicate_and_the_refusal_are_one_question
@@ -459,7 +460,6 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     refuser = Anyone.new([Charge.permission])
 
-    refute flow.permits?(refuser)
     refute_predicate flow.call(actor: refuser), :success?
   end
 
@@ -574,7 +574,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   def test_a_step_written_with_leading_colons_is_a_step
     assert_equal [Charge.permission, WipeEverything.permission].sort, LeadingColons.permissions.sort
-    refute LeadingColons.permits?(Anyone.new([WipeEverything.permission]))
+    refute_predicate LeadingColons.call(actor: Anyone.new([WipeEverything.permission])), :success?
   end
 
   def test_a_namespaced_step_with_leading_colons_does_not_zero_the_list
@@ -585,17 +585,17 @@ class GeneratedBaseClassesTest < Minitest::Test
   # authority on which — so the nesting is rebuilt from the file, not from the class name.
   def test_the_compact_form_resolves_the_way_ruby_resolves_it
     assert_equal [Charge.permission], Billing::Compact.permissions
-    refute Billing::Compact.permits?(Anyone.new([Charge.permission]))
+    refute_predicate Billing::Compact.call(actor: Anyone.new([Charge.permission])), :success?
   end
 
   def test_the_nested_form_resolves_to_the_namespaced_operation
     assert_equal [Billing::Charge.permission], Billing::Nested.permissions
-    refute Billing::Nested.permits?(Anyone.new([Billing::Charge.permission]))
+    refute_predicate Billing::Nested.call(actor: Anyone.new([Billing::Charge.permission])), :success?
   end
 
   def test_a_deferred_step_is_still_a_step
     assert_equal [Charge.permission, WipeEverything.permission].sort, Deferred.permissions.sort
-    refute Deferred.permits?(Anyone.new([WipeEverything.permission]))
+    refute_predicate Deferred.call(actor: Anyone.new([WipeEverything.permission])), :success?
   end
 
   def test_a_constant_that_is_not_an_operation_is_skipped_not_fatal
@@ -735,15 +735,16 @@ class GeneratedBaseClassesTest < Minitest::Test
   # What it reaches aggregates upward, so a guarded caller still demands it; the anonymous door
   # itself refuses nobody, because running before anyone is identified is what it declared.
   def test_what_an_anonymous_operation_reaches_travels_up
+    # Not called: this fixture is the leak, so running it reaches a guarded operation with no
+    # actor. What it demands is the point — the permission travelled up out of it.
     assert_equal [GraphedInner.permission], GraphedLeaky.permissions
-    assert GraphedLeaky.permits?(Anyone.new([GraphedInner.permission]))
   end
 
   # Anonymous reaching anonymous is the shape the rule allows, and it demands nothing.
   def test_an_anonymous_operation_reaching_another_demands_nothing
     assert_empty GraphedHelper.permissions
     assert_empty CallGraph.leaks(GraphedDoor)
-    assert GraphedHelper.permits?(Anyone.new([GraphedHelper.permission]))
+    assert_predicate GraphedHelper.call, :success?
   end
 
   def test_an_anonymous_operation_is_never_granted_and_never_aggregated
@@ -815,8 +816,8 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_a_command_demands_what_it_reaches
     assert_equal [GraphedInner.permission, GraphedOuter.permission].sort,
                  GraphedOuter.permissions.sort
-    refute GraphedOuter.permits?(Anyone.new([GraphedInner.permission])),
-           "the outer name alone must not admit an actor refused the inner read"
+    refute_predicate GraphedOuter.call(actor: Anyone.new([GraphedInner.permission])), :success?,
+                     "the outer name alone must not admit an actor refused the inner read"
   end
 
   # **A nil actor is a caller's defect whatever the demand turns out to be.** Behind the empty
@@ -836,7 +837,7 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_an_empty_demand_still_refuses_a_missing_actor
     assert_empty AllAnonFlow.permissions
 
-    assert_raises(ArgumentError) { AllAnonFlow.permits?(nil) }
+    assert_raises(ArgumentError) { AllAnonFlow.call }
   end
 
   # Two operations reaching each other must not recurse until the stack ends: a stack overflow

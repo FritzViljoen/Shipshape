@@ -138,6 +138,14 @@ module Permission
   # **`permissions` is what the work needs; this is whether the door refuses.** They differ for
   # an anonymous operation: it aggregates what it reaches so a caller can demand it, and refuses
   # nobody itself, because running before anyone is identified is what it declared.
+  # **Private, because the only reason to ask is to branch.** A view asking "may they?" is a
+  # view deciding, and a decision has one home — the operation. A page either offers the action
+  # and places the refusal that comes back, or it is handed a shape whose fields already say
+  # what is offerable, computed by the query that built it.
+  #
+  # The door asks this. Nobody else may, and `Shipshape/OnlyTheDoorIsCalled` no longer lists it
+  # among the messages an operation answers.
+  #
   # **The nil check comes first.** Behind an empty demand it let a caller that forgot `actor:`
   # through in silence — a workflow whose steps are all anonymous opened for `nil` where it used
   # to raise. Absence of an actor is a caller's defect whatever the demand turns out to be.
@@ -150,6 +158,7 @@ module Permission
 
     demanded.all? { |granted| actor.may?(granted) }
   end
+  private :permits?
 
   # Raised where an operation answers no envelope — a query says what it found or raises,
   # so a refusal cannot come back as a value without every caller unwrapping one.

@@ -37,13 +37,14 @@ each command, and a command reachable unchecked is reachable unchecked by anyone
 that path. That is the same hole `anonymous_call` exists to avoid giving callers, so
 authorisation stays the AND of the steps, with no override.
 
-What is actually wanted is two reads:
+What is actually wanted is a read: **"what is in this bucket?"** — the coarse thing an
+administrator grants is data, mapped to the step permissions. A query and a view, not a change
+to the model.
 
-- **"May this actor run it?"** — `SettleMonth.permits?(actor)`, asked by a view to decide
-  whether to offer the button. One predicate, asked twice: the view asks it to offer, and
-  `call` asks it to refuse. There is no second answer to get out of step with the first.
-- **"What is in this bucket?"** — the coarse thing an administrator grants is data, mapped
-  to the step permissions. A query and a view, not a change to the model.
+**And not a predicate a view may ask.** `permits?` is private, because the only reason to ask
+is to branch, and a decision has one home. A page offers the action and places the refusal that
+comes back, or it is handed a shape whose fields already say what is offerable — computed by
+the query that built it, which is an operation and may decide.
 
 ## The check is feasibility, not authorisation
 

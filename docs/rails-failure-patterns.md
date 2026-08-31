@@ -96,7 +96,7 @@ shape you cannot express is not a guard at all.
 |---|---|---|
 | Business logic in actions | **Guarded** + **Procedure** | `NoDecisionsInRequestHandling`; [a fat controller](decomposing/a-fat-controller.md) |
 | Ignoring `save`'s return value, silent failures | **Unsayable** | An operation answers a `Result`; `OperationsReportWhatTheyDid`, `NoEmptyRescue` |
-| Authorization checked in views instead of controllers | **Unsayable** | `permits?` is one predicate — the view asks it to offer the button, the door asks it to refuse. There is no second answer to get out of step |
+| Authorization checked in views instead of controllers | **Unsayable** | There is no predicate for a view to ask: `permits?` is private to the door. A page offers the action and places the refusal, or a query hands it a shape that already says what is offerable |
 | Loose strong params, mass assignment | **Guarded** | `NoInlineParamParse`, `NoUnparsedLookup`, `TypedArguments` |
 | Fat `params` juggling instead of form objects | **Guarded** | Parsed at the seam, typed at construction |
 | `before_action` chains that make flow untraceable | **Procedure** | [a filter chain](decomposing/a-filter-chain.md). Still uncovered by any cop — the branching is in `only:`/`except:`, which nothing here reads |

@@ -211,8 +211,8 @@ content — translated, edited, versioned — and belongs in a row, not in a con
 - **Guard:** `Shipshape/AnonymityIsClosedDownward`, over the operation kinds. Fails an
   `anonymous_call` that names a guarded operation — the escape hatch used to launder a write.
 - **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture.
-  `Permission#permissions` aggregates what an operation reaches and `permits?` demands all of
-  it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
+  `Permission#permissions` aggregates what an operation reaches and the door's private
+  `permits?` demands all of it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
   and the per-endpoint rows. A workflow's steps are read by the same code, so a step and an edge
   are one fact found one way. Exercised by `generated_base_classes_test.rb`.
 - **Guard's limit:** **`anonymous_call` is still a decision nothing second-guesses.** The
