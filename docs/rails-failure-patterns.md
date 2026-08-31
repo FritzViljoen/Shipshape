@@ -67,7 +67,8 @@ shape you cannot express is not a guard at all.
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
 | Enum as array, reordering silently remaps rows | **Procedure** | [an enum as an array](decomposing/an-enum-as-an-array.md). `no-nullable-columns` misses it: `0` is the first value *and* the empty integer, so the column need not be nullable to lose the distinction |
 | `find_each` ignored, `.all.each` loads the world | **Procedure** | [an unbounded read](decomposing/an-unbounded-read.md) |
-| Counter drift, `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |
+| Counter drift: manual counters fighting `counter_cache` | **Procedure** | [a stored derivation](decomposing/a-stored-derivation.md). A counter is a cache; it is sanctioned as a last resort, named `*_cache_record`, and only where its invalidation is written down |
+| `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |
 | Polymorphic associations with no FK integrity | **Procedure** | [a polymorphic association](decomposing/a-polymorphic-association.md) — no cop, because the defect is in what the schema cannot say |
 | UUID vs bigint decided late | **Uncovered** | — |
 | Money as float instead of cents | **Procedure** | [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md). No guard reads column types for meaning, and that stays true |
@@ -132,6 +133,11 @@ shape you cannot express is not a guard at all.
 Every row — stale keys, no expiry, Russian doll without `touch:`, user data under a shared key,
 stampede on expiry — is **Uncovered**. Nothing here reads a cache, and no static rule could.
 
+**One thing next door is covered.** A cache *in the database* — a saved query answer in its own
+table — is sanctioned as a last resort by [a stored derivation](decomposing/a-stored-derivation.md),
+under a name that makes it greppable and a gate that refuses it unless the invalidation is
+written down. That is not fragment caching and does not help with any row above it.
+
 The one structural contribution: reads are named `Query` classes, so a cache has an obvious
 place to live and one place to be invalidated from. That is a precondition, not a guard.
 
@@ -183,8 +189,8 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ## Roughly, the count
 
-Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 23 held by a procedure, and
-about 54 uncovered.**
+Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 24 held by a procedure, and
+about 53 uncovered.**
 
 **Those numbers moved because of this document.** It was written as a survey and turned into a
 work list: two gaps became cop clauses, eleven became procedures, and the counts above are a

@@ -25,7 +25,7 @@ events that already happened — `delivered` means a delivery row exists — and
 *stored* is careful work on a column that should be deleted, and it makes the wrong shape
 harder to remove by making it tidier.
 
-This procedure is for an enum that is a **recorded fact**, not a derived one:
+This procedure is for an enum that is a **recorded fact**:
 
 | A real enum | Why |
 |---|---|
@@ -33,9 +33,10 @@ This procedure is for an enum that is a **recorded fact**, not a derived one:
 | `unit` — grams or kilograms | a property of this row, not a summary of other rows |
 | `severity` — recorded when the entry was written | the same |
 
-**The test: can anything else in the database contradict this column?** If it can, the column
-is a cache and belongs to [a state machine](a-state-machine.md). If nothing can, because this
-column is the only record of the fact, it is an enum and this procedure applies.
+**Do not classify it by asking whether the data agrees with its source.** A snapshot disagrees
+with its source on purpose, and a denormalisation disagrees by drifting — identical evidence,
+opposite verdicts. [a stored derivation](a-stored-derivation.md) sorts the four cases by why
+the write happens, and it is the step before this one whenever the answer is not obvious.
 
 **Check:** for each enum you found, you can name the fact it records and say what would
 contradict it. "Nothing" is the answer that lets you continue.
