@@ -710,6 +710,38 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
+  # **Anonymity is closed downward, or it launders.** An anonymous operation runs unchecked, so
+  # a guarded one below it would run unchecked too — a login page reaching a command nobody was
+  # asked about. There is no caller to refuse, so it raises, at the boot-time catalogue walk.
+  # A door of its own: a leaky operation raises for every walk of its door, which is the guard
+  # working and would take the other graph tests with it.
+  class LeakyDoor < Command; end
+
+  class GraphedLeaky < LeakyDoor
+    def initialize(**); end
+
+    def anonymous_call
+      GeneratedBaseClassesTest::GraphedInner.call(actor: nil)
+    end
+  end
+
+  def test_an_anonymous_operation_may_not_reach_a_guarded_one
+    error = assert_raises(NotImplementedError) { GraphedLeaky.permissions }
+
+    assert_includes error.message, "is anonymous and reaches"
+    assert_includes error.message, GraphedInner.name
+  end
+
+  def test_the_catalogue_walk_is_where_that_is_met
+    assert_raises(NotImplementedError) { CallGraph.grantable(LeakyDoor) }
+  end
+
+  # Anonymous reaching anonymous is the shape the rule allows, and it demands nothing.
+  def test_an_anonymous_operation_may_reach_another_anonymous_one
+    assert_empty GraphedHelper.permissions
+    assert GraphedHelper.permits?(Anyone.new([GraphedHelper.permission]))
+  end
+
   def test_an_anonymous_operation_is_never_granted_and_never_aggregated
     refute_includes CallGraph.grantable(GraphedDoor), GraphedHelper.permission
     assert_includes CallGraph.unchecked(GraphedDoor), GraphedHelper.permission

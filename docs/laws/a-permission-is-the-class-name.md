@@ -155,6 +155,16 @@ source, found by `grep -rn "def anonymous_call"` — never a property of the cal
 nothing could see it. A query reachable from a controller implements `call` and is granted; one
 that is part of its caller's act implements `anonymous_call` and is not.
 
+**And anonymity is closed downward: an anonymous operation may not reach a guarded one.**
+Otherwise the declaration launders everything beneath it — a login page calling a guarded
+command would run that command for nobody, which is the loophole reopened one level down. An
+`anonymous_call` names anonymous operations or none at all, and reaching a guarded one raises
+rather than being reported, because there is no caller to refuse. `Permission.catalogue` walks
+every operation at boot, which is the cheap place to meet it.
+
+What an anonymous operation reaches still **aggregates upward** into a guarded caller, so
+nothing is lost by passing through one.
+
 ## The catalogue knows which permissions are real
 
 ```ruby
@@ -200,11 +210,10 @@ content — translated, edited, versioned — and belongs in a row, not in a con
   it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
   and the per-endpoint rows. A workflow's steps are read by the same code, so a step and an edge
   are one fact found one way. Exercised by `generated_base_classes_test.rb`.
-- **Guard's limit:** **an anonymous operation takes what it reaches out of the aggregate with
-  it.** That is the escape the model offers, and it is a real hole if used carelessly: a query
-  declared `anonymous_call` and then given something worth guarding is unguarded, and so is
-  everything below it. The audit is `grep -rn "def anonymous_call"`, and nothing counts them for
-  you.
+- **Guard's limit:** **`anonymous_call` is still a decision nothing second-guesses.** The
+  closure rule stops it laundering a guarded operation, but a read that genuinely should have
+  been granted, declared anonymous and reaching nothing, is unguarded and looks correct. The
+  audit is `grep -rn "def anonymous_call"`, and nothing counts them for you.
 
   `Calls` is **syntactic**. A class reached through a variable, `const_get` or `send` is not an
   edge, so an operation reaching one that way demands a permission neither the aggregate nor
