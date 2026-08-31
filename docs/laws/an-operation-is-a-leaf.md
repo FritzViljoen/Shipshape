@@ -49,12 +49,20 @@ it is not the guarantee — `Shipshape/NoEntryPointBypass` fails `send`, `__send
 `private_class_method`, and a subclass can redeclare a private method public. Each is worth
 having and none is the check. The check reads the call site.
 
-**Tests are exempt, and deliberately.** A test builds objects directly, reaches private
-methods and stubs what it needs — that is what a test is for, and refusing it would make this
-the first cop a team turns off. The advice still stands where it applies: what the door does
-*is* part of the behaviour, so a test that skips it passes while the operation is
-unauthorised. That is a judgement for the person writing the test, not a rule the build
-holds.
+**`OnlyTheDoorIsCalled` does not read the test trees**, so nothing here fails a test that
+constructs an operation directly.
+
+**That is a gap rather than a licence, and another law now closes most of it.**
+[`no-test-factories`](no-test-factories.md) says a test builds state by calling operations,
+because a factory can build a row the application cannot — and `Operation.new(...)` in a test
+is the same second construction with a different spelling. `Shipshape/NoTestFactories` reads
+the test trees and catches the factory libraries by name; a bare `new` is not on its list, and
+that is the residue.
+
+What the door does *is* part of the behaviour, so a test that skips it passes while the
+operation is unauthorised. The declared way to skip only the permission check is `test_call`,
+which raises outside the test environment; anything further is a judgement for the person
+writing the test.
 
 ## What to do with the thing you wanted to share
 

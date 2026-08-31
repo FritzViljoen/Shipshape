@@ -67,7 +67,7 @@ module RuboCop
         def on_send(node)
           return unless one_of?(record_kinds)
           return add_offense(node, message: default_scope_message) if node.method_name == :default_scope
-          return add_offense(node, message: delegate_message(node.method_name)) if DELEGATORS.include?(node.method_name)
+          return add_offense(node, message: delegate_message(node.method_name)) if public_delegate?(node)
           return unless node.method_name == :scope
           return unless reaches_another_class?(node)
 
@@ -100,6 +100,19 @@ module RuboCop
           )
         end
 
+        # `delegate ..., private: true` writes what a private `def` writes, and `on_def` exempts
+        # that — a private helper is still behaviour, but it is not reachable from everywhere a
+        # record is, which is the harm this law names. Flagging one and not the other made the
+        # rule depend on which spelling was used.
+        def public_delegate?(node)
+          return false unless DELEGATORS.include?(node.method_name)
+
+          options = node.arguments.last
+          return true unless options.respond_to?(:hash_type?) && options.hash_type?
+
+          options.pairs.none? { |pair| pair.key.value == :private && pair.value.true_type? }
+        end
+
         # `def name; supplier.name; end` is an offence here, and `delegate :name, to: :supplier`
         # writes the same method — so it was the one way left to put behaviour on a record.
         def delegate_message(name)
@@ -116,17 +129,20 @@ module RuboCop
           )
         end
 
+        # **The example is the thing that gets copied**, so it must not hand the reader the next
+        # defect: `Booking.new(supplier_name: ...)` is the flattening `a-shape-is-composed-not-flattened`
+        # names, and it is the planted violation in that cop's own canary.
         ASKED = <<~RUBY
           # the record maps rows and nothing else
           class BookingRecord < ApplicationRecord
             belongs_to :supplier_record
           end
 
-          # the query reads what it needs and says where each fact came from
+          # the query composes: a Booking holds a Supplier, and never copies its columns
           class ShowBooking < Query
             def call
               row = BookingRecord.find(@id)
-              success(Booking.new(reference: row.reference, supplier_name: row.supplier_record.name))
+              success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
             end
           end
         RUBY
@@ -149,16 +165,20 @@ module RuboCop
           )
         end
 
+        # The filter reads a row's absence rather than a column's NULL: `no-nullable-columns`
+        # refuses `cancelled_at` in the first place, so an example filtering on one would
+        # prescribe a schema this canon does not allow.
         FILTERED = <<~RUBY
           # the record maps rows, and says nothing about which of them anyone wants
           class BookingRecord < ApplicationRecord
             belongs_to :supplier_record
+            has_one :cancellation_record
           end
 
           # the filter is named, and it is read where it is used
           class ListLiveBookings < Query
             def call
-              success(BookingRecord.where(cancelled_at: nil).map { |row| Booking.from(row) })
+              success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
             end
           end
         RUBY

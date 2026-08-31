@@ -6,7 +6,6 @@ require "test_helper"
 #
 # - Making `declaration?` answer false reddens the `every` and `recurring` tests.
 # - Making `scheduler?` answer false reddens the Sidekiq and Clockwork tests.
-# - Removing `on_casgn` reddens the constant test.
 # - Loosening `CRON` to match any string reddens the not-a-cadence test, which is the shape
 #   that would fail correct code — a version number is five fields of digits and dots away.
 class NothingSchedulesWorkTest < Minitest::Test
@@ -54,27 +53,14 @@ class NothingSchedulesWorkTest < Minitest::Test
     assert_equal 1, check("Clockwork.every(1.day, 'settle')\n").length
   end
 
-  # The shape a codebase reaches for once the DSL is gone: the cadence moves to a constant and
-  # the scheduling happens somewhere the cop was not looking.
-  def test_a_cron_expression_in_a_constant_is_a_cadence
-    found = check(%(NIGHTLY = "0 3 * * *"\n))
-
-    assert_equal 1, found.length
-    assert_includes found.first.message, "`NIGHTLY` declares a cadence in code"
-  end
-
-  def test_a_slashed_cron_expression_is_matched
-    assert_equal 1, check(%(FREQUENT = "*/15 * * * *"\n)).length
-  end
-
-  # **A cop that fails correct code gets disabled.** A version, a path and a sentence are all
-  # strings in constants, and none of them is a schedule.
-  def test_a_string_that_is_not_a_cadence_is_left_alone
+  # **The constant clause was removed rather than narrowed.** `NIGHTLY = "0 3 * * *"` is the
+  # value the offence's own `instead:` hands to `CreateSchedule`, so following the fix earned
+  # the offence — and a guard that fails its own advice is one nobody keeps.
+  def test_a_cron_string_in_a_constant_is_not_an_offence
     assert_empty check(<<~RUBY)
-      VERSION = "1.2.3"
-      PATH = "app/models"
-      LABEL = "0 3 * * * is a cron expression"
-      DATE = "2026-08-31"
+      NIGHTLY = "0 3 * * *"
+      FREQUENT = "*/15 * * * *"
+      GRID = "1 2 3 4 5"
     RUBY
   end
 

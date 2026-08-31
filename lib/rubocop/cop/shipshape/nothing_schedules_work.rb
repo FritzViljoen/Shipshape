@@ -23,9 +23,13 @@ module RuboCop
       # removes the in-repository ways of saying it and cannot reach the others.
       #
       # It knows the scheduling libraries by name, so a wrapper of your own is not matched, and
-      # a cron expression assembled from parts is not matched. A string that merely looks like
-      # a cron expression, in a comment or a test fixture, is not read as one either — only an
-      # assignment to a constant is.
+      # a cron expression assembled from parts is not matched.
+      #
+      # **A cron string in a constant is not matched either, and that clause was removed rather
+      # than narrowed.** `NIGHTLY = "0 3 * * *"` is the exact value the remediation below hands
+      # to `CreateSchedule`, so following the fix earned the offence — and a guard that fails
+      # its own advice is one nobody keeps. A cadence stored as data is what this law asks for;
+      # the question of where the string lives is not one a cop can answer.
       #
       # @example
       #   # bad — a cadence in code: no actor, nothing to grant, nothing to audit
@@ -35,9 +39,6 @@ module RuboCop
       #
       #   # bad — the same thing, in a different library
       #   Sidekiq::Cron::Job.create(name: "settle", cron: "0 3 * * *", class: "SettleJob")
-      #
-      #   # bad — a cadence hidden in a constant
-      #   NIGHTLY = "0 3 * * *"
       #
       #   # good — a stored request: a route, a cadence, and the actor it runs as
       #   Scheduling::CreateSchedule.call(
@@ -53,24 +54,10 @@ module RuboCop
         DECLARATIONS = %i[every recurring].freeze
         SCHEDULERS = %w[Sidekiq::Cron::Job Sidekiq::Scheduler Resque::Scheduler Clockwork].freeze
 
-        # Five fields of cron, loosely: enough to catch `0 3 * * *` and `*/15 * * * *`, and
-        # not so loose that a date format or a path matches.
-        CRON = /\A[\d*\/,\-]+(?: +[\d*\/,\-]+){4}\z/.freeze
-
         def on_send(node)
           return unless declaration?(node) || scheduler?(node)
 
           add_offense(node, message: message_for(node.method_name))
-        end
-
-        # A cadence does not stop being one for sitting in a constant, and this is the shape a
-        # codebase reaches for once the DSL has been removed.
-        def on_casgn(node)
-          value = node.children[2]
-          return unless value&.str_type?
-          return unless CRON.match?(value.value)
-
-          add_offense(node, message: message_for(node.children[1]))
         end
 
         private

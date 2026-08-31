@@ -56,44 +56,38 @@ class Workflow
   # **Anonymous steps contribute nothing.** An anonymous operation is never granted — that
   # is what anonymous means — so aggregating its name would demand a grant nobody can hold
   # and make the whole workflow permanently forbidden.
-  def self.permissions
+  # **A workflow contributes no permission of its own**, which is the one place it differs
+  # from every other operation: granting `:SettleMonth` does nothing, because a workflow is
+  # only the acts it sequences. Its steps aggregate the same way anything else does.
+  def self.permissions(seen = [])
+    return [] if anonymous? || seen.include?(self)
+
+    onward = seen + [self]
     found = steps
     # **A workflow with no steps is not a workflow**, and answering `[]` here would be the
     # fail-open this model must never allow: `[].all?` is true, so it would run for an actor
     # holding no grants at all. That is also what a step hidden behind a private helper looks
     # like from here, which is why the shape is refused rather than tolerated.
-    raise NotImplementedError, "#{name}#call names no operations to run" if found.empty?
+    # An anonymous workflow is unchecked by declaration, so an empty list is its intent rather
+    # than the fail-open this raise exists to refuse.
+    raise NotImplementedError, "#{name}#call names no operations to run" if found.empty? && !anonymous?
 
-    found.reject(&:anonymous?).map(&:permission).uniq
+    found.flat_map { |step| step.permissions(onward) }.uniq
   end
 
-  # The operations `call` sends `call` or `call_later` to, read from its own syntax tree.
-  #
-  # **Memoised per class**, because the tree is parsed from the file on disk and a workflow is
-  # asked this on every invocation. `instance_variable_defined?` so a subclass does not
-  # inherit the answer computed for its parent.
-  # The operations `call` names, read from its own syntax tree by `Calls` — which the call
-  # graph reads with too, so a step and an edge are the same fact found the same way.
-  #
-  # **Memoised per class**, because the tree is parsed from the file on disk and a workflow is
-  # asked this on every invocation. `instance_variable_defined?` so a subclass does not inherit
-  # the answer computed for its parent.
+  # The operations `call` names, read by `Calls` — the same reader the call graph uses, so a
+  # step and an edge are one fact found one way. Memoised per class: the tree is parsed from the
+  # file on disk, and a workflow is asked this on every invocation.
   def self.steps
     return @steps if instance_variable_defined?(:@steps)
 
     @steps = Calls.in(self, anonymous? ? :anonymous_call : :call)
   end
 
-  # **One predicate, asked twice.** A view asks it to decide whether to offer the button;
-  # `call` asks it to refuse. Overriding the inherited singular check matters: that one
-  # asks for this workflow's OWN name, which is never granted, so a view using it would
-  # hide the button from everybody.
-  def self.permits?(actor)
-    return true if anonymous?
-    raise ArgumentError, "#{name} requires an actor" if actor.nil?
-
-    permissions.all? { |permission| actor.may?(permission) }
-  end
+  # `permits?` is inherited and needs no override: every operation demands what it reaches,
+  # and a workflow's steps are that same aggregation. **One predicate, asked twice** — a view
+  # asks it to decide whether to offer the button, `call` asks it to refuse, and there is no
+  # second answer to get out of step with the first.
 
 <%- end -%>
 <%- if auth -%>

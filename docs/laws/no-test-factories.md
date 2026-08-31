@@ -80,8 +80,13 @@ factoried. If nothing in the application creates a thing, a test may load it dir
   supplies the rest: a state nothing can explain is the least visible thing a suite contains.
 - **Guard:** `Shipshape/NoTestFactories`, over the test trees. Fails `create`/`build`/
   `build_stubbed`/`attributes_for` on a symbol, `FactoryBot`/`FactoryGirl`/`Fabricate` by name,
-  and Rails fixtures — `fixtures :all` and the accessors it generates.
-- **Guard's limit:** **it reads how state is built, never whether the state is right.** A test
+  and the `fixtures` and `set_fixture_class` declarations.
+- **Guard's limit:** **the fixture accessors are not matched.** `fixtures :all` is caught and
+  `bookings(:one)` is not — it is an ordinary method call on an implicit receiver, and matching
+  it would flag every helper a suite defines. A suite that deletes the declaration and keeps
+  every accessor reads green while nothing changed.
+
+  **It reads how state is built, never whether the state is right.** A test
   that calls the correct operations to reach a state nobody wants passes; so does one that
   reaches a legal state and asserts nothing about it.
 

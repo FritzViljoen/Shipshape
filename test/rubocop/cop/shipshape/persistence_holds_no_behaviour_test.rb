@@ -8,7 +8,8 @@ require "test_helper"
 # - Making `on_defs` return early reddens the class-method test.
 # - Making `reaches_another_class?` answer true reddens the filtering-scope test, which is
 #   the shape the law explicitly allows.
-# - Dropping the `DELEGATORS` branch reddens both `delegate` tests.
+# - Dropping the `DELEGATORS` branch reddens the two public `delegate` tests.
+# - Making `public_delegate?` answer true reddens the private-delegate test.
 # - Dropping the `default_scope` branch reddens three of the four `default_scope` tests.
 #   The fourth asserts silence outside the record tree, so it stays green — which is what
 #   makes it the false-positive guard rather than a fourth copy of the same assertion.
@@ -43,6 +44,17 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "`delegate` puts public methods on a record"
+  end
+
+  # **Judged on visibility, the way a `def` already is.** `on_def` exempts a private method
+  # because it is not reachable from everywhere a record is; flagging the macro spelling and
+  # not the handwritten one made the rule depend on which was used.
+  def test_a_private_delegate_is_exempt_like_a_private_def
+    assert_empty check(<<~RUBY)
+      class BookingRecord < ApplicationRecord
+        delegate :name, to: :supplier_record, private: true
+      end
+    RUBY
   end
 
   # The same surface with no list at all, so it cannot even be read off the declaration.

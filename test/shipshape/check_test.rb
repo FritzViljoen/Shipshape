@@ -120,20 +120,35 @@ class CheckTest < Minitest::Test
   # has to reach both trees or the comparison is between two different rulebooks.
   def test_an_explicit_config_is_used_for_both_trees
     in_repo(baseline: DIRTY_QUERY) do |root|
-      write(root, "tools/shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
+      write(root, ".rubocop-shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
       # The repository's own config is removed, so anything found came from the given one.
       FileUtils.rm(File.join(root, ".rubocop.yml"))
 
-      report = Shipshape::Check.new(root: root, trunk: "trunk", config: "tools/shipshape.yml").call
+      report = Shipshape::Check.new(root: root, trunk: "trunk", config: ".rubocop-shipshape.yml").call
 
       assert_equal 1, report[:head]["Shipshape/CallGraph"], "head did not use the given config"
       assert_equal 1, report[:base]["Shipshape/CallGraph"], "the base tree did not use the given config"
     end
   end
 
-  # **A config outside the repository cannot work and must not half-work.** RuboCop resolves a
-  # config's globs against its own directory, so an out-of-tree file leaves every kind-scoped
-  # cop silent while the Style cops still fire — a clean run that inspected nothing.
+  # **A config in a subdirectory is the dangerous half-working case.** RuboCop resolves a
+  # config's globs against its own directory when the basename starts with `.rubocop`, so
+  # `tools/.rubocop.yml` leaves every kind-scoped cop silent while the Style cops still fire —
+  # and `check` prints "nothing rose" over a run that inspected nothing.
+  def test_a_config_in_a_subdirectory_is_refused
+    in_repo do |root|
+      write(root, "tools/.rubocop.yml", format(RUBOCOP_YML, gem: gem_root))
+
+      error = assert_raises(Shipshape::Error) do
+        Shipshape::Check.new(root: root, trunk: "trunk", config: "tools/.rubocop.yml").call
+      end
+
+      assert_includes error.message, "not in a subdirectory"
+    end
+  end
+
+  # **A config outside the repository cannot work and must not half-work.** Same cause, one
+  # step further out: nothing in the base tree would resolve against a tree root at all.
   def test_a_config_outside_the_repository_is_refused
     in_repo do |root|
       outside = File.join(Dir.mktmpdir("shipshape-outside"), ".rubocop.yml")

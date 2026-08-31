@@ -681,8 +681,11 @@ Shipshape/OnlyTheDoorIsCalled:
     - command
     - io_command
     - legacy_command
-  # Tests are exempt: a test builds objects directly and reaches inside, which is what a
-  # test is for. The generated base classes are where the legitimate construction lives.
+  # The test trees are excluded here and read by `Shipshape/NoTestFactories` instead, which
+  # holds `no-test-factories`: a test builds state by calling operations, and `test_call` is
+  # the declared way to skip only the permission check. A bare `Operation.new(...)` in a test
+  # is caught by neither, and that residue is stated in `an-operation-is-a-leaf`.
+  # The generated base classes are where the legitimate construction lives.
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
@@ -887,8 +890,10 @@ Shipshape/NoTestFactories:
   Include:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
-    - '*/test/**/*.rb'
-    - '*/spec/**/*.rb'
+    # `*` does not cross a `/` under `File::FNM_PATHNAME`, so a single level reached
+    # `engines/test/` — a layout nobody uses — and left `engines/billing/test/` uninspected.
+    - '**/test/**/*.rb'
+    - '**/spec/**/*.rb'
 
 Shipshape/NothingSchedulesWork:
   Description: >-

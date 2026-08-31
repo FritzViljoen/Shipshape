@@ -123,89 +123,62 @@ A checked-in list of permissions would be a copy of a fact the classes already s
 copy is the one that rots. Data holds what code cannot derive: the label, the description,
 who has been granted it.
 
-## A command does not aggregate, and the graph says which permissions are real
+## Every operation aggregates what it reaches
 
-A command calls queries to do its work. **It does not aggregate their permissions**, and the
-distinction is the one this law rests on: a workflow is the multi-permission thing, and if a
-command aggregated too, the difference between them would be only that one spans transactions.
-`one-operation-one-class` sizes a command so it can be permitted or refused **whole**; a
-command that demanded a grant per internal read would make an internal refactor a production
-authorisation change, which is how a permission model dies.
+A command calls queries to do its work, and **it demands their permissions as well as its own**.
+The actor performing the act must be allowed the reads it performs.
 
-**So the command's door is the check, and a query reached from inside it is not re-checked.**
-The cost is stated rather than hidden: a command *can* launder a read, returning something
-derived from data the actor could not have queried directly. That is a defect in the command —
-by this law's own sizing rule, one that reads salaries and cancels bookings is two operations —
-and aggregation would mask it while charging every well-behaved command for it.
+**Without that, a command launders.** It returns something derived from data the actor could
+never have queried, and the door they came through never mentions it. Checking only the outer
+name closes the front gate and leaves the side one open — which is the loophole this closes.
 
-The consequence for the catalogue is that not every permission is grantable. An operation
-reached only from inside another is never asked for a grant, so offering it on a screen is a
-switch that does nothing. `CallGraph` reads the operations **and the routes** at boot:
+It is also what the doors already did. Each operation checks on its own way in, so an inner
+query refused mid-command raised *there* — a 500 rather than a refusal, after the outer check
+had passed. Aggregating moves that failure to the door, where refusing is free.
+
+**One aggregation, not two.** A workflow's steps were already read this way; the same rule now
+holds every operation, and `Workflow` keeps only the part that is genuinely its own — that its
+own name is never consulted, because a workflow is only the acts it sequences.
+
+The cost is real and was weighed: a command that gains an internal read gains a permission, so
+an internal refactor can become an authorisation change. `CallGraph.routes` is what makes that
+survivable — the grants each endpoint demands are derived, not remembered.
+
+## A read that needs no grant says so, by being anonymous
+
+The escape is the one already in the model. **A query that exists only to serve the commands
+calling it implements `anonymous_call` instead of `call`** — the same declaration a login uses.
+It is then never granted and never aggregated into its caller.
+
+That keeps the choice explicit and auditable: it is a property of the class, visible in the
+source, found by `grep -rn "def anonymous_call"` — never a property of the call site, where
+nothing could see it. A query reachable from a controller implements `call` and is granted; one
+that is part of its caller's act implements `anonymous_call` and is not.
+
+## The catalogue knows which permissions are real
 
 ```ruby
-Shipshape::CallGraph.grantable(Command, Query)   # => [:CancelBooking]
-Shipshape::CallGraph.internal(Command, Query)    # => [:FindBooking]
+CallGraph.grantable(Command, Query)   # => [:CancelBooking, :FindBooking]
+CallGraph.unchecked(Command, Query)   # => [:LoadTenant]
 
-Shipshape::CallGraph.routes
+CallGraph.routes
 # => [{ verb: "POST", path: "/bookings/:id/cancel",
-#       endpoint: "BookingsController#cancel", permissions: [:CancelBooking] }]
+#       endpoint: "BookingsController#cancel", permissions: [:CancelBooking, :FindBooking] }]
 ```
 
-**Per endpoint is the question actually being asked.** An actor does not hold a permission in
-the abstract; they hold it in order to reach something. Reading the routes is also what makes
-`internal` correct: a query called from an action *and* from inside a command is grantable, and
-on the operations alone it read as internal — a screen would not have offered it while an
-endpoint demanded it the whole time.
+Nothing is left off `grantable` for being reached from inside another operation: aggregation
+means the actor holds it either way, and a screen that hid it would produce a refusal nobody
+could explain. **Per endpoint is the question actually being asked** — an actor does not hold a
+permission in the abstract, they hold it in order to reach something.
 
 **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
 content — translated, edited, versioned — and belongs in a row, not in a constant.
 
-Introspection is also what lets a caller ask before it acts — hiding a button the actor
-cannot use, rather than offering it and refusing afterwards.
-
-## Renaming an operation is a data migration, and that is the honest price
-
-`SettleInvoice` → `SettleBooking` changes the act's name, so every stored grant of
-`:settle_invoice` becomes `:settle_booking`, in a migration written and reviewed like any
-other.
-
-This is not a cost deriving introduced. It is the cost a separate constant **hides**: with a
-constant, the rename looks free while the code and the granted permission quietly drift into
-naming two different things. Pay it where it can be seen.
-
-**A human-readable name is data, not a second constant.** "Settle an invoice", its
-description, who it is offered to — those are columns on the permission row, edited by
-whoever administers permissions, translated per locale, changed without a deploy. Putting a
-display name in code would be the second name this law exists to refuse, wearing a different
-hat.
-
-## Where the check runs
-
-In the base class, in `self.call`, before the work — never in each operation's `call`, where
-it would be a line every operation has to remember and one operation will forget.
-
-This is not a hidden callback. It is three visible statements in one method in one file that
-every operation inherits, and the reader meets all of them at once. The transaction sits
-there for the same reason, and shipshape's own `Command` template says why: a law held by the
-base class is true by construction rather than by convention.
-
-```ruby
-class Command
-  extend Permission
-
-  def self.call(actor:, **arguments)
-    return Result.failure(:forbidden) unless actor.may?(permission)
-
-    result = ActiveRecord::Base.transaction { new(actor: actor, **arguments).call }
-    ...
-```
-
-A command answers a `Result`, so refusal is a value. **A query has no envelope** — finding
-nothing is an answer, not a failure — so a refused query raises `Permission::Refused`, like
-every other query failure. Wrapping it would make every caller unwrap a value that was never
-in doubt.
-
 - **Agreed:** Fritz, 2026-08-29 — asked how auth is handled for reads and writes, then chose the class name as the permission over a mapping.
+- **Agreed:** Fritz, 2026-08-31 — "commands must aggregate there permissions just like
+  workflows. It's a loop hole we need to close", overruling a recommendation that the command's
+  door alone was the check; and "Queries should use the same anonymous_call pattern", which is
+  how a read declares it needs no grant of its own.
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
 - **Guard:** the generated `permission.rb` — architecture. The permission IS `name.to_sym`,
@@ -222,18 +195,25 @@ in doubt.
   That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.
-- **Guard:** the generated `call_graph.rb` and `calls.rb` — architecture. `Calls` reads a
-  method's syntax tree for the operations it names, and `CallGraph` turns that into edges,
-  `grantable` and `internal`. A workflow's steps are read with the same code, so a step and an
-  edge are one fact found one way. Exercised by `generated_base_classes_test.rb`.
-- **Guard's limit:** `Calls` is **syntactic**. A class reached through a variable, `const_get`
-  or `send` is not an edge, so an endpoint reaching an operation that way demands a permission
-  this cannot see — and the row it prints is a floor, not a ceiling. An action whose work is in
-  a `before_action` is invisible for the same reason the fat-controller procedure names.
+- **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture.
+  `Permission#permissions` aggregates what an operation reaches and `permits?` demands all of
+  it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
+  and the per-endpoint rows. A workflow's steps are read by the same code, so a step and an edge
+  are one fact found one way. Exercised by `generated_base_classes_test.rb`.
+- **Guard's limit:** **an anonymous operation takes what it reaches out of the aggregate with
+  it.** That is the escape the model offers, and it is a real hole if used carelessly: a query
+  declared `anonymous_call` and then given something worth guarding is unguarded, and so is
+  everything below it. The audit is `grep -rn "def anonymous_call"`, and nothing counts them for
+  you.
+
+  `Calls` is **syntactic**. A class reached through a variable, `const_get` or `send` is not an
+  edge, so an operation reaching one that way demands a permission neither the aggregate nor
+  the endpoint row can see — a floor, not a ceiling. An action whose work is in a
+  `before_action` is invisible for the same reason the fat-controller procedure names.
 
   `routes` answers nothing where there is no `Rails.application` to ask, which is a fact about
-  the process rather than about the application. A route whose controller cannot be loaded is
-  skipped rather than raised on, so a broken route is silence here.
+  the process rather than the application. A route whose controller cannot be loaded is skipped
+  rather than raised on, so a broken route is silence here.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real
   one, and nothing checks that request handling passes the requester rather than a system
   actor. It cannot see an operation invoked with `new(...).call` directly, going around

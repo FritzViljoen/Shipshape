@@ -680,21 +680,40 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_empty CallGraph.edges(GraphedDoor).fetch(GraphedInner.name)
   end
 
-  # The operation an actor arrives at. Nothing else calls it, so this is where a grant is asked
-  # for and where a screen should offer one.
-  def test_an_operation_nothing_calls_is_grantable
-    assert_equal [GraphedOuter.permission], CallGraph.grantable(GraphedDoor)
+  # **An operation demands what it reaches**, so being called from inside another does not
+  # excuse the actor from holding it — and a screen that hid it would produce a refusal nobody
+  # could explain.
+  def test_everything_an_actor_can_be_asked_for_is_grantable
+    grantable = CallGraph.grantable(GraphedDoor)
+
+    assert_includes grantable, GraphedOuter.permission
+    assert_includes grantable, GraphedInner.permission, "reached from inside, and still held by the actor"
   end
 
-  # Reached from inside another operation, so the command's door was already the check.
-  def test_an_operation_reached_from_another_needs_no_grant
-    assert_equal [GraphedInner.permission], CallGraph.internal(GraphedDoor)
+  # **The declared way for a read to need no grant of its own.** A query that only serves the
+  # commands calling it implements `anonymous_call`, and is then never granted and never
+  # aggregated into its caller.
+  class GraphedHelper < GraphedDoor
+    def initialize(**); end
+
+    def anonymous_call
+      success(:helped)
+    end
   end
 
-  # A permission is never granted for an anonymous operation, so it belongs on neither list.
-  def test_an_anonymous_operation_is_on_neither_list
-    refute_includes CallGraph.grantable(Command), LogIn.permission
-    refute_includes CallGraph.internal(Command), LogIn.permission
+  class GraphedUsesHelper < GraphedDoor
+    def initialize(**); end
+
+    def call
+      GeneratedBaseClassesTest::GraphedHelper.call
+      success(:used)
+    end
+  end
+
+  def test_an_anonymous_operation_is_never_granted_and_never_aggregated
+    refute_includes CallGraph.grantable(GraphedDoor), GraphedHelper.permission
+    assert_includes CallGraph.unchecked(GraphedDoor), GraphedHelper.permission
+    assert_equal [GraphedUsesHelper.permission], GraphedUsesHelper.permissions
   end
 
   # A controller is not a kind this suite installs, so it is a plain class — which is all
@@ -752,6 +771,39 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_includes reached, GraphedInner.permission
     assert_includes CallGraph.edges(GraphedDoor).fetch(GraphedOuter.name),
                     GraphedInner.name
+  end
+
+  # **The loophole aggregation closes.** Checking only the outer name lets a command return
+  # something derived from data the actor could never have queried, and the door they came
+  # through never mentions it.
+  def test_a_command_demands_what_it_reaches
+    assert_equal [GraphedInner.permission, GraphedOuter.permission].sort,
+                 GraphedOuter.permissions.sort
+    refute GraphedOuter.permits?(Anyone.new([GraphedInner.permission])),
+           "the outer name alone must not admit an actor refused the inner read"
+  end
+
+  # Two operations reaching each other must not recurse until the stack ends: a stack overflow
+  # at boot is a worse way to learn about a cycle than the graph is.
+  class GraphedLeft < GraphedDoor
+    def initialize(**); end
+
+    def call
+      GeneratedBaseClassesTest::GraphedRight.call(actor: actor)
+    end
+  end
+
+  class GraphedRight < GraphedDoor
+    def initialize(**); end
+
+    def call
+      GeneratedBaseClassesTest::GraphedLeft.call(actor: actor)
+    end
+  end
+
+  def test_a_cycle_terminates
+    assert_equal [GraphedLeft.permission, GraphedRight.permission].sort,
+                 GraphedLeft.permissions.sort
   end
 
   # No Rails in this process, so it says nothing rather than guessing — a fact about the

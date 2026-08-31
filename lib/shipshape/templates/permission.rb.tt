@@ -84,14 +84,58 @@ module Permission
       private_instance_methods(false).include?(:anonymous_call)
   end
 
+  # **An operation demands its own permission and every permission it reaches.**
+  #
+  # A command that calls a query is one act, and the actor performing it must be allowed the
+  # reads it performs. Without that, a command launders: it returns something derived from
+  # data the actor could never have queried, and the door they came through never mentioned
+  # it. Checking only the outer name closes the front gate and leaves the side one open.
+  #
+  # It is also what the doors already did. Each operation checks on its own way in, so an
+  # inner query refused mid-command raised there instead — a 500 rather than a refusal, after
+  # the outer check had passed. Aggregating moves that failure to the door, where refusing is
+  # free.
+  #
+  # Read from `call` by `Calls`, so it cannot disagree with what the operation does. **One
+  # aggregation, not two**: a workflow's steps are this same rule, not a second kind of it.
+  #
+  # `seen` breaks a cycle. Two operations that reach each other would otherwise recurse until
+  # the stack ends, and a stack overflow at boot is a worse way to learn about a cycle than
+  # the call graph is.
+  def permissions(seen = [])
+    return aggregate(seen) unless seen.empty?
+
+    @permissions ||= aggregate([])
+  end
+
+  # **An anonymous operation demands nothing, and nothing it reaches is demanded either.**
+  # It is never granted — that is what anonymous means — so aggregating its name would make
+  # every caller permanently forbidden. The declaration is the decision, and it is deliberately
+  # narrow: `anonymous_call` is a property of the class, greppable, and it takes what it calls
+  # with it. That is the stated hole in this aggregation, and the audit is
+  # `grep -rn "def anonymous_call"`.
+  def aggregate(seen)
+    return [] if anonymous? || seen.include?(self)
+
+    onward = seen + [self]
+
+    ([permission] + reaches.flat_map { |operation| operation.permissions(onward) }).uniq
+  end
+
+  # The operations this one names in the method it actually runs.
+  def reaches
+    Calls.in(self, anonymous? ? :anonymous_call : :call)
+  end
+
   # Absence of an actor is a caller's defect, never a quiet pass. A nil actor reaching
   # `may?` would raise somewhere less obvious, and a nil actor taken to mean "public" would
   # be the fail-open this module exists to prevent.
   def permits?(actor)
-    return true if anonymous?
+    demanded = permissions
+    return true if demanded.empty?
     raise ArgumentError, "#{name} requires an actor" if actor.nil?
 
-    actor.may?(permission)
+    demanded.all? { |granted| actor.may?(granted) }
   end
 
   # Raised where an operation answers no envelope — a query says what it found or raises,

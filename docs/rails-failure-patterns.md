@@ -11,8 +11,8 @@ The short answer: **it holds roughly half, and the half it holds is one half on 
 ## The dividing line is shape against runtime
 
 **shipshape governs where code lives and what form it takes.** It reads files. It can tell you
-that a rule is in a controller, that a record has a method, that a column admits a NULL, that a
-module adds public surface. It cannot tell you that a page issued 400 queries, that a cache key
+that a rule is in a controller, that a record has a method, that a migration adds a nullable
+column, that a module adds public surface. It cannot tell you that a page issued 400 queries, that a cache key
 never expired, or that the connection pool is smaller than the thread count. Those are facts
 about a running system, and a system that is running is the only thing that can report them.
 
@@ -50,7 +50,7 @@ shape you cannot express is not a guard at all.
 
 | Failure | Verdict | How |
 |---|---|---|
-| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/NoNullableColumns` — every column, no exceptions list that grows |
+| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/NoNullableColumns`, over `db/migrate/**` — **the migrations, not the live schema**, and with an exemption for the `*_from_*` renames. A column that was nullable before this gem arrived is not caught; a new one is |
 | `where.not` with NULLs behaving unexpectedly | **Unsayable** | There are no NULLs to behave unexpectedly |
 | Soft deletes without scoping every query | **Unsayable** | `deleted_at` is a nullable column and fails the build; [a nullable column](decomposing/a-nullable-column.md) models it as a row |
 | Callbacks with side effects inside transactions | **Unsayable** | `no-lifecycle-callbacks` — there is no callback |
@@ -109,7 +109,7 @@ shape you cannot express is not a guard at all.
 
 | Failure | Verdict | How |
 |---|---|---|
-| Helper methods that query the database | **Guarded** | `CallGraph` — the view kind has no edge to a record |
+| Helper methods that query the database | **Partly guarded** | `CallGraph` gives the view kind no edge to a record. **`app/helpers` resolves to no kind at all** — the layout has no helper kind, deliberately, because helpers dissolve — so a helper is inspected by nothing until its code moves |
 | Turbo streams broadcasting from models | **Guarded** | `PersistenceHoldsNoBehaviour`, `NoDistantWrites`, `NoCallbacks` |
 | Work that happens because something was saved | **Guarded** + **Procedure** | `NoCallbacks`; [a callback web](decomposing/a-callback-web.md). A consequence becomes a named step in a workflow — there is no "also", and a trigger table is a callback with a table in front of it |
 | Logic in ERB templates | **Guarded** + **Procedure** | A view component holds shapes and nothing else; [a form that fails](decomposing/a-form-that-fails.md) |
@@ -147,7 +147,7 @@ place to live and one place to be invalidated from. That is a precondition, not 
 | Failure | Verdict | How |
 |---|---|---|
 | Adding a column with a default, table lock | **Unsayable** | No column carries a default |
-| Everything else — concurrent indexes, renames under old code, data migrations in schema migrations, no rollback, schema drift, migrate-and-deploy together | **Uncovered** | `strong_migrations` is the tool. This is a real and deliberate hole: shipshape reads `db/schema.rb` for what it admits, never migrations for how they run |
+| Everything else — concurrent indexes, renames under old code, data migrations in schema migrations, no rollback, schema drift, migrate-and-deploy together | **Uncovered** | `strong_migrations` is the tool. shipshape reads migrations for **what they declare** — a nullable column, a default — and never for how they run |
 
 ## Testing
 
@@ -155,7 +155,7 @@ place to live and one place to be invalidated from. That is a precondition, not 
 |---|---|---|
 | Testing implementation instead of behaviour | **Procedure** | [characterise the edges](decomposing/characterise-the-edges.md) — the black-box step before every other step |
 | No system tests for critical paths | **Procedure** | `shipshape edges` lists the edges no test names |
-| Time-dependent tests without `travel_to` | **Guarded** | `NoAmbientReads` — the clock is an argument, so there is no ambient time to freeze |
+| Time-dependent tests without `travel_to` | **Unsayable in the operation, uncovered in the test** | `NoAmbientReads` makes the clock an argument, so an operation has no ambient time to freeze. The cop is kind-scoped and no test path resolves to a kind, so nothing reads the test itself |
 | Tests coupled to fixtures and factories with implicit global state | **Guarded** + **Procedure** | `Shipshape/NoTestFactories` and [`no-test-factories`](laws/no-test-factories.md); [a factory graph](decomposing/a-factory-graph.md). A test builds state by calling operations, because a factory can build a row the application cannot |
 | Factories that build entire object graphs, slow suite | **Procedure** | [a factory graph](decomposing/a-factory-graph.md) |
 | Over-mocking, `sleep`, no transactional cleanup | **Uncovered** | Suite hygiene the canon does not reach |
@@ -190,35 +190,22 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ---
 
-## Roughly, the count
+## Counting it
 
-Of about 120 rows: **15 unsayable, 29 guarded or partly guarded, 27 held by a procedure, and
-about 49 uncovered.**
+Count the verdict column yourself — every row carries one, and a number written here would be a
+copy of a fact this document already holds. It drifted once already, within a day of being
+written, which is the whole argument:
 
-**The canon governs `test/` as well as `app/`**, which was itself an open question until it was
-decided. The reason it is not optional: an unrunnable suite disables every guard in this
-document at once, and factories are how a suite gets slow enough to stop being run.
+```sh
+grep '^|' docs/rails-failure-patterns.md \
+  | grep -oE '\*\*(Unsayable|Guarded|Partly guarded|Procedure|Partly procedure|Uncovered)\*\*' \
+  | sort | uniq -c | sort -rn
+```
 
-**Those numbers moved because of this document.** It was written as a survey and turned into a
-work list: two gaps became cop clauses, eleven became procedures, and the counts above are a
-later reading, not the first. That is the use of writing coverage down — the first count was
-26 uncovered rows worse, and none of them were unknown, only unwritten.
-
-**Three of those procedures cover failures this document calls runtime**, which looks like a
-contradiction and is not. A file reader cannot know a table is large — but it can list the
-foreign keys with no index, and the judgement of which ones matter is what a procedure is for.
-The line between shape and runtime is about what a *guard* may claim, not about what the
-playbook may take apart.
-
-**One row moved the other way.** IDOR was recorded as *partly guarded* on the strength of the
-permission check, and writing the procedure showed that reading to be wrong: a permission is a
-class name, so it authorises the *operation* and says nothing about the *row*. It is a
-procedure now, and the survey is more honest for the demotion.
-
-**The 70 is the honest headline and it is not an apology.** Around forty of them are runtime,
-volume, or infrastructure questions that a file reader cannot answer and should not claim. What
-matters is that they are written down: a green `shipshape check` now means something specific,
-and the specific thing it means is not "this application is well".
+**What is uncovered is not an apology.** Most of it is runtime, volume or infrastructure —
+questions a file reader cannot answer and should not claim. What matters is that those rows are
+written down, so a green `shipshape check` means something specific, and the specific thing it
+means is not "this application is well".
 
 ## What this exercise found
 

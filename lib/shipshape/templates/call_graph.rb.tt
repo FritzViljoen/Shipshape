@@ -1,36 +1,37 @@
 # frozen_string_literal: true
 
-# **Which operations exist, and which of them call which — read at boot, from the code.**
+# **Which operations exist, which of them call which, and what each endpoint demands.**
 #
-# The permission model is class-sized: a permission *is* the class name, and a command's door
-# is where the actor is checked. An operation reached only from inside another operation is
-# therefore never asked for a grant, and listing it on a permissions screen offers an
-# administrator a switch that does nothing.
+# An operation demands its own permission and every permission it reaches, so a command that
+# calls a query demands that query too. This reads the same source the base classes read, at
+# boot, and answers the questions a permissions screen asks.
 #
-# This is what tells the two apart. `grantable` is what a screen should offer; `internal` is
-# what it should not.
+#   CallGraph.edges(Command, Query)
+#   # => { "CancelBooking" => ["FindBooking"], "FindBooking" => [] }
 #
-#   Shipshape::CallGraph.edges
-#   # => { "CancelBooking" => ["FindBooking", "NotifyCustomer"], "FindBooking" => [] }
+#   CallGraph.grantable(Command, Query)   # => [:CancelBooking, :FindBooking]
+#   CallGraph.unchecked(Command, Query)   # => [:LoadTenant]
 #
-#   Shipshape::CallGraph.grantable   # => [:CancelBooking]
-#   Shipshape::CallGraph.internal    # => [:FindBooking, :NotifyCustomer]
+# **`grantable` is every permission an actor can be asked for.** Nothing is left off for being
+# reached from inside another operation: aggregation means the actor holds it either way, and a
+# screen that hid it would produce a refusal nobody could explain.
 #
-# **The keys are class names, and nothing here holds a label.** A permission is its class name
-# and a screen wants "Cancel a booking", so the label belongs in a row keyed by the name —
-# translated, edited and versioned like any other content, without a deploy.
+# **`unchecked` is the operations that declared they need none.** A query used only to serve the
+# commands that call it implements `anonymous_call` instead of `call` — the same declaration a
+# login uses — and then it is never granted and never aggregated. That is how a read says "I am
+# part of my caller's act", and it is a property of the class rather than of the call site, so
+# `grep -rn "def anonymous_call"` is the audit.
 #
-# **The routes are read too, so the answer is per endpoint.** An actor does not hold a
-# permission in the abstract; they hold it in order to reach something, and that is the question
-# an administrator is really asking:
+# **Per endpoint is the question actually being asked**, because an actor does not hold a
+# permission in the abstract; they hold it in order to reach something:
 #
-#   Shipshape::CallGraph.routes
+#   CallGraph.routes
 #   # => [{ verb: "POST", path: "/bookings/:id/cancel",
-#   #       endpoint: "BookingsController#cancel", permissions: [:CancelBooking] }]
+#   #       endpoint: "BookingsController#cancel", permissions: [:CancelBooking, :FindBooking] }]
 #
-# **A workflow expands into its steps**, because that is what it demands before its first step
-# runs. And a query an action calls is grantable even though a command calls it too, which is
-# the whole reason the routes are read rather than the operations alone.
+# **The keys are class names, and nothing here holds a label.** A screen wants "Cancel a
+# booking", and that is content — translated, edited, versioned — so it belongs in a row keyed
+# by the name rather than in a constant.
 class CallGraph
   FORMAT = /\(\.:format\)\z/.freeze
 
@@ -42,14 +43,10 @@ class CallGraph
       end
     end
 
-    # Every permission an actor can be asked for: what a route reaches, plus operations nothing
-    # else calls — a job's entry point has no route and is still where an actor arrives.
-    # Anonymous operations are left out, because they are never granted.
+    # Every permission an actor can be asked for. An operation aggregates what it reaches, so
+    # reaching one from inside another does not excuse the actor from holding it.
     def grantable(*doors)
-      reached = internal_names(*doors)
-      roots = operations(*doors).reject { |operation| reached.include?(operation.name) }
-
-      (permissions_of(roots) + routed_permissions).uniq.sort
+      permissions_of(operations(*doors)).uniq.sort
     end
 
     # **What each endpoint demands.** Empty when there is no Rails to ask, which is a fact about
@@ -60,22 +57,14 @@ class CallGraph
       application.routes.routes.filter_map { |route| endpoint(route) }
     end
 
-    # Reached from another operation and from no endpoint, so under a class-sized permission
-    # model no actor needs to hold these: the command's door was the check, and the work inside
-    # it is how that one act is done. **A query an action also calls is not on this list**, which
-    # is the whole reason the routes are read.
-    def internal(*doors)
-      reached = internal_names(*doors)
-      inner = operations(*doors).select { |operation| reached.include?(operation.name) }
-
-      (permissions_of(inner) - routed_permissions).uniq.sort
+    # Declared to need no grant, by implementing `anonymous_call` rather than `call`. These are
+    # never granted and never aggregated into a caller, so a screen must not offer them — not
+    # because they are unreachable, but because holding one would mean nothing.
+    def unchecked(*doors)
+      operations(*doors).select(&:anonymous?).map(&:permission).uniq.sort
     end
 
     private
-
-    def routed_permissions
-      routes.flat_map { |row| row[:permissions] }.uniq
-    end
 
     # A route names its controller and action as strings. The controller may not be loadable,
     # and an action may be inherited or handled by something that is not a class here.
@@ -95,32 +84,33 @@ class CallGraph
       name = route.defaults[:controller]
       return nil unless name
 
-      found = Object.const_get("#{name}_controller".split("/").map { |part| camelize(part) }.join("::"))
+      found = Object.const_get(camelize("#{name}_controller"))
       found.is_a?(Class) ? found : nil
     rescue ::NameError
       nil
     end
 
-    def camelize(part)
-      part.split("_").map { |word| word[0].to_s.upcase + word[1..].to_s }.join
+    # **ActiveSupport's, never a hand-rolled one.** An application declaring
+    # `inflect.acronym "API"` names its controller `API::BookingsController`, and splitting on
+    # underscores answers `Api::BookingsController` — which raises `NameError`, is rescued, and
+    # drops the route silently. Every acronym namespace was invisible.
+    def camelize(path)
+      return path.camelize if path.respond_to?(:camelize)
+
+      path.split("/").map { |part| part.split("_").map { |word| word[0].to_s.upcase + word[1..].to_s }.join }
+          .join("::")
     end
 
-    # **A workflow expands into its steps.** It demands them before its first step runs, so an
-    # endpoint that reaches one demands them too.
+    # `permissions` is the aggregate — its own name and everything it reaches — so an endpoint
+    # demands the whole chain behind the operation it names.
     def permissions_of(found)
-      found.reject(&:anonymous?)
-           .flat_map { |op| op.respond_to?(:permissions) ? op.permissions : [op.permission] }
-           .uniq
+      found.flat_map(&:permissions).uniq
     end
 
     def rails_application
       return nil unless defined?(::Rails) && ::Rails.respond_to?(:application)
 
       ::Rails.application
-    end
-
-    def internal_names(*doors)
-      edges(*doors).values.flatten.uniq
     end
 
     # Nameless classes have no permission — a `Class.new` subclass has no constant — and asking

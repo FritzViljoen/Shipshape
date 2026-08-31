@@ -32,11 +32,12 @@ module Shipshape
     # which cannot be activated beside the 1.x this gem needs. Given one, both trees are
     # measured with that file and the application's config is never read.
     #
-    # **It is a path inside the repository, and that is not a convenience.** RuboCop resolves
-    # the globs in a config relative to that config's own directory, so a file kept outside
-    # the tree makes every `Kinds` glob match nothing — the Style cops still fire and every
-    # kind-scoped cop goes silent, which is the false clean this gem exists to warn about,
-    # produced by its own flag.
+    # **It must sit at the repository root, and "inside the repository" is not enough.**
+    # RuboCop resolves a config's globs against that config's own directory whenever its
+    # basename starts with `.rubocop`, so `tools/.rubocop.yml` makes every `Kinds` glob match
+    # nothing: the Style cops still fire, every kind-scoped cop goes silent, and `check` prints
+    # "nothing rose". That is the false clean this gem exists to warn about, produced by its own
+    # flag — and checking only for containment let it through.
     def initialize(root:, trunk: nil, config: nil)
       @root = typed(root, String)
       @trunk = typed(trunk, String, allow_nil: true)
@@ -82,13 +83,15 @@ module Shipshape
       Offences.new(directory: path, config: config && target).call
     end
 
-    # Given an absolute path, the part inside the repository. A config outside it cannot be
-    # copied to a matching place in the base tree, so it is refused rather than half-working.
+    # The file's name inside the repository, refusing anything that would resolve its globs
+    # somewhere other than the tree root.
     def relative(path)
+      base = File.expand_path(root)
       full = File.expand_path(path, root)
-      inside = full.delete_prefix(File.expand_path(root) + "/")
+      inside = full.delete_prefix(base + "/")
 
       raise Error, "shipshape: --config must name a file inside #{root}, got #{path}" if inside == full
+      raise Error, "shipshape: --config must sit at #{root}, not in a subdirectory: #{inside}" if inside.include?("/")
 
       inside
     end
