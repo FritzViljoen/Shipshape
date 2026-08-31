@@ -697,6 +697,69 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_includes CallGraph.internal(Command), LogIn.permission
   end
 
+  # A controller is not a kind this suite installs, so it is a plain class — which is all
+  # `Calls` needs, because it reads the method's source rather than the class's ancestry.
+  class BookingsController
+    def cancel
+      GeneratedBaseClassesTest::GraphedInner.call(actor: nil)
+    end
+
+    def index
+      "nothing an actor needs a grant for"
+    end
+  end
+
+  Route = Struct.new(:verb, :path, :defaults)
+  Spec = Struct.new(:spec)
+  Routes = Struct.new(:routes)
+  Application = Struct.new(:routes)
+
+  def self.stub_routes
+    Application.new(Routes.new([
+      Route.new("POST", Spec.new("/bookings/:id/cancel(.:format)"),
+                { controller: "generated_base_classes_test/bookings", action: "cancel" }),
+      Route.new("GET", Spec.new("/bookings(.:format)"),
+                { controller: "generated_base_classes_test/bookings", action: "index" }),
+      Route.new("GET", Spec.new("/gone(.:format)"),
+                { controller: "no_such", action: "show" }),
+    ]))
+  end
+
+  def test_an_endpoint_names_the_permissions_it_demands
+    rows = CallGraph.routes(self.class.stub_routes)
+
+    assert_equal 1, rows.length
+    assert_equal "POST", rows.first[:verb]
+    assert_equal "/bookings/:id/cancel", rows.first[:path]
+    assert_equal [GraphedInner.permission], rows.first[:permissions]
+  end
+
+  # An action that reaches no operation demands nothing, and a permissions screen should not
+  # offer a row for it. A route whose controller cannot be loaded is skipped, not raised on.
+  def test_an_endpoint_that_demands_nothing_is_not_a_row
+    endpoints = CallGraph.routes(self.class.stub_routes).map { |row| row[:endpoint] }
+
+    refute_includes endpoints, "GeneratedBaseClassesTest::BookingsController#index"
+    assert_equal 1, endpoints.length
+  end
+
+  # **The gap this closed.** `GraphedInner` is called by `GraphedOuter`, so on the operations
+  # alone it read as internal and a screen would not have offered it — while an endpoint
+  # demanded it the whole time.
+  def test_a_query_an_action_calls_is_grantable_even_though_an_operation_calls_it_too
+    reached = CallGraph.routes(self.class.stub_routes).flat_map { |row| row[:permissions] }
+
+    assert_includes reached, GraphedInner.permission
+    assert_includes CallGraph.edges(GraphedDoor).fetch(GraphedOuter.name),
+                    GraphedInner.name
+  end
+
+  # No Rails in this process, so it says nothing rather than guessing — a fact about the
+  # process, not about the application.
+  def test_routes_are_empty_where_there_is_no_application_to_ask
+    assert_empty CallGraph.routes(nil)
+  end
+
   # **The keys are class names**, which is what a label table is keyed by. Nothing here holds
   # a label: a screen wants "Cancel a booking", and that is content, edited without a deploy.
   def test_the_keys_are_class_names

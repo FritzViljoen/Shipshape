@@ -20,12 +20,20 @@
 # and a screen wants "Cancel a booking", so the label belongs in a row keyed by the name —
 # translated, edited and versioned like any other content, without a deploy.
 #
-# **Stated limit, and it is the one that matters: this reads operations only.** It cannot see a
-# controller, so a query called both from an action and from inside a command reads as
-# `internal` here and is genuinely grantable. The application knows its own routes; union this
-# with what they reach. Answering `internal` for such a query is the safe direction — it offers
-# too few switches rather than too many — but it is not the whole answer.
+# **The routes are read too, so the answer is per endpoint.** An actor does not hold a
+# permission in the abstract; they hold it in order to reach something, and that is the question
+# an administrator is really asking:
+#
+#   Shipshape::CallGraph.routes
+#   # => [{ verb: "POST", path: "/bookings/:id/cancel",
+#   #       endpoint: "BookingsController#cancel", permissions: [:CancelBooking] }]
+#
+# **A workflow expands into its steps**, because that is what it demands before its first step
+# runs. And a query an action calls is grantable even though a command calls it too, which is
+# the whole reason the routes are read rather than the operations alone.
 class CallGraph
+  FORMAT = /\(\.:format\)\z/.freeze
+
   class << self
     # `{ "CancelBooking" => ["FindBooking"] }`, for every operation of the given doors.
     def edges(*doors)
@@ -34,32 +42,82 @@ class CallGraph
       end
     end
 
-    # Reached by no other operation, so this is where an actor arrives. Anonymous operations are
-    # left out: they are never granted, which is what anonymous means.
+    # Every permission an actor can be asked for: what a route reaches, plus operations nothing
+    # else calls — a job's entry point has no route and is still where an actor arrives.
+    # Anonymous operations are left out, because they are never granted.
     def grantable(*doors)
       reached = internal_names(*doors)
+      roots = operations(*doors).reject { |operation| reached.include?(operation.name) }
 
-      operations(*doors).reject { |operation| reached.include?(operation.name) }
-                        .reject(&:anonymous?)
-                        .map(&:permission)
-                        .uniq
-                        .sort
+      (permissions_of(roots) + routed_permissions).uniq.sort
     end
 
-    # Reached from another operation, so under a class-sized permission model no actor needs to
-    # hold these: the command's door was the check, and the work inside it is how that one act
-    # is done.
+    # **What each endpoint demands.** Empty when there is no Rails to ask, which is a fact about
+    # this process rather than about the application, so it says nothing rather than guessing.
+    def routes(application = rails_application)
+      return [] unless application
+
+      application.routes.routes.filter_map { |route| endpoint(route) }
+    end
+
+    # Reached from another operation and from no endpoint, so under a class-sized permission
+    # model no actor needs to hold these: the command's door was the check, and the work inside
+    # it is how that one act is done. **A query an action also calls is not on this list**, which
+    # is the whole reason the routes are read.
     def internal(*doors)
       reached = internal_names(*doors)
+      inner = operations(*doors).select { |operation| reached.include?(operation.name) }
 
-      operations(*doors).select { |operation| reached.include?(operation.name) }
-                        .reject(&:anonymous?)
-                        .map(&:permission)
-                        .uniq
-                        .sort
+      (permissions_of(inner) - routed_permissions).uniq.sort
     end
 
     private
+
+    def routed_permissions
+      routes.flat_map { |row| row[:permissions] }.uniq
+    end
+
+    # A route names its controller and action as strings. The controller may not be loadable,
+    # and an action may be inherited or handled by something that is not a class here.
+    def endpoint(route)
+      controller = controller_for(route)
+      action = route.defaults[:action]
+      return nil unless controller && action
+
+      demanded = permissions_of(Calls.in(controller, action.to_sym))
+      return nil if demanded.empty?
+
+      { verb: route.verb.to_s, path: route.path.spec.to_s.sub(FORMAT, ""),
+        endpoint: "#{controller.name}##{action}", permissions: demanded.uniq.sort }
+    end
+
+    def controller_for(route)
+      name = route.defaults[:controller]
+      return nil unless name
+
+      found = Object.const_get("#{name}_controller".split("/").map { |part| camelize(part) }.join("::"))
+      found.is_a?(Class) ? found : nil
+    rescue ::NameError
+      nil
+    end
+
+    def camelize(part)
+      part.split("_").map { |word| word[0].to_s.upcase + word[1..].to_s }.join
+    end
+
+    # **A workflow expands into its steps.** It demands them before its first step runs, so an
+    # endpoint that reaches one demands them too.
+    def permissions_of(found)
+      found.reject(&:anonymous?)
+           .flat_map { |op| op.respond_to?(:permissions) ? op.permissions : [op.permission] }
+           .uniq
+    end
+
+    def rails_application
+      return nil unless defined?(::Rails) && ::Rails.respond_to?(:application)
+
+      ::Rails.application
+    end
 
     def internal_names(*doors)
       edges(*doors).values.flatten.uniq

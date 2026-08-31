@@ -26,7 +26,7 @@ module Calls
       tree = ::RubyVM::AbstractSyntaxTree.of(owner.instance_method(method_name))
       return [] if tree.nil?
 
-      constants_in(tree).filter_map { |name| resolve(owner, name) }.select { |found| operation?(found) }
+      constants_in(tree).filter_map { |name| resolve(owner, name, method_name) }.select { |found| operation?(found) }
     rescue ArgumentError
       # `of` raises this when the source is unavailable — an eval'd or dynamically defined
       # method. Nothing broader is rescued: a `NameError` here means the file could not be read
@@ -46,11 +46,11 @@ module Calls
     # to `Billing::Charge` names an operation that never runs.
     #
     # A leading `::` is Ruby being told to skip the nesting, so it is skipped here too.
-    def resolve(owner, constant)
+    def resolve(owner, constant, method_name)
       return Object.const_get(constant[2..]) if constant.start_with?("::")
 
       head = constant.split("::").first
-      scope = nesting(owner).find { |candidate| candidate.const_defined?(head, false) }
+      scope = nesting(owner, method_name).find { |candidate| candidate.const_defined?(head, false) }
 
       (scope || Object).const_get(constant)
     rescue ::NameError
@@ -60,13 +60,16 @@ module Calls
     # `Module.nesting` as it was at the `def`, rebuilt from the file. There is no runtime handle
     # on it — `Module.nesting` is only meaningful while the body is being read — so the
     # enclosing `class`/`module` nodes are what says whether `Billing` is in scope.
-    def nesting(owner)
+    def nesting(owner, method_name)
       @nesting ||= {}
-      @nesting[owner] ||= read_nesting(owner)
+      @nesting[[owner, method_name]] ||= read_nesting(owner, method_name)
     end
 
-    def read_nesting(owner)
-      file, line = owner.instance_method(:call).source_location
+    # **The method being read, never `:call`.** Hardcoding it was right while only a workflow
+    # used this and wrong the moment a controller action did: an action's nesting was read from
+    # a `call` the controller does not have, and every constant in it resolved against `Object`.
+    def read_nesting(owner, method_name)
+      file, line = owner.instance_method(method_name).source_location
       scopes = enclosing_scopes(::RubyVM::AbstractSyntaxTree.parse_file(file), line)
 
       scopes.each_index.map { |depth| Object.const_get(scopes[0..depth].join("::")) }.reverse

@@ -140,12 +140,22 @@ and aggregation would mask it while charging every well-behaved command for it.
 
 The consequence for the catalogue is that not every permission is grantable. An operation
 reached only from inside another is never asked for a grant, so offering it on a screen is a
-switch that does nothing. `CallGraph` reads the operations at boot and separates them:
+switch that does nothing. `CallGraph` reads the operations **and the routes** at boot:
 
 ```ruby
 Shipshape::CallGraph.grantable(Command, Query)   # => [:CancelBooking]
 Shipshape::CallGraph.internal(Command, Query)    # => [:FindBooking]
+
+Shipshape::CallGraph.routes
+# => [{ verb: "POST", path: "/bookings/:id/cancel",
+#       endpoint: "BookingsController#cancel", permissions: [:CancelBooking] }]
 ```
+
+**Per endpoint is the question actually being asked.** An actor does not hold a permission in
+the abstract; they hold it in order to reach something. Reading the routes is also what makes
+`internal` correct: a query called from an action *and* from inside a command is grantable, and
+on the operations alone it read as internal — a screen would not have offered it while an
+endpoint demanded it the whole time.
 
 **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
 content — translated, edited, versioned — and belongs in a row, not in a constant.
@@ -216,12 +226,14 @@ in doubt.
   method's syntax tree for the operations it names, and `CallGraph` turns that into edges,
   `grantable` and `internal`. A workflow's steps are read with the same code, so a step and an
   edge are one fact found one way. Exercised by `generated_base_classes_test.rb`.
-- **Guard's limit:** `CallGraph` **reads operations only, and cannot see a controller.** A
-  query called both from an action and from inside a command reads as `internal` and is
-  genuinely grantable, so an application must union this with what its own routes reach.
-  Answering `internal` offers too few switches rather than too many, which is the safe
-  direction and not the whole answer. `Calls` is syntactic: a class reached through a variable,
-  `const_get` or `send` is not an edge here.
+- **Guard's limit:** `Calls` is **syntactic**. A class reached through a variable, `const_get`
+  or `send` is not an edge, so an endpoint reaching an operation that way demands a permission
+  this cannot see — and the row it prints is a floor, not a ceiling. An action whose work is in
+  a `before_action` is invisible for the same reason the fat-controller procedure names.
+
+  `routes` answers nothing where there is no `Rails.application` to ask, which is a fact about
+  the process rather than about the application. A route whose controller cannot be loaded is
+  skipped rather than raised on, so a broken route is silence here.
 - **Guard's limit:** the base class cannot tell whether the actor it was handed is the real
   one, and nothing checks that request handling passes the requester rather than a system
   actor. It cannot see an operation invoked with `new(...).call` directly, going around
