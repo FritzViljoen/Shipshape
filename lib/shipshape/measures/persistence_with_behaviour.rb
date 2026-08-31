@@ -36,6 +36,12 @@ module Shipshape
       FRAMEWORK = %i[to_param to_partial_path to_key to_model to_s to_str persisted?
                      cache_key cache_key_with_version model_name].freeze
 
+      SUBJECT = "records under `app/models/`"
+
+      def subjects(sources)
+        sources.count { |source| source.relative.start_with?("app/models/") }
+      end
+
       def call(sources)
         models(sources).flat_map do |source|
           ClassReading.classes(source).select { |node| persistence?(node) }.flat_map do |node|

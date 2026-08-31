@@ -26,6 +26,12 @@ module Shipshape
         create create! new build touch increment! decrement! reload transaction lock
       ].freeze
 
+      SUBJECT = "records under `app/models/`"
+
+      def subjects(sources)
+        sources.count { |source| source.relative.start_with?("app/models/") }
+      end
+
       def call(sources)
         records(sources).flat_map do |source, node|
           ClassReading.public_methods_of(node).select { |method| movable?(method) }.map do |method|

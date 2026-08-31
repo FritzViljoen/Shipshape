@@ -681,6 +681,22 @@ class ReportTest < Minitest::Test
     assert_includes markdown, "**What this cannot see:**"
   end
 
+  # A measure that recognised nothing answers about nothing, and "0 found, 100% right" is then a
+  # fact about the layout. iggo keeps its records in `app/records/` and four rows read clean.
+  def test_a_measure_that_recognised_nothing_says_so_instead_of_a_share
+    silent = Dir.mktmpdir("no-models") do |root|
+      target = File.join(root, "app/controllers/things_controller.rb")
+      FileUtils.mkdir_p(File.dirname(target))
+      File.write(target, "class ThingsController < ApplicationController\n  def show\n    1\n  end\nend\n")
+
+      report_for(root)[:rows].select(&:unmeasured?).map(&:title)
+    end
+
+    assert_includes silent, "Request handling reaching straight into persistence"
+    assert_nil Shipshape::Report::Row.new(subject: "records", subjects: 0, population: 3).share,
+               "a share over a subject set nobody recognised is a clean bill nobody earned"
+  end
+
   private
 
   def section_of(title)
@@ -692,6 +708,7 @@ class ReportTest < Minitest::Test
   def report_rows
     in_app { |root| report_for(root)[:rows] }
   end
+
 
   def row(title)
     in_app { |root| report_for(root)[:rows].find { |candidate| candidate.title == title } }

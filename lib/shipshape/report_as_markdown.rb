@@ -405,6 +405,7 @@ module Shipshape
     end
 
     def ratio(row)
+      return "not measured — no #{row.subject} found" if row.unmeasured?
       return "—" if row.share.nil?
 
       "#{row.clean} of #{row.population} #{row.noun} (#{row.share}%)"

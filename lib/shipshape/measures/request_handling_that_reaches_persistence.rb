@@ -26,6 +26,12 @@ module Shipshape
         end
       end
 
+      SUBJECT = "records under `app/models/`"
+
+      def subjects(sources)
+        sources.count { |source| source.relative.start_with?("app/models/") }
+      end
+
       def call(sources)
         models = model_names(sources)
 

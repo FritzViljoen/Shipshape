@@ -38,6 +38,12 @@ module Shipshape
         after_commit after_rollback after_initialize after_find after_touch
       ].freeze
 
+      SUBJECT = "records under `app/models/`"
+
+      def subjects(sources)
+        sources.count { |source| source.relative.start_with?("app/models/") }
+      end
+
       def call(sources)
         sources.flat_map do |source|
           registrations(source).map do |node|

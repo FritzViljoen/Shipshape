@@ -7,15 +7,20 @@ require "shipshape/typed_arguments"
 
 module Shipshape
   # The introspection report: a repository that knows nothing about shipshape, answered in counts
-  # and examples, each row naming its law and what the measure cannot see. Read-only and
-  # configuration-free, because a tool that must be configured before it says anything goes unrun.
+  # and examples. Configuration-free, because a tool you must configure first goes unrun.
   class Report
     include TypedArguments
 
     EXAMPLES = 5
 
     Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, :population, :noun,
-                     :unit, :exemplars, :headline, :units, :source, keyword_init: true) do
+                     :unit, :exemplars, :headline, :units, :source, :subject, :subjects,
+                     keyword_init: true) do
+      # A measure recognising none of what it reads answers about the layout, not the code: iggo
+      # keeps records in `app/records/`, so this read "7 of 7 controllers (100%)" against 42.
+      def unmeasured?
+        !subjects.nil? && subjects.zero?
+      end
       def count
         findings.length
       end
@@ -42,7 +47,7 @@ module Shipshape
       end
 
       def share
-        return nil if clean.nil?
+        return nil if unmeasured? || clean.nil?
 
         (clean * 100.0 / population).round
       end
@@ -82,13 +87,14 @@ module Shipshape
           headline: ask(instance, :headline, sources),
           units: instance.respond_to?(:units) ? instance.units(findings) : nil,
           source: measure.const_defined?(:SHOW_SOURCE) ? measure::SHOW_SOURCE : true,
+          subject: measure.const_defined?(:SUBJECT) ? measure::SUBJECT : nil,
+          subjects: ask(instance, :subjects, sources),
         )
       end
     end
 
-    # Worst first: findings arrive in directory order, so the first examples were a sample of the
-    # file system. A measure that has ranked its own is left alone — sorting by file frequency
-    # undid the branch count underneath, showing `#new — 1 branch` above `#create — 14`.
+    # Worst first: in directory order the first examples sample the file system, not the problem.
+    # A measure that has ranked its own is left alone — file frequency undid the branch count.
     def ranked(findings, measure)
       return findings if findings.empty? || measure.const_defined?(:SELF_RANKED)
 
