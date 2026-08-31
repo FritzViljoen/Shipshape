@@ -4,10 +4,9 @@
 #
 # A name for "true or false", so `typed(tie, Boolean)` reads like every other assertion.
 #
-# Ruby has no Boolean class, and the usual workaround is to reopen TrueClass and FalseClass
-# to include a marker module. We do not: that changes two objects nobody owns, invisibly,
-# which is the defect `nothing-travels-off-the-call-path` names. This is a name and nothing
-# else — it is included nowhere, and TypedArguments knows it by identity.
+# Ruby has none, and the usual workaround reopens TrueClass and FalseClass to include a marker
+# module. That changes two objects nobody owns, invisibly. This is a name and nothing else:
+# included nowhere, and TypedArguments knows it by identity.
 module Boolean
   def self.to_s
     "Boolean"

@@ -1,37 +1,21 @@
 # frozen_string_literal: true
 
-# **Which operations exist, which of them call which, and what each endpoint demands.**
+# **Which operations exist, which call which, and what each endpoint demands.** An operation
+# demands its own permission and everything it reaches, read from the same source the base
+# classes read.
 #
-# An operation demands its own permission and every permission it reaches, so a command that
-# calls a query demands that query too. This reads the same source the base classes read, at
-# boot, and answers the questions a permissions screen asks.
+#   CallGraph.edges(Command, Query)     # => { "CancelBooking" => ["FindBooking"] }
+#   CallGraph.grantable(Command, Query) # every permission an actor can be asked for
+#   CallGraph.unchecked(Command, Query) # declared `anonymous_call`, so never granted
+#   CallGraph.leaks(Command, Query)     # anonymity that is not closed downward
+#   CallGraph.routes                    # per endpoint, which is the question being asked
 #
-#   CallGraph.edges(Command, Query)
-#   # => { "CancelBooking" => ["FindBooking"], "FindBooking" => [] }
+# Nothing is left off `grantable` for being reached from inside another operation: aggregation
+# means the actor holds it either way, and a screen that hid it would produce a refusal nobody
+# could explain.
 #
-#   CallGraph.grantable(Command, Query)   # => [:CancelBooking, :FindBooking]
-#   CallGraph.unchecked(Command, Query)   # => [:LoadTenant]
-#
-# **`grantable` is every permission an actor can be asked for.** Nothing is left off for being
-# reached from inside another operation: aggregation means the actor holds it either way, and a
-# screen that hid it would produce a refusal nobody could explain.
-#
-# **`unchecked` is the operations that declared they need none.** A query used only to serve the
-# commands that call it implements `anonymous_call` instead of `call` — the same declaration a
-# login uses — and then it is never granted and never aggregated. That is how a read says "I am
-# part of my caller's act", and it is a property of the class rather than of the call site, so
-# `grep -rn "def anonymous_call"` is the audit.
-#
-# **Per endpoint is the question actually being asked**, because an actor does not hold a
-# permission in the abstract; they hold it in order to reach something:
-#
-#   CallGraph.routes
-#   # => [{ verb: "POST", path: "/bookings/:id/cancel",
-#   #       endpoint: "BookingsController#cancel", permissions: [:CancelBooking, :FindBooking] }]
-#
-# **The keys are class names, and nothing here holds a label.** A screen wants "Cancel a
-# booking", and that is content — translated, edited, versioned — so it belongs in a row keyed
-# by the name rather than in a constant.
+# **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
+# content, and belongs in a row.
 class CallGraph
   FORMAT = /\(\.:format\)\z/.freeze
 
