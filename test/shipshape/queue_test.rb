@@ -6,7 +6,7 @@ require "shipshape/queue"
 # Watched to fail: removing the `tested` term from `ranked` reddens the covered-first test;
 # removing the `-unit.cops.length` term reddens the distinct-rules test; making `named_in_a_test?`
 # answer true reddens the coverage tests; emptying `TOO_COMMON` reddens the vocabulary test;
-# dropping the coverage ratio from `ranked` reddens the best-covered-first test. The ordering is
+# dropping the class check reddens the orphan test.
 class QueueTest < Minitest::Test
   LAYOUT = <<~YAML
     inherit_from:
@@ -118,6 +118,22 @@ class QueueTest < Minitest::Test
     assert_equal 0, units.first.methods, "call and name are not this file's evidence"
     assert_equal 0, units.first.covered,
       "**Ruby's own vocabulary would mark everything covered.** `call`, `name`, `each` appear in every test file whether or not this class is tested, so matching them answers yes for a file nothing exercises — the flattering answer, and the dangerous one here."
+  end
+
+  # A method name is only evidence where the class is named too. Over lobsters this ranked an
+  # untested controller safest to start here, because its methods are `show` and `expire`.
+  def test_a_method_name_is_not_coverage_when_nothing_names_the_class
+    units = build(
+      "app/records/orphan_record.rb" =>
+        "class OrphanRecord < ApplicationRecord\n  before_save :x\n\n  def expire\n    1\n  end\nend\n",
+      "test/records/unrelated_test.rb" =>
+        "class UnrelatedTest\n  def test_it\n    session.expire\n  end\nend\n",
+    )
+
+    assert_equal %w[expire], units.first.unnamed,
+                 "`expire` is an ordinary word, and no test names OrphanRecord"
+    refute units.first.tested,
+           "a file nothing names must not be offered as the safe place to start"
   end
 
   private

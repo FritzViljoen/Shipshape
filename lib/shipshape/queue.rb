@@ -66,8 +66,11 @@ module Shipshape
         { cop: offence["cop_name"], line: offence.dig("location", "line"), message: offence["message"] }
       end
 
-      defined = methods_in(path)
-      unnamed = defined.reject { |method| named_in_a_test?(method) }
+      source = read(File.join(root, path))
+      defined = methods_in(source)
+      # A method mention only counts where the class is named too. `show` and `expire` are
+      # ordinary words: matching them alone ranked an untested controller safest to start here.
+      unnamed = named_in_a_test?(source[CLASS, 1]) ? defined.reject { |m| named_in_a_test?(m) } : defined
 
       Unit.new(path: path, offences: offences,
                cops: offences.map { |o| o[:cop] }.uniq.sort,
@@ -79,13 +82,16 @@ module Shipshape
     # name match, not a call graph — it answers "would anything notice".
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
-    def methods_in(path)
-      read(File.join(root, path)).scan(DEFINITION).flatten.uniq
-                                 .reject { |method| mentions.too_common?(method) }
+    CLASS = /^\s*class\s+([\w:]+)/.freeze
+
+    def methods_in(source)
+      source.scan(DEFINITION).flatten.uniq.reject { |method| mentions.too_common?(method) }
     end
 
-    def named_in_a_test?(method)
-      mentions.names?(method)
+    def named_in_a_test?(name)
+      return false if name.nil?
+
+      mentions.names?(name.to_s.split("::").last)
     end
 
     def mentions
