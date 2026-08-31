@@ -8,20 +8,10 @@ require "shipshape/error"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # **The work, one file at a time, in an order that is safe to start.**
-  #
-  # The report says where the reading is expensive. This says what to do next, and it exists
-  # because an agent handed a whole codebase does the wrong thing: it needs one file, the
-  # rules that file breaks, and a way to know it finished.
-  #
-  # Each unit carries the **full offence messages**, not a summary. Those messages are the
-  # prompt — each one states the rule, why it exists, and a correct example — so a unit is
-  # actionable with nothing else loaded.
-  #
-  # **Files with a test that names them come first.** Not because they are worse, because
-  # they are safe: the ratchet proves the offence count fell, and nothing in this gem proves
-  # the code still works. Extracting a rule out of a class nothing tests is how a refactor
-  # becomes an outage, so the queue puts the covered work first and says so on the rest.
+  # The work, one file at a time, in an order that is safe to start. An agent handed a whole
+  # codebase does the wrong thing: it needs one file, the rules it breaks, and a way to know it
+  # finished. Each unit carries the full offence messages, which are the prompt. Covered files
+  # come first — not because they are worse, because nothing here proves behaviour is preserved.
   class Queue
     include TypedArguments
 
@@ -31,8 +21,6 @@ module Shipshape
           cops: cops, offences: offences }
       end
 
-      # Nothing here proves behaviour is preserved. This is the nearest a static tool gets:
-      # which of this file's methods are named by a test at all.
       def covered
         methods - unnamed.length
       end
@@ -56,11 +44,8 @@ module Shipshape
 
     attr_reader :root, :config, :targets
 
-    # **Best covered first**, then whatever breaks the most different rules — a file with six
-    # kinds of finding is six problems, and a file with sixty of one kind is one problem
-    # repeated. A boolean put a file with one covered method of eighty ahead of one with all
-    # nine covered, which is the wrong way round: the ratio is what says how much of the file
-    # can be moved before the work stops being verifiable.
+    # Best covered first, then most rules broken. A boolean put one covered method of eighty
+    # ahead of nine of nine: the ratio says how much can move while the work stays verifiable.
     def ranked(units)
       units.sort_by do |unit|
         [-coverage(unit), -unit.cops.length, -unit.offences.length, unit.path]
@@ -90,14 +75,8 @@ module Shipshape
                methods: defined.length, unnamed: unnamed.sort)
     end
 
-    # **Per method, not per file.** A file-level answer is nearly useless: `story.rb` has a
-    # test, and that says nothing about the method you are about to move. What an agent
-    # needs is which methods are named somewhere in the suite, so it can extract those first
-    # and leave the rest until something covers them.
-    #
-    # This is a name match, not a call graph. A method named in a comment counts, and a
-    # method called through `send` does not — it answers "would anything notice", which is
-    # the question, and a precise answer would mean running the suite.
+    # Per method: "story.rb has a test" says nothing about the method you are about to move. A
+    # name match, not a call graph — it answers "would anything notice".
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
     def methods_in(path)
@@ -105,8 +84,6 @@ module Shipshape
                                  .reject { |method| mentions.too_common?(method) }
     end
 
-    # Asked through `TestMentions`, which `Edges` asks the same way. Two copies of a
-    # heuristic are two heuristics, and they drift.
     def named_in_a_test?(method)
       mentions.names?(method)
     end
@@ -115,10 +92,6 @@ module Shipshape
       @mentions ||= TestMentions.new(root: root)
     end
 
-    # **Answering `[]` for a file that could not be read would say "no methods to move",**
-    # which is a false statement about the code rather than a report about the failure —
-    # and it is the shape of every wrong answer this tool has produced. So it raises, and
-    # names the file, because "which file" is the whole of what the caller needs.
     def read(file)
       SourceText.read(file)
     rescue SystemCallError => e

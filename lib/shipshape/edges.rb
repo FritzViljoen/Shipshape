@@ -6,23 +6,10 @@ require "shipshape/test_mentions"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # **The edges of the application, and which of them nothing tests.**
-  #
-  # Every procedure in this playbook moves internals, so a test on an internal moves with it
-  # and proves nothing. The edge is the one thing a refactor must not change: a request that
-  # answered 302 answers 302 afterwards, whatever happened underneath. That makes the edge the
-  # only place a characterisation test is worth writing before the work starts, and this is
-  # the list of them.
-  #
-  # **The layout already declares where they are.** `request_handling` and `entry_point` are
-  # kinds, so an application that told `Shipshape/CallGraph` where its controllers and jobs
-  # live has already answered this and is not asked twice.
-  #
-  # **Asked by class, not by method**, and that was measured rather than assumed. A request
-  # spec says `get "/stories"` and a controller spec says `describe StoriesController`; almost
-  # none of them name the action. Matching `show` against a suite answers yes for any file
-  # containing the word — the flattering answer. The class name is what a test that exercises
-  # this edge actually contains.
+  # The edges of the application, and which of them nothing tests. Every procedure moves
+  # internals, so a test on one moves with it; the edge is what a refactor must not change, and
+  # the only place a characterisation test is worth writing first. Asked by class, not by method,
+  # and that was measured: almost no spec names the action, so matching `show` against a suite
   class Edges
     include TypedArguments
 
@@ -45,7 +32,6 @@ module Shipshape
         edges.sum { |edge| edge.actions.length }
       end
 
-      # Nothing should move until something can say it broke.
       def ready?
         uncovered.empty?
       end
@@ -54,11 +40,9 @@ module Shipshape
     CLASS = /^\s*class\s+([\w:]+)/.freeze
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
-    # A bare `private` ends the public surface. What follows is a helper, not an edge.
-    PRIVATE = /^\s*private\s*$/.freeze
+      PRIVATE = /^\s*private\s*$/.freeze
 
-    # The kinds the outside world arrives through.
-    KINDS = %w[request_handling entry_point].freeze
+      KINDS = %w[request_handling entry_point].freeze
 
     def initialize(root:, settings:, kinds: KINDS)
       @root = typed(root, String)
@@ -86,8 +70,7 @@ module Shipshape
       return nil if klass.nil?
 
       actions = actions_in(source)
-      # `ApplicationController` and `ApplicationJob` define no action. They are where an edge
-      # inherits from, not an edge — nothing arrives at them.
+      # Where an edge inherits from, not an edge: nothing arrives at them.
       return nil if actions.empty?
 
       Edge.new(
@@ -98,8 +81,7 @@ module Shipshape
       )
     end
 
-    # Everything before a bare `private`: a controller's actions, a job's `perform`. The same
-    # rule reaches both without either being named here.
+    # Everything before a bare `private`, which reaches actions and `perform` alike.
     def actions_in(source)
       source.split(PRIVATE).first.to_s.scan(DEFINITION).flatten.uniq
     end

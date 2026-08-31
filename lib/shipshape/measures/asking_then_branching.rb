@@ -6,17 +6,6 @@ require "shipshape/measures/naming"
 module Shipshape
   module Measures
     # Asking an object a question and branching on the answer.
-    #
-    # `if order.paid?` is the caller taking a decision that belonged to the thing it asked.
-    # The rule now has two owners, and they will disagree — one of them silently, because
-    # nobody greps a caller for the rule they are looking for.
-    #
-    # This is the most common shape in a legacy Rails application and the one that explains
-    # why extracting a service so often fails to help: the logic was never in the method,
-    # it was in the conditional around the call.
-    #
-    # **Counted anywhere**, not only in controllers. A command asking a record a question
-    # and branching is the same defect, and is often where the rule actually belongs.
     class AskingThenBranching
       TITLE = "Asking, then branching on the answer"
       LAW = "no-decisions-in-request-handling"
@@ -33,9 +22,7 @@ module Shipshape
       end
       IGNORED = %i[nil? present? blank? empty? any? none? zero? nil].freeze
 
-      # The framework's own objects. `request.xhr?` and `params[:format]` are properties of
-      # the call being served, not an object the caller was handed — asking them is
-      # placement, which is request handling's actual job.
+      # The call being served, not an object the caller was handed: asking is placement.
       FRAMEWORK = %i[request response params session flash cookies headers env
                      controller helpers view_context].freeze
 
@@ -49,9 +36,7 @@ module Shipshape
         finding = findings.first
         return nil if finding.nil? || finding.context.nil?
 
-        # `@order` is not a name a class can carry, and `Paid@order.call(@order: @order)`
-        # is what came out before anybody read the generated line. The sigil is Ruby
-        # punctuation; the word under it is the subject.
+        # The sigil is punctuation: `Paid@order.call(@order: @order)` is what came out first.
         receiver = finding.context[:receiver]
         subject = receiver.to_s.delete_prefix("@@").delete_prefix("@")
         question = finding.context[:question]
@@ -99,14 +84,8 @@ module Shipshape
         )
       end
 
-      # A message sent to an object the caller was handed — not to a class, not to itself,
-      # and not to something reached through a class.
-      #
-      # THE ROOT OF THE CHAIN IS WHAT MATTERS. `Rails.env.development?` has a send as its
-      # receiver, so a check on the immediate receiver let every configuration read in the
-      # application through; the root is `Rails`, a constant, and that is a class method
-      # call rather than an interrogation. `User.exists?` is the same and belongs to another
-      # measure.
+      # The root of the chain is what matters: `Rails.env.development?` has a send as its
+      # receiver, so checking the immediate one let every configuration read through.
       def asking?(test)
         return false unless test.is_a?(RuboCop::AST::Node) && test.send_type?
         return false if test.receiver.nil?

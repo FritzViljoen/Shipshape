@@ -5,19 +5,9 @@ require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # **How much of this repository the guards can actually see.**
-  #
-  # A file that resolves to no kind is skipped by every kind-scoped cop — silently, and
-  # indistinguishably from a file they approved of. So a clean run means nothing until you
-  # know what fraction of the tree was inspected at all.
-  #
-  # This is not a hypothetical failure. Run over six public Rails codebases with the default
-  # layout, the governed fraction was 39%, 45%, 48%, 62%, 73%, 90% — and 0% for an engine
-  # monorepo, where every path is `core/app/models/…` rather than `app/models/…`. That last
-  # one reported nineteen offences and looked healthy.
-  #
-  # `shipshape canaries` proves a cop can fire. This proves the cops can reach your code.
-  # They are different questions and both have to be asked.
+  # How much of this repository the guards can actually see. A file resolving to no kind is
+  # skipped silently. Over six public Rails codebases the governed fraction ran 39% to 90%, and
+  # 0% for an engine monorepo that reported nineteen offences and looked healthy. `canaries`
   class Coverage
     include TypedArguments
 
@@ -55,10 +45,8 @@ module Shipshape
 
     attr_reader :config, :root, :globs
 
-    # **Every Ruby file in the repository is the denominator**, not just the trees the
-    # layout already names. Measuring only the declared trees answers "is what I declared
-    # declared", which is flattering and useless — an engine monorepo keeping everything at
-    # `core/app/models` would report 100% while nothing was inspected.
+    # Every Ruby file is the denominator: measuring only the declared trees would report 100%
+    # for an engine monorepo where nothing was inspected.
     IGNORED = %w[
       vendor node_modules tmp log .git .bundle coverage public storage
       test spec features bin script node_modules

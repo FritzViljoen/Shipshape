@@ -5,16 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Conditionals inside controller actions.
-    #
-    # Request handling dispatches; it does not decide. A branch in an action is a rule that
-    # has escaped its home — and it is the rule nobody can find later, because nobody greps
-    # a controller for business logic.
-    #
-    # **Guard's limit, and it is a real one:** this cannot tell a presentation branch from a
-    # domain one. `return render :new if @person.errors.any?` is counted the same as a
-    # pricing decision. The number is therefore an upper bound and an invitation to read,
-    # not a defect count — and saying so is the difference between a report somebody trusts
-    # and one they argue with.
     class RequestHandlingThatDecides
       TITLE = "Branches inside request handling"
       LAW = "no-decisions-in-request-handling"

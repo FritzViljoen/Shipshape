@@ -6,18 +6,6 @@ require "shipshape/measures/inheritance"
 module Shipshape
   module Measures
     # Classes whose parent is itself a subclass.
-    #
-    # Ruby has single inheritance, so "inheriting from more than one" means depth: a chain
-    # of three or more, where a class inherits from something that inherits from something.
-    #
-    # **An intermediate base class is where shared behaviour accretes.** It is the god object
-    # arriving through inheritance rather than through columns — invisible to a column count,
-    # invisible to a method count on any one class, and reachable by everything below it. A
-    # reader who wants to know what a class does now has three files to read, and the middle
-    # one belongs to nobody.
-    #
-    # One level is enough to say what a class **is**. More than one is somebody keeping a
-    # place to put things.
     class InheritanceDeeperThanOneLevel
       TITLE = "Inheritance deeper than one level"
       LAW = "an-operation-is-a-leaf"
@@ -56,13 +44,8 @@ module Shipshape
 
       private
 
-      # AN ERROR HIERARCHY IS A TAXONOMY, NOT ACCRETED BEHAVIOUR, and this measure's whole
-      # argument — that the middle class is where shared behaviour settles — does not apply
-      # to a class with no behaviour at all. Ruby requires the depth: an application error
-      # inherits from a namespaced base which inherits from StandardError, and that is three
-      # levels by construction.
-      #
-      # Counting them buried the finding: nine hundred, of which most were one error file.
+      # An error hierarchy is a taxonomy, not accreted behaviour, and Ruby requires the depth.
+      # Counting them buried the finding: nine hundred, most of them one error file.
       EXCEPTIONS = /(Error|Exception)\z/.freeze
 
       def exception?(name, chains)
@@ -78,10 +61,7 @@ module Shipshape
         false
       end
 
-      # `ApplicationRecord`, `ApplicationController`, `ApplicationViewComponent`. Rails asks
-      # for one of these per framework class so an application has somewhere to put its own
-      # configuration — the depth is the framework's, not the application's, and there is no
-      # behaviour accreting in it that the framework did not ask for.
+      # The depth is the framework's: Rails asks for one of these per framework class.
       FRAMEWORK_BASE = /\AApplication[A-Z]/.freeze
 
       def finding(source, node, chains)
@@ -91,11 +71,8 @@ module Shipshape
         grandparent = chains[parent] || chains[parent.split("::").last]
         return nil if grandparent.nil?
 
-        # A NAME COLLISION IS NOT A CHAIN. The map is keyed by simple name, so a class
-        # inheriting from a namespaced class of the same name — `Gateways::Response <
-        # Mercator::Response` — looks the parent up and finds ITSELF, reporting
-        # `Response < Mercator::Response < Mercator::Response`. Two different classes
-        # sharing a word is not depth.
+        # A name collision is not a chain: keyed by simple name, `Gateways::Response <
+        # Mercator::Response` looks its parent up and finds itself.
         return nil if grandparent == parent || grandparent == ClassReading.name_of(node)
         return nil if exception?(ClassReading.name_of(node), chains) || exception?(parent, chains)
         return nil if FRAMEWORK_BASE.match?(parent.split("::").last)

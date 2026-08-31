@@ -6,15 +6,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # The god object as it appears in the schema: one table, many columns.
-    #
-    # A class can be split quietly; a table cannot, which is why this is usually the last
-    # thing to be fixed and the best single number for how far a codebase is from having a
-    # domain. Every column past the point where the noun stops explaining them is a second
-    # concept that had nowhere else to go.
-    #
-    # No threshold is applied. The widest tables are listed in order and the reader decides
-    # — a number invented here would be arbitrary, and the shape of the list says more than
-    # a line drawn across it.
     class WideTables
       TITLE = "Widest tables"
       LAW = "model-concerns-not-groups"

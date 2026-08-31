@@ -5,11 +5,6 @@ require "shipshape/typed_arguments"
 
 module Shipshape
   # The report, written for somebody to read rather than for a machine to parse.
-  #
-  # Markdown, because the thing anybody does with a diagnostic is paste it into a document
-  # and argue about it — and an argument is the point. Every row names the law it comes from
-  # and, where the measure cannot tell one thing from another, says so on the row rather
-  # than in a footnote nobody reaches.
   class ReportAsMarkdown
     include TypedArguments
 
@@ -38,10 +33,8 @@ module Shipshape
 
     # WHY ANY OF THIS IS BEING COUNTED.
     #
-    # Twelve lists of findings with no argument around them is a tool showing off. A reader
-    # who already knows the codebase needs the claim first — what these have in common, what
-    # it costs, and what the alternative looks like — or every number reads as a complaint
-    # about a decision somebody made for a good reason in 2016.
+    # Twelve lists with no argument around them is a tool showing off: without the claim first,
+    # every number reads as a complaint about a decision somebody made for a good reason.
     def situation
       <<~TEXT
 
@@ -78,8 +71,7 @@ module Shipshape
     # THE DESTINATION, in code.
     #
     # A report that only says what is wrong leaves the reader to invent the alternative, and
-    # they will invent the one they already know. Five small classes are enough to show the
-    # whole shape, and every proposal further down lands in one of them.
+    # they invent the one they already know. Five small classes show the whole shape.
     def the_shape
       <<~TEXT
 
@@ -418,17 +410,10 @@ module Shipshape
       "#{row.clean} of #{row.population} #{row.noun} (#{row.share}%)"
     end
 
-    # THE ONE SECTION A READER WHO ALREADY KNOWS THE CODEBASE NEEDS.
-    #
-    # Twelve lists of findings tell a CTO what they knew: the big files are big. What they
-    # cannot see by reading down the page is that one file appears in eight of the twelve —
-    # and that is the whole answer to "what do we do first", sitting in the report unsaid.
-    #
-    # Ranked by how many DIFFERENT measures a file appears in rather than by how many
-    # findings it has, because breadth is what makes a file expensive: a thousand similar
-    # findings is one problem, and eight kinds of finding is eight.
-    #
-    # Compared within its own kind, because half the measures only look at controllers.
+    # What a reader who knows the codebase cannot see by reading down the page: that one file
+    # appears in eight of the twelve lists, which is the answer to "what do we do first".
+    # Ranked by how many DIFFERENT measures, because a thousand similar findings is one problem
+    # and eight kinds of finding is eight. Compared within its kind — half only see controllers.
     def where_to_start
       groups = GROUPS.map { |title, prefix| [title, concentration.select { |path, _| in?(path, prefix) }.first(3)] }
                      .reject { |_title, worst| worst.empty? }
@@ -489,9 +474,7 @@ module Shipshape
       lines.join("\n")
     end
 
-    # Their own code, doing it right. Every codebase has some, and holding it up is what
-    # turns a diagnostic from a verdict into a direction — the shape being asked for is
-    # already in the repository, written by the same people.
+    # Their own code, doing it right: what turns a diagnostic from a verdict into a direction.
     def already_right(row)
       ["### Where it is already right", ""] +
         row.exemplars.first(2).map { |finding| "- `#{finding.relative}:#{finding.line}` #{finding.label}" } +
@@ -500,25 +483,16 @@ module Shipshape
 
     def examples_for(row)
       shown = row.findings.first(examples).flat_map { |finding| example(finding, source: row.source?) }
-      # Saying how many were not shown, rather than trailing off, because a truncated list
-      # that does not admit it reads as the whole list.
+      # A truncated list that does not admit it reads as the whole list.
       shown << "- …and #{row.count - examples} more" if row.count > examples
 
       shown + [""]
     end
 
-    # The line itself, under the reference. A file and a line number ask the reader to go
-    # and look; the code asks nothing and is usually enough to decide whether to.
-    #
-    # NOT FOR A CLASS DECLARATION, though. `app/models/booking.rb:3` followed by
-    # `class Booking < ApplicationRecord` is the same word twice and a reference to nothing
-    # the reader did not have — the stutter moved rather than left. A measure whose findings
-    # ARE classes says so, and its examples carry the count instead.
-    # A FINDING NEVER RENDERS AS A BARE PATH. That is the whole rule, and it decides both
-    # ways: where the label already carries the point, the source line is redundant and is
-    # left out; where there is no label, the line is all the reader has and it is shown —
-    # `offered_services_presenter.rb:70` says nothing at all about which of the three
-    # classes in that file is meant.
+    # A finding never renders as a bare path, and that decides both ways: where the label
+    # carries the point the source line is redundant, and where there is no label the line is
+    # all the reader has. `booking.rb:3` above `class Booking < ApplicationRecord` is the same
+    # word twice; `offered_services_presenter.rb:70` says nothing about which of three classes.
     def example(finding, source: true)
       labelled = finding.label.to_s != ""
       line = ["- `#{finding.relative}:#{finding.line}`#{" #{finding.label}" if labelled}"]
@@ -535,9 +509,7 @@ module Shipshape
       @lines[path] ||= SourceText.lines(path)
       @lines[path][finding.line - 1]&.strip
     # rubocop:disable Shipshape/NoEmptyRescue
-    # A swallow, and a deliberate one: this reads a source line to decorate an exemplar.
-    # The report describes and fails nothing, so a file that cannot be read costs one
-    # snippet. Crashing the whole report over it would be the worse answer.
+    # Deliberate: an unreadable file costs one snippet, and crashing the report is worse.
     rescue StandardError
       nil
     end

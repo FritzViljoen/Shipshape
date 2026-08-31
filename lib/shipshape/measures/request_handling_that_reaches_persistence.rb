@@ -6,21 +6,12 @@ require "shipshape/measures/naming"
 module Shipshape
   module Measures
     # Controllers naming a constant that is a model.
-    #
-    # This is the single most useful number in the report, because it is the one that says
-    # how far the application is from having a domain at all. Every one of these is a place
-    # where a rule could live but does not, and where an agent editing the controller has to
-    # understand the schema to change anything.
-    #
-    # Models are found by their own file names — `app/models/person.rb` means `Person` — so
-    # no configuration is needed and no application has to be believed about its own layout.
     class RequestHandlingThatReachesPersistence
       TITLE = "Request handling reaching straight into persistence"
       LAW = "the-call-graph-is-declared"
       WHY = "Each of these is a place where a rule could live and does not, and where " \
             "changing the controller means understanding the schema."
       NOUN = "controllers"
-      # Findings are sites, and many land in one file, so the clean count subtracts files.
       UNIT = :file
 
       def population(sources)
@@ -56,8 +47,6 @@ module Shipshape
         end
       end
 
-      # One worked example, named from their own code. A wall of two hundred suggestions is
-      # noise; one that says which line becomes which class is a conversation.
       def proposal(findings)
         finding = findings.find { |candidate| candidate.context && candidate.context[:action] }
         return nil if finding.nil?
@@ -86,8 +75,6 @@ module Shipshape
 
       private
 
-      # An operation with no inputs gets no initializer, rather than an empty one. A sketch
-      # with a hole in it is read as the shape being suggested.
       def constructor(action)
         return "" unless takes_id?(action)
 
@@ -102,13 +89,9 @@ module Shipshape
         sources.select { |source| source.relative.split("/")[1] == "controllers" }
       end
 
-      # Only classes that are actually tables. Being filed in `app/models` is not the same
-      # as being persistence — Rails put plain objects there for a decade because there was
-      # nowhere else, and counting a controller building a value object would inflate this
-      # number with the one thing a controller is entitled to do.
-      #
-      # The name comes from the class declaration rather than the filename, so a namespaced
-      # or oddly-named class is matched as it is written.
+      # Only classes that are actually tables: counting the plain objects Rails put in
+      # `app/models` would inflate this with the one thing a controller may do. The name comes
+      # from the class declaration, so a namespaced class is matched as it is written.
       BASES = [/\AApplicationRecord\z/, /\AActiveRecord::Base\z/, /Record\z/].freeze
 
       def model_names(sources)

@@ -17,14 +17,9 @@ module Shipshape
   CONFIG_DEFAULT = Pathname.new(__dir__).join("..", "config", "default.yml").expand_path
 end
 
-# `RuboCop::Cop::Base` arrived in RuboCop 1.0 and every cop here subclasses it. Under an
-# older RuboCop the requires below fail with a bare NameError that names neither the gem nor
-# the reason, so the floor is asserted where it can still be explained.
-#
-# Supporting 0.x would mean a second cop base class and a second `add_offense` convention —
-# two ways to say each thing, in the code whose whole subject is not doing that. An
-# application pinned to an old RuboCop runs shipshape from its own bundle instead; see
-# "Running against an application that pins an older RuboCop" in the README.
+# `RuboCop::Cop::Base` arrived in 1.0, and under an older RuboCop the requires below fail with
+# a bare NameError naming neither the gem nor the reason. Supporting 0.x would mean a second
+# `add_offense` convention, which is two ways to say one thing; see the README instead.
 if Gem::Version.new(RuboCop::Version::STRING) < Gem::Version.new("1.0")
   raise Shipshape::Error, "shipshape needs rubocop >= 1.0, found #{RuboCop::Version::STRING}. " \
                           "Run it from its own bundle rather than the application's."

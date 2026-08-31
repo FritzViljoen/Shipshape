@@ -4,16 +4,8 @@ require "shipshape/error"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The seam. A cop's configuration is YAML somebody typed, so it is parsed and asserted
-  # here, once, and never re-examined afterwards — `input-is-parsed-at-the-seam` applied to
-  # the one untrusted input this gem has.
-  #
-  # Everything past this class is handed real values. Nothing downstream calls `fetch` on a
-  # raw config hash or wonders whether a key is a String or a Symbol.
-  #
-  # It bounces rather than defaulting. A silent fallback here would mean a cop that reports
-  # zero offences because its configuration was misspelled, which is the exact
-  # coverage-shaped hole `nothing-fails-quietly` exists to close.
+  # The seam: a cop's configuration is YAML somebody typed, parsed and asserted here once and
+  # never re-examined. `input-is-parsed-at-the-seam`, applied to this gem's one untrusted input.
   class Settings
     include TypedArguments
 
@@ -43,18 +35,14 @@ module Shipshape
       refuse_base_classes_for_an_undeclared_kind
     end
 
-    # The kinds a kind may never call. Every kind is its own sister — that is the whole of
-    # "no kind calls its own kind" — and a declared group adds the rest. A legacy command
-    # is a command that wraps something old, so calling one from a command is a write
-    # sequencing a write, which is a workflow that never said so.
+    # Every kind is its own sister; a declared group adds the rest.
     def sisters_of(kind)
       group = sisters.find { |names| names.include?(kind) } || []
 
       ([kind] + group).uniq
     end
 
-    # Which kind a superclass names, or nil. The superclass decides the kind; the paths
-    # only decide which trees are governed, which is why two kinds may share a glob.
+    # The superclass decides the kind, which is why two kinds may share a glob.
     def kind_of_base_class(name)
       base_classes.each do |kind, names|
         return kind if names.include?(name)

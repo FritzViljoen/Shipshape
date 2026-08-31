@@ -19,9 +19,7 @@ WIRING = {
   no_controller: "  MISSING  %<path>s — nothing includes TypedParams, so nothing is parsed at the seam",
 }.freeze
 
-# Authorisation is opt-in because this gem installs into codebases that already run. Base
-# classes demanding an actor on day one would stop every call site at once, which is an
-# outage rather than a migration.
+# Opt-in: base classes demanding an actor on day one stop every call site at once.
 AUTH_OFF = <<~TEXT
   Authorisation is OFF. `shipshape install --auth` writes the same base classes with a
   permission check in every door, and adds app/shipshape/permission.rb. Turn it on when
@@ -81,9 +79,8 @@ def rules
   0
 end
 
-# A guard that does not run reports the same thing as a guard that finds nothing. This plants
-# one known violation per cop, under this application's own paths, and fails on any cop that
-# stayed silent.
+# One known violation per cop, under this application's own paths: a guard that does not run
+# reports the same thing as a guard that finds nothing.
 def canaries
   root = option("dir", Shipshape::Canaries::DIRECTORY)
   canaries = Shipshape::Canaries.new(config: RuboCop::ConfigStore.new.for_pwd, root: root)
@@ -126,14 +123,9 @@ def canaries
   1
 end
 
-# **An application's own `.rubocop.yml` may be unloadable here**, and on a legacy repository it
-# usually is: it `require:`s the plugins that repository pins, and a plugin pinned to RuboCop
-# 0.x cannot be activated alongside the 1.x this gem needs. The run then dies in config
-# loading, before a single file is read, which reads like shipshape not working rather than
-# like two bundles disagreeing.
-#
-# `--config` is the way out. Point it at a file that inherits this gem's defaults and declares
-# the layout, and nothing of the application's config — or its plugins — is loaded at all.
+# An application's own `.rubocop.yml` may be unloadable here: it `require:`s plugins pinned to
+# RuboCop 0.x, which cannot be activated beside the 1.x this gem needs, and the run dies in
+# config loading before a file is read. `--config` is the way out.
 def config_store
   store = RuboCop::ConfigStore.new
   path = option("config")
@@ -145,10 +137,8 @@ def chosen_config
   option("config")
 end
 
-# **Both spellings, because only one of them worked.** `--config path` was read and
-# `--config=path` was ignored in silence — the run then measured with the application's own
-# config, or with none, and said nothing about it. A flag quietly dropped is worse than one
-# refused, so a value that is missing or is itself a flag raises here.
+# Both spellings: `--config=path` was ignored in silence, and the run then measured with the
+# application's own config and said nothing about it.
 def option(name, default = nil)
   flag = "--#{name}"
   joined = ARGV.find { |argument| argument.start_with?("#{flag}=") }
@@ -195,11 +185,8 @@ def coverage
   0
 end
 
-# The work, one file at a time. An agent handed a whole codebase does the wrong thing; it
-# needs one file, the rules it breaks, and a way to know it finished.
-# **Before anything moves.** Every procedure in the playbook changes internals; the edge is
-# what must answer the same afterwards, so it is the only place a characterisation test is
-# worth writing first.
+# The work, one file at a time. Every procedure changes internals, so the edge is the only
+# place a characterisation test is worth writing before anything moves.
 def edges
   settings = Shipshape::Settings.layout(config_store.for_pwd)
   report = Shipshape::Edges.new(root: Dir.pwd, settings: settings).call
@@ -327,9 +314,7 @@ else
   warn "       shipshape version"
   exit 1
 end
-# **The gem's own errors are messages, not backtraces.** Every one of them is written for a
-# reader — a config that cannot work, a flag with no value — and a stack trace buries the
-# sentence that says what to do.
+# Messages, not backtraces: a stack trace buries the sentence that says what to do.
 rescue Shipshape::Error => e
   warn e.message
   exit 1

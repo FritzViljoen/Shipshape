@@ -5,25 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Moments built without saying which zone they are in.
-    #
-    # **A point in time carries its zone. A calendar date does not.** `Time.now` takes
-    # whatever offset the process happens to have — chosen by nobody, different on a
-    # developer's laptop, a server and a background worker, and different again after a
-    # deploy to another region. Nothing in the code records which one was meant, so nothing
-    # can be wrong about it later and nothing can be checked.
-    #
-    # Two tiers, because they are different sizes of the same mistake:
-    #
-    # - **Unzoned** — `Time.now`, `Date.today`, `DateTime.parse`. The offset comes from the
-    #   process. This is the one that produces a booking an hour out and a report that
-    #   disagrees with the database.
-    # - **One zone for everything** — `Time.current`, `Time.zone.now`. A configured zone,
-    #   chosen once for the whole application. Correct far more often, and still an
-    #   assumption rather than a statement: an application serving two countries has one
-    #   zone in its config and two in its business.
-    #
-    # `Date.new` and `Date.parse` are NOT counted. A calendar date deliberately carries no
-    # zone — a departure date, an invoice date — and converting one moves it a day.
     class TimesThatAssumeAZone
       TITLE = "Times built without naming a zone"
       LAW = "a-time-names-its-zone"

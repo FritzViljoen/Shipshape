@@ -5,14 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Classes with more than one public method, outside controllers and mailers.
-    #
-    # Each extra public method is a second thing the class does and a second reason for it
-    # to change. This is the god object counted early, while it is still four methods rather
-    # than a hundred and thirteen columns — and it is the measure that says how much work
-    # splitting into commands and queries would actually be.
-    #
-    # Controllers are excluded because a controller's actions are one job, dispatch, spelled
-    # once per route. `RequestHandlingThatDecides` is the measure that speaks to those.
     class ClassesDoingSeveralThings
       TITLE = "Classes doing several things"
       LAW = "one-operation-one-class"

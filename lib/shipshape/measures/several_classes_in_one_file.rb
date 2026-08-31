@@ -6,17 +6,6 @@ require "shipshape/measures/naming"
 module Shipshape
   module Measures
     # Files declaring more than one class.
-    #
-    # **A file name is the first index anybody has.** Where a file declares three classes,
-    # two of them cannot be found by the name they are used under — not by a reader, not by
-    # a grep, and not by the loader, which will autoload one of them and not the others.
-    #
-    # It is also how a second class comes to be written where nobody will look for it: the
-    # cheapest place to put a new class is at the bottom of the file already open, and that
-    # is the whole mechanism by which a codebase acquires objects with no home.
-    #
-    # Classes nested inside another class are not counted — those belong to the class around
-    # them, which is a different thing from three peers sharing a file.
     class SeveralClassesInOneFile
       TITLE = "Files declaring several classes"
       LAW = "the-call-graph-is-declared"

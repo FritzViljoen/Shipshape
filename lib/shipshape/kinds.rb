@@ -4,25 +4,10 @@ require "shipshape/source_text"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # Resolves a class's kind, which is what the call matrix is stated in terms of.
-  #
-  # **The superclass decides the kind. The path only decides whether a file is governed at
-  # all** — which is what lets two kinds share one glob, as the legacy pair do: `*_legacy.rb`
-  # says "this is a door", and the base class says which of the two. Where a governed file
-  # names no declared base class, its path decides instead.
-  #
-  # A constant is resolved by turning its name into the relative path the loader would
-  # expect and asking whether that file exists under any kind's root; the file it lands on
-  # is then classified exactly as any other file is. We do not load the application, so the
-  # filesystem is the only thing that can answer.
-  #
-  # Either may answer nil, and nil means "not classified" rather than "allowed". Callers
-  # skip on nil and count the skips — a silently unclassified tree is the coverage-shaped
-  # hole `a-guard-states-its-limit` warns about.
-  #
-  # Its arguments were asserted at the seam by Settings before they got here, and they are
-  # asserted again on arrival because this class is public and a second caller may not have
-  # come through the seam. Inside, nothing re-checks.
+  # Resolves a class's kind. The superclass decides it; the path only decides whether a file is
+  # governed at all, which is what lets two kinds share one glob. The application is never
+  # loaded, so the filesystem is the only thing that can answer, and nil means "not classified"
+  # rather than "allowed" — callers skip on nil and count the skips.
   class Kinds
     include TypedArguments
 
@@ -34,11 +19,6 @@ module Shipshape
       @superclass_cache = {}
     end
 
-    # The superclass decides the kind; the path only decides whether the file is governed
-    # at all. That is what lets two kinds share one glob — the legacy pair do, because
-    # `*_legacy.rb` says "this is a door" and the base class says which of the two it is.
-    #
-    # Path is the fallback, for a governed file whose superclass names nothing declared.
     def for_path(path)
       return nil if path.nil?
 
@@ -51,12 +31,8 @@ module Shipshape
       by_base_class(path, candidates) || candidates.first
     end
 
-    # **A declared base class is its kind, whatever file it lives in.** Resolution normally
-    # goes through the filesystem, which means a constant belonging to a gem resolves to
-    # nothing and is skipped — and `ActiveRecord::Base` is exactly that. So
-    # `ActiveRecord::Base.connection.execute` in a shape reached the database with no rule
-    # objecting, because the one constant naming persistence was the one nothing could see.
-    # The layout already declares these names under `BaseClasses`; this reads them.
+    # A declared base class is its kind whatever file it lives in: a gem's constant resolves to
+    # no file, so `ActiveRecord::Base.connection.execute` in a shape reached the database unseen.
     def for_constant(name)
       return nil if name.nil?
 
@@ -64,9 +40,6 @@ module Shipshape
       settings.kind_of_base_class(name) || (file_for_constant(name) && constant_cache[name].first)
     end
 
-    # The file a constant resolves to, so a caller can tell a sister call from a class
-    # referring to itself. `Result.success(...)` inside `Result` is not two shapes
-    # talking; it is one shape, and the call graph has nothing to say about it.
     def file_for_constant(name)
       return nil if name.nil?
 
@@ -87,9 +60,6 @@ module Shipshape
 
     public
 
-    # The name a file's first class inherits, or nil. `Shipshape/OperationsAreLeaves` needs
-    # it to tell "inherits one of our base classes" from "resolves to an operation kind by
-    # path" — only the first is our hierarchy, and only our hierarchy has a depth rule.
     def superclass_of(path)
       superclass_in(path)
     end
@@ -103,12 +73,6 @@ module Shipshape
       candidates.include?(kind) ? kind : nil
     end
 
-    # Read rather than parsed, and matched on the first `class X < Y` in the file.
-    #
-    # Parsing every referenced file with the full parser would be correct and slow; this is
-    # a regular expression over source, so a superclass written as an expression, assigned
-    # through a constant, or produced by a class-generating call is invisible and the file
-    # falls back to its path. `one-level-of-inheritance` is what keeps that rare.
     SUPERCLASS = /^\s*class\s+[\w:]+\s*<\s*([\w:]+)/.freeze
 
     def superclass_in(path)
@@ -117,10 +81,6 @@ module Shipshape
       end
     end
 
-    # Answers [kind, file] or nil. The file is kept for two reasons: a class referring to
-    # itself is not a call between two of a kind, and the kind itself comes from reading
-    # that file's superclass — so the constant is resolved to a path first and classified
-    # exactly as any other file would be.
     def resolve_constant(name)
       relative = "#{underscore(name)}.rb"
 
@@ -137,13 +97,8 @@ module Shipshape
       roots_of(glob).map { |root| File.join(root, relative) }.find { |path| File.file?(path) }
     end
 
-    # A glob may name one file rather than a tree — `app/models/contest.rb` — which is how
-    # an application says that two kinds share a directory before it has moved anything.
-    #
-    # Such a glob is NOT a root: resolving constants against its directory would classify
-    # every neighbour as the same kind. It matches only the constant whose own path it is.
-    # Treating it as a root is how this silently classified nothing at all, and reported a
-    # controller reaching straight into a record as clean.
+    # A glob naming one file is not a root: resolving constants against its directory classified
+    # every neighbour the same, and reported a controller reaching into a record as clean.
     def named_file(glob, relative)
       absolute = File.join(base_dir, glob)
       return nil unless absolute.end_with?("/#{relative}") && File.file?(absolute)
@@ -163,16 +118,8 @@ module Shipshape
       absolute[prefix.length..-1]
     end
 
-    # The autoload roots a glob covers — what a constant name is resolved against.
-    #
-    # Trailing wildcard segments are dropped, and what remains is expanded on disk, so a
-    # Packwerk layout works: `packs/*/app/commands/**/*.rb` drops `**` and `*.rb`, leaving
-    # `packs/*/app/commands`, which expands to one root per pack. An earlier version took
-    # everything before the FIRST wildcard, which resolved every packs constant against
-    # `packs` and matched nothing at all — silently, which is the worse half.
-    #
-    # Expansion reads the disk, so it is memoised per glob. A pack added mid-run is not
-    # seen; nothing adds one mid-run.
+    # Trailing wildcards are dropped and the rest expanded on disk, so Packwerk works. Taking
+    # everything before the FIRST wildcard resolved every pack constant against `packs`, silently.
     def roots_of(glob)
       root_cache[glob] ||= begin
         segments = glob.split("/")
@@ -183,9 +130,6 @@ module Shipshape
       end
     end
 
-    # Deliberately not ActiveSupport's: the gem takes no Rails dependency, and the acronym
-    # table is the part that would drift. A constant an application spells with an acronym
-    # resolves to no file and comes back nil, which is the honest answer.
     def underscore(name)
       name.split("::").map { |segment| underscore_segment(segment) }.join("/")
     end

@@ -12,21 +12,6 @@ require "shipshape/typed_arguments"
 
 module Shipshape
   # **A guard that does not run reports the same thing as a guard that finds nothing.**
-  #
-  # That is the failure this closes, and it is not hypothetical: shipshape's own cops were
-  # once run over a 647-file tree and reported zero, which read as "this code is clean" and
-  # meant "no glob matched, so nothing was inspected". Neither the unit tests nor
-  # `rake test:removal` can catch it — both construct a config, and the thing that broke was
-  # the *real* config's globs.
-  #
-  # So: plant one known violation per cop, at a path derived from **this application's own
-  # kinds**, run **this application's own configuration** over it, and report any cop that
-  # stayed silent. A cop that cannot find a violation written specifically for it is not
-  # protecting anything.
-  #
-  # The canaries live in a temporary directory and are never written into the repository —
-  # a planted violation checked in would fail the ordinary lint run for ever, and the first
-  # fix would be to exclude it, which puts the hole back.
   class Canaries
     include TypedArguments
 
@@ -36,9 +21,7 @@ module Shipshape
       end
     end
 
-    # Each canary is the smallest thing its cop must refuse. `kind` picks which of the
-    # application's globs the file is written under, so a repository that files commands
-    # somewhere unusual is still tested where it actually keeps them.
+    # The smallest thing its cop must refuse. `kind` picks which glob it is written under.
     PLANTED = {
       "Shipshape/CallGraph" => { kind: "query", body: <<~RUBY },
         def call
@@ -145,8 +128,6 @@ module Shipshape
         end
       RUBY
       # Not kind-scoped: these read paths of their own, so the canary goes there directly.
-      # Not kind-scoped either: the test trees are not a kind, and this is the only cop that
-      # reads them.
       "Shipshape/NoTestFactories" => { path: "test/canary_factory_test.rb", raw: <<~RUBY },
         class CanaryFactoryTest
           def test_it
@@ -154,8 +135,6 @@ module Shipshape
           end
         end
       RUBY
-      # Not kind-scoped: a cadence is wrong wherever it is written, and the file it is usually
-      # written in is not part of any tree the layout declares.
       "Shipshape/NothingSchedulesWork" => { path: "config/schedule.rb", raw: <<~RUBY },
         every 1.day, at: "3:00 am" do
           runner "CanarySettle.call"
@@ -241,29 +220,20 @@ module Shipshape
       RUBY
     }.freeze
 
-    # A canary sometimes needs a second file to be a violation at all.
-    #
-    # `EveryDoorChecksPermission` only speaks where authorisation was installed, and
-    # `CallGraph` skips a constant it cannot resolve to a file — so the callee has to exist,
-    # or the canary is inspected, found innocent, and the cop reports nothing while being
-    # perfectly healthy.
+    # A canary sometimes needs a second file to be a violation at all: a cop that skips an
+    # unresolvable constant reports nothing while being perfectly healthy.
     COMPANIONS = {
       "Shipshape/EveryDoorChecksPermission" => { "app/shipshape/permission.rb" => "module Permission\nend\n" },
-      # Nothing is held to an audit log it never opted into, so the module has to exist.
       "Shipshape/OperationsReportWhatTheyDid" => {
         "app/shipshape/audit_log.rb" => "module AuditLog\nend\n",
       },
       "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
       "Shipshape/OnlyTheDoorIsCalled" => { kind: "query", name: "OtherQuery" },
-      # The write has to reach something the layout calls a record, or the cop is
-      # inspected, finds an unresolvable constant, and reports nothing while healthy.
       "Shipshape/QueriesOnlyRead" => { kind: "record", name: "Canary" },
       "Shipshape/PersonalDataIsDeclared" => {
         "app/shipshape/personal_data.rb" => "module PersonalData\n  COLUMNS = {}.freeze\nend\n",
       },
-      # A module is only a violation because an operation includes it, so the including
-      # operation is the canary's other half. Without it the module is somebody else's
-      # business and the cop is silent while perfectly healthy.
+      # A module is only a violation because an operation includes it.
       "Shipshape/MixinsAddNothingPublic" => {
         "app/commands/pays_something.rb" => "class PaysSomething < Command\n  include Paying\n\n  def call; end\nend\n",
       },
@@ -277,11 +247,8 @@ module Shipshape
       @inherits = inherits
     end
 
-    # Writes the canary tree, and its own `.rubocop.yml` beside it. **The configuration has
-    # to live next to the canaries**: RuboCop resolves every `Kinds` glob against the
-    # configuration file's directory, so pointed anywhere else the globs resolve back into
-    # the application and the canaries are never inspected — silently, which is the exact
-    # failure they exist to catch.
+    # The configuration has to live next to the canaries: RuboCop resolves every glob against
+    # its own directory, so anywhere else they resolve back into the application, silently.
     def plant
       FileUtils.mkdir_p(root)
       @written = []
@@ -311,12 +278,8 @@ module Shipshape
 
     attr_reader :config, :root, :inherits
 
-    # **One section per cop, never two.** The force-enable block was added as a second list
-    # and re-declared cops the first list had already configured — so YAML took the later
-    # entry and the `AutoCorrect: false` above it vanished. RuboCop said so ("is concealed by
-    # line 54") and the words are easy to read past. The effect was that `rubocop -A` over
-    # this tree would rewrite the canaries, which is the exact failure that setting exists to
-    # prevent.
+    # One section per cop, never two: a second list re-declared cops the first had configured,
+    # YAML took the later entry, and the `AutoCorrect: false` above it vanished.
     def configuration
       <<~YAML
         # Generated by `shipshape canaries --plant`. Each file here is a deliberate
@@ -340,8 +303,7 @@ module Shipshape
       YAML
     end
 
-    # The cops that rewrite what they find. Being on this list is what stops a correction
-    # here; nothing else confers it, so it cannot go stale silently.
+    # Being on this list is what stops a correction here; nothing else confers it.
     CORRECTING = %w[
       Shipshape/NoSilentCoercion
       Shipshape/NoUnparsedLookup
@@ -372,11 +334,8 @@ module Shipshape
       end
     end
 
-    # **Every cop, not every enabled cop.** Filtering on the configuration meant a cop
-    # shipped `Enabled: false` needed no canary — while the canon still demanded a law and a
-    # test for it, so it read as fully covered while being unprovable. A cop that is off by
-    # default is a legitimate thing; a cop nothing can prove fires is not. The planted tree
-    # turns them all on for its own run, so the canary answers the question either way.
+    # Every cop, not every enabled one: filtering on the configuration let a cop shipped
+    # `Enabled: false` read as fully covered while nothing could prove it fires.
     def registered
       RuboCop::Cop::Registry.global.cops.map(&:cop_name).grep(%r{\AShipshape/}).sort
     end
@@ -385,24 +344,15 @@ module Shipshape
       @settings ||= Settings.layout(config)
     end
 
-    # **Two cops may want the same companion**, and both `Shipshape/CallGraph` and
-    # `Shipshape/OnlyTheDoorIsCalled` want `OtherQuery`. The second write is not the overwrite
-    # the refusal exists to prevent — that one protects a tree somebody already had — so a
-    # companion this run has already written is simply skipped.
-    #
-    # Found by re-planting from an empty directory, which nothing had done since the second of
-    # those cops was added: files were only ever appended by hand, so `--plant` was broken and
-    # the suite could not see it.
+    # Two cops may want the same companion, and the second write is not the overwrite the
+    # refusal exists to prevent. Found by re-planting from an empty directory, which nothing
+    # had done since the second such cop was added: `--plant` was broken and unnoticed.
     def plant_companion(companion)
       return if companion.nil?
       return companion.each { |name, source| write_once(name, source) } unless companion[:kind]
 
-      # **The file decides the constant, not the name given here** — because that is the rule
-      # the resolver uses, and the glob may add to the name on its way to a path. A record
-      # glob of `*_record.rb` turns `Canary` into `canary_record.rb`, whose constant is
-      # `CanaryRecord`; writing `class Canary` there leaves the canary naming something that
-      # resolves to nothing, and a cop that cannot resolve the constant reports nothing while
-      # being perfectly healthy.
+      # The file decides the constant, not the name given here: a `*_record.rb` glob turns
+      # `Canary` into `CanaryRecord`, and a canary naming something unresolvable proves nothing.
       kind = companion.fetch(:kind)
       relative = path_for(kind, companion.fetch(:name))
       constant = constant_for(relative)
@@ -421,8 +371,6 @@ module Shipshape
       write(relative, source)
     end
 
-    # `app/records/**/*_record.rb` → `app/records/canary_no_callbacks_record.rb`. The glob is
-    # the application's, so the canary lands where that application actually keeps the kind.
     def path_for(kind, cop)
       glob = Array(settings.kinds[kind]).first
       raise Error, "shipshape: this configuration declares no path for #{kind}" unless glob
@@ -446,9 +394,7 @@ module Shipshape
       cop.split("/").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
     end
 
-    # Nothing is overwritten, on the same terms as `shipshape install`: these paths collide
-    # with the installer's own output, and `--plant --dir .` replaced `.rubocop.yml` and
-    # `app/shipshape/command.rb` with stubs. A canary is worth nothing next to that.
+    # Never overwrites: `--plant --dir .` replaced `.rubocop.yml` and `command.rb` with stubs.
     def write(relative, source)
       target = File.join(root, relative)
       raise Error, "shipshape: #{relative} already exists; canaries never overwrite" if File.exist?(target)
@@ -463,12 +409,9 @@ module Shipshape
       File.write(target, source)
     end
 
-    # Not `inspect`: that overrides `Object#inspect`, which Ruby calls regardless of
-    # visibility, so `p canaries` shelled out to a RuboCop subprocess.
+    # Not `inspect`: Ruby calls that regardless of visibility, so `p canaries` shelled out.
     def cops_that_fired
-      # `-I` so the subprocess finds shipshape when it is on a load path rather than
-      # installed — running from a checkout is the case that breaks otherwise, and it is the
-      # case this gem is developed in.
+      # `-I` so the subprocess finds shipshape from a checkout rather than an installed gem.
       command = [RbConfig.ruby, "-I", File.expand_path("../..", __dir__) + "/lib",
                  rubocop, "--require", "shipshape", "--only", "Shipshape",
                  "--format", "json", "--no-color", "."]

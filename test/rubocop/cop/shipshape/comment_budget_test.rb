@@ -7,7 +7,7 @@ require "test_helper"
 # - Dropping the `prose.length <= budget` return reddens the under-budget test.
 # - Counting `processed_source.lines` matching `#` instead of comment tokens reddens the
 #   heredoc test.
-# - Dropping the PRAGMA filter reddens the magic-comment test.
+# - Dropping the DIRECTIVE filter reddens the directive test.
 class CommentBudgetTest < Minitest::Test
   include CopRunner
 
@@ -49,8 +49,10 @@ class CommentBudgetTest < Minitest::Test
     RUBY
   end
 
-  def test_a_magic_comment_is_a_pragma_and_is_not_charged
+  # Both are addressed to the tool, not the reader.
+  def test_a_directive_is_not_charged
     assert_empty check("# frozen_string_literal: true\nCANARY = 1\n")
+    assert_empty check("# rubocop:disable Style/Doc\nCANARY = 1\n# rubocop:enable Style/Doc\n")
   end
 
   # The line was already there. A reader pays nothing extra for what sits at its end.

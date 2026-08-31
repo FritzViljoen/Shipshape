@@ -6,13 +6,9 @@ require "shipshape/measures"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The introspection report. Reads a repository that knows nothing about shipshape and
-  # answers with counts and examples — one row per measure, each naming the law it points
-  # at and what that measure cannot see.
-  #
-  # It is deliberately **read-only and configuration-free**. The first thing anybody wants
-  # is a number, and a tool that must be configured before it will say anything is a tool
-  # that goes unrun.
+  # The introspection report: a repository that knows nothing about shipshape, answered in counts
+  # and examples, each row naming its law and what the measure cannot see. Read-only and
+  # configuration-free, because a tool that must be configured before it says anything goes unrun.
   class Report
     include TypedArguments
 
@@ -28,21 +24,13 @@ module Shipshape
         findings.map(&:relative).uniq.length
       end
 
-      # The share that is already right. A report with no denominator is an accusation; one
-      # that says four in five of your actions are already dispatch is a measurement, and it
-      # is the sentence that makes the other fifth believable.
-      #
-      # SUBTRACT UNITS, NOT FINDINGS. Some measures find one thing per class and some find
-      # many sites across a file — 186 sites in 45 controllers is not −141 clean controllers,
-      # which is what this said before anybody looked at the arithmetic.
+      # Subtract UNITS, not findings: 186 sites in 45 controllers is not −141 clean ones.
       def clean
         return nil if population.nil? || population.zero?
 
         population - affected
       end
 
-      # Whether a source line is worth printing under the reference. False where the finding
-      # IS a class: the path names it already.
       def source?
         source != false
       end
@@ -98,14 +86,9 @@ module Shipshape
       end
     end
 
-    # Worst first, always. Findings arrive in directory order, so the first five examples
-    # were five lines from whichever file sorts first alphabetically — three of them from
-    # one action. That is not a sample of the problem, it is a sample of the file system.
-    #
-    # A measure that has already ranked its own findings is left alone: it knows something
-    # about severity that a file count does not. This was a comment before it was code, and
-    # the file-frequency sort was quietly undoing the branch-count sort underneath it —
-    # showing `#new — 1 branch` while `#create — 14 branches` sat below the fold.
+    # Worst first: findings arrive in directory order, so the first examples were a sample of the
+    # file system. A measure that has ranked its own is left alone — sorting by file frequency
+    # undid the branch count underneath, showing `#new — 1 branch` above `#create — 14`.
     def ranked(findings, measure)
       return findings if findings.empty? || measure.const_defined?(:SELF_RANKED)
 
@@ -118,17 +101,13 @@ module Shipshape
       instance.respond_to?(message) ? instance.public_send(message, sources) : nil
     end
 
-    # A measure proposes a better shape only where it can name one from the reader's own
-    # code. Most cannot, and a generic sketch would be a slide rather than a suggestion.
     def proposal_from(instance, findings)
       return nil if findings.empty? || !instance.respond_to?(:proposal)
 
       instance.proposal(findings)
     end
 
-    # One measure reads the schema rather than the code and so needs the root. Asked for by
-    # arity rather than by name, because a list of which measures are special is a second
-    # copy of a fact the constructor already states.
+    # Asked by arity, not by name: a list of which measures are special is a second copy.
     def build(measure)
       measure.instance_method(:initialize).arity.zero? ? measure.new : measure.new(root: root)
     end

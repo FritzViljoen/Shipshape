@@ -9,7 +9,6 @@ module Shipshape
   # here: a module cannot answer for itself, because `concerns/paying.rb` is legitimate in a
   # shape and not in a command. Names, not files — `Kinds` resolves only within kind globs, so
   # the module the rule most exists for came back nil. Read rather than parsed, so a computed
-  # include is invisible and fails open.
   class Mixins
     include TypedArguments
 

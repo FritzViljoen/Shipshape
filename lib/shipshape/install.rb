@@ -6,26 +6,15 @@ require "shipshape/error"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # Writes the base classes into an application.
-  #
-  # **They are generated, not inherited from this gem.** A base class you can open in your
-  # own repository beats one buried in a dependency — that is `nothing-is-hidden` — and it
-  # keeps shipshape a development dependency rather than something the application loads in
-  # production.
-  #
-  # They land in `app/shipshape/` rather than in the governed trees, because a base class
-  # is not an instance of the thing it defines: `Command` is not a command. Rails autoloads
-  # every directory under `app/`, so the constants resolve without configuration.
-  #
-  # **Nothing is ever overwritten.** Once written, a file is the application's, and the
-  # installer reports what it skipped rather than deciding for anybody.
+  # Writes the base classes into an application. Generated, not inherited from this gem: one you
+  # can open beats one buried in a dependency, and it keeps shipshape a development dependency.
+  # They land in `app/shipshape/` because a base class is not an instance of what it defines.
+  # Nothing is ever overwritten — once written, a file is the application's.
   class Install
     include TypedArguments
 
     TEMPLATES = File.expand_path("templates", __dir__)
 
-    # Ordered by what depends on what, so a reader following them top to bottom meets each
-    # name before it is used.
     FILES = %w[
       boolean
       typed_arguments
@@ -51,32 +40,21 @@ module Shipshape
 
     DIRECTORY = "app/shipshape"
 
-    # **The guards that need the application loaded**, which is why they are tests rather
-    # than cops. A cop reads source and cannot see a module included through a variable or a
-    # method made by `define_method`; these ask the class itself. They run in the
-    # application's own suite, so they are installed rather than shipped.
+    # Tests, not cops: a cop reads source and cannot see an include through a variable.
     TESTS = %w[operations_expose_nothing_test personal_data_is_erasable_test].freeze
 
     TEST_DIRECTORY = "test/shipshape"
 
-    # **A rake task, because it has to run inside the application.** The routes and the loaded
-    # operation classes are both Rails', so nothing outside the app can assemble this table.
     TASKS = %w[shipshape_routes].freeze
 
     TASK_DIRECTORY = "lib/tasks"
 
-    # Written only when authorisation is asked for. Everything else is written either way.
-    AUTH_ONLY = %w[permission calls call_graph].freeze
+      AUTH_ONLY = %w[permission calls call_graph].freeze
 
-    # **Written only on request, because it is the one file that can stop a boot.** It
-    # inherits from the `view_component` gem, and an application without that gem cannot load
-    # it. Everything else here is a PORO that loads anywhere.
+    # On request only: the one file that can stop a boot, because it inherits from a gem.
     VIEW_COMPONENT_ONLY = %w[application_view_component].freeze
 
-    # **Authorisation is opt-in, and off by default.** This gem installs into codebases that
-    # already run, and base classes demanding an actor on day one would stop every call site
-    # at once — which is not a migration, it is an outage. Turn it on when the seam is ready:
-    # `shipshape install --auth`. It only ever goes forward from there.
+    # Opt-in: demanding an actor on day one stops every call site at once.
     def initialize(root:, directory: DIRECTORY, test_directory: TEST_DIRECTORY, auth: false,
                    view_components: false)
       @root = typed(root, String)
@@ -86,8 +64,7 @@ module Shipshape
       @view_components = typed(view_components, Boolean)
     end
 
-    # Answers what it did: { written: [...], skipped: [...] }, both relative paths.
-    def call
+      def call
       report = { written: [], skipped: [] }
 
       write_into(directory, files, report)
@@ -128,8 +105,6 @@ module Shipshape
       path = File.join(TEMPLATES, "#{name}.#{extension}.tt")
       raise Error, "shipshape: no template for #{name}" unless File.file?(path)
 
-      # `<%- if auth -%>` in a template, and nothing else. Ruby's own `#{}` passes through
-      # untouched, so a template stays readable as the file it is about to become.
       ERB.new(File.read(path), trim_mode: "-").result(binding)
     end
   end

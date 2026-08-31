@@ -3,16 +3,6 @@
 module Shipshape
   module Measures
     # Names a proposed operation after the work it would take over.
-    #
-    # A suggestion written in the reader's own nouns is a suggestion they can argue with;
-    # one written in `YourCommand` and `SomeModel` is a slide. So `#index` reaching for
-    # `Contest` proposes `ListContests`, and `#create` proposes `CreateContest` — their
-    # words, their file, a name they could commit today.
-    #
-    # **The verb table is a guess and it is a shallow one.** Rails' seven actions are what
-    # it knows; anything else falls back to the action's own name. That is stated on the
-    # report rather than hidden, because a proposal presented as an answer is worse than no
-    # proposal at all.
     module Naming
       module_function
 
@@ -23,12 +13,8 @@ module Shipshape
 
       READS = %i[index show new edit].freeze
 
-      # A known action becomes verb + noun: `#index` on `Contest` is `ListContests`.
-      #
-      # ANYTHING ELSE KEEPS ITS OWN NAME AND GAINS NOTHING. `#find_user_from_rss_token`
-      # already says what it does, and appending the subject produced
-      # `FindUserFromRssTokenUser` — a stutter that makes the whole suggestion look
-      # generated, which it is, and which is the one thing that must not show.
+      # A known action becomes verb + noun; anything else keeps its own name, because
+      # appending the subject produced `FindUserFromRssTokenUser`.
       def operation_for(action:, subject:)
         return nil if action.nil?
 
@@ -38,22 +24,16 @@ module Shipshape
         "#{verb}#{action.to_sym == :index ? plural(subject) : subject}"
       end
 
-      # The MESSAGE is better evidence than the action name. `User.where` inside a method
-      # called anything at all is a read, and an action outside Rails' seven says nothing
-      # about direction — guessing Command from silence is how a report gets laughed at.
+      # The message is better evidence than the action name: an action outside Rails' seven
+      # says nothing about direction, and guessing Command from silence gets laughed at.
       WRITES = %i[create create! update update! destroy destroy_all delete delete_all save
                   save! insert insert_all upsert upsert_all increment! decrement! touch].freeze
 
-      # Writes sent to an instance rather than to the class. `order.save!` and
-      # `Order.create!` are both writes; they are simply spelled at different receivers, and
-      # a measure reading a method body sees these.
       INSTANCE_WRITES = %i[save save! update update! update_attribute update_attributes
                            update_column update_columns destroy destroy! delete touch
                            increment! decrement! toggle! assign_attributes reload
                            insert append push concat].freeze
 
-      # The write vocabulary, whichever receiver it is sent to. Used to read a method body
-      # and answer whether it changes anything.
       def writes?(body)
         return false unless body.is_a?(RuboCop::AST::Node)
 
@@ -107,8 +87,7 @@ module Shipshape
         name.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
       end
 
-      # Deliberately crude, and only ever used to name a suggestion. An application whose
-      # plural is irregular gets a slightly wrong name in a sketch it was going to edit.
+      # Crude on purpose: an irregular plural gets a wrong name in a sketch meant to be edited.
       def plural(word)
         return "#{word[0..-2]}ies" if word.end_with?("y")
         return "#{word}es" if word.end_with?("s", "x", "ch", "sh")

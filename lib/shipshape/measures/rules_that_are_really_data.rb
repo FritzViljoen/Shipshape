@@ -6,28 +6,6 @@ module Shipshape
   module Measures
     # A branch over domain literals that answers with literals: a lookup table written as
     # code.
-    #
-    # ```ruby
-    # case levy
-    # when "vat"     then 0.15
-    # when "tourism" then 0.01
-    # end
-    # ```
-    #
-    # **That is three facts about the business, and none of them is in the database.**
-    # Changing a rate is a deploy. Adding a levy is a deploy, in a file the person who knows
-    # the answer cannot read. A tenant cannot have its own. The set cannot be listed without
-    # grepping, so no screen can offer it and no report can total it.
-    #
-    # **This is the commonest reason a service becomes soup.** Each new case is one more
-    # branch in a method that already had five, and the method grows because the *data* grew
-    # — which is the one kind of growth refactoring never fixes, because the code was never
-    # the problem.
-    #
-    # The test is whether the branch encodes a **fact somebody outside the team owns**. A
-    # rate, a fee, a term of art, a status the business named. Those are rows. A branch on
-    # something the code itself decides — a nil check, a size comparison — is control flow
-    # and belongs where it is.
     class RulesThatAreReallyData
       TITLE = "Rules that are really data"
       LAW = "no-industry-terms-in-code"

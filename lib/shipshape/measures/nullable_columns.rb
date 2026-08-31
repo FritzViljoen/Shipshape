@@ -6,13 +6,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Nullable columns and database defaults, read from `db/schema.rb`.
-    #
-    # The only measure that reads the schema rather than the code, and the one that is
-    # hardest to argue with: a nullable column is a gap given a meaning nobody declared, and
-    # a default is a second place deciding a value.
-    #
-    # It reads the **schema**, not the migrations — so this is what the database actually
-    # holds, however it got that way.
     class NullableColumns
       TITLE = "Nullable columns and database defaults"
       LAW = "no-nullable-columns"

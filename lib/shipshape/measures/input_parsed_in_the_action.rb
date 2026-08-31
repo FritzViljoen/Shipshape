@@ -5,13 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # A request parameter cast or parsed where it is used, rather than at a seam.
-    #
-    # `params[:id].to_i` is `1` for `"1abc"`, and `find` on it serves record 1 while nothing
-    # anywhere fails. `Date.parse(params[:on])` turns a typo into a 500. Each of these is a
-    # place where a string somebody typed became a value nobody checked.
-    #
-    # Counted anywhere, not only in controllers: a parameter that has reached a model or a
-    # service unparsed is the same defect, further from the door.
     class InputParsedInTheAction
       TITLE = "Request input cast where it is used"
       LAW = "input-is-parsed-at-the-seam"
@@ -52,13 +45,8 @@ module Shipshape
 
       ACCESS = %i[[] fetch dig require permit].freeze
 
-      # One read of a parameter: `params[:x]`, `params.fetch(:x)`, `params.dig(...)`, or the
-      # same through a `*_params` helper.
-      #
-      # AN EARLIER VERSION MATCHED THE NODE'S SOURCE TEXT for the word `params`, which meant
-      # every expression enclosing a parameter read counted as another read — the denominator
-      # came out at 8,311 on an application with a few hundred, and the share it produced was
-      # meaningless. Structure, not text.
+      # Structure, not text: matching the node's source for `params` made every enclosing
+      # expression another read, and the denominator came out at 8,311 instead of a few hundred.
       def param_read?(node)
         return false unless node.is_a?(RuboCop::AST::Node) && node.send_type?
         return false unless ACCESS.include?(node.method_name)
@@ -66,7 +54,6 @@ module Shipshape
         params?(node.receiver)
       end
 
-      # `params`, or a `*_params` helper — both are a bare method call with no receiver.
       def params?(node)
         return false unless node.is_a?(RuboCop::AST::Node) && node.send_type?
         return false unless node.receiver.nil? && node.arguments.empty?

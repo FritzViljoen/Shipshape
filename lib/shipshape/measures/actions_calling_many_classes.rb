@@ -7,20 +7,6 @@ require "shipshape/measures/naming"
 module Shipshape
   module Measures
     # Controller actions that name several different classes.
-    #
-    # **A ranking, not a violation.** Calling several operations from an action is allowed:
-    # the rule is that request handling does not *decide*, and a count was only ever a proxy
-    # for that. An action that calls three operations and examines none of their results has
-    # decided nothing, and forcing a workflow around it would be ceremony.
-    #
-    # What the number is good for is finding the sequences worth naming. An action reaching
-    # eleven classes is a piece of the business written in the one place that cannot be
-    # tested without a request, cannot be run from a job, and cannot be read as a sequence.
-    # That is when a workflow earns its place — not because there are two calls, but because
-    # the sequence has obligations somebody should own.
-    #
-    # The worst action in a codebase is usually checkout, registration or import, and it is
-    # usually the one nobody wants to touch.
     class ActionsCallingManyClasses
       TITLE = "Actions orchestrating several classes"
       LAW = "no-decisions-in-request-handling"
@@ -34,7 +20,6 @@ module Shipshape
                "domain class still weigh the same, so the ranking is the signal."
 
       NOUN = "actions"
-      # Sorted by severity in #call; the report must not re-sort by file frequency.
       SELF_RANKED = true
       LIMIT = 1
 
@@ -42,9 +27,7 @@ module Shipshape
         controllers(sources).sum { |source| actions(source, Set.new).length }
       end
 
-      # Their own actions, already dispatching. Every codebase has some, and holding them up
-      # is what turns a diagnostic from a verdict into a direction: the shape being asked for
-      # is already here, written by the same people.
+      # Their own actions, already dispatching: what turns a diagnostic into a direction.
       def exemplars(sources)
         theirs = declared_in(sources)
 
@@ -114,13 +97,9 @@ module Shipshape
         end
       end
 
-      # Only classes this repository declares. `Time`, `Rails`, `File` and a local constant
-      # are not the application orchestrating anything, and counting them both inflated the
-      # number and picked `#twofa_enroll reaches 5: Time, ROTP::Base32, Rails…` as the worked
-      # example — which is a list of libraries, not a sequence anybody would extract.
-      #
-      # Derived from what the files actually declare rather than from a list of framework
-      # names, because a list of somebody else's constants is a copy of a fact that rots.
+      # Only classes this repository declares: counting `Time` and `Rails` picked
+      # `#twofa_enroll reaches 5: Time, ROTP::Base32, Rails…` as the worked example, which is a
+      # list of libraries. Derived from what the files declare, not from a list that would rot.
       def declared_in(sources)
         found = Set.new
         sources.each do |source|
@@ -158,7 +137,6 @@ module Shipshape
         found
       end
 
-      # `orders_controller.rb` is about orders. Used only to name a suggestion.
       def subject_for(source)
         base = File.basename(source.relative, ".rb").delete_suffix("_controller")
 

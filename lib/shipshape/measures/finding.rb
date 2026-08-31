@@ -2,19 +2,15 @@
 
 module Shipshape
   module Measures
-    # One thing found, somewhere. A count with no examples is an accusation; a count with
-    # three file:line references is a conversation.
-    # `context` carries whatever the measure needs to propose a better shape later — the
-    # enclosing method, the message being sent. Optional, because most measures need none.
+    # One thing found, somewhere: a count with no examples is an accusation. `context` carries
+    # whatever the measure needs to propose a better shape later, and most need none.
     Finding = Struct.new(:relative, :line, :label, :context, keyword_init: true) do
       def to_s
         "#{relative}:#{line}  #{label}"
       end
     end
 
-    # Shared reading of a class body. Deliberately not a base class the measures inherit —
-    # `one-level-of-inheritance` is a rule this gem asks of its consumers, and a tower of
-    # measure subclasses would be the first thing a reader noticed it breaking.
+    # Not a base class the measures inherit: `one-level-of-inheritance` binds this gem too.
     module ClassReading
       module_function
 
@@ -24,8 +20,6 @@ module Shipshape
         found
       end
 
-      # The method a node sits inside, or nil. Needed to name a proposal after the action
-      # that would lose the work — `#index` reaching for a record becomes `ListThings`.
       def enclosing_method(root, target)
         found = nil
         walk(root) do |node|
@@ -49,9 +43,8 @@ module Shipshape
         class_node.children.first.source
       end
 
-      # The name as it is actually reachable: `SiteEngine::ProductFactory::ProductCode`,
-      # not `ProductCode`. Reading the bare name off a nested class turns an inner class
-      # into what looks like a stray object with no home.
+      # Reachable name, not the bare one: reading `ProductCode` off a nested class turns an
+      # inner class into what looks like a stray object.
       def qualified_name(root, class_node)
         enclosing = []
         walk(root) do |node|
@@ -65,9 +58,7 @@ module Shipshape
         (enclosing + [name_of(class_node)]).join("::")
       end
 
-      # A class nested inside another CLASS is that class's business — an implementation
-      # detail of the thing around it, which is the thing that needs a kind. A class nested
-      # only in modules is namespaced, not owned, and stands on its own.
+      # Nested in a class means owned; nested only in modules means namespaced.
       def owned_by_a_class?(root, class_node)
         found = false
         walk(root) do |node|
@@ -88,7 +79,6 @@ module Shipshape
         class_node.children[1] && class_node.children[1].source
       end
 
-      # Public instance methods, minus the ones the language or the framework asks for.
       def public_methods_of(class_node)
         body = class_node.body
         return [] if body.nil?
@@ -100,8 +90,7 @@ module Shipshape
       ALWAYS_PRIVATE = %i[initialize initialize_copy respond_to_missing? to_s inspect ==
                           eql? hash].freeze
 
-      # `private` with no arguments switches everything after it. `private :name` and
-      # `private def name` mark one. Nothing else here pretends to be a Ruby parser.
+      # Bare `private` switches; `private :name` marks one. Nothing here is a Ruby parser.
       def visible(statements)
         public_defs = []
         private_from_here = false

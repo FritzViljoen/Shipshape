@@ -6,14 +6,6 @@ require "shipshape/measures/inheritance"
 module Shipshape
   module Measures
     # Classes under `app/` that inherit from nothing.
-    #
-    # A plain object is not a defect on its own. What it is, is **unclassifiable**: nothing
-    # says whether it reads, writes, holds a shape or wraps a table, so no rule can reach it
-    # and no reader can tell what it is entitled to do. Every one of these is a decision
-    # nobody has made yet.
-    #
-    # This is usually the largest number in the report, and it is the one that explains all
-    # the others.
     class ClassesWithNoBaseClass
       TITLE = "Classes that inherit from nothing"
       LAW = "the-call-graph-is-declared"
@@ -26,8 +18,6 @@ module Shipshape
                "each makes those quick to skip; a list of core class names would be a copy " \
                "of somebody else's facts, and it would rot."
       NOUN = "classes"
-      # The findings ARE classes, and the path names them. Printing `class Booking <
-      # ApplicationRecord` under `app/models/booking.rb` is the same word twice.
       SHOW_SOURCE = false
 
       def call(sources)
@@ -46,29 +36,19 @@ module Shipshape
 
       private
 
-      # A BASE CLASS IS NOT A STRAY OBJECT. `ApplicationRecord`, `Command`, a service base —
-      # each inherits from nothing on purpose, and each is the answer to this measure rather
-      # than an instance of it.
-      #
-      # Which classes are bases is derived from the code: a class is one if something else
-      # in this repository inherits from it. A list would be a copy of a fact, and it would
-      # rot the first time somebody added a base.
+      # A base class is not a stray object, and which classes are bases is derived: a class is
+      # one if something else here inherits from it. A list would be a copy of a fact.
       def candidates(source, bases)
         standalone(source).reject do |node|
           ClassReading.superclass_of(node) || bases.include?(ClassReading.name_of(node).split("::").last)
         end
       end
 
-      # A class nested inside another class is that class's own business. Counting
-      # `SiteEngine::ProductFactory::ProductCode` as an unclassified object put five entries
-      # in the report for one file and stripped the namespace off every one of them, so a
-      # reader saw five stray objects where there is one factory with four inner parts.
+      # A nested class is its outer class's business: counting them showed five strays for one.
       def standalone(source)
         ClassReading.classes(source).reject { |node| ClassReading.owned_by_a_class?(source.ast, node) }
       end
 
-      # No label where the path already says it. A namespaced class is the exception: the
-      # source line reads `class ProductFactory` and says nothing about SiteEngine.
       def label_for(source, node)
         qualified = ClassReading.qualified_name(source.ast, node)
 

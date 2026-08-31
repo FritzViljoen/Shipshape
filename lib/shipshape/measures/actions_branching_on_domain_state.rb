@@ -5,25 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Conditionals in an action that test domain state rather than an outcome.
-    #
-    # **This is the checkable half of "request handling decides nothing".** The whole rule is
-    # a judgement and cannot be guarded; this part of it is mechanical, and it is the part
-    # that matters:
-    #
-    #     if result.success?          # told an outcome — placement, and allowed
-    #     if request.xhr?             # a property of the request — allowed
-    #
-    #     if @invoice.settled?        # asked the render payload a question — deciding
-    #     if @booking.paid?           # the rule now has two owners
-    #
-    # **The tell is the receiver.** An instance variable in a controller is what the action
-    # is about to render, so a predicate sent to one is the action interrogating its own
-    # payload and acting on the answer. The decision belonged to whatever produced it, and
-    # if that thing had answered with a `Result` there would be nothing to ask.
-    #
-    # Narrower than `Branches inside request handling` on purpose. That one counts every
-    # conditional and says so; this one counts the conditionals that are almost certainly
-    # rules in the wrong place.
     class ActionsBranchingOnDomainState
       TITLE = "Actions deciding on domain state"
       LAW = "no-decisions-in-request-handling"

@@ -6,21 +6,12 @@ require "shipshape/measures/naming"
 module Shipshape
   module Measures
     # Public methods on models, beyond the declarations that describe the table.
-    #
-    # A record maps rows and holds no rules. Every method here is a rule living on the thing
-    # that stores it, reachable from anywhere the record is — which is everywhere — and that
-    # reachability is what lets one concern after another settle on the same class until it
-    # is a hundred columns wide.
-    #
-    # Associations, scopes, validations and the rest are declarations about the table, not
-    # behaviour, so they are not counted.
     class PersistenceWithBehaviour
       TITLE = "Rules living on persistence"
       LAW = "persistence-holds-no-behaviour"
       WHY = "A rule on a record is reachable from everywhere the record is, which is how " \
             "one concern after another settles on the same class."
       NOUN = "records"
-      # Findings are sites, and many land in one file, so the clean count subtracts files.
       UNIT = :file
 
       def population(sources)
@@ -40,10 +31,8 @@ module Shipshape
         end
       end
 
-      # Methods the framework asks a record to provide. They describe how the object is
-      # addressed and rendered, not what the business does with it — and counting them both
-      # inflates the number and picks a poor worked example. `Category#to_param` was the
-      # first thing this report proposed extracting, which is not advice anybody wants.
+      # What the framework asks a record to provide: `Category#to_param` was the first thing
+      # this report proposed extracting, which is not advice anybody wants.
       FRAMEWORK = %i[to_param to_partial_path to_key to_model to_s to_str persisted?
                      cache_key cache_key_with_version model_name].freeze
 
@@ -73,8 +62,7 @@ module Shipshape
 
         record = finding.context[:record]
         method = finding.context[:method]
-        # `settle!` must not become `Settle!Order`. Predicate and bang suffixes are Ruby
-        # punctuation, not part of the name a class can carry.
+        # `settle!` must not become `Settle!Order`: the suffix is punctuation.
         name = "#{Naming.camel(method.to_s.delete_suffix("?").delete_suffix("!"))}#{record}"
         kind = finding.context[:writes] ? "Command" : "Query"
 
@@ -102,9 +90,7 @@ module Shipshape
 
       private
 
-      # The gem can see which it is, so it says so rather than handing the reader a
-      # judgement it was perfectly able to make. Where a method writes, the write itself is
-      # named — showing the evidence is what separates a measurement from an assertion.
+      # Naming the write is what separates a measurement from an assertion.
       def reasoning(finding, kind)
         return "It calls `#{finding.context[:write]}`, so it writes: a Command." if finding.context[:writes]
 
@@ -116,10 +102,8 @@ module Shipshape
         ClassReading.public_methods_of(node).reject { |method| FRAMEWORK.include?(method.method_name) }
       end
 
-      # Being filed in `app/models` is not the same as being a table. Rails put plain
-      # objects there for a decade because there was nowhere else, and counting those here
-      # would both inflate this number and mislabel them — they are already reported as
-      # classes that inherit from nothing, which is what they actually are.
+      # Filed in `app/models` is not the same as being a table: the plain objects Rails put
+      # there are already reported as classes that inherit from nothing.
       BASES = [/\AApplicationRecord\z/, /\AActiveRecord::Base\z/, /Record\z/].freeze
 
       def persistence?(node)

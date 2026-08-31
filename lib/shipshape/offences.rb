@@ -34,8 +34,7 @@ module Shipshape
 
     attr_reader :directory, :config
 
-    # Exit 1 is the normal case, so the status is not checked. What is checked is that the
-    # output parses: a crash answers something that is not JSON, and that is not "none found".
+    # Exit 1 is normal, so only the parse is checked: a crash is not "none found".
     def json
       out, err, = Open3.capture3(*command, chdir: directory)
       return out if out.start_with?("{")

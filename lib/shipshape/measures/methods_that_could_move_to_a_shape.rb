@@ -5,32 +5,6 @@ require "shipshape/measures/finding"
 module Shipshape
   module Measures
     # Methods on a record that only rearrange what the record already holds.
-    #
-    # **This is the extraction list, not a complaint.** Every method here can move to the
-    # shape as it stands — no new operation, no new file, no decision to make. It is the
-    # cheapest work in the report and the first thing to do on any record being split.
-    #
-    # The test is one question: **does the method need anything it was not handed?**
-    #
-    # It is not a matter of taste. A shape holds values and has no database, no
-    # associations and no reach — so a method needing any of those **cannot exist on one**.
-    # The question is not where it would be tidier; it is whether it is possible.
-    #
-    #     def activity_date
-    #       booking_date.to_date            # its own field, rearranged — moves
-    #     end
-    #
-    #     def auto_settled?
-    #       commission_transfers.exists?    # a database query — stays, becomes a Query
-    #     end
-    #
-    #     def start_time
-    #       self[:start_time] ||= inventory.start_at_on_date(booking_date)
-    #     end                               # reads another record AND writes back — stays
-    #
-    # That last one is why the question has to be asked mechanically rather than by eye. It
-    # reads like an accessor, reaches into another record, and mutates the row on the way
-    # past — invisible on a record, impossible on a shape.
     class MethodsThatCouldMoveToAShape
       TITLE = "Rules that could move to a shape as they are"
       LAW = "persistence-holds-no-behaviour"

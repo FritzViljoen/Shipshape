@@ -11,7 +11,9 @@ module RuboCop
 
         MAX = 10
 
-        PRAGMA = /\A#\s*(frozen_string_literal|encoding|warn_indent|shareable_constant_value):/.freeze
+        # Addressed to the tool, not the reader: a magic comment and a `rubocop:` directive are
+        # both machinery, and neither is prose anybody has to keep true.
+        DIRECTIVE = /\A#\s*(frozen_string_literal|encoding|warn_indent|shareable_constant_value|rubocop):/.freeze
 
         def on_new_investigation
           return if processed_source.blank?
@@ -29,7 +31,7 @@ module RuboCop
         def own_line_comments
           processed_source.comments.select do |comment|
             text = comment.text
-            !text.match?(PRAGMA) && lines[comment.loc.line - 1].lstrip.start_with?("#")
+            !text.match?(DIRECTIVE) && lines[comment.loc.line - 1].lstrip.start_with?("#")
           end
         end
 
