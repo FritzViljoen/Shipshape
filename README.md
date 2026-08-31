@@ -323,6 +323,14 @@ The application's own `.rubocop.yml` and its own RuboCop are untouched, and its 
 cops keep running as they always did. Loading shipshape under an older RuboCop raises with
 that instruction rather than a bare `NameError`.
 
+## Adding it to a repository that already runs
+
+There is an order, and it is written down: [an adoption
+order](docs/decomposing/an-adoption-order.md). The cops themselves have no order — RuboCop runs
+every one over each file in a single pass, and none reads another's output — but the ratchet
+counts cop by cop, so work that *moves* an offence from one cop to another reads as a
+regression until both moves land. The unit is the branch, not the commit.
+
 ## The ratchet
 
 ```sh

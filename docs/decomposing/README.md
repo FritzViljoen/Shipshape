@@ -9,7 +9,8 @@ nobody can verify is a rewrite with extra confidence.
 | [a service](a-service.md) | 600 lines, fifteen public methods, does everything for one noun |
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
 | [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
-| [characterise the edges](characterise-the-edges.md) | **do this first** — the tests that survive every procedure above |
+| [an adoption order](an-adoption-order.md) | **start here** — getting the guards onto a repository that already runs |
+| [characterise the edges](characterise-the-edges.md) | the tests that survive every procedure above, written before anything moves |
 | [a factory graph](a-factory-graph.md) | `create(:booking)` pulling in four rows nobody asked for |
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
