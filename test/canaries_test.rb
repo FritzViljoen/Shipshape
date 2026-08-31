@@ -14,18 +14,12 @@ class CanariesTest < Minitest::Test
            "Shipshape/CallGraph no longer match where the code lives."
   end
 
-  # **Every registered cop, not every enabled one.** Filtering on the configuration meant a
-  # cop shipped `Enabled: false` needed no canary — while `CanonTest` still demanded a law and
-  # a test for it, so it read as fully covered while nothing could prove it fires. The planted
-  # tree turns every cop on for its own run, so the canary answers either way.
   def test_every_cop_has_a_canary
     assert_empty result.unplanted,
                  "Add a canary to Shipshape::Canaries::PLANTED for each of these, then " \
                  "re-plant with `shipshape canaries --plant`."
   end
 
-  # The planted tree has to stay in step with the planting code — otherwise this passes
-  # against files nobody regenerated.
   def test_the_checked_in_canaries_match_what_the_planter_writes
     Shipshape::Canaries::PLANTED.each_key do |cop|
       next unless result.fired.include?(cop) || result.silent.include?(cop)
@@ -35,11 +29,8 @@ class CanariesTest < Minitest::Test
     end
   end
 
-  # **The checked-in configuration is generated, so it can drift from the generator.** The
-  # tree beside it is checked for existence above; this checks the file that decides whether
-  # any of it is inspected at all. It went stale once already, in the change that added the
-  # force-enable block — a canary tree nobody regenerates reports the same thing as a cop that
-  # works.
+  # The checked-in configuration is generated and can drift: it decides whether any of the tree
+  # is inspected, and it went stale once, in the change that added the force-enable block.
   def test_the_checked_in_configuration_is_what_the_planter_writes
     assert_equal canaries.send(:configuration), File.read(File.join(ROOT, ".rubocop.yml")),
                  "Re-plant with `shipshape canaries --plant`, or regenerate this file."

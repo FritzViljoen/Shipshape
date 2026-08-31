@@ -3,9 +3,8 @@
 require "test_helper"
 require "shipshape/install"
 
-# The installer's own test proves the files are written and compile. This one loads them
-# and exercises the contracts, because "it parses" is not "it holds" — a base class that
-# accepted any return value would compile perfectly and enforce nothing.
+# The installer proves the files are written and compile; this loads them and exercises the
+# contracts, because a base class accepting any return value would compile and enforce nothing.
 class GeneratedBaseClassesTest < Minitest::Test
   def self.load_generated_once
     root = Dir.mktmpdir("shipshape-generated")
@@ -19,8 +18,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }
   end
 
-  # The generated component base inherits from the gem. Standing it in is what lets this
-  # suite prove the refusal without the gem — the refusal is ours, the superclass is not.
+  # Stood in so the refusal can be proved without the gem: the refusal is ours, not it.
   def self.stub_view_component
     return if defined?(::ViewComponent)
 
@@ -28,9 +26,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     ::ViewComponent.const_set(:Base, Class.new)
   end
 
-  # **Rails is not loaded here, and `test_call` asks it whether this is the test environment.**
-  # The stand-in answers yes and can be told to answer no, which is the only way to watch the
-  # refusal that keeps an unchecked door out of production.
+  # `test_call` asks Rails whether this is the test environment, and Rails is not loaded. The
+  # stand-in can be told to answer no, which is the only way to watch that refusal.
   def self.stub_rails
     return if defined?(::Rails)
 
@@ -47,8 +44,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     Object.const_set(:Rails, rails)
   end
 
-  # ActiveJob is not loaded in this suite. The stand-in records enqueues and can run `perform`,
-  # which is what lets the per-operation retry limit be exercised rather than described.
+  # ActiveJob is not loaded; recording enqueues is what lets the retry limit be exercised.
   def self.stub_active_job
     return if defined?(::ActiveJob)
 
@@ -118,8 +114,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   ANYONE = Anyone.new([]).freeze
 
-  # **An actor a deferred job can find again.** `Anyone` has no `id`, which is legitimate —
-  # The door needs only `may?` — and this is precisely the shape `call_later` used to drop.
+  # An actor a deferred job can find again: `Anyone` has no `id`, which `call_later` dropped.
   Named = Struct.new(:id) do
     def may?(_permission)
       true
@@ -128,9 +123,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   NAMED = Named.new(7).freeze
 
-  # Pointing the sink somewhere is what an application does on install; a test suite is no
-  # different. The default is deliberately noisy — never silent — which is right in production
-  # and wrong in a test run.
+  # Pointing the sink somewhere is what an install does. The default is noisy, never silent.
   AuditLog.sink = ->(_entry) {}
 
   class Charge < Command
@@ -292,8 +285,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     ::ActiveRecord::Base.define_singleton_method(:transaction) { |&block| block.call }
   end
 
-  # Publicness is a property of the class — which method it implements — never of the
-  # caller. There is no `public_call` a caller could reach for on a guarded operation.
+  # Publicness is a property of the class: there is no `public_call` a caller could reach for.
   class LogIn < Command
     def initialize(email:)
       @email = typed(email, String)
@@ -413,9 +405,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { flow.call }
   end
 
-  # The method a view reaches for. Inherited from Permission it asked the workflow's OWN
-  # name, which is never granted, so it answered false for an actor who may run every step
-  # — the button hidden from everybody.
+  # Inherited from Permission it asked the workflow's own name, which is never granted, so the
+  # button was hidden from everybody.
   def test_a_workflow_answers_whether_the_actor_may_run_it
     flow = Class.new(Workflow) do
       def self.name
@@ -462,10 +453,8 @@ class GeneratedBaseClassesTest < Minitest::Test
       "Never granted, so demanding a capability contain one would fail every check for ever."
   end
 
-  # **Every shape the reader could not see was a permission never demanded.** Each of these
-  # was found by running it: the workflow permitted an actor the missing step refused, ran
-  # step one, committed it, and refused at step two — the partial run this law exists to
-  # prevent. They are fixtures with real bodies because the reading is of the file on disk.
+  # Every shape the reader could not see was a permission never demanded, and each was found by
+  # running it. Real bodies, because the reading is of the file on disk.
   class WipeEverything < Command
     def initialize(**); end
 
@@ -501,9 +490,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # Written in the **compact form**, so `Billing` is not in `Module.nesting` and `Charge`
-  # means the top-level one. Reading the class's *name* instead demanded `Billing::Charge`
-  # and permitted an actor refused the operation that actually runs.
+  # Compact form, so `Billing` is not in `Module.nesting`. Reading the class's name instead
+  # demanded `Billing::Charge` and permitted an actor the running operation refused.
   class Billing::Compact < Workflow
     def initialize(**); end
 
@@ -522,8 +510,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # `COLON3` holds a bare Symbol, so recursing into it raised `NoMethodError` — a `NameError`,
-  # which the rescue swallowed, discarding both steps and leaving the workflow unrunnable.
+  # `COLON3` holds a bare Symbol; recursing raised a `NameError` the rescue swallowed.
   class DeepColons < Workflow
     def initialize(**); end
 
@@ -545,8 +532,7 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   FORMATTER = ->(value) { value }
 
-  # A constant receiving `call` that is not an operation has no permission to contribute.
-  # Asking it for one took the whole door down with `NoMethodError`.
+  # A non-operation has no permission to contribute; asking took the whole door down.
   class WithAProc < Workflow
     def initialize(**); end
 
@@ -600,21 +586,18 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_kind_of Array, ListPlaces.test_call
   end
 
-  # Everything except the check still runs, so a state `test_call` builds is one the
-  # application can build.
+  # Everything else still runs, so a state `test_call` builds is one the application can.
   def test_test_call_still_types_its_arguments
     assert_raises(ArgumentError) { Charge.test_call(amount: "5") }
   end
 
-  # **The two it skips are the two about the caller, not the state.** A suite writing an audit
-  # row per fixture fills the trail with rows no operator ever performed.
+  # A suite writing an audit row per fixture fills the trail with rows nobody performed.
   def test_test_call_writes_no_audit_entry
     assert_empty audited { Charge.test_call(amount: 5) }
     assert_equal [Charge.name], audited { Charge.call(actor: ANYONE, amount: 5) }.map(&:operation)
   end
 
-  # **The one thing an unchecked door must promise.** A method that exists everywhere and is
-  # merely discouraged does not promise it.
+  # A method that exists everywhere and is merely discouraged promises nothing.
   def test_test_call_raises_outside_the_test_environment
     ::Rails.env.answer = false
 
@@ -633,9 +616,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     ::Rails.env.answer = true
   end
 
-  # **The graph exists so a permissions screen offers switches that do something.** A command's
-  # door is the check, so an operation reached only from inside another needs no grant, and
-  # listing it offers an administrator a toggle with no effect.
+  # The graph exists so a permissions screen offers switches that do something: listing an
+  # operation reached only from inside another offers a toggle with no effect.
   class GraphedDoor < Command; end
 
   class GraphedInner < GraphedDoor
@@ -671,9 +653,8 @@ class GeneratedBaseClassesTest < Minitest::Test
                     "produce a refusal nobody could explain"
   end
 
-  # **The declared way for a read to need no grant of its own.** A query that only serves the
-  # commands calling it implements `anonymous_call`, and is then never granted and never
-  # aggregated into its caller.
+  # A query that only serves the commands calling it implements `anonymous_call`, and is then
+  # never granted and never aggregated into its caller.
   class GraphedHelper < GraphedDoor
     def initialize(**); end
 
@@ -691,11 +672,9 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  # **Anonymity is closed downward, or it launders.** An anonymous operation runs unchecked, so
-  # a guarded one below it would run unchecked too — a login page reaching a command nobody was
-  # asked about. There is no caller to refuse, so it raises, at the boot-time catalogue walk.
-  # A door of its own: a leaky operation raises for every walk of its door, which is the guard
-  # working and would take the other graph tests with it.
+  # Anonymity is closed downward or it launders: a guarded operation below an anonymous one
+  # runs unchecked. No caller to refuse, so it raises at the boot-time walk. Its own door,
+  # because a leaky operation would take the other graph tests down with it.
   class LeakyDoor < Command; end
 
   class GraphedLeaky < LeakyDoor

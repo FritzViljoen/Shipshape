@@ -36,9 +36,8 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
       "**`delegate` was the one way left to put behaviour on a record.** `def name; supplier.name; end` is an offence; the macro writes the same method and the guard reading `def` saw nothing. `code-is-written-not-generated` exempts it deliberately — that law draws its line at the framework's public conventions — which decides where it is caught, not whether."
   end
 
-  # **Judged on visibility, the way a `def` already is.** `on_def` exempts a private method
-  # because it is not reachable from everywhere a record is; flagging the macro spelling and
-  # not the handwritten one made the rule depend on which was used.
+  # Judged on visibility the way a `def` is: flagging the macro spelling and not the
+  # handwritten one made the rule depend on which was used.
   def test_a_private_delegate_is_exempt_like_a_private_def
     assert_empty check(<<~RUBY)
       class BookingRecord < ApplicationRecord
@@ -56,8 +55,7 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
   end
 
-  # The line the other law draws stays where it is: a delegating operation is that cop's
-  # business and not this one's, and neither of them is the record tree.
+  # A delegating operation is the other cop's business, and neither is the record tree.
   def test_delegate_outside_a_record_is_not_this_cops_business
     assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
       class ListBookings < Query
@@ -78,8 +76,7 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
       "**`default_scope` was invisible to this cop**, which matched `scope` exactly — so the one scope reaching every read in the application passed the guard that exists to stop rules living on records. Found by surveying the canon against a list of Rails failures it did not write."
   end
 
-  # A named scope is judged on whether it reaches another class. This one is not: it needs no
-  # other class to be a rule, because it is a rule about reads nobody wrote.
+  # Judged on reaching another class. This one needs none: it is a rule about reads nobody wrote.
   def test_a_default_scope_touching_only_its_own_columns_is_still_an_offence
     assert_equal 1, check(<<~RUBY).length
       class BookingRecord < ApplicationRecord
@@ -101,8 +98,6 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     assert_includes message, "class ListLiveBookings < Query"
   end
 
-  # The kind decides, as everywhere. A `default_scope` is not a shape this cop hunts outside
-  # the record tree.
   def test_a_default_scope_outside_a_record_is_not_this_cops_business
     assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
       class ListBookings < Query

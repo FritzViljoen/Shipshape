@@ -54,7 +54,6 @@ class WorkflowsBranchOnOutcomeTest < Minitest::Test
     assert_empty check("if charge.error == :declined\n      failure(:declined)\n    end")
   end
 
-  # Passing the answer to the next step is the whole point of having one.
   def test_using_the_value_outside_a_condition_is_the_point
     assert_empty check("Notify.call(actor: @actor, id: charge.value)\n    success(1)")
   end

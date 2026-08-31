@@ -45,7 +45,6 @@ class InstallTest < Minitest::Test
       assert_empty report[:skipped]
       assert_path_exists File.join(root, "app/shipshape/command.rb")
       assert_path_exists File.join(root, "app/shipshape/legacy_query.rb")
-      # A rake task, not a base class: it has to run inside the application to see the routes.
       assert_path_exists File.join(root, "lib/tasks/shipshape_routes.rake")
     end
   end
@@ -110,16 +109,13 @@ class InstallTest < Minitest::Test
     end
   end
 
-  # Every name the default configuration lists under BaseClasses has to be a class the
-  # installer actually writes, or the config points at nothing and classifies nothing.
   def test_it_writes_every_class_the_default_config_names
     defaults = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s)
     named = defaults.fetch("Shipshape/CallGraph").fetch("BaseClasses").values.flatten
     generated = %w[Workflow Command Query IoQuery IoCommand LegacyQuery LegacyCommand Shape]
 
-    # The application's own bases and the framework's. Shipshape names them so kinds can be
-    # resolved — and so `OperationsAreLeaves` knows a class inheriting one is a first level,
-    # not a second — but it does not write them, because they already exist.
+    # Named so kinds resolve and so a class inheriting one reads as a first level. Shipshape
+    # does not write them, because they already exist.
     theirs = %w[
       ApplicationRecord ActiveRecord::Base
       ApplicationViewComponent ViewComponent::Base

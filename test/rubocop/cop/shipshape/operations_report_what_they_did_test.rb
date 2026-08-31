@@ -50,8 +50,7 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
     assert_empty check(RECORDING)
   end
 
-  # **Nothing is held to a thing it never opted into.** No `audit_log.rb` beside it means this
-  # application has no trail to keep.
+  # No `audit_log.rb` beside it means this application has no trail to keep.
   def test_an_application_without_an_audit_log_is_left_alone
     assert_empty offences(SILENT, cop_class: COP, path: "app/shipshape/command.rb", files: {})
   end
@@ -67,7 +66,6 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
       "**A workflow performs no act**, so it records nothing of its own: each step records what it did, and an entry here would be a second row saying the rows beneath it happened. Holding the installed `workflow.rb` to an audit call made a correct install fail this cop."
   end
 
-  # A read is not an attempt to change anything.
   def test_a_query_is_not_held_to_it
     %w[query io_query legacy_query].each do |name|
       assert_empty check(SILENT, "app/shipshape/#{name}.rb"), name

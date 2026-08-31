@@ -52,7 +52,6 @@ class CommandsProveIdempotenceTest < Minitest::Test
                        "# Idempotent: settled_at guards the second call.\nclass X; end\n")
   end
 
-  # Found by file name across every root, so layout does not decide the answer.
   def test_the_test_may_live_anywhere_under_a_declared_root
     %w[test/settle_invoice_test.rb spec/commands/settle_invoice_spec.rb
        test/app/commands/settle_invoice_test.rb].each do |path|
@@ -60,15 +59,12 @@ class CommandsProveIdempotenceTest < Minitest::Test
     end
   end
 
-  # A test for a different command does not settle this one.
   def test_another_commands_test_does_not_count
     assert_equal 1, check("test/commands/other_test.rb" => "# Idempotent: whatever.\n").length
   end
 
-  # **A namespaced command needs a claim like any other.** `each_ancestor(:class, :module)`
-  # skipped every command declared inside a module, which in most applications is most of
-  # them — and the `Kinds` glob is `app/commands/**/*.rb` precisely to reach those
-  # subdirectories.
+  # `each_ancestor(:class, :module)` skipped every command declared inside a module, which in
+  # most applications is most of them.
   def test_a_command_inside_a_module_is_not_skipped
     found = offences("module Billing\n  class SettleInvoice < Command\n    def call; end\n  end\nend\n",
                      cop_class: COP, path: "app/commands/billing/settle_invoice.rb",

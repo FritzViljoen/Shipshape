@@ -59,14 +59,12 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_empty check("SettleInvoice.call(actor: actor, invoice_id: 1)")
   end
 
-  # The name, which a label table and a seed are keyed by.
   def test_the_class_level_name_is_allowed
     assert_empty check("b = SettleInvoice.permission\n")
   end
 
-  # **The predicate and its respelling are both refused.** `permits?` is private, and
-  # `permissions` asks the same question in more words — and disagrees with the door for an
-  # anonymous operation, so a view using it hides a button the door would open.
+  # Both refused: `permissions` asks the same question in more words, and disagrees with the
+  # door for an anonymous operation.
   def test_asking_whether_an_actor_may_is_refused_in_either_spelling
     assert_equal 1, check("c = SettleMonth.permits?(actor)\n").length
     assert_equal 1, check("d = SettleMonth.permissions.all? { |p| actor.may?(p) }\n").length
@@ -87,7 +85,6 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_includes found.first.message, "answers success for work that has not been done"
   end
 
-  # The same command deferred from a command is the ordinary shape, and stays allowed.
   def test_a_command_may_still_defer
     assert_empty check("SettleInvoice.call_later(actor: actor)\n")
   end

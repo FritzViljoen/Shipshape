@@ -4,8 +4,7 @@ require "test_helper"
 
 # Watched to fail: making `declaration?` answer false reddens the `every` and `recurring` tests;
 # making `scheduler?` answer false reddens the Sidekiq and Clockwork tests; adding any constant-
-# string clause back reddens the cron-in-a-constant test, which is the shape that would fail
-# correct code: the value the offence's own `instead:` recommends.
+# string clause back reddens the cron-in-a-constant test.
 class NothingSchedulesWorkTest < Minitest::Test
   include CopRunner
 
@@ -33,7 +32,6 @@ class NothingSchedulesWorkTest < Minitest::Test
     assert_includes message, "runs under nobody's name"
     assert_includes message, "revoking a person does not stop what they set running"
     assert_includes message, "runs_as_id: treasurer.id"
-    # A route, not a class name: the schedule stores a name the outside already relies on.
     assert_includes message, 'path:       "/invoices/settle"'
   end
 
@@ -51,9 +49,8 @@ class NothingSchedulesWorkTest < Minitest::Test
     assert_equal 1, check("Clockwork.every(1.day, 'settle')\n").length
   end
 
-  # **The constant clause was removed rather than narrowed.** `NIGHTLY = "0 3 * * *"` is the
-  # value the offence's own `instead:` hands to `CreateSchedule`, so following the fix earned
-  # the offence — and a guard that fails its own advice is one nobody keeps.
+  # The constant clause was removed, not narrowed: `NIGHTLY = "0 3 * * *"` is the value the
+  # offence's own `instead:` recommends, so following the fix earned the offence.
   def test_a_cron_string_in_a_constant_is_not_an_offence
     assert_empty check(<<~RUBY)
       NIGHTLY = "0 3 * * *"
@@ -62,12 +59,10 @@ class NothingSchedulesWorkTest < Minitest::Test
     RUBY
   end
 
-  # `every` on a receiver is somebody else's method — an enumerable, a builder, a test helper.
   def test_every_on_a_receiver_is_not_a_declaration
     assert_empty check("collection.every(1.day) { |x| x }\n")
   end
 
-  # Without a block it is not the DSL. `every` as a plain call is a different method.
   def test_every_without_a_block_is_not_a_declaration
     assert_empty check("total = every(1.day)\n")
   end

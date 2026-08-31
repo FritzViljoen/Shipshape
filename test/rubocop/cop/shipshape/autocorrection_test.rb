@@ -30,20 +30,17 @@ class AutocorrectionTest < Minitest::Test
     assert_corrected "params[:name].to_s", "text_param!(:name)", RuboCop::Cop::Shipshape::NoSilentCoercion
   end
 
-  # `params[key]` names a parameter the source does not contain.
   def test_a_non_literal_key_is_reported_and_left_alone
     assert_unchanged "params[key].to_i", RuboCop::Cop::Shipshape::NoSilentCoercion
   end
 
-  # The primary key, positionally. Rails makes it an integer.
   def test_a_primary_key_lookup_is_rewritten
     assert_corrected "ThingRecord.find(params[:id])", "ThingRecord.find(integer_param!(:id))",
                      RuboCop::Cop::Shipshape::NoUnparsedLookup
   end
 
-  # Found by running the correction over lobsters, where `short_id` is base 36: rewriting
-  # this to `integer_param!` would have broken every one of those lookups. A `_id` suffix
-  # says nothing about the type — only the column does, and it is not in the source.
+  # Over lobsters `short_id` is base 36, so rewriting to `integer_param!` would have broken
+  # every one of those lookups. A `_id` suffix says nothing about the type.
   def test_a_suffixed_key_is_reported_and_left_alone
     assert_unchanged "ThingRecord.where(short_id: params[:story_id])",
                      RuboCop::Cop::Shipshape::NoUnparsedLookup
@@ -55,11 +52,8 @@ class AutocorrectionTest < Minitest::Test
     assert_unchanged "ThingRecord.where(state: params[:state])", RuboCop::Cop::Shipshape::NoUnparsedLookup
   end
 
-  # **The vulnerability this cop nearly shipped.** Rewriting a session read to a parameter
-  # read moves the value from the server to the query string. Over lobsters this turned
-  # `params[:state] != session[:github_state]` into a comparison of a parameter with itself
-  # — an OAuth state check that always passes — and put the 2FA re-auth window under the
-  # requester's control.
+  # The vulnerability this cop nearly shipped: rewriting a session read moves the value to the
+  # query string, turning an OAuth state check into a comparison of a parameter with itself.
   def test_only_params_is_ever_rewritten
     %w[session cookies env request].each do |source|
       assert_unchanged "#{source}[:token].to_s", RuboCop::Cop::Shipshape::NoSilentCoercion
@@ -73,7 +67,6 @@ class AutocorrectionTest < Minitest::Test
     assert_includes corrected, "text_param!(:state) != session[:state].to_s"
   end
 
-  # A nested read names a different parameter than its inner key.
   def test_a_nested_or_defaulted_read_is_left_alone
     assert_unchanged "params[:filter][:page].to_i", RuboCop::Cop::Shipshape::NoSilentCoercion
     assert_unchanged 'params.fetch(:page, "7").to_i', RuboCop::Cop::Shipshape::NoSilentCoercion
@@ -102,16 +95,12 @@ class AutocorrectionTest < Minitest::Test
                      RuboCop::Cop::Shipshape::NoInlineParamParse
   end
 
-  # `date_param!` takes a zone, and which zone is a decision the source does not contain.
-  # `a-time-names-its-zone` says a zone nobody stated is a fact nobody declared — inventing
-  # one here would be the cop writing the defect it forbids.
+  # `date_param!` takes a zone, and inventing one is the cop writing the defect it forbids.
   def test_a_date_parse_is_reported_and_left_alone
     assert_unchanged "Date.parse(params[:on])", RuboCop::Cop::Shipshape::NoInlineParamParse
   end
 
-  # One `private`, scaffolded above the first helper. `initialize` and `call` stay public:
-  # what keeps a caller out of them is `Shipshape/OnlyTheDoorIsCalled`, which refuses
-  # `Settle.new` at the call site, so nobody can hold an operation to call them on.
+  # `call` stays public: `Shipshape/OnlyTheDoorIsCalled` refuses `Settle.new` at the call site.
   def test_a_public_operation_is_corrected_by_scaffolding_private
     source = <<~RUBY
       class Settle
@@ -164,8 +153,7 @@ class AutocorrectionTest < Minitest::Test
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, source)
 
-      # Merge rather than replace: overwriting the cop's own entry dropped `OperationKinds`,
-      # so the cop decided the file was not an operation and never fired.
+      # Merge, not replace: overwriting the cop's entry dropped `OperationKinds` silently.
       own = { "Enabled" => true }.merge(layout.fetch(cop_class.cop_name, {}))
       config = RuboCop::Config.new(layout.merge(cop_class.cop_name => own),
                                    File.join(root, ".rubocop.yml"))

@@ -6,8 +6,6 @@ require "test_helper"
 # and making `matches?` answer true for Boolean reddens the three Boolean cases. Restoring each
 # returns them to green. A guard nobody has seen fail reads as coverage.
 class TypedArgumentsTest < Minitest::Test
-  # A stand-in caller, written the way the law asks: a hand-written initializer, one guard
-  # per keyword, no macro.
   class Subject
     include Shipshape::TypedArguments
 
@@ -46,8 +44,6 @@ class TypedArgumentsTest < Minitest::Test
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: ["a", 2], labels: {}) }
   end
 
-  # A Hash with the right keys and the wrong values is the commoner mistake, and the one a
-  # bare Hash check misses.
   def test_a_hash_is_checked_on_both_sides
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: { "a" => "1" }) }
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: { a: 1 }) }
@@ -76,14 +72,12 @@ class TypedArgumentsTest < Minitest::Test
     assert_includes error.message, "expected Boolean, got String"
   end
 
-  # "Not supplied" and "supplied as false" are different facts, and `absence-is-absence`
-  # refuses to let one stand for the other. A keyword that may be absent says so.
+  # "Not supplied" and "supplied as false" are different facts; a keyword that may be absent
+  # says so.
   def test_nil_is_not_false
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: nil) }
   end
 
-  # Truthiness is not a Boolean. Anything else accepted here would be a coercion, and this
-  # guard asserts rather than coercing.
   def test_a_truthy_value_is_not_a_boolean
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: 1) }
     assert_raises(ArgumentError) { Subject.new(name: "x", count: 1, tags: [], labels: {}, tie: Object.new) }
@@ -95,8 +89,7 @@ class TypedArgumentsTest < Minitest::Test
       "A gem that reopened TrueClass and FalseClass would change two objects nobody owns, from a dev dependency, invisibly. Boolean is a name and is included nowhere."
   end
 
-  # The guard is private, so it cannot be reached from outside the object that declared
-  # its own arguments — the boundary is the constructor, not a utility anyone may call.
+  # Private, so the boundary is the constructor rather than a utility anyone may call.
   def test_the_guard_is_private
     refute_respond_to Subject.new(name: "x", count: 1, tags: [], labels: {}), :typed
   end

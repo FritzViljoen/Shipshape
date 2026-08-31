@@ -53,8 +53,7 @@ class NoTestFactoriesTest < Minitest::Test
     assert_includes message, "every other test silently depends on"
   end
 
-  # **A cop that fails correct code gets disabled.** `create` and `build` are ordinary words,
-  # and a suite that never had a factory still contains both.
+  # `create` and `build` are ordinary words, and a suite with no factory contains both.
   def test_create_on_a_value_is_not_a_factory
     assert_empty check(<<~RUBY)
       record = create(attributes)
@@ -67,12 +66,10 @@ class NoTestFactoriesTest < Minitest::Test
     assert_empty check("client.create(:booking)\nbuilder.build(:thing)\n")
   end
 
-  # The state a test is allowed to reach for directly: a thing no operation creates.
   def test_a_plain_lookup_is_not_a_factory
     assert_empty check(%(currency = Currency.find_by!(code: "ZAR")\n))
   end
 
-  # Calling the operations is the shape the law asks for, so it must be silent.
   def test_building_state_through_operations_is_the_shape
     assert_empty check(<<~RUBY)
       booking = CreateBooking.test_call(offer_id: offer.id).value

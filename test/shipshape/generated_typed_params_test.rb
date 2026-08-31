@@ -12,8 +12,7 @@ class GeneratedTypedParamsTest < Minitest::Test
   Shipshape::Install.new(root: root).call
   require File.join(root, "app/shipshape/typed_params.rb")
 
-  # A controller, minus Rails. `rescue_from` is absent, so BadParam surfaces as itself and
-  # the test asserts on the refusal rather than on a redirect.
+  # `rescue_from` is absent, so BadParam surfaces as itself rather than as a redirect.
   class Action
     include TypedParams
 
@@ -98,8 +97,7 @@ class GeneratedTypedParamsTest < Minitest::Test
     assert_equal 18, at.hour
   end
 
-  # There is no ambient zone to fall back on: the keyword is required, so an action that
-  # forgot it fails at the call site rather than silently reading the server's.
+  # The keyword is required, so an action that forgot it fails rather than reading the server's.
   def test_the_zone_is_required
     assert_raises(ArgumentError) { action(at: "2026-03-03").date_param(:at) }
   end

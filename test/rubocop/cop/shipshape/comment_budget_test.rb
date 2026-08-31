@@ -35,8 +35,7 @@ class CommentBudgetTest < Minitest::Test
     assert_empty check("# one clause\n#{"CANARY = 1\n" * 10}")
   end
 
-  # A `#` inside a heredoc is the string's content. A cop's `instead:` example is written that
-  # way, and charging it would make the cops delete their own messages.
+  # Charging a heredoc's `#` would make the cops delete their own messages.
   def test_a_hash_inside_a_heredoc_is_not_a_comment
     assert_empty check(<<~'RUBY')
       EXAMPLE = <<~TEXT
@@ -46,13 +45,11 @@ class CommentBudgetTest < Minitest::Test
     RUBY
   end
 
-  # Both are addressed to the tool, not the reader.
   def test_a_directive_is_not_charged
     assert_empty check("# frozen_string_literal: true\nCANARY = 1\n")
     assert_empty check("# rubocop:disable Style/Doc\nCANARY = 1\n# rubocop:enable Style/Doc\n")
   end
 
-  # The line was already there. A reader pays nothing extra for what sits at its end.
   def test_a_trailing_comment_is_not_charged
     assert_empty check("CANARY = 1 # why this number\n")
   end

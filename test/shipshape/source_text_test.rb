@@ -10,8 +10,7 @@ require "shipshape/mixins"
 # nuisance; what actually happened is that `Kinds` and `Mixins` read *other* files to answer about
 # the file being inspected, so one bad byte anywhere in a governed tree took every kind-scoped cop
 class SourceTextTest < Minitest::Test
-  # Valid Ruby, one byte that is not valid UTF-8. `File.read` returns it happily and the
-  # first regular expression to touch it raises.
+  # `File.read` returns it happily and the first regular expression to touch it raises.
   LATIN = "class Latin < Command\n  def call; \"caf\xE9\"; end\nend\n"
 
   def test_a_regular_expression_survives_an_invalid_byte
@@ -45,8 +44,7 @@ class SourceTextTest < Minitest::Test
     end
   end
 
-  # **The blast radius.** `Mixins` reads every operation before it can judge one module, so
-  # the bad file decided the answer for a module that has nothing to do with it.
+  # `Mixins` reads every operation to judge one module, so the bad file decided its answer.
   def test_one_unreadable_file_does_not_blind_the_mixin_scan_to_the_rest
     tree = {
       "app/commands/latin.rb" => LATIN,

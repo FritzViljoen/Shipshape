@@ -11,11 +11,9 @@ require "shipshape"
 
 # Runs one cop over one source string and hands back its offences.
 module CopRunner
-  # `other_cops` carries configuration a cop reads from a sibling — the layout is declared
-  # once, on Shipshape/CallGraph, so a cop that needs it reads it from there.
-  # `files` is either a list of paths, written empty, or a Hash of path => source. Write
-  # real bodies whenever the kind is decided by the superclass rather than by the path —
-  # an empty file has no superclass, so it would quietly test the fallback instead.
+  # `other_cops` carries the layout, declared once on Shipshape/CallGraph. `files` takes paths
+  # or path => source; write real bodies when the superclass decides the kind, because an empty
+  # file has none and would quietly test the path fallback instead.
   def offences(source, cop_class:, cop_config: {}, path:, files: [], other_cops: {})
     Dir.mktmpdir("shipshape") do |root|
       write_tree(root, files)

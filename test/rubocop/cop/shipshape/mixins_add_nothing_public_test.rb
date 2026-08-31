@@ -26,12 +26,10 @@ class MixinsAddNothingPublicTest < Minitest::Test
 
   PATH = "app/models/concerns/paying.rb"
 
-  # The command includes it, so the module inherits the command's rules.
   MIXED_INTO_A_COMMAND = {
     "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\n  include Paying\n\n  def call; end\nend\n",
   }.freeze
 
-  # Same module, same file, included by a shape instead. A shape's job is to be read.
   MIXED_INTO_A_SHAPE = {
     "app/shapes/invoice.rb" => "class Invoice < Shape\n  include Paying\nend\n",
   }.freeze
@@ -52,7 +50,6 @@ class MixinsAddNothingPublicTest < Minitest::Test
     assert_includes message, "module Paying\n      private"
   end
 
-  # The whole reason this is a cop of its own rather than a clause on the class cop.
   def test_the_same_module_is_left_alone_when_only_a_shape_includes_it
     assert_empty check("module Paying\n  def total; end\nend\n", files: MIXED_INTO_A_SHAPE)
   end
@@ -72,8 +69,7 @@ class MixinsAddNothingPublicTest < Minitest::Test
     assert_includes found.first.message, "An operation exposes no state"
   end
 
-  # `def self.x` lands on the module object and never travels through `include`, so no
-  # operation gains it.
+  # `def self.x` lands on the module object and never travels through `include`.
   def test_a_module_class_method_is_not_this_cops_business
     assert_empty check("module Paying\n  def self.build; end\nend\n")
   end

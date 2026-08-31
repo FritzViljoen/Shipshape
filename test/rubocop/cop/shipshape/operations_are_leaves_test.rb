@@ -16,19 +16,14 @@ class OperationsAreLeavesTest < Minitest::Test
         "command" => ["app/commands/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      # `ApplicationMailer` is named so kinds resolve; shipshape does not install it.
       "BaseClasses" => { "command" => %w[Command ApplicationMailer], "shape" => ["Shape"] },
       "Matrix" => { "command" => ["shape"], "shape" => [] },
     },
   }.freeze
 
-  # The superclass has to exist on disk: the kind is decided by what a class inherits.
   TREE = {
     "app/commands/log_in.rb" => "class LogIn < Command\n  def anonymous_call; end\nend\n",
-    # Filed with the operations it is the base class for — which is where stratum keeps it,
-    # and where resolving the constant answers "command".
     "app/commands/command.rb" => "class Command\nend\n",
-    # A plain class in a governed tree: `query` by path, inheriting nothing of ours.
     "app/commands/theirs.rb" => "class Theirs\n  def self.call; end\nend\n",
     "app/commands/a_mailer.rb" => "class AMailer < ApplicationMailer\nend\n",
   }.freeze
@@ -70,28 +65,22 @@ class OperationsAreLeavesTest < Minitest::Test
     assert_includes found.first.message, "owns `self.call`, which is the door"
   end
 
-  # The instance method is the one every operation must define.
   def test_the_instance_call_is_not_the_door
     assert_empty check("class AdminUpload < Command\n  def call\n    success(:done)\n  end\nend\n")
   end
 
-  # **A base class filed with its operations is still a base class.** Resolving `Command`
-  # in a repository that keeps `app/commands/command.rb` answers "command", so every correct
-  # operation looked like a second level — 22 of stratum's 80 files, all false.
+  # A base class filed with its operations is still a base class: resolving `Command` in a
+  # repository keeping `app/commands/command.rb` made 22 of stratum's 80 files false positives.
   def test_a_base_class_kept_beside_its_operations_is_not_a_second_level
     assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
   end
 
-  # **Depth is this canon's rule about this canon's base classes.** A plain class in a
-  # governed tree resolves to an operation kind by path alone; inheriting from one is
-  # somebody else's hierarchy, and applying our depth rule to it is a rule nobody agreed to.
+  # A plain class in a governed tree resolves to a kind by path alone, and is not ours.
   def test_a_parent_that_inherits_nothing_of_ours_is_not_a_second_level
     assert_empty check("class AdminUpload < Theirs\n  def call; end\nend\n")
   end
 
-  # `ApplicationMailer` is named in the layout so kinds resolve, not because this canon
-  # owns Rails' hierarchy. Applying our depth rule to it fired on every mailer in
-  # chatwoot — two levels below somebody else's base class is their business.
+  # Applying the depth rule to `ApplicationMailer` fired on every mailer in chatwoot.
   def test_a_framework_hierarchy_has_no_depth_rule
     assert_empty check("class WelcomeMailer < AMailer\n  def call; end\nend\n")
   end
@@ -101,7 +90,6 @@ class OperationsAreLeavesTest < Minitest::Test
                                                         path: "app/shapes/line.rb", files: TREE, other_cops: LAYOUT)
   end
 
-  # Depth is measured through governed files only.
   def test_inheriting_from_something_the_layout_does_not_declare_is_left_alone
     assert_empty check("class AdminUpload < ActiveRecord::Base\nend\n")
   end

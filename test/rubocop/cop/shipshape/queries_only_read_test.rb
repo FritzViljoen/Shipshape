@@ -58,12 +58,10 @@ class QueriesOnlyReadTest < Minitest::Test
     assert_empty check("PersonRecord.find(1)")
   end
 
-  # A command may write. That is what it is for.
   def test_a_command_may_write
     assert_empty check("PersonRecord.create!(name: \"x\")", COMMAND)
   end
 
-  # `save` on something that is not a record is somebody else's business.
   def test_a_writer_name_on_something_that_is_not_a_record_is_left_alone
     assert_empty check("Place.create!(code: \"ZA\")")
   end

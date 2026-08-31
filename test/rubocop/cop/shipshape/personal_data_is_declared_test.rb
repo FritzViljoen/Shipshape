@@ -28,7 +28,6 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     assert_includes message, ":retain_with_reason"
   end
 
-  # Four answers, and every one of them settles the question.
   def test_a_classified_column_is_accepted
     %w[anonymise delete_row retain_with_reason not_personal].each do |route|
       assert_empty check(create_table("t.string \"email\""), registry(email: route)),
@@ -36,7 +35,6 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     end
   end
 
-  # `class_name` matches nothing here; `contact_email` matches by suffix.
   def test_it_matches_a_name_and_a_suffix
     assert_empty check(create_table("t.string \"widget\""))
     assert_equal 1, check(create_table("t.string \"contact_email\"")).length
@@ -52,9 +50,8 @@ class PersonalDataIsDeclaredTest < Minitest::Test
     assert_equal 2, check(body).length
   end
 
-  # **A boolean cannot hold a person.** `is_from_email` and `show_email` were two of six
-  # findings against two real schemas, and asking somebody to classify a flag is a guard
-  # firing on correct code.
+  # A boolean cannot hold a person: `is_from_email` and `show_email` were two of six findings
+  # against two real schemas.
   def test_a_boolean_is_never_reported_whatever_it_is_called
     assert_empty check(create_table("t.boolean \"is_from_email\", default: false"))
     assert_empty check(create_table("t.boolean \"show_email\""))
@@ -69,7 +66,6 @@ class PersonalDataIsDeclaredTest < Minitest::Test
       "**The registry `shipshape install` writes, verbatim.** Its commented-out examples used to clear `email` and `ip_address` on a fresh install, while `COLUMNS` was genuinely empty — the feature was born blind to the two commonest personal columns and the build was green."
   end
 
-  # Prose is not a declaration.
   def test_a_comment_naming_a_column_does_not_clear_it
     registry = "module PersonalData\n  # TODO: decide about \"passport\"\n  COLUMNS = {}.freeze\nend\n"
 
