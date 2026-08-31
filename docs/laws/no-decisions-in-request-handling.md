@@ -68,6 +68,18 @@ same wherever a coordinator decides, and `tell-dont-ask` is the principle either
   arriving as a value. The **data-access half is held separately**, by
   `Shipshape/CallGraph`: request handling may not reach a record, because the matrix does not
   give it that edge.
+
+  **Two conditions, and no others: `success?` and `present?`.** A command answers an outcome
+  and a query answers `nil`, a shape, or an array of shapes — so `present?` is correct across
+  all three, and "did it find anything" has one spelling whether the query answers one or many.
+  Every other test is a rule. `unless` and `!` are the same branch spelled differently and are
+  allowed; **`respond_to do |format|` is how a format is chosen**, and it is a dispatch rather
+  than a conditional, so it is untouched. `if request.xhr?` is not — `respond_to` names both
+  outcomes, and a conditional names one and hides the other.
+- **Guard's limit:** it reads the **condition**, so work done before it is invisible: an action
+  may compute anything it likes and test `success?` on the result. `.present?` is `!blank?`, so
+  a shape answering `empty?` would read as absent — that hole is closed from the other side by
+  `Shipshape/PresenceIsNotRedefined`, not here.
 - **Guard's limit:** **this is the weakest guard in the canon and it should be read as
   partial.** Telling a presentation conditional from a domain one is a judgement in the
   general case, and the cop does not attempt it: it fires on **any** message sent to an

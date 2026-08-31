@@ -20,7 +20,37 @@ find.
 and the caller has no reason to think about ordering, retries or idempotence. A command
 announces all three by being a command.
 
+## What a query answers, and how a caller asks
+
+**Three answers, and no envelope: `nil`, a shape, or an array of shapes.** Finding nothing is
+an answer rather than a failure, so a lookup that found no row says `nil` and a list that
+matched no rows says `[]`. A `Result` here would make every caller unwrap a value that was
+never in doubt. A refusal still raises.
+
+`nil` was refused at first, and the base class was wrong rather than the law: the commonest
+read in any application — find one row by code — had no legal answer, and the workaround was
+to wrap it in a one-element array, which is a shape of answer nobody wanted.
+
+**The caller asks `.present?`, of the call itself.**
+
+```ruby
+if FindInvitation.call(code: text_param!(:code)).present?
+```
+
+That one predicate is correct across all three answers — `nil` and `[]` are absent, a shape
+and an array of shapes are present — so "did it find anything" has one spelling whether the
+query answers one or many. Asking a **local** instead is refused: nothing at the condition then
+says which operation answered or what it answered, and the reader has to trace the local back
+before they can tell an outcome from a rule. That is
+[`no-decisions-in-request-handling`](no-decisions-in-request-handling.md)'s half of this.
+
 - **Principle:** `good-boundaries-make-good-neighbours`
+- **Guard:** `Shipshape/PresenceIsNotRedefined`, over the shape tree. Fails `present?`, `blank?`
+  or `empty?` defined on a shape — `blank?` consults `empty?`, so banning one name leaves the
+  answer decidable two names over. It keeps `.present?` meaning one thing at the call site:
+  whether the query found anything. The other half is
+  [`no-decisions-in-request-handling`](no-decisions-in-request-handling.md), which is what makes
+  `.present?` the only question an action may ask of an answer.
 - **Guard:** `Shipshape/QueriesOnlyRead`, over `query`, `io_query` and `legacy_query`. Fails a
   known writing message — `create!`, `update!`, `save`, `destroy_all`, `update_all`,
   `insert_all` and the rest — sent to a chain rooted in a constant that resolves to a record.

@@ -2,10 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail: making `asks` return `[]` reddens every offence test; dropping `OUTCOMES` from
-# the skip list reddens the `result.success?` test, which is the one shape the whole rule exists to
-# permit; making `one_of?` answer true unconditionally reddens the command test; emptying `WRITES`
-# reddens the write-described-as-a-write test.
+# Watched to fail: adding a name to `PERMITTED` reddens the only-two tests, and emptying it
+# reddens the `success?` and `present?` tests — the pair that matters. Making `asks` return
+# `[]` reddens the ivar test; emptying `WRITES` reddens the write-described-as-a-write test.
 class NoDecisionsInRequestHandlingTest < Minitest::Test
   include CopRunner
 
@@ -80,14 +79,33 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
   end
 
   # A property of the call being served, not of the domain.
-  def test_a_question_about_the_request_is_not_a_domain_decision
+  # Format dispatch has one spelling, and it is not a conditional. `respond_to` names each
+  # outcome and its response, which is what this layer is for.
+  def test_respond_to_is_how_a_format_is_chosen
     assert_empty check(<<~RUBY)
+      class BookingsController
+        def show
+          respond_to do |format|
+            format.html { render :show }
+            format.json { render json: @booking }
+          end
+        end
+      end
+    RUBY
+  end
+
+  def test_asking_the_request_is_still_a_branch
+    found = check(<<~RUBY)
       class BookingsController
         def show
           render layout: false if request.xhr?
         end
       end
     RUBY
+
+    assert_equal 1, found.length,
+                 "`respond_to` is the spelling for this, and it names both outcomes"
+    assert_includes found.first.message, "tests `success?` and `present?`, and nothing else"
   end
 
   def test_a_decision_nested_in_a_compound_condition_is_still_a_decision
@@ -147,6 +165,63 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
 
     assert_includes message, "writing through it with `save` and branching on the result"
     refute_includes message, "asking it `save`"
+  end
+
+  # `present?` is correct across all three answers a query may give: `nil` and `[]` are absent,
+  # a shape and an array of shapes are present.
+  def test_present_asks_whether_a_query_found_anything
+    assert_empty check(<<~RUBY)
+      class BookingsController
+        def show
+          if FindBooking.call(id: 1).present?
+            render :show
+          else
+            redirect_to "/"
+          end
+        end
+      end
+    RUBY
+  end
+
+  # A query may answer nothing, so the caller has to ask whether it found any — and `present?`
+  # is the one spelling. Bare truthiness and its cousins say the same thing in other words.
+  def test_only_present_asks_whether_a_query_found_anything
+    %w[booking booking.nil? booking.any?].each do |condition|
+      found = check(<<~RUBY)
+        class BookingsController
+          def show
+            booking = FindBooking.call(id: 1)
+
+            if #{condition}
+              render :show
+            else
+              redirect_to "/"
+            end
+          end
+        end
+      RUBY
+
+      assert_equal 1, found.length, condition
+      assert_includes found.first.message, "tests `success?` and `present?`, and nothing else"
+    end
+  end
+
+  # The receiver is not the test. Walking every node made this an offence, and it is the shape
+  # the whole rule exists to permit.
+  def test_a_command_result_is_still_the_shape
+    assert_empty check(<<~RUBY)
+      class BookingsController
+        def update
+          result = CancelBooking.call(id: 1)
+
+          if result.success?
+            redirect_to "/"
+          else
+            render :edit
+          end
+        end
+      end
+    RUBY
   end
 
   private

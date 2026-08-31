@@ -25,6 +25,7 @@ class IoQuery
   end
 
   def self.shapes?(answer)
+    return true if answer.nil?
     return answer.all? { |entry| entry.is_a?(Shape) } if answer.is_a?(Array)
 
     answer.is_a?(Shape)

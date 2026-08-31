@@ -27,6 +27,8 @@ class CanonTest < Minitest::Test
   PROCEDURE_WOULD_NOT_HELP = {
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
+    "PresenceIsNotRedefined" =>
+      "the fix is to delete a method, and nothing moves.",
     "PresentationHoldsNoRecords" =>
       "the fix is one line in a base class the application already has, and nothing moves.",
     "CommentBudget" =>

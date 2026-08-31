@@ -560,6 +560,17 @@ Shipshape/PersistenceHoldsNoBehaviour:
   Kinds:
     - record
 
+Shipshape/PresenceIsNotRedefined:
+  Description: >-
+    A shape does not answer `present?`, `blank?` or `empty?` for itself. Request handling tests
+    `present?` and nothing else, and it means one thing: did the query find anything.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - shape
+
 Shipshape/ShapeIsComposed:
   Description: >-
     A domain object holds another; it never copies its fields. A flattened field is the

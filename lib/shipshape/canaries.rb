@@ -64,6 +64,11 @@ module Shipshape
           1
         end
       RUBY
+      "Shipshape/PresenceIsNotRedefined" => { kind: "shape", body: <<~RUBY },
+        def present?
+          false
+        end
+      RUBY
       "Shipshape/ShapeIsComposed" => { kind: "shape", body: <<~RUBY },
         def initialize(supplier_name:, supplier_email:)
           @supplier_name = supplier_name
