@@ -12,15 +12,22 @@ class CommentBudgetTest < Minitest::Test
 
   PATH = "lib/anything.rb"
 
+  # A file too small for a tenth of a line can still say what it is.
+  def test_the_budget_is_never_less_than_one_line
+    assert_empty check("# what this is\n#{"CANARY = 1\n" * 3}")
+    assert_equal 1, check("# what this is\n# and why\n#{"CANARY = 1\n" * 3}").length
+  end
+
   def test_prose_over_a_tenth_of_the_code_is_an_offence
     found = check(<<~RUBY)
       # one
       # two
+      # three
       CANARY = 1
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "2 comment lines against a budget of 0"
+    assert_includes found.first.message, "3 comment lines against a budget of 1"
   end
 
   def test_the_offence_carries_the_reason_and_an_example

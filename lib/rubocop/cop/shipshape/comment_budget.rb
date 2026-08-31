@@ -11,6 +11,9 @@ module RuboCop
 
         MAX = 10
 
+        # One line, always: a file too small for a tenth of a line can still say what it is.
+        FLOOR = 1
+
         # Addressed to the tool, not the reader: a magic comment and a `rubocop:` directive are
         # both machinery, and neither is prose anybody has to keep true.
         DIRECTIVE = /\A#\s*(frozen_string_literal|encoding|warn_indent|shareable_constant_value|rubocop):/.freeze
@@ -19,7 +22,7 @@ module RuboCop
           return if processed_source.blank?
 
           prose = own_line_comments
-          budget = code_lines * max / 100
+          budget = [code_lines * max / 100, FLOOR].max
           return if prose.length <= budget
 
           add_offense(prose.first, message: message_for(prose.length, budget))

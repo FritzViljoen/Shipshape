@@ -25,8 +25,9 @@ implements, or code that would be clearer named than described.
 - **Guard:** `Shipshape/CommentBudget`, over every `.rb` file it is pointed at, in this gem
   and in a consuming application. It counts **comment tokens on their own line**, so a `#`
   inside a heredoc — a cop's `instead:` example, a fixture — is code and is not charged.
-  Magic comments are pragmas and are not charged either. Fails the first comment in the file,
-  naming the count and the budget.
+  Magic comments and `rubocop:` directives are addressed to the tool, not the reader, and are
+  not charged either. **The budget is never less than one line**, so a file too small for a
+  tenth of a line can still say what it is. Fails the first comment, naming count and budget.
 - **Guard's limit:** it counts, and cannot read. Whether the comments that fit are the ones
   worth keeping is a judgement no cop makes: a file may spend its whole budget restating the
   next line and pass. It also sees only Ruby — the `.tt` templates this gem ships are ERB
