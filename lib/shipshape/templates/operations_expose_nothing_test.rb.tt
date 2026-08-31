@@ -1,21 +1,36 @@
 # frozen_string_literal: true
 
+<%- if rspec -%>
+require "rails_helper"
+
+# `one-operation-one-class`, asked of the loaded app.
+RSpec.describe "operations expose nothing" do
+<%- else -%>
 require "test_helper"
 
 # `one-operation-one-class`, asked of the loaded app.
 class OperationsExposeNothingTest < ActiveSupport::TestCase
+<%- end -%>
   DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
 
   ENTRY = %i[call anonymous_call].freeze
 
+<%- if rspec -%>
+  it "exposes nothing its base class did not" do
+<%- else -%>
   def test_no_operation_exposes_anything_its_base_class_did_not
+<%- end -%>
     exposed = operations.filter_map do |operation|
       extra = public_additions(operation)
 
       "#{operation}: #{extra.sort.join(', ')}" unless extra.empty?
     end
 
+<%- if rspec -%>
+    expect(exposed).to eq([]), <<~WHY
+<%- else -%>
     assert_equal [], exposed, <<~WHY
+<%- end -%>
       An operation answers `call` and nothing else. Each name above is public on that
       operation and is not on its base class, so it arrived from the class itself or from
       something it mixes in.

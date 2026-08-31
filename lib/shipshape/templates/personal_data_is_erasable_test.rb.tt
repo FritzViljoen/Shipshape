@@ -1,10 +1,18 @@
 # frozen_string_literal: true
 
+<%- if rspec -%>
+require "rails_helper"
+<%- else -%>
 require "test_helper"
+<%- end -%>
 
 # Read from the schema, so a new column fails this until it is classified. It proves the
 # inventory is complete, never that an erasure is correct.
+<%- if rspec -%>
+RSpec.describe "personal data is erasable" do
+<%- else -%>
 class PersonalDataIsErasableTest < ActiveSupport::TestCase
+<%- end -%>
   NAMES = %w[
     email phone mobile telephone address postcode zipcode ip_address
     first_name last_name full_name surname forename maiden_name
@@ -16,12 +24,20 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
     NAMES.any? { |name| column == name || column.end_with?("_#{name}") }
   end
 
+<%- if rspec -%>
+  it "classifies every column the database holds" do
+<%- else -%>
   def test_every_column_the_database_holds_is_classified
+<%- end -%>
     unclassified = live_columns.reject do |table, column|
       PersonalData.declared?(table, column)
     end
 
+<%- if rspec -%>
+    expect(unclassified.map { |t, c| "#{t}.#{c}" }.sort).to eq([]), <<~WHY
+<%- else -%>
     assert_equal [], unclassified.map { |t, c| "#{t}.#{c}" }.sort, <<~WHY
+<%- end -%>
       These columns exist in the database and are not in PersonalData::COLUMNS.
 
       Each one is a decision somebody has to make once: does it hold something about a
@@ -33,24 +49,44 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
     WHY
   end
 
+<%- if rspec -%>
+  it "names only routes the registry knows" do
+<%- else -%>
   def test_every_route_is_one_the_registry_knows
+<%- end -%>
     unknown = PersonalData::COLUMNS.flat_map do |table, columns|
       columns.reject { |_, route| PersonalData::ROUTES.include?(route) }
              .map { |column, route| "#{table}.#{column} => #{route.inspect}" }
     end
 
+<%- if rspec -%>
+    expect(unknown.sort).to eq([])
+<%- else -%>
     assert_equal [], unknown.sort
+<%- end -%>
   end
 
+<%- if rspec -%>
+  it "declares only tables that still exist" do
+<%- else -%>
   def test_every_declared_table_still_exists
+<%- end -%>
     missing = PersonalData::COLUMNS.keys.reject { |table| connection.table_exists?(table) }
 
+<%- if rspec -%>
+    expect(missing.sort).to eq([]),
+<%- else -%>
     assert_equal [], missing.sort,
+<%- end -%>
                  "PersonalData names tables the database does not have. A stale inventory " \
                  "reads as coverage."
   end
 
+<%- if rspec -%>
+  it "declares only columns that still exist" do
+<%- else -%>
   def test_every_declared_column_still_exists
+<%- end -%>
     missing = PersonalData::COLUMNS.flat_map do |table, columns|
       next [] unless connection.table_exists?(table)
 
@@ -58,7 +94,11 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
       (columns.keys - present).map { |column| "#{table}.#{column}" }
     end
 
+<%- if rspec -%>
+    expect(missing.sort).to eq([])
+<%- else -%>
     assert_equal [], missing.sort
+<%- end -%>
   end
 
   private

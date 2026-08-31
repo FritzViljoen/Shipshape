@@ -4,7 +4,7 @@ require "test_helper"
 require "shipshape/install"
 require "tmpdir"
 
-# Watched to fail: removing the `File.exist?` guard in Install#call reddens the
+# Watched to fail: inverting `rspec_suite?` reddens the framework tests. Removing the `File.exist?` guard in Install#call reddens the
 # does-not-overwrite case, and it is the one that matters — a generator that clobbers a
 # file the application has since edited has taken a decision that was never its own.
 class InstallTest < Minitest::Test
@@ -12,6 +12,10 @@ class InstallTest < Minitest::Test
 
   def everything
     Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
+  end
+
+  def read_installed(root, relative)
+    File.read(File.join(root, relative))
   end
 
   def install(root)
@@ -34,6 +38,32 @@ class InstallTest < Minitest::Test
 
         assert_empty over, "auth: #{auth}"
       end
+    end
+  end
+
+  # A guard written in the wrong framework is a file that never runs: lobsters got two Minitest
+  # ones into a suite that is entirely RSpec. Detected from the tree, never asked.
+  def test_a_repository_with_a_spec_directory_gets_rspec_guards
+    in_app do |root|
+      FileUtils.mkdir_p(File.join(root, "spec"))
+
+      report = Shipshape::Install.new(root: root, auth: true).call
+
+      assert_includes report[:written], "spec/shipshape/personal_data_is_erasable_spec.rb"
+      refute_path_exists File.join(root, "test/shipshape"),
+                         "an RSpec repository has no test/ for these to run in"
+      assert_includes read_installed(root, "spec/shipshape/operations_expose_nothing_spec.rb"),
+                      "RSpec.describe"
+    end
+  end
+
+  def test_a_repository_without_one_gets_minitest_guards
+    in_app do |root|
+      report = Shipshape::Install.new(root: root, auth: true).call
+
+      assert_includes report[:written], "test/shipshape/personal_data_is_erasable_test.rb"
+      assert_includes read_installed(root, "test/shipshape/operations_expose_nothing_test.rb"),
+                      "ActiveSupport::TestCase"
     end
   end
 

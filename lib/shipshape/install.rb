@@ -45,6 +45,8 @@ module Shipshape
 
     TEST_DIRECTORY = "test/shipshape"
 
+    RSPEC_DIRECTORY = "spec/shipshape"
+
     TASKS = %w[shipshape_routes].freeze
 
     TASK_DIRECTORY = "lib/tasks"
@@ -55,20 +57,21 @@ module Shipshape
     VIEW_COMPONENT_ONLY = %w[application_view_component].freeze
 
     # Opt-in: demanding an actor on day one stops every call site at once.
-    def initialize(root:, directory: DIRECTORY, test_directory: TEST_DIRECTORY, auth: false,
-                   view_components: false)
+    def initialize(root:, directory: DIRECTORY, test_directory: nil, auth: false,
+                   view_components: false, rspec: nil)
       @root = typed(root, String)
       @directory = typed(directory, String)
-      @test_directory = typed(test_directory, String)
       @auth = typed(auth, Boolean)
       @view_components = typed(view_components, Boolean)
+      @rspec = rspec.nil? ? rspec_suite? : typed(rspec, Boolean)
+      @test_directory = typed(test_directory || (@rspec ? RSPEC_DIRECTORY : TEST_DIRECTORY), String)
     end
 
     def call
       report = { written: [], skipped: [] }
 
       write_into(directory, files, report)
-      write_into(test_directory, TESTS, report)
+      write_into(test_directory, TESTS, report, suffix: rspec ? "_spec" : "_test")
       write_into(TASK_DIRECTORY, auth ? TASKS : [], report, extension: "rake")
 
       report
@@ -76,15 +79,24 @@ module Shipshape
 
     private
 
-    attr_reader :root, :directory, :test_directory, :auth, :view_components
+    attr_reader :root, :directory, :test_directory, :auth, :view_components, :rspec
 
-    def write_into(folder, names, report, extension: "rb")
+    # Detected, never asked: lobsters got two Minitest guards into an all-RSpec suite.
+    def rspec_suite?
+      return true if Dir.exist?(File.join(root, "spec"))
+
+      gemfile = File.join(root, "Gemfile")
+      File.file?(gemfile) && File.read(gemfile).match?(/^\s*gem ["']rspec/)
+    end
+
+    def write_into(folder, names, report, extension: "rb", suffix: nil)
       return if names.empty?
 
       FileUtils.mkdir_p(File.join(root, folder))
 
       names.each do |name|
-        relative = File.join(folder, "#{name}.#{extension}")
+        installed = suffix ? name.sub(/_test\z/, suffix) : name
+        relative = File.join(folder, "#{installed}.#{extension}")
         target = File.join(root, relative)
 
         next report[:skipped] << relative if File.exist?(target)

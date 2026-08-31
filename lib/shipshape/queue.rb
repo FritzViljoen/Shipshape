@@ -68,8 +68,8 @@ module Shipshape
 
       source = read(File.join(root, path))
       defined = methods_in(source)
-      # A method mention only counts where the class is named too. `show` and `expire` are
-      # ordinary words: matching them alone ranked an untested controller safest to start here.
+      # Only where the class is named too: matching `show` and `expire` alone ranked an
+      # untested controller safest to start here.
       unnamed = named_in_a_test?(source[CLASS, 1]) ? defined.reject { |m| named_in_a_test?(m) } : defined
 
       Unit.new(path: path, offences: offences,
@@ -78,8 +78,7 @@ module Shipshape
                methods: defined.length, unnamed: unnamed.sort)
     end
 
-    # Per method: "story.rb has a test" says nothing about the method you are about to move. A
-    # name match, not a call graph — it answers "would anything notice".
+    # Per method: "story.rb has a test" says nothing about the method you are moving.
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
     CLASS = /^\s*class\s+([\w:]+)/.freeze
