@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `DEFINERS` reddens the define_method test.
-# - Emptying `EVALUATORS` reddens the string-eval test.
-# - Emptying `DISPATCH` reddens the method_missing test.
-# - Making `one_of?` answer true unconditionally reddens the request-handling test.
+# Watched to fail: emptying `DEFINERS` reddens the define_method test; emptying `EVALUATORS`
+# reddens the string-eval test; emptying `DISPATCH` reddens the method_missing test; making
+# `one_of?` answer true unconditionally reddens the request-handling test.
 class NoGeneratedInterfacesTest < Minitest::Test
   include CopRunner
 

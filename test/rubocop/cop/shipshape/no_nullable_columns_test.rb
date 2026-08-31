@@ -2,12 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `null_option` answer nil reddens every offence test.
-# - Making `promotions_in` answer `[]` reddens the promotion test, which is the clause that
-#   makes the rule workable on a populated table.
-# - Making `reversing?` answer false reddens the `down` and `remove_column` tests.
+# Watched to fail: making `null_option` answer nil reddens every offence test; making
+# `promotions_in` answer `[]` reddens the promotion test, which is the clause that makes the rule
+# workable on a populated table; making `reversing?` answer false reddens the `down` and
+# `remove_column` tests.
 class NoNullableColumnsTest < Minitest::Test
   include CopRunner
 

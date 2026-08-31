@@ -5,13 +5,10 @@ require "shipshape/source_text"
 require "shipshape/kinds"
 require "shipshape/mixins"
 
-# Watched to fail: drop the `.scrub("")` and every test here reddens with
-# `ArgumentError: invalid byte sequence in UTF-8`.
-#
-# **The one that matters is the last.** A crash on the odd file would be a nuisance; what
-# actually happened is that `Kinds` and `Mixins` read *other* files to answer about the file
-# being inspected, so one bad byte anywhere in a governed tree took every kind-scoped cop
-# down for the whole run. The tree went unguarded and the report said "cop errored".
+# Watched to fail: drop the `.scrub("")` and every test here reddens with `ArgumentError: invalid
+# byte sequence in UTF-8`. **The one that matters is the last.** A crash on the odd file would be a
+# nuisance; what actually happened is that `Kinds` and `Mixins` read *other* files to answer about
+# the file being inspected, so one bad byte anywhere in a governed tree took every kind-scoped cop
 class SourceTextTest < Minitest::Test
   # Valid Ruby, one byte that is not valid UTF-8. `File.read` returns it happily and the
   # first regular expression to touch it raises.

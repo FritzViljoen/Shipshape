@@ -2,11 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `default_option` answer nil reddens every offence test.
-# - Emptying `TIMESTAMPS` reddens the timestamp test, which is the law's one exception.
-# - Making `column_of` ignore `ADDERS` reddens the add_column naming test.
+# Watched to fail: making `default_option` answer nil reddens every offence test; emptying
+# `TIMESTAMPS` reddens the timestamp test, which is the law's one exception; making `column_of`
+# ignore `ADDERS` reddens the add_column naming test.
 class NoColumnDefaultsTest < Minitest::Test
   include CopRunner
 

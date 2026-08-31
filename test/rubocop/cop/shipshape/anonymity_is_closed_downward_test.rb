@@ -2,12 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `guarded?` answer false reddens the two offence tests.
-# - Making it answer true reddens the anonymous-callee test, which is the shape the law allows.
-# - Dropping the `anonymous_call` check in `on_def` reddens the guarded-caller test, because a
-#   normal `call` naming a guarded operation is the ordinary case and must stay silent.
+# Watched to fail: making `guarded?` answer false reddens the two offence tests; making it answer
+# true reddens the anonymous-callee test, which is the shape the law allows; dropping the
+# `anonymous_call` check in `on_def` reddens the guarded-caller test, because a normal `call`
+# naming a guarded operation is the ordinary case and must stay silent.
 class AnonymityIsClosedDownwardTest < Minitest::Test
   include CopRunner
 

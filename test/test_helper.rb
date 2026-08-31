@@ -10,10 +10,6 @@ require "rubocop"
 require "shipshape"
 
 # Runs one cop over one source string and hands back its offences.
-#
-# The cop resolves kinds from the filesystem, so a test builds a real tree in a temporary
-# directory rather than stubbing the lookup. Stubbing it would test the matrix and leave
-# the resolution — the part that actually goes wrong — unexercised.
 module CopRunner
   # `other_cops` carries configuration a cop reads from a sibling — the layout is declared
   # once, on Shipshape/CallGraph, so a cop that needs it reads it from there.

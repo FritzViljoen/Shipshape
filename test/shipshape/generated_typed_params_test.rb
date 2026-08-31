@@ -7,13 +7,6 @@ require "bigdecimal"
 
 # The seam, exercised rather than compiled. Every case here is one an unparsed parameter
 # would have got wrong quietly — which is the whole reason the seam exists.
-#
-# Watched to fail: neutering `refuse_conflicting_zone` reddens the disagreeing-offset case.
-#
-# And one guard was watched to fail and DID NOT: a literal `false` short-circuit copied
-# from an earlier version turned out to be dead, because `parsed_param` tests nil-or-empty
-# rather than `blank?`. It was deleted rather than kept as decoration — a line no test can
-# redden is not a guard, and leaving it in would have read as protection.
 class GeneratedTypedParamsTest < Minitest::Test
   root = Dir.mktmpdir("shipshape-params")
   Shipshape::Install.new(root: root).call

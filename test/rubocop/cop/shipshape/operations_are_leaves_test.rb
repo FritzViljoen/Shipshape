@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Making `check_depth` return early reddens the second-level tests.
-# - Making `check_door` return early reddens the overridden-door test.
-# - Dropping the `self_type?` check reddens the instance-`call` test, which is the method
-#   every operation must define.
+# Watched to fail: making `check_depth` return early reddens the second-level tests; making
+# `check_door` return early reddens the overridden-door test; dropping the `self_type?` check
+# reddens the instance-`call` test, which is the method every operation must define.
 class OperationsAreLeavesTest < Minitest::Test
   include CopRunner
 

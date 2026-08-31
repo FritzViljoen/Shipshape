@@ -3,16 +3,10 @@
 require "test_helper"
 require "shipshape/edges"
 
-# Watched to fail:
-#
-# - Making `covered` always true reddens the uncovered tests.
-# - Making it always false reddens the covered one.
-# - Removing the empty-actions guard reddens the base-class test.
-#
-# **Asked by class, not by method**, and that was measured rather than assumed: a request spec
-# says `get "/stories"` and a controller spec says `describe StoriesController`, and almost
-# none of them name the action. Matching `show` against a suite answers yes for any file
-# containing the word.
+# Watched to fail: making `covered` always true reddens the uncovered tests; making it always false
+# reddens the covered one; removing the empty-actions guard reddens the base-class test. **Asked by
+# class, not by method**, and that was measured rather than assumed: a request spec says `get
+# "/stories"` and a controller spec says `describe StoriesController`, and almost none of them name
 class EdgesTest < Minitest::Test
   SETTINGS = Shipshape::Settings.new(
     kinds: {

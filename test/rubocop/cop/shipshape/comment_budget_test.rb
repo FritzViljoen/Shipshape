@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Dropping the `prose.length <= budget` return reddens the under-budget test.
-# - Counting `processed_source.lines` matching `#` instead of comment tokens reddens the
-#   heredoc test.
-# - Dropping the DIRECTIVE filter reddens the directive test.
+# Watched to fail: dropping the `prose.length <= budget` return reddens the under-budget test;
+# counting `processed_source.lines` matching `#` instead of comment tokens reddens the heredoc
+# test; dropping the DIRECTIVE filter reddens the directive test.
 class CommentBudgetTest < Minitest::Test
   include CopRunner
 

@@ -2,16 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `tests_for` answer the whole test list reddens the missing-claim tests.
-# - Making the claim check pass unconditionally reddens all of them.
-# - Changing `CLAIM` without changing the fixtures reddens the accepted tests, which is the
-#   pair that matters: the phrase IS the act being required, so the cop must key on it.
-#
-# **It checks that the claim was written, never that it is true.** That is the same position
-# `a-guard-states-its-limit` takes about `Watched to fail`, and the test below that asserts a
-# lying claim passes is there to keep the limit honest rather than to endorse it.
+# Watched to fail: making `tests_for` answer the whole test list reddens the missing-claim tests;
+# making the claim check pass unconditionally reddens all of them; changing `CLAIM` without
+# changing the fixtures reddens the accepted tests, which is the pair that matters: the phrase IS
+# the act being required, so the cop must key on it. **It checks that the claim was written, never
 class CommandsProveIdempotenceTest < Minitest::Test
   include CopRunner
 

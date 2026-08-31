@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `on_resbody` return early reddens every offence test.
-# - Making `only_logs?` answer false reddens the log tests.
-# - Making `literal?` answer false reddens the literal test.
-# - Making `answering_a_predicate?` answer true reddens the non-predicate boolean test;
-#   making it answer false reddens the predicate test.
+# Watched to fail: making `on_resbody` return early reddens every offence test; making `only_logs?`
+# answer false reddens the log tests; making `literal?` answer false reddens the literal test;
+# making `answering_a_predicate?` answer true reddens the non-predicate boolean test; making it
+# answer false reddens the predicate test.
 class NoEmptyRescueTest < Minitest::Test
   include CopRunner
 

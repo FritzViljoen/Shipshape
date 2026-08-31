@@ -4,18 +4,6 @@ require "test_helper"
 require "open3"
 
 # **The removals, actually performed.**
-#
-# `CanonTest` holds that every cop test *claims* it was watched to fail. This one performs
-# the claim: for each cop, `add_offense` is stubbed to do nothing and the cop's own test file
-# is run in a subprocess. A test that still passes with the cop reporting nothing is not
-# testing the cop — it is coverage-shaped, which is the exact failure
-# `a-guard-states-its-limit` exists to prevent.
-#
-# It is slow — one Ruby process per cop — so it is not part of `rake test`. Run it with
-# `rake test:removal`, and on any change to a cop.
-#
-# Watched to fail: remove the `--require` of the stub below and every cop passes its own
-# neutered run, which is this test reporting green over nothing.
 class RemovalTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
 

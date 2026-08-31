@@ -2,11 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `CASTS` reddens every offence test.
-# - Making `untrusted?` answer true reddens the already-a-number test — the false positive
-#   the law's limit is written about, and the reason the cop is deliberately narrow.
+# Watched to fail: emptying `CASTS` reddens every offence test; making `untrusted?` answer true
+# reddens the already-a-number test — the false positive the law's limit is written about, and the
+# reason the cop is deliberately narrow.
 class NoSilentCoercionTest < Minitest::Test
   include CopRunner
 

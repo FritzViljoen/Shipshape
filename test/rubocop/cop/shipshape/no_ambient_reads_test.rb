@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `CLOCKS` reddens the clock tests.
-# - Emptying `AMBIENT_CONSTANTS` reddens the environment and thread-local tests.
-# - Making `on_gvar` return early reddens the global test.
-# - Emptying `ZONE_READS` reddens the zone test.
+# Watched to fail: emptying `CLOCKS` reddens the clock tests; emptying `AMBIENT_CONSTANTS` reddens
+# the environment and thread-local tests; making `on_gvar` return early reddens the global test;
+# emptying `ZONE_READS` reddens the zone test.
 class NoAmbientReadsTest < Minitest::Test
   include CopRunner
 

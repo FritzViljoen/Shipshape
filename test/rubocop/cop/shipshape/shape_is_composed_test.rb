@@ -2,11 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `flattened_from` answer nil reddens the flattening tests.
-# - Setting `minimum_fields` to 1 reddens the single-prefixed-keyword test, which is the
-#   false positive the heuristic is deliberately tuned to avoid.
+# Watched to fail: making `flattened_from` answer nil reddens the flattening tests; setting
+# `minimum_fields` to 1 reddens the single-prefixed-keyword test, which is the false positive the
+# heuristic is deliberately tuned to avoid.
 class ShapeIsComposedTest < Minitest::Test
   include CopRunner
 

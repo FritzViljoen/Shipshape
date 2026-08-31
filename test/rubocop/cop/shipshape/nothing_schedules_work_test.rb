@@ -2,12 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `declaration?` answer false reddens the `every` and `recurring` tests.
-# - Making `scheduler?` answer false reddens the Sidekiq and Clockwork tests.
-# - Adding any constant-string clause back reddens the cron-in-a-constant test, which is the
-#   shape that would fail correct code: the value the offence's own `instead:` recommends.
+# Watched to fail: making `declaration?` answer false reddens the `every` and `recurring` tests;
+# making `scheduler?` answer false reddens the Sidekiq and Clockwork tests; adding any constant-
+# string clause back reddens the cron-in-a-constant test, which is the shape that would fail
+# correct code: the value the offence's own `instead:` recommends.
 class NothingSchedulesWorkTest < Minitest::Test
   include CopRunner
 

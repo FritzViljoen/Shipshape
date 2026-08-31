@@ -6,12 +6,6 @@ require "shipshape/install"
 # The installer's own test proves the files are written and compile. This one loads them
 # and exercises the contracts, because "it parses" is not "it holds" — a base class that
 # accepted any return value would compile perfectly and enforce nothing.
-#
-# ActiveRecord is not here, so the two templates that open a transaction are given a stand
-# in that yields. That is honest: what is under test is the Result contract, not Rails.
-#
-# Installed with `auth: true`, because these exercise the authorisation contracts. The
-# opt-in itself — and what the default writes — is `install_auth_test.rb`.
 class GeneratedBaseClassesTest < Minitest::Test
   def self.load_generated_once
     root = Dir.mktmpdir("shipshape-generated")

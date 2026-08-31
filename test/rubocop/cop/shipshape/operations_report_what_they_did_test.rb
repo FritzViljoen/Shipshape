@@ -2,17 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `records?` answer true reddens every offence test.
-# - Making it answer false reddens the accepted test.
-# - Making `audit_log_installed?` answer true reddens the test that an application without an
-#   audit log is left alone — which is the one that matters: nothing is held to a thing it
-#   never opted into.
-#
-# The gem's suite proves the **templates** record. This is the other half: once installed, the
-# file is the application's to edit, and a base class that quietly lost its audit call leaves
-# no trace of anything its kind attempted while nothing else fails.
+# Watched to fail: making `records?` answer true reddens every offence test; making it answer false
+# reddens the accepted test; making `audit_log_installed?` answer true reddens the test that an
+# application without an audit log is left alone — which is the one that matters: nothing is held
+# to a thing it never opted into. The gem's suite proves the **templates** record. This is the
 class OperationsReportWhatTheyDidTest < Minitest::Test
   include CopRunner
 

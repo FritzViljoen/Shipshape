@@ -3,13 +3,9 @@
 require "test_helper"
 
 # Watched to fail: change `kind_of_inspected_file` back to a plain `||=` and
-# `test_one_cop_instance_judges_each_file_on_its_own_path` reddens — the command is judged a
-# record and reports an offence it does not have.
-#
-# **RuboCop builds a cop per file today, so nothing here is visible through the binary.**
-# That is exactly why it is worth a test: the correctness of every kind-scoped cop rested on
-# an implementation detail of the runner, discovered by driving a cop the way its own API
-# allows rather than by reading it.
+# `test_one_cop_instance_judges_each_file_on_its_own_path` reddens — the command is judged a record
+# and reports an offence it does not have. **RuboCop builds a cop per file today, so nothing here
+# is visible through the binary.** That is exactly why it is worth a test: the correctness of every
 class ReadsKindsTest < Minitest::Test
   include CopRunner
 

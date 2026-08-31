@@ -4,17 +4,6 @@ require "test_helper"
 
 # Reading and changing state outside this process. Same two operations as the internal pair,
 # marked, and sisters of it — so a command may not do IO.
-#
-# The reason is the transaction, and it is the only reason that matters: a command is exactly
-# one transaction, and an external call inside one holds a database transaction open across a
-# network round trip.
-#
-# Watched to fail, and it reddened ONE test rather than all of them: the matrix rows already
-# exclude these pairs, so the sister rule is belt-and-braces here rather than the only guard.
-# Said plainly because the opposite claim would have been the easy one to write.
-#
-# It still earns its place: the matrix is configuration and can be edited, while the sister
-# rule cannot — a row naming a sister stops the run.
 class IoTest < Minitest::Test
   include CopRunner
 

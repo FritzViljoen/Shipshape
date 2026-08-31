@@ -2,11 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Emptying `HOOKS` reddens every offence test.
-# - Making `one_of?` answer true unconditionally reddens the command test.
-# - Dropping the `node.receiver.nil?` check reddens the explicit-receiver test.
+# Watched to fail: emptying `HOOKS` reddens every offence test; making `one_of?` answer true
+# unconditionally reddens the command test; dropping the `node.receiver.nil?` check reddens the
+# explicit-receiver test.
 class NoCallbacksTest < Minitest::Test
   include CopRunner
 

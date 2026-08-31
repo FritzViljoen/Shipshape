@@ -4,17 +4,6 @@ require "test_helper"
 require "shipshape/canaries"
 
 # **A guard that does not run reports the same thing as a guard that finds nothing.**
-#
-# This is not hypothetical. shipshape's cops were run over a 647-file tree and reported
-# zero, which read as "clean" and meant "no glob matched, so nothing was inspected". Neither
-# the unit tests nor `rake test:removal` could have caught it: both build a config in
-# memory, and what broke was the real configuration's globs.
-#
-# `test/canaries/` holds one deliberate violation per cop, with its own `.rubocop.yml`
-# beside it so the globs resolve there. This runs the real binary over them.
-#
-# Watched to fail: point a kind's globs at a directory that does not exist and the cops
-# scoped to that kind go silent — six of them, on the run that proved this.
 class CanariesTest < Minitest::Test
   ROOT = File.expand_path("canaries", __dir__)
 

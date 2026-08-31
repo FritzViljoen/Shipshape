@@ -2,15 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `operation?` answer true reddens the not-an-operation test.
-# - Emptying `allowed` reddens the door test and the introspection test.
-# - Making `refers_to_itself?` answer false reddens the self-reference test.
-#
-# This is the check that does not rely on `private`. Everything else guarding the door is a
-# convention Ruby steps over: `private` is not a wall, `send` undoes `private_class_method`,
-# and a subclass can redeclare a private method public. This reads the call site instead.
+# Watched to fail: making `operation?` answer true reddens the not-an-operation test; emptying
+# `allowed` reddens the door test and the introspection test; making `refers_to_itself?` answer
+# false reddens the self-reference test. This is the check that does not rely on `private`.
+# Everything else guarding the door is a convention Ruby steps over: `private` is not a wall,
 class OnlyTheDoorIsCalledTest < Minitest::Test
   include CopRunner
 

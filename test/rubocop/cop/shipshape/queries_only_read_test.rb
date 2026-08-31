@@ -2,17 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `WRITERS` reddens every offence test.
-# - Making `record?` answer false reddens them too, and making it answer true reddens the
-#   not-a-record test.
-# - Making `root_constant` look only one hop back reddens the chained-write test, which is
-#   the commonest shape of all.
-#
-# **The call graph cannot hold this.** A query reaching a record is exactly what a query is
-# for, so the matrix allows the call; only the message sent is wrong. That is why this is a
-# separate cop rather than a matrix row.
+# Watched to fail: emptying `WRITERS` reddens every offence test; making `record?` answer false
+# reddens them too, and making it answer true reddens the not-a-record test; making `root_constant`
+# look only one hop back reddens the chained-write test, which is the commonest shape of all. **The
+# call graph cannot hold this.** A query reaching a record is exactly what a query is for, so the
 class QueriesOnlyReadTest < Minitest::Test
   include CopRunner
 

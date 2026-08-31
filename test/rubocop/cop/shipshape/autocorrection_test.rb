@@ -4,17 +4,6 @@ require "test_helper"
 
 # The deterministic slice of what shipshape finds — 7% of 21,485 offences across seven public
 # Rails repositories — is a rewrite no judgement is needed for. This is that rewrite.
-#
-# **Every correction here is `SafeAutoCorrect: false`.** `"banana".to_i` is 0 today and a
-# bounce afterwards; that is the rule, and it is not behaviour-preserving. Applying it
-# silently under `-a` would be the same sin these cops are named for.
-#
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Making `correction_for` answer nil in each cop reddens that cop's rewrite test.
-# - Dropping the literal-key guard reddens the non-literal tests.
-# - Dropping the id check in NoUnparsedLookup reddens the `where(state:)` test — the one
-#   that stops a silent wrong answer becoming a confident one.
 class AutocorrectionTest < Minitest::Test
   include CopRunner
 

@@ -2,14 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires. Two checks, proven separately:
-#
-# - Neutering the matrix check in CallGraph#allowed? reddens four — the record, the
-#   controller, the leading-`::` and the safe-navigation cases.
-# - Making the same-kind check permit instead of refuse reddens four others — query,
-#   command, workflow and shape calling their own kind.
-#
-# Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
+# Watched to fail: neutering the matrix check in CallGraph#allowed? reddens four — the record, the
+# controller, the leading-`::` and the safe-navigation cases; making the same-kind check permit
+# instead of refuse reddens four others — query, command, workflow and shape calling their own
+# kind. Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
 class CallGraphTest < Minitest::Test
   include CopRunner
 

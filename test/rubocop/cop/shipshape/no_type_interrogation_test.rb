@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `ASKS` reddens the predicate tests.
-# - Making `on_case` return early reddens the case test.
-# - Making `asserting?` answer false reddens the guard-implementation test, which is the one
-#   place the ask is the assertion rather than a dispatch.
+# Watched to fail: emptying `ASKS` reddens the predicate tests; making `on_case` return early
+# reddens the case test; making `asserting?` answer false reddens the guard-implementation test,
+# which is the one place the ask is the assertion rather than a dispatch.
 class NoTypeInterrogationTest < Minitest::Test
   include CopRunner
 

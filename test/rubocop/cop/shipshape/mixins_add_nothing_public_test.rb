@@ -2,17 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `mixin?` answer false reddens every offence test.
-# - Making `mixin?` answer true reddens the shape-concern test, which is the one that matters:
-#   the same module is correct with public methods when a shape includes it, so a cop that
-#   fires on every concern enforces something the law does not say.
-# - Making `public_method?` answer false reddens the method tests; `check_reader` returning
-#   early reddens the reader test.
-#
-# A module cannot be judged by its own file. What decides is where it is going, and these
-# two trees differ only in who does the including.
+# Watched to fail: making `mixin?` answer false reddens every offence test; making `mixin?` answer
+# true reddens the shape-concern test, which is the one that matters: the same module is correct
+# with public methods when a shape includes it, so a cop that fires on every concern enforces
+# something the law does not say; making `public_method?` answer false reddens the method tests;
 class MixinsAddNothingPublicTest < Minitest::Test
   include CopRunner
 

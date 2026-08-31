@@ -5,9 +5,6 @@ require "test_helper"
 # The legacy pair share one glob — `*_legacy.rb` says "this is a door", and the base class
 # says which of the two it is. So these cases exercise superclass resolution, not path
 # resolution, and the tree here holds real class bodies rather than empty files.
-#
-# Watched to fail: making Kinds#by_base_class answer nil reddens every case below that
-# depends on telling the two doors apart. Restoring it returns them to green.
 class LegacyDoorTest < Minitest::Test
   include CopRunner
 

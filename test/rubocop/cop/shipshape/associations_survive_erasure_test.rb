@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `decided?` answer true reddens every offence test.
-# - Emptying `ASSOCIATIONS` reddens them too.
-# - Making `decided?` answer false reddens the three tests that assert an option is accepted,
-#   which are the ones that matter: the law is that somebody chose, not that they chose
-#   `:destroy`.
+# Watched to fail: making `decided?` answer true reddens every offence test; emptying
+# `ASSOCIATIONS` reddens them too; making `decided?` answer false reddens the three tests that
+# assert an option is accepted, which are the ones that matter: the law is that somebody chose, not
+# that they chose `:destroy`.
 class AssociationsSurviveErasureTest < Minitest::Test
   include CopRunner
 

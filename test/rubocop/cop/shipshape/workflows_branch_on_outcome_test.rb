@@ -2,16 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `decisions_in` answer `[]` reddens every offence test.
-# - Making it flag every send reddens the four tests that accept an outcome check, which are
-#   the ones that matter: a workflow must still be able to sequence.
-#
-# **`Shipshape/NoDecisionsInRequestHandling` cannot reach this**, and that was measured before
-# this cop was written: with `workflow` added to its `Kinds`, all eight shapes below came back
-# clean. It keys on an instance variable being interrogated, and a workflow's subject is a
-# local holding a `Result`.
+# Watched to fail: making `decisions_in` answer `[]` reddens every offence test; making it flag
+# every send reddens the four tests that accept an outcome check, which are the ones that matter: a
+# workflow must still be able to sequence. **`Shipshape/NoDecisionsInRequestHandling` cannot reach
+# this**, and that was measured before this cop was written: with `workflow` added to its `Kinds`,
 class WorkflowsBranchOnOutcomeTest < Minitest::Test
   include CopRunner
 

@@ -4,44 +4,26 @@ require "test_helper"
 require "shipshape/install"
 require "yaml"
 
-# The law and the cop are two halves of one fact, and this is what holds them together.
-#
-# `one-mechanism-guards-everything` says the cop list is the whole enforcement surface, so
-# it has to be true in both directions: no law promising a guard that is not there, and no
-# cop enforcing something no law wrote down. Either orphan makes the list a bad answer to
-# "what does this repo enforce", which is the only question it exists to answer.
-#
-# Watched to fail: rename a cop file without touching its law, and `test_every_law_names_a_
-# cop_that_exists` reddens; add a cop with no law, and `test_every_cop_is_named_by_a_law`
-# reddens; delete a cop's test file and `test_every_cop_has_a_test` reddens.
+# The law and the cop are two halves of one fact, and the cop list is the whole enforcement
+# surface, so it holds both ways. Watched to fail: rename a cop file without touching its law,
+# add a cop with no law, or delete a cop's test, and one of the three checks reddens.
 class CanonTest < Minitest::Test
   LAWS = Dir[File.expand_path("../docs/laws/*.md", __dir__)].reject { |path| path.end_with?("README.md") }
 
-  # A law naming a cop nobody built must say so, in these words. The phrase is the
-  # declaration — writing it is what makes the law a convention, and it cannot go stale
-  # because removing it is what turns the law back into a promise the check will test.
+  # The phrase is the declaration: writing it is what makes the law a convention.
   UNBUILT = "not built yet"
 
-  # The words a cop test carries to say its guard was watched to fail.
   REMOVAL_CLAIM = "Watched to fail"
 
   GUARD_LINE = /^- \*\*Guard:\*\* (.+?)(?:\n(?!  )|\z)/m
   COP_NAME = %r{`Shipshape/(\w+)`}
 
-  # The guards that are deliberately not cops, each argued in the law that names it and
-  # each shipping with this gem's own suite rather than running in a consuming build.
-  # Being on this list is what makes a non-cop guard legitimate; the list cannot go stale
-  # because nothing else grants that status.
+  # Being on this list is what makes a non-cop guard legitimate; nothing else grants it.
   SUITE_GUARDS = ["CanonTest", "CanariesTest", "generated_base_classes_test.rb"].freeze
 
-  # Installed files that carry no rule of their own, each with the reason. Being on this list
-  # is what grants the exemption, so it cannot go stale: a file that grows a rule has to be
-  # taken off it, and nothing else confers the status.
 
 
-  # Cops whose offences are not a refactor, each with the reason. Being on this list is what
-  # grants the exemption; nothing else confers it, so a cop that becomes app-facing has to
-  # come off it.
+  # Being on this list is what grants the exemption; an app-facing cop comes off it.
   PROCEDURE_WOULD_NOT_HELP = {
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
@@ -79,9 +61,6 @@ class CanonTest < Minitest::Test
                  "or write \"#{UNBUILT}\" in its Guard line and call it a convention."
   end
 
-  # `[].all?` is true, so a law naming no cop at all used to pass this suite without
-  # anybody deciding it should. A guard has to be named — a cop, a listed suite guard, or
-  # the words that make it a convention.
   def test_every_law_names_some_guard
     silent = laws.reject do |law|
       law[:cops].any? ||
@@ -102,7 +81,6 @@ class CanonTest < Minitest::Test
                  "attached. Write the law, or delete the cop."
   end
 
-  # `a-guard-states-its-limit`: a guard nobody has watched fail is coverage-shaped.
   def test_every_cop_has_a_test
     without = registered_cops.reject { |cop| File.exist?(test_path_for(cop)) }
 
@@ -111,11 +89,7 @@ class CanonTest < Minitest::Test
                  "removal: delete it, watch the test go red, restore it."
   end
 
-  # A test file existing is not the same as a guard having been watched to fail. This holds
-  # the declaration: each cop test names the removals somebody performed and what reddened.
-  # Writing it is the claim — it cannot be satisfied by a file that tests nothing, and it
-  # cannot go stale in the way a checked-in list of "verified cops" would, because nothing
-  # else confers the status.
+  # Writing the claim is what makes a test file a guard that was watched to fail.
   def test_every_cop_test_names_the_removals_that_proved_it
     unproven = registered_cops.select do |cop|
       path = test_path_for(cop)
@@ -136,24 +110,11 @@ class CanonTest < Minitest::Test
                  "A guard that does not say what it misses is read as covering everything."
   end
 
-  # **The third direction.** Code here is constrained from three sides — the documentation
-  # says the rule, a cop catches it after it is written, and the generated base classes make
-  # it impossible to write. The first two hold each other above: no law without a cop, no cop
-  # without a law. Nothing held the third, so a base class could enforce something no
-  # document stated and nobody would find out.
-  #
-  # It had happened twice by the time this was written. "A command is exactly one
-  # transaction" lived as reasoning inside another law, and the Result contract — a `TypeError`
-  # raised at every door — was written down nowhere at all. Both were real rules, enforced on
-  # every call, invisible to the canon.
-  #
-  # Named in a **Guard line**, not merely mentioned somewhere in the prose: that line is where
-  # a law says what holds it, and matching the body would pass on an offhand reference.
+  # The third direction: a cop and a law hold each other above, and nothing held the base
+  # classes, so one could enforce a rule no document stated. It had happened twice.
   def test_every_installed_file_is_named_by_a_law
     guards = laws.map { |law| law[:guard] }.join("\n")
 
-    # Either extension: the installer writes base classes and tests as `.rb` and the routes
-    # task as `.rake`, and a check that assumed one of them stopped seeing the other.
     unclaimed = installed.reject do |file|
       ARCHITECTURE_WITHOUT_A_LAW.key?(file) ||
         guards.include?("#{file}.rb") || guards.include?("#{file}.rake")
@@ -165,10 +126,7 @@ class CanonTest < Minitest::Test
                  "line, or declare it on ARCHITECTURE_WITHOUT_A_LAW with the reason."
   end
 
-  # The other direction: a law may not claim a base class that is not installed.
   def test_no_law_names_a_file_that_is_not_installed
-    # A suite guard is named the same way and is not installed anywhere — it ships with the
-    # gem and runs here.
     suite = SUITE_GUARDS.map { |guard| guard.sub(/\.rb\z/, "") }
     named = laws.flat_map { |law| law[:guard].scan(/`(\w+)\.rb`/).flatten }.uniq
     missing = named - installed - suite
@@ -178,17 +136,8 @@ class CanonTest < Minitest::Test
                  "mechanism behind it."
   end
 
-  # **The architecture and the guard have to agree about which kinds are covered.**
-  #
-  # A base class that includes `TypedArguments` is a class whose initializer is meant to be
-  # asserted. If the cop is not scoped to that kind, the machinery ships and nothing requires
-  # anybody to use it — which is what had happened to `shape`: every generated `Shape`
-  # included `TypedArguments`, and a shape could still take a positional argument, a `**rest`,
-  # or an unguarded keyword with nothing objecting. In the one class whose entire job is to be
-  # a validated value.
-  #
-  # Derived from the templates and the shipped `BaseClasses` map rather than listed here, so
-  # it cannot go stale: add a base class that includes the module and this asks for its kind.
+  # A base class including `TypedArguments` is one whose initializer is meant to be asserted, so
+  # a cop not scoped to that kind ships machinery nothing requires. It happened to `shape`.
   def test_every_base_class_that_types_its_arguments_is_a_kind_the_cop_covers
     covered = default_config.fetch("Shipshape/TypedArguments").fetch("Kinds")
 
@@ -200,13 +149,7 @@ class CanonTest < Minitest::Test
                  "not scoped to them, so nothing requires it."
   end
 
-  # **A cop says a thing is wrong. A procedure says how to move it.** Without the second, an
-  # agent handed 29,644 offences has an enumeration and no method — which is how a refactor
-  # becomes a rewrite with extra confidence.
-  #
-  # Measured against seven public repositories, the procedures covered 87% of what an agent
-  # actually meets, and the largest uncovered item was the commonest work of all: the call-site
-  # sweep, 1,883 sites, which every other procedure depends on and none of them described.
+  # Without a procedure, an agent handed 29,644 offences has an enumeration and no method.
   def test_every_cop_has_a_procedure_that_names_it
     prose = Dir[File.expand_path("../docs/decomposing/*.md", __dir__)]
             .reject { |path| path.end_with?("README.md") }
@@ -244,8 +187,6 @@ class CanonTest < Minitest::Test
     @default_config ||= YAML.load_file(File.expand_path("../config/default.yml", __dir__))
   end
 
-  # A template's constant is its file name camelised; `BaseClasses` maps a kind to the
-  # constants that stand for it. That is the join, and both halves are already declared.
   def kinds_of_templates_including(mixin)
     base_classes = default_config.fetch("Shipshape/CallGraph").fetch("BaseClasses")
 
@@ -264,10 +205,8 @@ class CanonTest < Minitest::Test
   def laws
     @laws ||= LAWS.sort.map do |path|
       body = File.read(path)
-      # **Every** guard line, not the first. A law may be held by more than one cop —
-      # `one-operation-one-class` is held by two, because a module cannot be judged by the
-      # cop that walks classes — and reading only the first made the second cop an orphan
-      # that `test_every_cop_is_named_by_a_law` then reported as having no law at all.
+      # Every guard line, not the first: a law may be held by more than one cop, and reading
+      # only the first made the second an orphan.
       guard = body.scan(GUARD_LINE).flatten.join("\n")
 
       {
@@ -279,8 +218,7 @@ class CanonTest < Minitest::Test
     end
   end
 
-  # Read off the registry rather than off a list here. A checked-in list of cops is a second
-  # copy of a fact the registry already holds, and the copy is the one that goes stale.
+  # Off the registry, never a list here: a list would be a second copy of a fact.
   def registered_cops
     @registered_cops ||= RuboCop::Cop::Registry.global.cops
                                                .map(&:cop_name)

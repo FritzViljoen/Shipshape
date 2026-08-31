@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Making `asks` return `[]` reddens every offence test.
-# - Dropping `OUTCOMES` from the skip list reddens the `result.success?` test, which is the
-#   one shape the whole rule exists to permit.
-# - Making `one_of?` answer true unconditionally reddens the command test.
-# - Emptying `WRITES` reddens the write-described-as-a-write test.
+# Watched to fail: making `asks` return `[]` reddens every offence test; dropping `OUTCOMES` from
+# the skip list reddens the `result.success?` test, which is the one shape the whole rule exists to
+# permit; making `one_of?` answer true unconditionally reddens the command test; emptying `WRITES`
+# reddens the write-described-as-a-write test.
 class NoDecisionsInRequestHandlingTest < Minitest::Test
   include CopRunner
 

@@ -4,11 +4,10 @@ require "test_helper"
 require "shipshape/wire_typed_params"
 require "tmpdir"
 
-# Watched to fail: deleting the `include TypedParams` check in #call reddens the idempotence
-# case, and neutering #wired reddens the wiring case.
-#
-# The reason this operation exists at all: writing the concern is not including it, and a
-# concern nobody includes parses nothing while the application looks equipped.
+# Watched to fail: deleting the `include TypedParams` check in #call reddens the idempotence case,
+# and neutering #wired reddens the wiring case. The reason this operation exists at all: writing
+# the concern is not including it, and a concern nobody includes parses nothing while the
+# application looks equipped.
 class WireTypedParamsTest < Minitest::Test
   CONTROLLER = <<~RUBY
     # frozen_string_literal: true

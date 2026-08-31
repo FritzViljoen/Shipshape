@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `factory?` answer false reddens the `create`, `build` and library tests.
-# - Making `fixtures?` answer false reddens the two fixture tests.
-# - Dropping the symbol-argument test from `factory?` reddens the not-a-factory tests, which
-#   are the shape that would fail correct code — `create(record)` and `build(io)` are ordinary
-#   Ruby and appear in suites that have never seen FactoryBot.
+# Watched to fail: making `factory?` answer false reddens the `create`, `build` and library tests;
+# making `fixtures?` answer false reddens the two fixture tests; dropping the symbol-argument test
+# from `factory?` reddens the not-a-factory tests, which are the shape that would fail correct code
+# — `create(record)` and `build(io)` are ordinary Ruby and appear in suites that have never seen
 class NoTestFactoriesTest < Minitest::Test
   include CopRunner
 

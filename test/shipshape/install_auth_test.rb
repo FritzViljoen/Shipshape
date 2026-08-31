@@ -6,9 +6,6 @@ require "shipshape/install"
 # Authorisation is opt-in because this gem installs into codebases that already run. Base
 # classes demanding an actor on day one would stop every call site at once, which is an
 # outage rather than a migration.
-#
-# Watched to fail: make `files` ignore `AUTH_ONLY` and the default-install test reddens;
-# hard-code `auth` to true in `template`'s binding and every off test reddens.
 class InstallAuthTest < Minitest::Test
   DOORS = %w[command io_command legacy_command query io_query legacy_query workflow].freeze
 

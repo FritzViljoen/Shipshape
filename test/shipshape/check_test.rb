@@ -8,10 +8,6 @@ require "fileutils"
 # A real repository, two real commits, two real RuboCop runs. Stubbing any of it would test
 # the arithmetic and leave the part that actually goes wrong — the worktree, the config
 # copy, the JSON — unexercised.
-#
-# Watched to fail: making Check#report treat `now > was` as `now >= was` reddens the
-# unchanged case; dropping the config copy in #measure_base reddens the
-# enabling-a-cop-is-free case.
 class CheckTest < Minitest::Test
   RUBOCOP_YML = <<~YAML
     require:

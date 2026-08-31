@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `on_gvasgn` return early reddens the global test.
-# - Making `on_cvasgn` return early reddens the class-variable test.
-# - Making `on_send` return early reddens the constant-mutation tests.
-# - Making `one_of?` answer true unconditionally reddens the request-handling test.
+# Watched to fail: making `on_gvasgn` return early reddens the global test; making `on_cvasgn`
+# return early reddens the class-variable test; making `on_send` return early reddens the constant-
+# mutation tests; making `one_of?` answer true unconditionally reddens the request-handling test.
 class NoDistantWritesTest < Minitest::Test
   include CopRunner
 

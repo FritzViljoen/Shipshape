@@ -3,14 +3,10 @@
 require "test_helper"
 require "shipshape/coverage"
 
-# Watched to fail: make `ignored?` answer false and the vendored-tree test reddens; glob only
-# the declared roots in `files` and the engine-monorepo test reddens, which is the exact
-# flattering answer this class exists to refuse.
-#
-# The denominator is the whole repository on purpose. Measuring only the trees the layout
-# names answers "is what I declared declared" — an engine monorepo keeping everything at
-# `core/app/models` would report 100% while nothing was inspected. That is not hypothetical:
-# it is what solidus did, reporting nineteen offences over 1203 files it never opened.
+# Watched to fail: make `ignored?` answer false and the vendored-tree test reddens; glob only the
+# declared roots in `files` and the engine-monorepo test reddens, which is the exact flattering
+# answer this class exists to refuse. The denominator is the whole repository on purpose. Measuring
+# only the trees the layout names answers "is what I declared declared" — an engine monorepo
 class CoverageTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {

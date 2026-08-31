@@ -2,15 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Making `documents?` answer true unconditionally reddens both bare-message tests.
-# - Making `cop_file?` answer true unconditionally reddens the not-a-cop test.
-# - Dropping `:dstr` from `literal` reddens the interpolated-message test. A heredoc with
-#   no interpolation parses as `:str`, so it does not prove that branch — this was found by
-#   removal, which is the point of doing it.
-#
-# Restoring each returns them to green.
+# Watched to fail: making `documents?` answer true unconditionally reddens both bare-message tests;
+# making `cop_file?` answer true unconditionally reddens the not-a-cop test; dropping `:dstr` from
+# `literal` reddens the interpolated-message test. A heredoc with no interpolation parses as
+# `:str`, so it does not prove that branch — this was found by removal, which is the point of doing
 class EnforcementMessagesAreDocumentationTest < Minitest::Test
   include CopRunner
 

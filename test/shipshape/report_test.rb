@@ -6,9 +6,6 @@ require "shipshape/report_as_markdown"
 
 # A small application holding one of each thing the report looks for, so every measure is
 # asserted against code rather than trusted.
-#
-# Watched to fail: emptying any measure's `#call` reddens its own assertion and nothing
-# else. The measures share `ClassReading` and are otherwise independent.
 class ReportTest < Minitest::Test
   APP = {
     "app/controllers/orders_controller.rb" => <<~RUBY,

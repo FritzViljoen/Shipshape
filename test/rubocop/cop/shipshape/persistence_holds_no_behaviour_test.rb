@@ -2,17 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `on_def` return early reddens the instance-method test.
-# - Making `on_defs` return early reddens the class-method test.
-# - Making `reaches_another_class?` answer true reddens the filtering-scope test, which is
-#   the shape the law explicitly allows.
-# - Dropping the `DELEGATORS` branch reddens the two public `delegate` tests.
-# - Making `public_delegate?` answer true reddens the private-delegate test.
-# - Dropping the `default_scope` branch reddens three of the four `default_scope` tests.
-#   The fourth asserts silence outside the record tree, so it stays green — which is what
-#   makes it the false-positive guard rather than a fourth copy of the same assertion.
+# Watched to fail: making `on_def` return early reddens the instance-method test; making `on_defs`
+# return early reddens the class-method test; making `reaches_another_class?` answer true reddens
+# the filtering-scope test, which is the shape the law explicitly allows; dropping the `DELEGATORS`
+# branch reddens the two public `delegate` tests; making `public_delegate?` answer true reddens the
 class PersistenceHoldsNoBehaviourTest < Minitest::Test
   include CopRunner
 

@@ -2,14 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `SENDERS` reddens the bypass tests.
-# - Making `literal_name` answer the source rather than a literal's value reddens the
-#   dynamic-send test, which is the stated blind spot.
-# - Removing `Exclude` from the config reddens nothing here, so the base classes' own
-#   legitimate `send` is covered by `test_the_generated_base_classes_are_not_bypasses` in
-#   `install_auth_test.rb` instead.
+# Watched to fail: emptying `SENDERS` reddens the bypass tests; making `literal_name` answer the
+# source rather than a literal's value reddens the dynamic-send test, which is the stated blind
+# spot; removing `Exclude` from the config reddens nothing here, so the base classes' own
+# legitimate `send` is covered by `test_the_generated_base_classes_are_not_bypasses` in
 class NoEntryPointBypassTest < Minitest::Test
   include CopRunner
 

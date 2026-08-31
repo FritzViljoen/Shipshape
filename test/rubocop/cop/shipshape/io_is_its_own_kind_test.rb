@@ -2,16 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `CONSTANTS` reddens every offence test.
-# - Making `one_of?` answer true reddens the io_command test, which is the one that matters:
-#   a cop that fires on the kind whose job is the outside enforces the opposite of the law.
-#
-# **The call matrix cannot hold this.** It refuses `command -> io_command`, which works only
-# for IO an application already filed as a kind. `Net::HTTP` belongs to a gem, resolves to no
-# file under any glob, and is skipped — so the rule held for the disciplined case and not for
-# the form IO arrives in, which is a line in the middle of a method.
+# Watched to fail: emptying `CONSTANTS` reddens every offence test; making `one_of?` answer true
+# reddens the io_command test, which is the one that matters: a cop that fires on the kind whose
+# job is the outside enforces the opposite of the law. **The call matrix cannot hold this.** It
+# refuses `command -> io_command`, which works only for IO an application already filed as a kind.
 class IoIsItsOwnKindTest < Minitest::Test
   include CopRunner
 

@@ -2,12 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `PARSERS` reddens the parser tests.
-# - Emptying `CONVERSIONS` reddens the raising-conversion test.
-# - Making `reads_params?` answer true reddens the no-parameter test, which is the one that
-#   holds the cop to input rather than to parsing in general.
+# Watched to fail: emptying `PARSERS` reddens the parser tests; emptying `CONVERSIONS` reddens the
+# raising-conversion test; making `reads_params?` answer true reddens the no-parameter test, which
+# is the one that holds the cop to input rather than to parsing in general.
 class NoInlineParamParseTest < Minitest::Test
   include CopRunner
 

@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail, as `a-guard-states-its-limit` requires. Three checks, proven separately:
-#
-# - Making `check_methods` return early reddens the second-method and wrong-name tests.
-# - Making `check_reader` return early reddens the public-attr_reader test.
-# - Making `reason_to_refuse` answer nil reddens all four parameter tests.
-#
-# Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
+# Watched to fail: making `check_methods` return early reddens the second-method and wrong-name
+# tests; making `check_reader` return early reddens the public-attr_reader test; making
+# `reason_to_refuse` answer nil reddens all four parameter tests. Restoring each returns them to
+# green. A guard nobody has seen fail reads as coverage.
 class OneOperationOneClassTest < Minitest::Test
   include CopRunner
 

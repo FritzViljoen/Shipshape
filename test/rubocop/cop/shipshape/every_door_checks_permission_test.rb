@@ -3,12 +3,10 @@
 require "test_helper"
 require "shipshape/install"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Making `checks_permission?` answer true reddens the gutted-door tests.
-# - Making `authorisation_installed?` answer true reddens the opted-out test — the one that
-#   keeps this cop silent in an application that never asked for authorisation.
-# - Making `door?` answer true reddens the not-a-door test.
+# Watched to fail: making `checks_permission?` answer true reddens the gutted-door tests; making
+# `authorisation_installed?` answer true reddens the opted-out test — the one that keeps this cop
+# silent in an application that never asked for authorisation; making `door?` answer true reddens
+# the not-a-door test.
 class EveryDoorChecksPermissionTest < Minitest::Test
   include CopRunner
 

@@ -2,13 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `guarded?` answer true reddens the unguarded-keyword test.
-# - Making `check_argument` return early on `:arg` reddens the positional test.
-# - Emptying `UNNAMED` reddens the splat tests.
-# - Making `on_def` skip the `initialize` check reddens nothing on its own, which is why
-#   there is a test that a guard-free `call` is not this cop's business.
+# Watched to fail: making `guarded?` answer true reddens the unguarded-keyword test; making
+# `check_argument` return early on `:arg` reddens the positional test; emptying `UNNAMED` reddens
+# the splat tests; making `on_def` skip the `initialize` check reddens nothing on its own, which is
+# why there is a test that a guard-free `call` is not this cop's business.
 class TypedArgumentsTest < Minitest::Test
   include CopRunner
 

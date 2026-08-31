@@ -2,16 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `NAMES` reddens every offence test.
-# - Making `declared?` answer true reddens them too, and making it answer false reddens the
-#   four tests that assert a classified column is accepted — including `:not_personal`, which
-#   is the one that keeps this an inventory rather than a suppression list.
-#
-# **This is not a compliance check and the law says so in as many words.** It makes the
-# inventory exist and keeps it from going stale. A green run says every name-matching column
-# has been classified by somebody; it says nothing about whether they were right.
+# Watched to fail: emptying `NAMES` reddens every offence test; making `declared?` answer true
+# reddens them too, and making it answer false reddens the four tests that assert a classified
+# column is accepted — including `:not_personal`, which is the one that keeps this an inventory
+# rather than a suppression list. **This is not a compliance check and the law says so in as many
 class PersonalDataIsDeclaredTest < Minitest::Test
   include CopRunner
 

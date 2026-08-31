@@ -4,13 +4,10 @@ require "test_helper"
 require "shipshape/rules"
 require "shipshape/install"
 
-# Watched to fail, as `a-guard-states-its-limit` requires: hard-code the kinds table and the
-# layout test reddens; drop the registry read in `cops` and the guards test reddens; ignore
-# `root` in `authorisation_section` and both authorisation tests redden.
-#
-# Everything this writes is derived, so these assert it tracks its inputs rather than
-# asserting fixed prose — a test pinning the wording would be the second copy of the layout
-# that the generated file exists to avoid.
+# Watched to fail: hard-code the kinds table and the layout test reddens; drop the registry read in
+# `cops` and the guards test reddens; ignore `root` in `authorisation_section` and both
+# authorisation tests redden. Everything this writes is derived, so these assert it tracks its
+# inputs rather than asserting fixed prose — a test pinning the wording would be the second copy of
 class RulesTest < Minitest::Test
   def test_it_names_the_kinds_the_configuration_declares
     rules = generate

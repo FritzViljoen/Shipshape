@@ -3,16 +3,10 @@
 require "test_helper"
 require "shipshape/queue"
 
-# Watched to fail, as `a-guard-states-its-limit` requires:
-#
-# - Removing the `tested` term from `ranked` reddens the covered-first test.
-# - Removing the `-unit.cops.length` term reddens the distinct-rules test.
-# - Making `named_in_a_test?` answer true reddens the coverage tests.
-# - Emptying `TOO_COMMON` reddens the vocabulary test.
-# - Dropping the coverage ratio from `ranked` reddens the best-covered-first test.
-#
-# The ordering is the whole product here. A queue that offers an untested god class first is
-# a queue that turns a refactor into an outage, and nothing in this gem would notice.
+# Watched to fail: removing the `tested` term from `ranked` reddens the covered-first test;
+# removing the `-unit.cops.length` term reddens the distinct-rules test; making `named_in_a_test?`
+# answer true reddens the coverage tests; emptying `TOO_COMMON` reddens the vocabulary test;
+# dropping the coverage ratio from `ranked` reddens the best-covered-first test. The ordering is
 class QueueTest < Minitest::Test
   LAYOUT = <<~YAML
     inherit_from:

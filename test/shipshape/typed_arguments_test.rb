@@ -2,10 +2,9 @@
 
 require "test_helper"
 
-# Watched to fail, twice: making `typed` return its value unconditionally reddens every
-# raising test here, and making `matches?` answer true for Boolean reddens the three
-# Boolean cases. Restoring each returns them to green. A guard nobody has seen fail reads
-# as coverage.
+# Watched to fail: making `typed` return its value unconditionally reddens every raising test here,
+# and making `matches?` answer true for Boolean reddens the three Boolean cases. Restoring each
+# returns them to green. A guard nobody has seen fail reads as coverage.
 class TypedArgumentsTest < Minitest::Test
   # A stand-in caller, written the way the law asks: a hand-written initializer, one guard
   # per keyword, no macro.

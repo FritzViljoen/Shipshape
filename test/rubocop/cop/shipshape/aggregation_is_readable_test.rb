@@ -2,15 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Making `steps_named` answer `["X"]` reddens the sequences-nothing tests.
-# - Making it answer `[]` reddens every empty-expectation test.
-# - Making `operation?` answer true reddens the not-a-step test.
-# - Making `hidden_steps` answer `[]` reddens the private-helper test.
-# - Making `unreadable_receivers` answer `[]` reddens the variable-receiver test.
-# - Dropping `call_later` from `RUNS` reddens the deferred tests.
-# - Removing the nested-class guard reddens the nested-part test.
+# Watched to fail: making `steps_named` answer `["X"]` reddens the sequences-nothing tests; making
+# it answer `[]` reddens every empty-expectation test; making `operation?` answer true reddens the
+# not-a-step test; making `hidden_steps` answer `[]` reddens the private-helper test; making
+# `unreadable_receivers` answer `[]` reddens the variable-receiver test; dropping `call_later` from
 class AggregationIsReadableTest < Minitest::Test
   include CopRunner
 

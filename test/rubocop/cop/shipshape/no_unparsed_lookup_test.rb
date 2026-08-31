@@ -2,12 +2,10 @@
 
 require "test_helper"
 
-# Watched to fail:
-#
-# - Emptying `FINDERS` reddens every offence test.
-# - Making `params_read?` answer false reddens them too; making it answer true reddens the
-#   parsed-value test, which is the one that separates a raw parameter from a real value.
-# - Making `param_reads` skip descendants reddens the nested-hash test.
+# Watched to fail: emptying `FINDERS` reddens every offence test; making `params_read?` answer
+# false reddens them too; making it answer true reddens the parsed-value test, which is the one
+# that separates a raw parameter from a real value; making `param_reads` skip descendants reddens
+# the nested-hash test.
 class NoUnparsedLookupTest < Minitest::Test
   include CopRunner
 
