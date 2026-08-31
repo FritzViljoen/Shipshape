@@ -1,6 +1,10 @@
 # What shipshape covers, against a list it did not write
 
-A survey, not a law. Somebody handed over a catalogue of about 120 ways Rails applications
+A survey, not a law. Its companion, [the patterns people reach for](rails-patterns.md), takes
+the list from the other end — what teams adopt to stop these failures, and what this canon does
+instead.
+
+Somebody handed over a catalogue of about 120 ways Rails applications
 fail, assembled independently of this canon, and the useful question is not "does shipshape
 sound relevant" but **which rows it actually holds, and which it does not**.
 

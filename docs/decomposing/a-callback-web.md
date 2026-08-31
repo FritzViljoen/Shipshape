@@ -132,6 +132,6 @@ attributed to the thing that failed rather than to the save.
 
 Callbacks registered by a gem on your behalf stay invisible — the cop sees registration
 syntax, not behaviour. And a subscriber or observer attached outside the record is a
-different defect with the same shape:
+different defect with the same shape —
 [`nothing-travels-off-the-call-path`](../laws/nothing-travels-off-the-call-path.md), whose
-list is also closed.
+list is also closed — with its own procedure: [an event bus](an-event-bus.md).
