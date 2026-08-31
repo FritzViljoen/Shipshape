@@ -20,6 +20,7 @@ class GeneratedBaseClassesTest < Minitest::Test
     stub_active_record
     stub_view_component
     stub_active_job
+    stub_rails
     stub_descendants
     Shipshape::Install::FILES.each { |name| require File.join(root, "app/shipshape/#{name}.rb") }
   end
@@ -31,6 +32,25 @@ class GeneratedBaseClassesTest < Minitest::Test
 
     Object.const_set(:ViewComponent, Module.new)
     ::ViewComponent.const_set(:Base, Class.new)
+  end
+
+  # **Rails is not loaded here, and `test_call` asks it whether this is the test environment.**
+  # The stand-in answers yes and can be told to answer no, which is the only way to watch the
+  # refusal that keeps an unchecked door out of production.
+  def self.stub_rails
+    return if defined?(::Rails)
+
+    env = Class.new do
+      attr_accessor :answer
+
+      def test?
+        @answer.nil? ? true : @answer
+      end
+    end.new
+
+    rails = Module.new
+    rails.define_singleton_method(:env) { env }
+    Object.const_set(:Rails, rails)
   end
 
   # ActiveJob is not loaded in this suite. The stand-in records enqueues and can run `perform`,
@@ -580,6 +600,56 @@ class GeneratedBaseClassesTest < Minitest::Test
 
   def test_a_constant_that_is_not_an_operation_is_skipped_not_fatal
     assert_equal [Charge.permission], WithAProc.permissions
+  end
+
+  # **Setup asks what state is legal, not who may reach it**, so `test_call` skips the
+  # permission check and skips nothing else. Watched to fail: making `test_call` delegate to
+  # `call` reddens the refused-actor test, because the check would come back.
+  def test_test_call_runs_a_command_a_refusing_actor_could_not
+    refused = Anyone.new([Charge.permission])
+
+    refute_predicate Charge.call(actor: refused, amount: 5), :success?
+    assert_predicate Charge.test_call(amount: 5), :success?
+  end
+
+  def test_test_call_runs_a_query_the_same_way
+    refused = Anyone.new([ListPlaces.permission])
+
+    assert_raises(Permission::Refused) { ListPlaces.call(actor: refused) }
+    assert_kind_of Array, ListPlaces.test_call
+  end
+
+  # Everything except the check still runs, so a state `test_call` builds is one the
+  # application can build.
+  def test_test_call_still_types_its_arguments
+    assert_raises(ArgumentError) { Charge.test_call(amount: "5") }
+  end
+
+  def test_test_call_still_records_to_the_audit_log
+    entries = audited { Charge.test_call(amount: 5) }
+
+    assert_equal [Charge.name], entries.map(&:operation)
+    assert_equal :succeeded, entries.first.outcome
+  end
+
+  # **The one thing an unchecked door must promise.** A method that exists everywhere and is
+  # merely discouraged does not promise it.
+  def test_test_call_raises_outside_the_test_environment
+    ::Rails.env.answer = false
+
+    error = assert_raises(RuntimeError) { Charge.test_call(amount: 5) }
+
+    assert_includes error.message, "there is no unchecked door outside the test environment"
+  ensure
+    ::Rails.env.answer = true
+  end
+
+  def test_a_query_refuses_the_unchecked_door_outside_tests_too
+    ::Rails.env.answer = false
+
+    assert_raises(RuntimeError) { ListPlaces.test_call }
+  ensure
+    ::Rails.env.answer = true
   end
 
   # A door of its own, so the catalogue under test is this file's classes and not every

@@ -30,6 +30,35 @@ class Query
   def self.call(actor: nil, **arguments)
     raise Permission::Refused, permission unless permits?(actor)
 
+    perform(actor, arguments)
+  end
+
+  # **Setup asks what state is legal, not who may reach it.** A test building a booking to
+  # cancel is not testing who may build one, and assembling a grant bag to get there teaches
+  # nothing. `test_call` skips the permission check and skips nothing else: typed arguments,
+  # the transaction, the rules and the audit entry all still run, so the state it produces is
+  # a state the application can produce — which is the whole point of
+  # `no-test-factories`.
+  #
+  # **It is a separate door, not `call` with a permissive actor.** Wrapping `call` would mean
+  # the checked path is the one under test in every setup line, and the real one would never
+  # be exercised on its own. Here `call` is untouched, so a permission test still calls it and
+  # still gets refused.
+  #
+  # **It raises outside the test environment**, so it cannot become a production door. That is
+  # the one thing an unchecked entry point must promise, and a method that exists everywhere
+  # and is merely discouraged does not promise it.
+  def self.test_call(actor: nil, **arguments)
+    unless defined?(::Rails) && ::Rails.env.test?
+      raise "#{name}.test_call is for tests: there is no unchecked door outside the test environment"
+    end
+
+    perform(actor, arguments)
+  end
+
+  # The half of `call` that runs once the door has been opened. Both entry points share it,
+  # so the only difference between them is the check itself.
+  def self.perform(actor, arguments)
     operation = new(**arguments)
     answer = operation.__perform__(actor)
 <%- else -%>
@@ -41,6 +70,9 @@ class Query
 
     answer
   end
+<%- if auth -%>
+  private_class_method :perform
+<%- end -%>
 
   def self.shapes?(answer)
     return answer.all? { |entry| entry.is_a?(Shape) } if answer.is_a?(Array)

@@ -75,17 +75,23 @@ application is responsible for, and a row nothing in the application creates is 
 booking = create(:booking, :confirmed, offer: offer)
 
 # after — the state exists because the application can produce it
-booking = CreateBooking.call(actor: staff, offer_id: offer.id).value
-ConfirmBooking.call(actor: staff, booking_id: booking.id)
+booking = CreateBooking.test_call(offer_id: offer.id).value
+ConfirmBooking.test_call(booking_id: booking.id)
 ```
 
 **A file at a time, with the factories still present.** Both mechanisms coexist for as long as
 it takes; the cop's count falls per file, and a failure is attributable to the file you just
 changed.
 
-**The setup needs an actor**, and that is not an accident — it is the test saying who is doing
-this. Give it one holding the grants the setup needs, and no more: a test that sets up as an
-actor with every permission has quietly stopped being able to notice a missing check.
+**Setup runs unchecked, and the subject does not.** Setup asks what state is legal, not who may
+reach it, so it uses `test_call` on `Command` and `Query` — which skips the permission check
+and nothing else, and raises outside the test environment. Everything that decides whether the
+state is legal still runs.
+
+**The operation under test is called with `call` and a real actor**, and a refusing one proves
+it refuses. That separation is the reason `test_call` is a second door rather than `call` with
+a permissive actor: the checked path stays exercised on its own, so a refusal test is testing
+the refusal. A subject reached by `test_call` has stopped being able to notice a missing check.
 
 **Check:** the file passes, and `Shipshape/NoTestFactories` is silent on it.
 
@@ -126,9 +132,9 @@ that relied on it, immediately and by name.
 
 ## What none of this proves
 
-**It is slower, and that is the deliberate cost.** Every setup now pays permission checks,
-typed arguments, transactions and audit entries. On a large suite that is minutes, and the law
-spends them on purpose — but nothing here tells you whether your suite can afford it, and the
+**It is slower, and that is the deliberate cost.** Every setup now pays typed arguments, a
+transaction and an audit entry — the permission check is the one thing `test_call` skips. On a
+large suite that is minutes, and the law spends them on purpose — but nothing here tells you whether your suite can afford it, and the
 answer is sometimes that a hot test file needs its setup narrowed rather than its factories
 back.
 

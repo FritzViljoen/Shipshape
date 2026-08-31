@@ -40,8 +40,8 @@ module RuboCop
       #   fixtures :all
       #
       #   # good — the state exists because the application can produce it
-      #   booking = CreateBooking.call(actor: staff, offer_id: offer.id).value
-      #   ConfirmBooking.call(actor: staff, booking_id: booking.id)
+      #   booking = CreateBooking.test_call(offer_id: offer.id).value
+      #   ConfirmBooking.test_call(booking_id: booking.id)
       class NoTestFactories < Base
         include Explains
 
@@ -107,8 +107,8 @@ module RuboCop
         CALLED = <<~RUBY
           # the state exists because the application can produce it, and the setup has
           # exercised the operations that produce it
-          booking = CreateBooking.call(actor: staff, offer_id: offer.id).value
-          ConfirmBooking.call(actor: staff, booking_id: booking.id)
+          booking = CreateBooking.test_call(offer_id: offer.id).value
+          ConfirmBooking.test_call(booking_id: booking.id)
 
           # reference data no operation creates is seeded, not factoried
           currency = Currency.find_by!(code: "ZAR")

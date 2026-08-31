@@ -27,7 +27,7 @@ class NoTestFactoriesTest < Minitest::Test
     assert_includes message, "WHY:"
     assert_includes message, "a factory can produce a row the application cannot"
     assert_includes message, "asserts behaviour on fiction"
-    assert_includes message, "CreateBooking.call(actor: staff, offer_id: offer.id).value"
+    assert_includes message, "CreateBooking.test_call(offer_id: offer.id).value"
   end
 
   def test_every_builder_in_the_dsl_is_matched
@@ -78,8 +78,8 @@ class NoTestFactoriesTest < Minitest::Test
   # Calling the operations is the shape the law asks for, so it must be silent.
   def test_building_state_through_operations_is_the_shape
     assert_empty check(<<~RUBY)
-      booking = CreateBooking.call(actor: staff, offer_id: offer.id).value
-      ConfirmBooking.call(actor: staff, booking_id: booking.id)
+      booking = CreateBooking.test_call(offer_id: offer.id).value
+      ConfirmBooking.test_call(booking_id: booking.id)
     RUBY
   end
 

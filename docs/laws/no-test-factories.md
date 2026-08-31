@@ -33,10 +33,39 @@ Dogfooding also means the suite exercises the operations it sets up with. A test
 because `CreateBooking` broke, that is not a cascading failure to be engineered away. It is
 true.
 
+## Setup runs unchecked, and `test_call` is how
+
+Calling operations for setup does not mean assembling a grant bag to build a booking.
+**Authorisation answers "who may"; setup is asking "what state is legal".** Those are different
+questions, and only the second one matters before the test starts.
+
+So `Command` and `Query` carry a second entry point:
+
+```ruby
+booking = CreateBooking.test_call(offer_id: offer.id).value        # setup
+result  = CancelBooking.call(actor: staff, booking_id: booking.id) # the subject
+```
+
+**It skips the permission check and skips nothing else.** Typed arguments, the transaction, the
+business rules and the audit entry all still run, so the state it produces is a state the
+application can produce — which is the entire point of this law.
+
+**It is a separate door, not `call` with a permissive actor.** That distinction is what keeps
+permissions testable: wrapping `call` would make the checked path the one exercised by every
+setup line, and a test of refusal would be testing the wrapper. `call` is untouched, so
+`assert_equal :forbidden, result.error` still means what it says.
+
+**It raises outside the test environment.** An unchecked entry point has to promise that, and a
+method that exists everywhere and is merely discouraged does not. It asks `Rails.env.test?`,
+which is the one ambient read in the whole shape and is on the door rather than in the work.
+
+**Use a real actor for the operation under test**, always, and a refusing one to prove it
+refuses. A subject reached by `test_call` has stopped being able to notice a missing check.
+
 ## What it costs, and it is real
 
-Building state through commands is slower than an `INSERT`: every setup pays permission checks,
-typed arguments, transactions and audit entries. On a large suite that is minutes, and this law
+Building state through commands is slower than an `INSERT`: every setup pays typed arguments, a
+transaction and an audit entry. On a large suite that is minutes, and this law
 spends them deliberately, because a fast suite that proves the wrong thing is not a saving.
 
 Reference data — currencies, countries, a tenant — that no operation creates is seeded, not
@@ -51,7 +80,11 @@ factoried. If nothing in the application creates a thing, a test may load it dir
 - **Guard:** `Shipshape/NoTestFactories`, over the test trees. Fails `create`/`build`/
   `build_stubbed`/`attributes_for` on a symbol, `FactoryBot`/`FactoryGirl`/`Fabricate` by name,
   and Rails fixtures — `fixtures :all` and the accessors it generates.
-- **Guard's limit:** **it reads how state is built, never whether the state is right.** A test
+- **Guard's limit:** **nothing stops a test using `test_call` on the operation under test.**
+  That is the one misuse of the second door, it turns a permission test into a test of nothing,
+  and no cop reads which call in a test file is the subject.
+
+  **It reads how state is built, never whether the state is right.** A test
   that calls the correct operations to reach a state nobody wants passes; so does one that
   reaches a legal state and asserts nothing about it.
 
