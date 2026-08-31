@@ -45,7 +45,6 @@ module Shipshape
       legacy_query
       legacy_command
       typed_params
-      operation_surface
       personal_data
       application_view_component
     ].freeze

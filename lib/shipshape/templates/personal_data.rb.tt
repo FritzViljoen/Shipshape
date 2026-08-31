@@ -4,26 +4,17 @@
 #
 # **Where personal data is, declared once, in code.**
 #
-# The right to erasure is unimplementable without this. Not difficult — unimplementable: you
-# cannot delete what nobody can enumerate, and in a schema of two hundred tables nobody can
-# enumerate it from memory. Every erasure request then becomes a fresh archaeology, answered
-# by whoever is on duty, and the answer differs each time.
+# Erasure is unimplementable without it: you cannot delete what nobody can enumerate, and in a
+# schema of two hundred tables every request becomes fresh archaeology with a different answer.
 #
-# **This file is the fact, not a description of one.** A column is personal because it is
-# listed here; nothing infers it. That is what makes it survive — a guess about column names
-# would go stale the day somebody adds `contact_ref`, silently, which is the failure mode
-# every checked-in list in this repository is built to avoid.
+# **This file is the fact, not a description of one.** A column is personal because it is listed
+# here; nothing infers it. And it cannot go stale, because
+# `Shipshape/PersonalDataIsDeclared` fails the build on any column whose name suggests a person
+# and which nobody has classified.
 #
-# **It cannot go stale, because a column that is not classified fails the build.**
-# `Shipshape/PersonalDataIsDeclared` reads the schema and asks this file about every column
-# whose name suggests a person. A new one is an offence until somebody writes a line here —
-# and writing that line is the decision, made once, by whoever added the column and still
-# remembers what it holds.
-#
-# **What this is not.** It is not a compliance record and nothing here says you are lawful.
-# It says where the data is and what happens to it on erasure. Whether you had a basis to
-# collect it, whether the retention is justified, whether an anonymisation is irreversible in
-# fact — those are judgements, and no file and no cop makes them.
+# **It is not a compliance record.** It says where the data is and what happens to it on
+# erasure. Whether you had a basis to collect it, and whether an anonymisation is irreversible
+# in fact, are judgements no file makes.
 module PersonalData
   # What happens to a column when a person asks to be forgotten.
   #
@@ -40,9 +31,9 @@ module PersonalData
 
   # table => { column => route }
   #
-  # Written flat and literal on purpose: it is read by a cop with a regular expression, and
-  # anything computed here would be invisible to it. Add the reason as a comment where the
-  # route is `:retain_with_reason` — that comment is the only record of why.
+  # **Flat and literal on purpose**: a cop reads this with a regular expression, so anything
+  # computed here is invisible to it. Where the route is `:retain_with_reason`, the comment
+  # beside it is the only record of why.
   COLUMNS = {
     # "users" => {
     #   "email"       => :anonymise,
@@ -64,8 +55,7 @@ module PersonalData
     !route(table, column).nil?
   end
 
-  # Every table holding something that has to be erased or anonymised — the work list an
-  # erasure command is written against, and the thing nobody can hold in their head.
+  # The work list an erasure command is written against.
   def self.tables_needing_erasure
     COLUMNS.select { |_, columns| columns.value?(:delete_row) || columns.value?(:anonymise) }
            .keys.sort

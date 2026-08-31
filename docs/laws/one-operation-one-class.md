@@ -95,8 +95,8 @@ is where it is going, so the guard reads the operations and asks what they inclu
 - **Guard:** `Shipshape/MixinsAddNothingPublic`, over modules that an operation includes.
   Fails a public instance method and a public reader, and scaffolds `private` above the
   first of them.
-- **Guard:** the generated `operation_surface.rb` and `operations_expose_nothing_test.rb`,
-  installed into the application's own suite.
+- **Guard:** the generated `operations_expose_nothing_test.rb`, installed into the
+  application's own suite.
   **The exact form of this law, and the only one that cannot be fooled.** The cops read
   source; this boots the application and subtracts —
   `SettleInvoice.public_instance_methods - Command.public_instance_methods` is precisely what

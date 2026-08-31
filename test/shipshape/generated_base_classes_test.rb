@@ -1431,13 +1431,17 @@ class GeneratedBaseClassesTest < Minitest::Test
     refute_includes true.class.ancestors, Boolean
     assert_equal "Boolean", Boolean.to_s
   end
-  # `OperationSurface` is the exact form of `one-operation-one-class`, and these are the
-  # cases the cops cannot reach. A cop reads source; every one of these is invisible there
-  # and obvious here.
+  # The exact form of `one-operation-one-class`, asked of the loaded class — the cases a cop
+  # reading source cannot reach. Mirrors the installed `operations_expose_nothing_test.rb`.
   DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
+  ENTRY = %i[call anonymous_call].freeze
 
   def additions(operation)
-    OperationSurface.public_additions(operation, DOORS)
+    door = DOORS.find { |candidate| operation < candidate }
+    return [] if door.nil?
+
+    (operation.public_instance_methods - door.public_instance_methods - ENTRY) +
+      (operation.methods - door.methods)
   end
 
   def test_a_clean_operation_adds_nothing

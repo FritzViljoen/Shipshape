@@ -53,7 +53,6 @@ class InstallTest < Minitest::Test
       install(root)
 
       assert_path_exists File.join(root, "test/shipshape/operations_expose_nothing_test.rb")
-      assert_path_exists File.join(root, "app/shipshape/operation_surface.rb")
     end
   end
 

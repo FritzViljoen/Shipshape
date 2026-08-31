@@ -109,8 +109,7 @@ class Workflow
   private
 <%- if auth -%>
 
-  # Whoever the door was opened for. Most operations never read it, which is why it is here
-  # rather than in every initializer.
+  # Whoever the door was opened for.
   attr_reader :actor
 
 <%- end -%>
@@ -119,28 +118,24 @@ class Workflow
     Result.success(value)
   end
 
-  # **A failure carries a value, because a refusal often has to be rendered.** A form that did
-  # not save comes back with what was typed and what was wrong with it, and the caller cannot
-  # re-read the request — it was parsed at the seam and is gone. The operation hands back a
-  # shape and the edge places it.
+  # **A failure carries a value, because a refusal often has to be rendered.** The caller
+  # cannot re-read the request — it was parsed at the seam and is gone — so a form that did not
+  # save comes back as a shape the edge places.
   def failure(error, value = nil)
     Result.failure(error, value)
   end
 
-  # **Dispatches with an implicit receiver**, so it works whether the operation left its
-  # entry point public or made it private. `send` would work too and is banned: it steps
-  # over `private`, routes around the call graph, and names a method nobody can grep for. A
-  # base class that writes it cannot ask an application not to.
+  # **Dispatches with an implicit receiver**, so it works whether the entry point is public or
+  # private. `send` would too and is banned: a base class that writes it cannot ask an
+  # application not to.
   #
-  # Public, and unreachable all the same: `new` is private, so nobody outside can hold an
-  # operation to call this on — and `Shipshape/OnlyTheDoorIsCalled` refuses the attempt at
-  # the call site, where no visibility keyword can be stepped over.
+  # Public and unreachable all the same — `new` is private, so nobody outside can hold an
+  # operation to call this on.
 <%- if auth -%>
   public def __perform__(actor)
-    # **The actor belongs to the base class, not to the operation's signature.** The check
-    # above needed it; most operations do not, and forcing `actor:` into every initializer
-    # would put a keyword in fifty constructors so that three could read it. Set here, and
-    # available to any operation that wants it through the private reader below.
+    # **The actor belongs to the base class, not to the operation's signature.** Forcing
+    # `actor:` into every initializer would put a keyword in fifty constructors so three could
+    # read it. Set here, and available through the private reader below.
     @actor = actor
 
     self.class.anonymous? ? anonymous_call : call
@@ -151,15 +146,12 @@ class Workflow
   end
 <%- end -%>
 
-  # **The only way in is `call`.** A caller cannot build an operation, so it cannot reach one
-  # that skipped the permission check, the transaction or the return-type assertion.
-  #
-  # `allocate` is on the list because it is the hole `new` alone leaves: it is public on every
-  # Ruby class, it skips `initialize` entirely, and `SettleInvoice.allocate.__perform__(actor)`
-  # ran the operation unauthenticated. Verified by running it, not by reading it.
-  # **What this operation keeps out of the trail**, beyond what `PersonalData` already
-  # declares. For a value that is not a column and so is in no registry: a token, a free-text
-  # note, a payload.
+  # **The only way in is `call`**, so nothing can reach an operation that skipped the check,
+  # the transaction or the return-type assertion. `allocate` is on the list because it is the
+  # hole `new` alone leaves: public on every class, skips `initialize`, and
+  # `SettleInvoice.allocate.__perform__(actor)` ran the operation unauthenticated.
+  # Beyond what `PersonalData` declares: a value that is not a column and so is in no
+  # registry — a token, a free-text note, a payload.
 
 
   private_class_method :new, :allocate

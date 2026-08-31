@@ -14,9 +14,13 @@ require "test_helper"
 class OperationsExposeNothingTest < ActiveSupport::TestCase
   DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
 
+  # The two an operation may answer. Which it implements decides whether it is checked, so
+  # neither is an addition.
+  ENTRY = %i[call anonymous_call].freeze
+
   def test_no_operation_exposes_anything_its_base_class_did_not
     exposed = operations.filter_map do |operation|
-      extra = OperationSurface.public_additions(operation, DOORS)
+      extra = public_additions(operation)
 
       "#{operation}: #{extra.sort.join(', ')}" unless extra.empty?
     end
@@ -32,6 +36,21 @@ class OperationsExposeNothingTest < ActiveSupport::TestCase
   end
 
   private
+
+  # Every public method this operation has that its base class does not — instance and class,
+  # mixins included, however they arrived. It works because the base classes are POROs in this
+  # repository with a known surface, so everything above that line was added here.
+  #
+  # **Measured from the door, not from `superclass`.** They are the same while
+  # `an-operation-is-a-leaf` holds, and if it ever does not, measuring from `superclass` would
+  # compare an operation against another operation and report nothing.
+  def public_additions(operation)
+    door = DOORS.find { |candidate| operation < candidate }
+    return [] if door.nil?
+
+    (operation.public_instance_methods - door.public_instance_methods - ENTRY) +
+      (operation.methods - door.methods)
+  end
 
   # Anonymous classes are somebody's test fixture, not an operation, and they have no name to
   # report. Sorted so the failure reads the same way twice.
