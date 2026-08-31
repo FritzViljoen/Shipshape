@@ -27,9 +27,20 @@ module Shipshape
 
     CONFIG = ".rubocop.yml"
 
-    def initialize(root:, trunk: nil)
+    # **`config` is an escape from the application's own `.rubocop.yml`**, which on a legacy
+    # repository is frequently unloadable here: it `require:`s plugins pinned to RuboCop 0.x,
+    # which cannot be activated beside the 1.x this gem needs. Given one, both trees are
+    # measured with that file and the application's config is never read.
+    #
+    # **It is a path inside the repository, and that is not a convenience.** RuboCop resolves
+    # the globs in a config relative to that config's own directory, so a file kept outside
+    # the tree makes every `Kinds` glob match nothing — the Style cops still fire and every
+    # kind-scoped cop goes silent, which is the false clean this gem exists to warn about,
+    # produced by its own flag.
+    def initialize(root:, trunk: nil, config: nil)
       @root = typed(root, String)
       @trunk = typed(trunk, String, allow_nil: true)
+      @config = config && relative(typed(config, String))
       @git = Git.new(root: root)
     end
 
@@ -38,7 +49,7 @@ module Shipshape
       raise Error, "shipshape: #{root} is not a git repository." unless git.repository?
 
       sha = git.merge_base(trunk_name)
-      head = Offences.new(directory: root).call
+      head = Offences.new(directory: root, config: config && File.join(root, config)).call
       base = git.at(sha) { |path| measure_base(path) }
 
       report(base: base, head: head, sha: sha)
@@ -46,7 +57,7 @@ module Shipshape
 
     private
 
-    attr_reader :root, :trunk, :git
+    attr_reader :root, :trunk, :git, :config
 
     def trunk_name
       @trunk_name ||= trunk || git.default_trunk
@@ -56,11 +67,30 @@ module Shipshape
     # same rules. Only the root config is copied: a config that inherits from a file
     # elsewhere in the repository gets that file from the BASE commit, which is a stated
     # limit rather than a silent one.
+    # The chosen config is copied to the same relative place in the base tree, so its globs
+    # resolve against a tree root in both runs rather than against two different directories.
     def measure_base(path)
-      config = File.join(root, CONFIG)
-      FileUtils.cp(config, File.join(path, CONFIG)) if File.file?(config)
+      chosen = config || CONFIG
+      source = File.join(root, chosen)
+      target = File.join(path, chosen)
 
-      Offences.new(directory: path).call
+      if File.file?(source)
+        FileUtils.mkdir_p(File.dirname(target))
+        FileUtils.cp(source, target)
+      end
+
+      Offences.new(directory: path, config: config && target).call
+    end
+
+    # Given an absolute path, the part inside the repository. A config outside it cannot be
+    # copied to a matching place in the base tree, so it is refused rather than half-working.
+    def relative(path)
+      full = File.expand_path(path, root)
+      inside = full.delete_prefix(File.expand_path(root) + "/")
+
+      raise Error, "shipshape: --config must name a file inside #{root}, got #{path}" if inside == full
+
+      inside
     end
 
     def report(base:, head:, sha:)

@@ -3,6 +3,7 @@
 require "test_helper"
 require "shipshape/check"
 require "open3"
+require "fileutils"
 
 # A real repository, two real commits, two real RuboCop runs. Stubbing any of it would test
 # the arithmetic and leave the part that actually goes wrong — the worktree, the config
@@ -112,6 +113,42 @@ class CheckTest < Minitest::Test
     end
   end
 
+  # **An application's own `.rubocop.yml` is frequently unloadable here**, because it
+  # `require:`s plugins pinned to RuboCop 0.x, which cannot be activated beside the 1.x this
+  # gem needs. Measured against a real legacy repository the run died in config loading before
+  # reading a file, which reads like the gem not working. `--config` is the way out, and it
+  # has to reach both trees or the comparison is between two different rulebooks.
+  def test_an_explicit_config_is_used_for_both_trees
+    in_repo(baseline: DIRTY_QUERY) do |root|
+      write(root, "tools/shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
+      # The repository's own config is removed, so anything found came from the given one.
+      FileUtils.rm(File.join(root, ".rubocop.yml"))
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk", config: "tools/shipshape.yml").call
+
+      assert_equal 1, report[:head]["Shipshape/CallGraph"], "head did not use the given config"
+      assert_equal 1, report[:base]["Shipshape/CallGraph"], "the base tree did not use the given config"
+    end
+  end
+
+  # **A config outside the repository cannot work and must not half-work.** RuboCop resolves a
+  # config's globs against its own directory, so an out-of-tree file leaves every kind-scoped
+  # cop silent while the Style cops still fire — a clean run that inspected nothing.
+  def test_a_config_outside_the_repository_is_refused
+    in_repo do |root|
+      outside = File.join(Dir.mktmpdir("shipshape-outside"), ".rubocop.yml")
+      File.write(outside, format(RUBOCOP_YML, gem: gem_root))
+
+      error = assert_raises(Shipshape::Error) do
+        Shipshape::Check.new(root: root, trunk: "trunk", config: outside).call
+      end
+
+      assert_includes error.message, "must name a file inside"
+    end
+  end
+
+  # Watched to fail: passing the config to head only reddens the assertion above, because the
+  # base tree falls back to the unloadable one and reports nothing.
   def test_a_directory_that_is_not_a_repository_says_so
     Dir.mktmpdir("shipshape-none") do |root|
       error = assert_raises(Shipshape::Error) { Shipshape::Check.new(root: root).call }

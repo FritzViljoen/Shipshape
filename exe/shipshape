@@ -126,11 +126,30 @@ def canaries
   1
 end
 
+# **An application's own `.rubocop.yml` may be unloadable here**, and on a legacy repository it
+# usually is: it `require:`s the plugins that repository pins, and a plugin pinned to RuboCop
+# 0.x cannot be activated alongside the 1.x this gem needs. The run then dies in config
+# loading, before a single file is read, which reads like shipshape not working rather than
+# like two bundles disagreeing.
+#
+# `--config` is the way out. Point it at a file that inherits this gem's defaults and declares
+# the layout, and nothing of the application's config — or its plugins — is loaded at all.
+def config_store
+  store = RuboCop::ConfigStore.new
+  path = ARGV.include?("--config") ? ARGV[ARGV.index("--config") + 1] : nil
+  store.options_config = path if path
+  store
+end
+
+def chosen_config
+  ARGV.include?("--config") ? ARGV[ARGV.index("--config") + 1] : nil
+end
+
 # A file that resolves to no kind is skipped by every kind-scoped cop, silently and
 # indistinguishably from a file they approved of. A clean run means nothing until you know
 # how much of the tree was inspected at all.
 def coverage
-  result = Shipshape::Coverage.new(config: RuboCop::ConfigStore.new.for_pwd, root: Dir.pwd).call
+  result = Shipshape::Coverage.new(config: config_store.for_pwd, root: Dir.pwd).call
 
   puts "  #{result.governed} of #{result.total} files resolve to a kind (#{result.percentage}%)."
   result.by_kind.each { |kind, n| puts format("    %-18s %5d", kind, n) }
@@ -159,7 +178,7 @@ end
 # what must answer the same afterwards, so it is the only place a characterisation test is
 # worth writing first.
 def edges
-  settings = Shipshape::Settings.layout(RuboCop::ConfigStore.new.for_pwd)
+  settings = Shipshape::Settings.layout(config_store.for_pwd)
   report = Shipshape::Edges.new(root: Dir.pwd, settings: settings).call
 
   if report.edges.empty?
@@ -235,7 +254,7 @@ def next_work
 end
 
 def check(trunk)
-  report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk).call
+  report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk, config: chosen_config).call
 
   puts "baseline #{report[:sha][0, 12]} (merge-base with #{report[:trunk]})"
   puts
