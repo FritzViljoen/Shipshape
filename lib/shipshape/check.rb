@@ -4,21 +4,23 @@ require "fileutils"
 require "tmpdir"
 require "shipshape/error"
 require "shipshape/git"
+require "shipshape/coverage"
 require "shipshape/offences"
+require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The ratchet: each cop's offences here and at the merge base, failing only where a count rose.
-  # No checked-in baseline — a snapshot has a regenerate button, and pressing it on a red build
-  # erases the signal. Both trees use the head config, so enabling a cop is free.
+  # The ratchet: each cop's offences, and the population of every retiring kind, here and at the
+  # merge base — failing where either rose. No checked-in baseline: a snapshot has a regenerate
+  # button, and pressing it on a red build erases the signal.
   class Check
     include TypedArguments
 
     CONFIG = ".rubocop.yml"
 
-    # The config must sit at the REPOSITORY ROOT: RuboCop resolves a config's globs against its
+    # The config must sit at the REPOSITORY ROOT: RuboCop resolves globs against the config's
     # own directory, so `tools/.rubocop.yml` silences every kind-scoped cop and prints
-    # "nothing rose" — the false clean this gem exists to warn about, from its own flag.
+    # "nothing rose" — this gem's own flag producing the false clean it exists to warn about.
     def initialize(root:, trunk: nil, config: nil)
       @root = typed(root, String)
       @trunk = typed(trunk, String, allow_nil: true)
@@ -31,9 +33,9 @@ module Shipshape
 
       sha = git.merge_base(trunk_name)
       head = Offences.new(directory: root, config: config && File.join(root, config)).call
-      base = git.at(sha) { |path| measure_base(path) }
+      base, lived = git.at(sha) { |path| [measure_base(path), population(path)] }
 
-      report(base: base, head: head, sha: sha)
+      report(base: base, head: head, sha: sha, before: lived, after: population(root))
     end
 
     private
@@ -42,6 +44,14 @@ module Shipshape
 
     def trunk_name
       @trunk_name ||= trunk || git.default_trunk
+    end
+
+    def arrived_in(was, now)
+      (was.keys + now.keys).uniq.sort.each_with_object({}) do |kind, rows|
+        before = was.fetch(kind, 0)
+        after = now.fetch(kind, 0)
+        rows[kind] = { was: before, now: after } if after > before
+      end
     end
 
     def measure_base(path)
@@ -68,7 +78,26 @@ module Shipshape
       inside
     end
 
-    def report(base:, head:, sha:)
+    # A legacy door is correct code and raises nothing, so what ratchets is the population.
+    def population(path)
+      settings = Settings.layout(config_at(path))
+
+      return {} if settings.retiring.empty?
+
+      by_kind = Coverage.new(config: config_at(path), root: path).call.by_kind
+
+      settings.retiring.to_h { |kind| [kind, by_kind.fetch(kind, 0)] }
+    end
+
+    def config_at(path)
+      store = RuboCop::ConfigStore.new
+      chosen = File.join(path, config || CONFIG)
+      store.options_config = chosen if File.file?(chosen)
+      store.for_dir(path)
+    end
+
+    # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
+    def report(base:, head:, sha:, before: {}, after: {})
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -83,7 +112,8 @@ module Shipshape
         rows[cop] = { was: was, now: now } if now < was
       end
 
-      { base: base, head: head, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name }
+      { base: base, head: head, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
+        retiring: arrived_in(before, after) }
     end
   end
 end

@@ -6,8 +6,8 @@ require "open3"
 require "fileutils"
 
 # A real repository, two real commits, two real RuboCop runs. Stubbing any of it would test
-# the arithmetic and leave the part that actually goes wrong — the worktree, the config
-# copy, the JSON — unexercised.
+# the arithmetic and leave the part that goes wrong — the worktree, the config copy, the JSON.
+# Watched to fail: returning `{}` from `population` reddens the retiring test.
 class CheckTest < Minitest::Test
   RUBOCOP_YML = <<~YAML
     require:
@@ -159,6 +159,31 @@ class CheckTest < Minitest::Test
     end
   end
 
+  # A legacy door is correct code and raises nothing, so the offence counts cannot see one
+  # filling up. What ratchets is the population: a file arriving there is a refactor moving code
+  # into a kind already on its way out, which is how a migration stops half way.
+  def test_a_file_arriving_in_a_retiring_kind_is_refused
+    in_repo(config: RETIRING_YML) do |root|
+      FileUtils.mkdir_p(File.join(root, "app/legacy"))
+      write(root, "app/legacy/find_person_legacy.rb",
+            "class FindPersonLegacy < LegacyQuery\n  def call\n    []\n  end\nend\n")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ "legacy_query" => { was: 0, now: 1 } }, report[:retiring])
+    end
+  end
+
+  def test_a_kind_that_is_not_retiring_is_not_counted
+    in_repo(config: RETIRING_YML) do |root|
+      write(root, "app/queries/another.rb", OTHER_QUERY.sub("Other", "Another"))
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_empty report[:retiring], "only a kind declared on its way out ratchets by population"
+    end
+  end
+
   private
 
   def gem_root
@@ -170,6 +195,34 @@ class CheckTest < Minitest::Test
   # RuboCop runs as a subprocess, so it needs the gem on its load path the way a real
   # consumer would have it from the Gemfile. RUBYOPT is how that is said to a child process
   # without teaching Offences a test-only argument.
+  RETIRING_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+
+    Shipshape/CallGraph:
+      Kinds:
+        command: ['app/commands/**/*.rb']
+        query: ['app/queries/**/*.rb']
+        legacy_query: ['app/legacy/**/*_legacy.rb']
+      Retiring:
+        - legacy_query
+      BaseClasses:
+        command: [Command]
+        query: [Query]
+        legacy_query: [LegacyQuery]
+      Sisters:
+        - [command]
+        - [query, legacy_query]
+      Matrix:
+        command: [query, legacy_query]
+        query: []
+        legacy_query: []
+  YAML
+
   def in_repo(baseline: OTHER_QUERY, config: nil)
     with_gem_on_the_load_path do
       in_repo_without_load_path(baseline: baseline, config: config) { |root| yield(root) }
