@@ -9,7 +9,7 @@ require "tmpdir"
 # file the application has since edited has taken a decision that was never its own.
 class InstallTest < Minitest::Test
   def everything
-    Shipshape::Install::FILES + Shipshape::Install::TESTS
+    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
   end
 
   def install(root)
@@ -24,6 +24,8 @@ class InstallTest < Minitest::Test
       assert_empty report[:skipped]
       assert_path_exists File.join(root, "app/shipshape/command.rb")
       assert_path_exists File.join(root, "app/shipshape/legacy_query.rb")
+      # A rake task, not a base class: it has to run inside the application to see the routes.
+      assert_path_exists File.join(root, "lib/tasks/shipshape_routes.rake")
     end
   end
 

@@ -782,21 +782,29 @@ class GeneratedBaseClassesTest < Minitest::Test
   end
 
   def test_an_endpoint_names_the_permissions_it_demands
-    rows = CallGraph.routes(self.class.stub_routes)
+    row = CallGraph.routes(self.class.stub_routes)
+                   .find { |candidate| candidate[:verb] == "POST" }
 
-    assert_equal 1, rows.length
-    assert_equal "POST", rows.first[:verb]
-    assert_equal "/bookings/:id/cancel", rows.first[:path]
-    assert_equal [GraphedInner.permission], rows.first[:permissions]
+    assert_equal "/bookings/:id/cancel", row[:path]
+    assert_equal [GraphedInner.permission], row[:permissions]
   end
 
-  # An action that reaches no operation demands nothing, and a permissions screen should not
-  # offer a row for it. A route whose controller cannot be loaded is skipped, not raised on.
-  def test_an_endpoint_that_demands_nothing_is_not_a_row
+  # **A route demanding nothing is kept, and it is the row worth reading.** It reaches no
+  # governed operation, or only anonymous ones — one of those is a decision and the other is an
+  # endpoint nobody has looked at, and dropping the row hid both.
+  def test_an_endpoint_that_demands_nothing_is_still_a_row
+    row = CallGraph.routes(self.class.stub_routes)
+                   .find { |candidate| candidate[:endpoint].end_with?("#index") }
+
+    assert_empty row[:permissions]
+  end
+
+  # A route whose controller cannot be loaded is skipped, not raised on.
+  def test_a_route_whose_controller_will_not_load_is_skipped
     endpoints = CallGraph.routes(self.class.stub_routes).map { |row| row[:endpoint] }
 
-    refute_includes endpoints, "GeneratedBaseClassesTest::BookingsController#index"
-    assert_equal 1, endpoints.length
+    assert_equal 2, endpoints.length
+    refute(endpoints.any? { |endpoint| endpoint.include?("NoSuch") })
   end
 
   # **The gap this closed.** `GraphedInner` is called by `GraphedOuter`, so on the operations

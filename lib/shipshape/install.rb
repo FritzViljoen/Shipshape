@@ -61,6 +61,12 @@ module Shipshape
 
     TEST_DIRECTORY = "test/shipshape"
 
+    # **A rake task, because it has to run inside the application.** The routes and the loaded
+    # operation classes are both Rails', so nothing outside the app can assemble this table.
+    TASKS = %w[shipshape_routes].freeze
+
+    TASK_DIRECTORY = "lib/tasks"
+
     # Written only when authorisation is asked for. Everything else is written either way.
     AUTH_ONLY = %w[permission calls call_graph].freeze
 
@@ -88,6 +94,7 @@ module Shipshape
 
       write_into(directory, files, report)
       write_into(test_directory, TESTS, report)
+      write_into(TASK_DIRECTORY, auth ? TASKS : [], report, extension: "rake")
 
       report
     end
@@ -96,16 +103,18 @@ module Shipshape
 
     attr_reader :root, :directory, :test_directory, :auth, :view_components
 
-    def write_into(folder, names, report)
+    def write_into(folder, names, report, extension: "rb")
+      return if names.empty?
+
       FileUtils.mkdir_p(File.join(root, folder))
 
       names.each do |name|
-        relative = File.join(folder, "#{name}.rb")
+        relative = File.join(folder, "#{name}.#{extension}")
         target = File.join(root, relative)
 
         next report[:skipped] << relative if File.exist?(target)
 
-        File.write(target, template(name))
+        File.write(target, template(name, extension))
         report[:written] << relative
       end
     end
@@ -117,8 +126,8 @@ module Shipshape
       chosen
     end
 
-    def template(name)
-      path = File.join(TEMPLATES, "#{name}.rb.tt")
+    def template(name, extension = "rb")
+      path = File.join(TEMPLATES, "#{name}.#{extension}.tt")
       raise Error, "shipshape: no template for #{name}" unless File.file?(path)
 
       # `<%- if auth -%>` in a template, and nothing else. Ruby's own `#{}` passes through

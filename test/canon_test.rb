@@ -155,8 +155,11 @@ class CanonTest < Minitest::Test
   def test_every_installed_file_is_named_by_a_law
     guards = laws.map { |law| law[:guard] }.join("\n")
 
+    # Either extension: the installer writes base classes and tests as `.rb` and the routes
+    # task as `.rake`, and a check that assumed one of them stopped seeing the other.
     unclaimed = installed.reject do |file|
-      ARCHITECTURE_WITHOUT_A_LAW.key?(file) || guards.include?("#{file}.rb")
+      ARCHITECTURE_WITHOUT_A_LAW.key?(file) ||
+        guards.include?("#{file}.rb") || guards.include?("#{file}.rake")
     end
 
     assert_empty unclaimed,
@@ -287,7 +290,7 @@ class CanonTest < Minitest::Test
   end
 
   def installed
-    Shipshape::Install::FILES + Shipshape::Install::TESTS
+    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
   end
 
   def laws

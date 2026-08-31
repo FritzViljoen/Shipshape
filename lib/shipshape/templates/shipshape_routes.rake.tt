@@ -1,0 +1,52 @@
+# frozen_string_literal: true
+
+# `rails shipshape:routes` — every route, and the permissions an actor needs to reach it.
+#
+# `rails routes` says what the application will answer. This says who may make it answer, which
+# is the other half of the same table and the one nobody can otherwise assemble: an endpoint's
+# demand is its action's operations, plus everything those operations reach, aggregated and
+# made distinct.
+#
+#   Verb    URI Pattern                Controller#Action        Permissions
+#   POST    /bookings/:id/cancel       bookings#cancel          CancelBooking, FindBooking
+#   GET     /bookings                  bookings#index           ListBookings
+#   DELETE  /admin/purge               admin/purges#destroy     —
+#
+# **The rows demanding nothing are the point of reading it.** A route with no permissions
+# either reaches no operation the layout governs, or reaches only anonymous ones — and one of
+# those is a considered decision while the other is an endpoint nobody has looked at.
+namespace :shipshape do
+  desc "Every route with the permissions needed to reach it"
+  task routes: :environment do
+    # Without this `descendants` answers only what has been autoloaded, and the table comes
+    # back short — the one failure that would make this look clean while covering nothing.
+    Rails.application.eager_load!
+
+    rows = CallGraph.routes.sort_by { |row| [row[:endpoint], row[:verb]] }
+
+    if rows.empty?
+      puts "No routes reach a governed operation. Declare the trees in Shipshape/CallGraph's Kinds."
+      next
+    end
+
+    headings = %w[Verb URI\ Pattern Controller#Action Permissions]
+    table = rows.map do |row|
+      [row[:verb], row[:path], row[:endpoint],
+       row[:permissions].any? ? row[:permissions].join(", ") : "—"]
+    end
+
+    widths = headings.each_index.map do |column|
+      ([headings[column]] + table.map { |cells| cells[column] }).map(&:length).max
+    end
+
+    puts headings.each_with_index.map { |cell, i| cell.ljust(widths[i]) }.join("  ").rstrip
+    table.each do |cells|
+      puts cells.each_with_index.map { |cell, i| cell.ljust(widths[i]) }.join("  ").rstrip
+    end
+
+    unguarded = rows.count { |row| row[:permissions].empty? }
+    puts
+    puts "#{rows.length} route(s); #{unguarded} demand nothing."
+    puts "A route demanding nothing reaches no governed operation, or only anonymous ones." if unguarded.positive?
+  end
+end

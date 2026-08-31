@@ -84,8 +84,10 @@ class CallGraph
       action = route.defaults[:action]
       return nil unless controller && action
 
+      # **An endpoint demanding nothing is kept.** It reaches no governed operation, or only
+      # anonymous ones — one of those is a decision and the other is a route nobody has looked
+      # at, and dropping the row hid both.
       demanded = permissions_of(Calls.in(controller, action.to_sym))
-      return nil if demanded.empty?
 
       { verb: route.verb.to_s, path: route.path.spec.to_s.sub(FORMAT, ""),
         endpoint: "#{controller.name}##{action}", permissions: demanded.uniq.sort }

@@ -215,7 +215,9 @@ content — translated, edited, versioned — and belongs in a row, not in a con
   it ships with the gem's own suite and never runs in a consuming build.
 - **Guard:** `Shipshape/AnonymityIsClosedDownward`, over the operation kinds. Fails an
   `anonymous_call` that names a guarded operation — the escape hatch used to launder a write.
-- **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture.
+- **Guard:** the generated `permission.rb`, `calls.rb`, `call_graph.rb` and
+  `shipshape_routes.rake` — architecture. The task prints every route with the permissions
+  needed to reach it, so the grants an application must seed are read rather than remembered.
   `Permission#permissions` aggregates what an operation reaches and the door's private
   `permits?` demands all of it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
   and the per-endpoint rows. A workflow's steps are read by the same code, so a step and an edge
