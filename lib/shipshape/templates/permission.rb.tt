@@ -86,15 +86,16 @@ module Permission
 
   # **An operation demands its own permission and every permission it reaches.**
   #
-  # A command that calls a query is one act, and the actor performing it must be allowed the
-  # reads it performs. Without that, a command launders: it returns something derived from
-  # data the actor could never have queried, and the door they came through never mentioned
-  # it. Checking only the outer name closes the front gate and leaves the side one open.
+  # **One rule, every kind.** An operation that calls operations demands what they demand.
+  # That is true of a workflow calling its steps and of a command calling a query, and the two
+  # are the same sentence — a command is not a smaller case with a lighter rule.
   #
-  # It is also what the doors already did. Each operation checks on its own way in, so an
-  # inner query refused mid-command raised there instead — a 500 rather than a refusal, after
-  # the outer check had passed. Aggregating moves that failure to the door, where refusing is
-  # free.
+  # It is also what the doors already enforced, badly. Each operation checks on its own way in,
+  # so an inner query refused mid-command raised there: a 500 after the outer check had passed,
+  # where the model promises a Result. Aggregating moves that refusal to the door.
+  #
+  # **There is no third answer for an actor short of an inner permission.** Grant it, or make
+  # the inner operation anonymous, which is the declaration that it needs no grant of its own.
   #
   # Read from `call` by `Calls`, so it cannot disagree with what the operation does. **One
   # aggregation, not two**: a workflow's steps are this same rule, not a second kind of it.

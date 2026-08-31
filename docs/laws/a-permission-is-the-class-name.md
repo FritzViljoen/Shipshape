@@ -43,21 +43,27 @@ the exact fail-open this law exists to prevent.
 
 ## This is what makes operations auth-sized, by construction
 
-An operation has exactly one permission because it has exactly one class name. **There is no
-way to express a command that spans two permitted acts** — no list, no second constant,
-nowhere to put the second name. The sizing rule in
+An operation has exactly one permission **of its own**, because it has exactly one class name.
+There is no list, no second constant, nowhere to put a second name — so an operation cannot
+declare itself to be two acts. What it *demands* is that name plus everything it reaches, and
+that is derived rather than declared. The sizing rule in
 [`one-operation-one-class`](one-operation-one-class.md) stops being advice and becomes the
-shape of the thing.
+shape of the thing: an operation is refused whole, and "whole" includes what it performs.
 
 The pressure arrives the first time someone needs to grant half of an operation. There is no
 half to grant, so the only available move is to split the class — which is the move that was
 correct anyway, arriving at the moment the requirement proves it.
 
-**A workflow is the escape hatch, and it is the only one.** Work that genuinely spans several
-permitted acts is a sequence, names its steps in `call`, and is refused whole
-([`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md)). One
-permission means a command or a query; several means a workflow. The typology is not a
-convention here — it is what the permission model can and cannot say.
+**Work spanning several permitted acts calls them**, and the caller demands all of them. That
+is not an escape hatch and needs no kind of its own — a command reaching a query is already it.
+A workflow is the kind that *only* sequences: it names its steps in `call`, is refused whole
+([`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md)), and
+contributes no name of its own because it performs no act.
+
+**The kinds are not a permission count.** They say what a class does — a command writes, a
+query reads, a workflow sequences — and every one of them demands what it reaches. A model in
+which a command had a lighter rule than a workflow would need a reason why, and there is none
+that survives being written down.
 
 **What this does not settle** is whether the single act you named should have been two. A
 `SettleAndNotifyInvoice` has one permission, `:settle_and_notify_invoice`, and granting it
@@ -125,24 +131,23 @@ who has been granted it.
 
 ## Every operation aggregates what it reaches
 
-A command calls queries to do its work, and **it demands their permissions as well as its own**.
-The actor performing the act must be allowed the reads it performs.
+**An operation that calls operations demands what they demand.** A workflow calling its steps
+and a command calling a query are the same sentence, and there is one rule for both. A command
+is not a smaller case with a lighter rule — a carve-out is a bug in vestments, and the version
+of this law that had one lasted a day.
 
-**Without that, a command launders.** It returns something derived from data the actor could
-never have queried, and the door they came through never mentions it. Checking only the outer
-name closes the front gate and leaves the side one open — which is the loophole this closes.
+It is also what the doors already enforced, badly. Each operation checks on its own way in, so
+an inner query refused mid-command raised *there*: a 500 after the outer check passed, where
+[`an-operation-answers-a-result`](an-operation-answers-a-result.md) promises an outcome.
+Aggregating moves that refusal to the door, where a refusal is what the caller gets.
 
-It is also what the doors already did. Each operation checks on its own way in, so an inner
-query refused mid-command raised *there* — a 500 rather than a refusal, after the outer check
-had passed. Aggregating moves that failure to the door, where refusing is free.
+**There is no third answer** for an actor short of an inner permission. Grant it, or make the
+inner operation anonymous — the declaration that it needs no grant of its own. Anything else is
+a case, and cases are what this law exists to not have.
 
-**One aggregation, not two.** A workflow's steps were already read this way; the same rule now
-holds every operation, and `Workflow` keeps only the part that is genuinely its own — that its
-own name is never consulted, because a workflow is only the acts it sequences.
-
-The cost is real and was weighed: a command that gains an internal read gains a permission, so
-an internal refactor can become an authorisation change. `CallGraph.routes` is what makes that
-survivable — the grants each endpoint demands are derived, not remembered.
+The cost is stated rather than traded away: a command that gains an internal read gains a
+permission, so an internal refactor can become an authorisation change. `CallGraph.routes` is
+what makes that survivable — the grants each endpoint demands are derived, not remembered.
 
 ## A read that needs no grant says so, by being anonymous
 

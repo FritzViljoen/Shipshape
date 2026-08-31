@@ -7,10 +7,17 @@ out of `call`, maps each to its permission — [the class name](a-permission-is-
 Nothing is declared. `RubyVM::AbstractSyntaxTree.of` hands back the syntax tree of `call`
 itself, so the list is derived from the only copy there is.
 
-**A workflow is multi-permission by definition**, so the sizing rule in
-[`one-operation-one-class`](one-operation-one-class.md) — an operation is sized so it can be
-permitted or refused whole — cannot apply to it. That rule is what keeps a command honest;
-a workflow is the thing that exists precisely because some work spans several permitted acts.
+**This is not special to workflows.** Every operation demands what it reaches
+([`a-permission-is-the-class-name`](a-permission-is-the-class-name.md)) — a command calling a
+query aggregates exactly the same way. The sizing rule in
+[`one-operation-one-class`](one-operation-one-class.md) still holds and is not weakened by it:
+an operation is refused **whole**, and aggregation is what makes "whole" mean the act plus
+everything the act performs.
+
+What is left to a workflow is one property, and it is a statement about what a workflow is
+rather than an exemption from the rule: **it contributes no permission of its own.** Granting
+`:SettleMonth` does nothing, because a workflow performs no act — it only sequences the acts
+that do.
 
 **And a workflow spans several transactions**, so a refusal partway cannot undo what came
 before. Discovering at step three that the actor may not run step three leaves steps one and
