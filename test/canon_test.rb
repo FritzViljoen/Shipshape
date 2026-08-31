@@ -255,8 +255,8 @@ class CanonTest < Minitest::Test
 
     assert_empty silent.map { |law| law[:name] },
                  "A law with no **Agreed:** line is a rule that arrived without anybody " \
-                 "deciding it should. Name who agreed and when, or write UNRATIFIED and add " \
-                 "it to CanonTest::UNRATIFIED."
+                 "deciding it should. Record what was decided — the ask, in the words it was " \
+                 "asked in — or write UNRATIFIED and add it to CanonTest::UNRATIFIED."
   end
 
   # The list is the fact: a new unratified law has to be added to it by hand, in a diff.

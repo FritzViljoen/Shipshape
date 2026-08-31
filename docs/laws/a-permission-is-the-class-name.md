@@ -192,8 +192,8 @@ permission in the abstract, they hold it in order to reach something.
 **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
 content — translated, edited, versioned — and belongs in a row, not in a constant.
 
-- **Agreed:** Fritz, 2026-08-29 — asked how auth is handled for reads and writes, then chose the class name as the permission over a mapping.
-- **Agreed:** Fritz, 2026-08-31 — "commands must aggregate there permissions just like
+- **Agreed:** asked how auth is handled for reads and writes, then chose the class name as the permission over a mapping.
+- **Agreed:** "commands must aggregate there permissions just like
   workflows. It's a loop hole we need to close", overruling a recommendation that the command's
   door alone was the check; and "Queries should use the same anonymous_call pattern", which is
   how a read declares it needs no grant of its own.

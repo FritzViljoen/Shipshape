@@ -40,7 +40,7 @@ the caller. That is a schema change, which is the honest reason it gets skipped,
 same conclusion [`a-query-that-writes`](../decomposing/a-query-that-writes.md) and
 [`inline IO`](../decomposing/inline-io.md) reach: the index is not optional.
 
-- **Agreed:** Fritz, 2026-08-30 — "add a gaurd so that all commands has a itempotency test",
+- **Agreed:** "add a gaurd so that all commands has a itempotency test",
   following the observation that `tell-dont-ask` already forces it.
 - **Principle:** `tell-dont-ask`
 - **Guard:** `Shipshape/CommandsProveIdempotence`, over `command`, `io_command` and

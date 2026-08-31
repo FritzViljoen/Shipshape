@@ -20,7 +20,7 @@ find.
 and the caller has no reason to think about ordering, retries or idempotence. A command
 announces all three by being a command.
 
-- **Agreed:** Fritz, 2026-08-30 — "definitely", ratified on review. Drafted by an agent in
+- **Agreed:** "definitely", ratified on review. Drafted by an agent in
   answer to "is all our class kinds gaurded", which was a question: a cop and a law were built
   where a finding had been asked for. It found 376 instances across seven public repositories,
   including a class named `...Query` calling `create!`.

@@ -30,7 +30,7 @@ asserts the return type of every call and raises `TypeError` when a subclass ans
 something else. A subclass cannot quietly teach its callers a second shape, because the run
 stops rather than the shape spreading.
 
-- **Agreed:** Fritz, 2026-08-30 — ratified on review. Written by an agent during an audit
+- **Agreed:** ratified on review. Written by an agent during an audit
   rather than in answer to a request for a law, which is why it stood unratified; the rule it
   describes was already enforced by the generated base classes throughout.
 - **Principle:** `nothing-fails-quietly`

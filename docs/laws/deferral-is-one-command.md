@@ -44,7 +44,7 @@ Two things follow, and both are refused at enqueue rather than discovered in the
   side. It used to be dropped in silence: the caller was told the work was accepted, the job
   died, and no audit entry was written at all.
 
-- **Agreed:** Fritz, 2026-08-30 — "implement call_later", after choosing `call_later` over a
+- **Agreed:** "implement call_later", after choosing `call_later` over a
   `Schedules` row on the call graph, on the grounds that application code should never name a
   job class.
 - **Principle:** `good-boundaries-make-good-neighbours`

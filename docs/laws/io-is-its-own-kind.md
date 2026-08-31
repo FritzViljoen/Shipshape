@@ -25,7 +25,7 @@ as a kind. `Net::HTTP` belongs to a gem, resolves to no file under any declared 
 skipped. So the rule held for the disciplined case and not for the form IO actually arrives
 in — a line in the middle of a method.
 
-- **Agreed:** Fritz, 2026-08-30 — "please add the gaurds and documents", after the inline-IO gap was reported and left open for a decision.
+- **Agreed:** "please add the gaurds and documents", after the inline-IO gap was reported and left open for a decision.
 - **Principle:** `good-boundaries-make-good-neighbours`
 - **Guard:** `Shipshape/IoIsItsOwnKind`, over every kind except `io_command`, `io_query` and
   the legacy doors. Fails any message sent to a constant on its `Constants` list — the

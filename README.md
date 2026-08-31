@@ -28,7 +28,6 @@ The two compose.
 | How to take a legacy shape apart | [`docs/decomposing/`](docs/decomposing/README.md) |
 | Which Rails failures this covers, and which it does not | [`docs/rails-failure-patterns.md`](docs/rails-failure-patterns.md) |
 | What it does about the patterns teams reach for | [`docs/rails-patterns.md`](docs/rails-patterns.md) |
-| What is being built, and in what order | [`docs/specs/`](docs/specs/) |
 
 Every law states its guard **and what that guard misses**, because a blind spot nobody wrote
 down is read as coverage.

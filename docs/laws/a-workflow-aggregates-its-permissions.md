@@ -106,7 +106,7 @@ class SettleMonth < Workflow
 end
 ```
 
-- **Agreed:** Fritz, 2026-08-29 — "we also need a way to aggregate permissions for workflows".
+- **Agreed:** "we also need a way to aggregate permissions for workflows".
 - **Principle:** `nothing-fails-quietly` governs — partial work with no way back is the
   quietest failure there is. `nothing-is-hidden` produces the declaration, and
   `absence-is-absence` the refusal to let a missing entry mean "allowed".

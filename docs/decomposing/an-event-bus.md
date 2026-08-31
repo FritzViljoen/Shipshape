@@ -99,8 +99,13 @@ name — which is what [a callback web](a-callback-web.md) says once the trigger
 Where a consequence varies per tenant, the three placements in that procedure's step 3 apply
 unchanged: make it anonymous, let it no-op convergently, or write two workflows.
 
-**Check:** `Shipshape/NoCallbacks` and `Shipshape/NoDistantWrites` are silent, and the workflow
-names what the bus used to.
+**Check:** the greps from step 0 return one fewer publisher, and the workflow names in `call`
+what that publisher used to broadcast.
+
+**No cop counts a bus**, so nothing here goes from red to green: `NoCallbacks` reads a closed
+list of ActiveRecord macros and `NoDistantWrites` reads assignment, and neither sees `publish`.
+The law forbids it and no guard holds it — the count you are working against is the grep, and
+this procedure will not tell you when you are finished.
 
 ---
 
@@ -140,7 +145,9 @@ grep -rn "wisper\|rails_event_store\|dry-events" app lib config   # must be empt
 bundle remove wisper
 ```
 
-**Check:** the suite is green with the gem removed, and `shipshape check` shows the fall.
+**Check:** the suite is green with the gem removed, and the greps from step 0 return nothing.
+`shipshape check` will not move — no cop counted the bus on the way in, so none counts its
+removal.
 
 ---
 
@@ -158,7 +165,12 @@ why nobody could say what publishing did. If a team genuinely needs to add conse
 editing a sequence, that is a product requirement — and the honest shape for it is data the
 workflow reads, not a registry the workflow cannot see.
 
-**And nothing here finds a subscriber registered at runtime.** `subscribe` called from a
+**And no guard holds any of this.** `nothing-travels-off-the-call-path` forbids publishing to a
+subscriber list, and its cops read ambient reads and assignment shapes — not `publish`. Every
+step above is checked by a grep you run yourself, which is weaker than the rest of this playbook
+and is said here rather than implied.
+
+**Nothing here finds a subscriber registered at runtime, either.** `subscribe` called from a
 conditional, a gem registering on your behalf, a test helper that registers and never
 unregisters — the grep in step 0 sees registration syntax, not behaviour, and a bus whose
 wiring is computed is a bus this procedure will leave half-dismantled.

@@ -55,7 +55,7 @@ law takes about columns. And a redaction keeps the argument's *name* and drops i
 knowing an email was supplied is most of what an audit answer needs, and the value is the part
 nobody can delete afterwards.
 
-- **Agreed:** Fritz, 2026-08-30 — "during install add the audit log", after the `call_later`
+- **Agreed:** "during install add the audit log", after the `call_later`
   design named the missing receiver for a deferred failure as load-bearing.
 - **Principle:** `nothing-fails-quietly`
 - **Guard:** the generated `audit_log.rb` and the four writing operations — architecture rather

@@ -72,7 +72,7 @@ spends them deliberately, because a fast suite that proves the wrong thing is no
 Reference data — currencies, countries, a tenant — that no operation creates is seeded, not
 factoried. If nothing in the application creates a thing, a test may load it directly.
 
-- **Agreed:** Fritz, 2026-08-31 — "Canon governs test aswell. We dogfood our own
+- **Agreed:** "Canon governs test aswell. We dogfood our own
   implementation. No test factories", deciding that `test/` is governed rather than merely
   required to exist.
 - **Principle:** `one-way-to-say-each-thing` governs — a factory is a second way to construct
