@@ -55,6 +55,7 @@ module RuboCop
           name = receiver.source.sub(/\A::/, "")
           kind = kinds.for_constant(name)
           return unless governed_kinds.include?(kind)
+          return add_offense(node, message: deferred_step(name)) if deferred_inside_a_sequence?(node)
           return if allowed_for(kind).include?(node.method_name.to_s)
           return if refers_to_itself?(name)
 
@@ -62,6 +63,50 @@ module RuboCop
         end
 
         private
+
+        # **A sequence runs its steps, it does not post them.** `call_later` inside a workflow
+        # enqueues a step and carries on, so step three can start before step two has happened
+        # and the order the workflow exists to state is not the order that runs. The workflow
+        # then answers success for work that has not been done.
+        #
+        # The callee is deferrable — that is `DeferrableKinds` — and it is the *caller* that
+        # may not defer. Both halves are needed: one says which operations own the method, the
+        # other says from where it may be sent.
+        def deferred_inside_a_sequence?(node)
+          deferring.include?(node.method_name.to_s) && one_of?(sequencing_kinds)
+        end
+
+        def sequencing_kinds
+          cop_config.fetch("SequencingKinds", %w[workflow])
+        end
+
+        def deferred_step(name)
+          explain(
+            "`#{name}.call_later` defers a step of a sequence.",
+            because: "A workflow states an order, and a deferred step leaves that order: it " \
+                     "is enqueued, the workflow carries on, and step three may run before " \
+                     "step two has happened. The workflow then answers success for work that " \
+                     "has not been done, and a step that depended on the deferred one reads a " \
+                     "state that is not there yet. A sequence runs its steps.",
+            instead: SYNCHRONOUS,
+          )
+        end
+
+        SYNCHRONOUS = <<~RUBY
+          # every step runs, in the order written, before the workflow answers
+          class SettleMonth < Workflow
+            def call
+              settled = SettleInvoice.call(actor: actor, invoice_id: @id)
+              return settled if settled.failure?
+
+              NotifyCustomer.call(actor: actor, invoice_id: @id)
+            end
+          end
+
+          # work that genuinely belongs on a queue is deferred by the operation that owns it,
+          # or at the edge — never by the sequence, which would be stating an order it does
+          # not keep
+        RUBY
 
         # A class naming itself is not a call site reaching in. `Result.success(...)` inside
         # `Result` is one class talking to itself, and the door has nothing to say about it.

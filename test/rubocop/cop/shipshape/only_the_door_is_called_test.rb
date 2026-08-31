@@ -77,6 +77,27 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_equal 1, check("d = SettleMonth.permissions.all? { |p| actor.may?(p) }\n").length
   end
 
+  # **A sequence runs its steps, it does not post them.** Deferred, step three can start before
+  # step two has happened, and the workflow answers success for work that has not been done.
+  def test_a_workflow_may_not_defer_a_step
+    found = offences(<<~RUBY, cop_class: COP, path: "app/workflows/settle_month.rb", files: TREE, other_cops: LAYOUT)
+      class SettleMonth < Workflow
+        def call
+          SettleInvoice.call_later(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "defers a step of a sequence"
+    assert_includes found.first.message, "answers success for work that has not been done"
+  end
+
+  # The same command deferred from a command is the ordinary shape, and stays allowed.
+  def test_a_command_may_still_defer
+    assert_empty check("SettleInvoice.call_later(actor: actor)\n")
+  end
+
   # It does not rely on visibility, so a bypass the other guards miss is still refused.
   def test_the_forwarder_is_refused_by_name
     assert_equal 1, check("SettleInvoice.__perform__(actor)").length

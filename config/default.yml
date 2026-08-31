@@ -687,6 +687,10 @@ Shipshape/OnlyTheDoorIsCalled:
     - command
     - io_command
     - legacy_command
+  # **And the kinds that may not send it.** A workflow states an order; a deferred step leaves
+  # that order, so the sequence answers success for work that has not happened.
+  SequencingKinds:
+    - workflow
   # The test trees are excluded here and read by `Shipshape/NoTestFactories` instead, which
   # holds `no-test-factories`: a test builds state by calling operations, and `test_call` is
   # the declared way to skip only the permission check. A bare `Operation.new(...)` in a test

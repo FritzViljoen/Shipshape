@@ -10,6 +10,13 @@ A workflow spans several transactions. One job holding three of them retries ste
 already committed, so deferral belongs to the steps and never to the sequence. A query
 answers shapes to a caller, and a deferred query answers nothing to nobody.
 
+**And a workflow may not defer a step either, which is the other half of the same sentence.**
+A workflow's whole content is an order. `Step.call_later` inside one enqueues and returns, so
+step three can begin before step two has happened and the workflow answers success for work
+that has not been done — a sequence stating an order it does not keep. Deferral belongs to the
+steps, and a step is deferred by the operation that owns it or at the edge that called in;
+never by the sequence, which is the one thing whose job was the order.
+
 So `call_later` exists on the writing operations alone — and the guard that admits it is
 told which kinds those are. Putting it on a flat list of permitted messages let `SomeWorkflow.call_later`
 pass the build and fail in production with `NoMethodError`, which is a guard moving a failure
@@ -54,7 +61,11 @@ Two things follow, and both are refused at enqueue rather than discovered in the
   entry point and the rule that nothing may call one stays absolute. Proven by
   `generated_base_classes_test.rb`, a listed suite guard.
 - **Guard:** `Shipshape/OnlyTheDoorIsCalled`, whose `DeferrableKinds` decides which kinds may
-  be sent `call_later` at a call site.
+  be sent `call_later`, and whose `SequencingKinds` decides which may not send it. **A workflow
+  may not defer a step**: it states an order, and a deferred step leaves that order — enqueued,
+  the sequence carries on, step three may run before step two has happened, and the workflow
+  answers success for work that has not been done. Both halves are needed, because one says
+  which operations own the method and the other says from where it may be sent.
 - **Guard's limit:** **a failure is dropped, and whether that is right depends on the failure
   being an outcome.** [`an-operation-answers-a-result`](an-operation-answers-a-result.md) says
   a defect raises rather than coming back as a Result, so a transient condition — a gateway
