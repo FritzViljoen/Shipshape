@@ -19,6 +19,7 @@ nobody can verify is a rewrite with extra confidence.
 | [an unowned find](an-unowned-find.md) | `Story.find(params[:id])` — the row exists, so it was returned |
 | [an unbounded read](an-unbounded-read.md) | a query with no answer to "how many?" — no page, no limit, no cursor |
 | [work in the request cycle](work-in-the-request-cycle.md) | the caller waiting for four things they cannot see |
+| [a cadence in code](a-cadence-in-code.md) | `config/schedule.rb` — work that starts under nobody's name |
 | [an untimed call](an-untimed-call.md) | somebody else's outage, arriving as yours |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
 | [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |

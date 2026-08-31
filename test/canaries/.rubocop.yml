@@ -55,6 +55,8 @@ Shipshape/NoTypeInterrogation:
 Shipshape/NoUnparsedLookup:
   Enabled: true
   AutoCorrect: false
+Shipshape/NothingSchedulesWork:
+  Enabled: true
 Shipshape/OneOperationOneClass:
   Enabled: true
   AutoCorrect: false

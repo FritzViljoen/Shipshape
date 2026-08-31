@@ -878,6 +878,15 @@ Shipshape/CommandsProveIdempotence:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
+Shipshape/NothingSchedulesWork:
+  Description: >-
+    A schedule is a row - which command, what arguments, how often, and as whom - not a
+    cadence declared in code. Work that starts on a clock runs under somebody's name.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+
 Shipshape/WorkflowsBranchOnOutcome:
   Description: >-
     A workflow sequences; it does not work. It branches on whether a step succeeded, never on

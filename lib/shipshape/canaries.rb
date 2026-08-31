@@ -140,6 +140,13 @@ module Shipshape
         end
       RUBY
       # Not kind-scoped: these read paths of their own, so the canary goes there directly.
+      # Not kind-scoped: a cadence is wrong wherever it is written, and the file it is usually
+      # written in is not part of any tree the layout declares.
+      "Shipshape/NothingSchedulesWork" => { path: "config/schedule.rb", raw: <<~RUBY },
+        every 1.day, at: "3:00 am" do
+          runner "CanarySettle.call"
+        end
+      RUBY
       "Shipshape/NoNullableColumns" => { path: "db/migrate/20200101000000_canary.rb", raw: <<~RUBY },
         class Canary < ActiveRecord::Migration[7.0]
           def change

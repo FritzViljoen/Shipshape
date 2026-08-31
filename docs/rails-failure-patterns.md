@@ -126,7 +126,7 @@ shape you cannot express is not a guard at all.
 | No failure visibility | **Guarded** | Every operation records to the audit log, failures included |
 | Long work in the request cycle | **Procedure** | [work in the request cycle](decomposing/work-in-the-request-cycle.md). `call_later` makes the mechanics one word, which is why the procedure is all judgement |
 | One queue for everything | **Uncovered** | — |
-| **Cron jobs with no locking, two servers running the same task** | **Uncovered, deliberately** | Scheduling has not been decided in this canon. It came up once, a law was drafted unasked, and it was deleted — see below |
+| Cron jobs with no locking, two servers running the same task | **Guarded** | `Shipshape/NothingSchedulesWork` and [`a-schedule-is-a-row`](laws/a-schedule-is-a-row.md). A schedule is a stored request naming a route and an actor; two servers firing one row is a double-post, which `a-command-runs-twice` already obliges every command to survive |
 
 ## Caching
 
@@ -189,8 +189,8 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ## Roughly, the count
 
-Of about 120 rows: **15 unsayable, 27 guarded or partly guarded, 24 held by a procedure, and
-about 53 uncovered.**
+Of about 120 rows: **15 unsayable, 28 guarded or partly guarded, 25 held by a procedure, and
+about 51 uncovered.**
 
 **Those numbers moved because of this document.** It was written as a survey and turned into a
 work list: two gaps became cop clauses, eleven became procedures, and the counts above are a
@@ -236,7 +236,11 @@ because `code-is-written-not-generated` exempts the framework's public conventio
 and uses `delegate` as the example that draws the line. Moving that line is a separate
 decision from closing this gap, and it has not been taken.
 
-**And one deliberate blank: scheduling.** Two servers running the same cron with no lock is a
-real failure and shipshape says nothing about it. A rule for it was once drafted here without
-being asked for, and deleted — a canon that grows by an agent's initiative is not a canon. It
-stays open until it is decided.
+**The one deliberate blank is now decided.** Scheduling was left open here — a rule for it had
+been drafted without being asked for, and deleted, because a canon that grows by an agent's
+initiative is not a canon. It was then decided on its merits:
+[`a-schedule-is-a-row`](laws/a-schedule-is-a-row.md), a stored request that names a route and
+the actor it runs as, with [a cadence in code](decomposing/a-cadence-in-code.md) to move an
+existing `schedule.rb` onto it. **The host crontabs stay uncovered**, and they are the worst
+ones — a `rails runner` line has no actor, no audit entry and no permission check, and nothing
+in a repository can see it.
