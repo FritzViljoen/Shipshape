@@ -140,6 +140,15 @@ module Shipshape
         end
       RUBY
       # Not kind-scoped: these read paths of their own, so the canary goes there directly.
+      # Not kind-scoped either: the test trees are not a kind, and this is the only cop that
+      # reads them.
+      "Shipshape/NoTestFactories" => { path: "test/canary_factory_test.rb", raw: <<~RUBY },
+        class CanaryFactoryTest
+          def test_it
+            create(:canary)
+          end
+        end
+      RUBY
       # Not kind-scoped: a cadence is wrong wherever it is written, and the file it is usually
       # written in is not part of any tree the layout declares.
       "Shipshape/NothingSchedulesWork" => { path: "config/schedule.rb", raw: <<~RUBY },

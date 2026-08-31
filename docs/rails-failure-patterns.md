@@ -156,7 +156,9 @@ place to live and one place to be invalidated from. That is a precondition, not 
 | Testing implementation instead of behaviour | **Procedure** | [characterise the edges](decomposing/characterise-the-edges.md) — the black-box step before every other step |
 | No system tests for critical paths | **Procedure** | `shipshape edges` lists the edges no test names |
 | Time-dependent tests without `travel_to` | **Guarded** | `NoAmbientReads` — the clock is an argument, so there is no ambient time to freeze |
-| Fixtures with global state, slow factories, over-mocking, `sleep`, no transactional cleanup | **Uncovered** | Suite hygiene. `CommandsProveIdempotence` is the only rule here about what a test must say |
+| Tests coupled to fixtures and factories with implicit global state | **Guarded** + **Procedure** | `Shipshape/NoTestFactories` and [`no-test-factories`](laws/no-test-factories.md); [a factory graph](decomposing/a-factory-graph.md). A test builds state by calling operations, because a factory can build a row the application cannot |
+| Factories that build entire object graphs, slow suite | **Procedure** | [a factory graph](decomposing/a-factory-graph.md) |
+| Over-mocking, `sleep`, no transactional cleanup | **Uncovered** | Suite hygiene the canon does not reach |
 
 ## Security
 
@@ -190,8 +192,12 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 ## Roughly, the count
 
-Of about 120 rows: **15 unsayable, 28 guarded or partly guarded, 25 held by a procedure, and
-about 51 uncovered.**
+Of about 120 rows: **15 unsayable, 29 guarded or partly guarded, 27 held by a procedure, and
+about 49 uncovered.**
+
+**The canon governs `test/` as well as `app/`**, which was itself an open question until it was
+decided. The reason it is not optional: an unrunnable suite disables every guard in this
+document at once, and factories are how a suite gets slow enough to stop being run.
 
 **Those numbers moved because of this document.** It was written as a survey and turned into a
 work list: two gaps became cop clauses, eleven became procedures, and the counts above are a

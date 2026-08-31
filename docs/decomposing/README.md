@@ -10,6 +10,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
 | [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
 | [characterise the edges](characterise-the-edges.md) | **do this first** — the tests that survive every procedure above |
+| [a factory graph](a-factory-graph.md) | `create(:booking)` pulling in four rows nobody asked for |
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
 | [a state machine](a-state-machine.md) | a status column and the branches that read it |
 | [a stored derivation](a-stored-derivation.md) | a column the database could work out for itself — and three of the four reasons it is right |

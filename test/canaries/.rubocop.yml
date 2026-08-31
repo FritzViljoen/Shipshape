@@ -50,6 +50,8 @@ Shipshape/NoNullableColumns:
 Shipshape/NoSilentCoercion:
   Enabled: true
   AutoCorrect: false
+Shipshape/NoTestFactories:
+  Enabled: true
 Shipshape/NoTypeInterrogation:
   Enabled: true
 Shipshape/NoUnparsedLookup:

@@ -878,6 +878,18 @@ Shipshape/CommandsProveIdempotence:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
+Shipshape/NoTestFactories:
+  Description: >-
+    A test builds state by calling operations. A factory is a second way to construct domain
+    state, obeying none of the rules - so it can build a row the application cannot.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+    - '*/test/**/*.rb'
+    - '*/spec/**/*.rb'
+
 Shipshape/NothingSchedulesWork:
   Description: >-
     A schedule is a row - which command, what arguments, how often, and as whom - not a
