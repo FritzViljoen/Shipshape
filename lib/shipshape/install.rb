@@ -49,7 +49,7 @@ module Shipshape
 
     TASK_DIRECTORY = "lib/tasks"
 
-      AUTH_ONLY = %w[permission calls call_graph].freeze
+    AUTH_ONLY = %w[permission calls call_graph].freeze
 
     # On request only: the one file that can stop a boot, because it inherits from a gem.
     VIEW_COMPONENT_ONLY = %w[application_view_component].freeze
@@ -64,7 +64,7 @@ module Shipshape
       @view_components = typed(view_components, Boolean)
     end
 
-      def call
+    def call
       report = { written: [], skipped: [] }
 
       write_into(directory, files, report)

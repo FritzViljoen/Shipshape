@@ -40,9 +40,9 @@ module Shipshape
     CLASS = /^\s*class\s+([\w:]+)/.freeze
     DEFINITION = /^\s*def (?:self\.)?([a-z_][\w]*[?!=]?)/.freeze
 
-      PRIVATE = /^\s*private\s*$/.freeze
+    PRIVATE = /^\s*private\s*$/.freeze
 
-      KINDS = %w[request_handling entry_point].freeze
+    KINDS = %w[request_handling entry_point].freeze
 
     def initialize(root:, settings:, kinds: KINDS)
       @root = typed(root, String)

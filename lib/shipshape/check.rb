@@ -26,7 +26,7 @@ module Shipshape
       @git = Git.new(root: root)
     end
 
-      def call
+    def call
       raise Error, "shipshape: #{root} is not a git repository." unless git.repository?
 
       sha = git.merge_base(trunk_name)

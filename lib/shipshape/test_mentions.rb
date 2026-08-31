@@ -15,7 +15,7 @@ module Shipshape
       first last count length size empty? present? blank? nil? key? include?
     ].freeze
 
-      SHORTEST = 4
+    SHORTEST = 4
 
     def initialize(root:, directories: DIRECTORIES)
       @root = typed(root, String)
@@ -42,7 +42,7 @@ module Shipshape
 
     attr_reader :root, :directories
 
-      def source
+    def source
       @source ||= directories.flat_map { |directory|
         Dir.glob(File.join(root, directory, "**", "*.rb"))
       }.map { |file| SourceText.read(file) }.join("\n")
