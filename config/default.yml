@@ -881,6 +881,21 @@ Shipshape/CommandsProveIdempotence:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
+Shipshape/AnonymityIsClosedDownward:
+  Description: >-
+    An anonymous operation runs before anyone is identified, so a guarded operation it calls
+    runs for nobody. Anonymity is a claim about a subtree, not about one method.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+
 Shipshape/NoTestFactories:
   Description: >-
     A test builds state by calling operations. A factory is a second way to construct domain

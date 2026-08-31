@@ -725,20 +725,24 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  def test_an_anonymous_operation_may_not_reach_a_guarded_one
-    error = assert_raises(NotImplementedError) { GraphedLeaky.permissions }
-
-    assert_includes error.message, "is anonymous and reaches"
-    assert_includes error.message, GraphedInner.name
+  # **Reported, never raised.** A catalogue that died on one bad declaration would report none
+  # of the good rows, and the build already fails on this through the cop.
+  def test_a_leak_is_a_row_rather_than_a_dead_catalogue
+    assert_equal({ GraphedLeaky.name => [GraphedInner.name] }, CallGraph.leaks(LeakyDoor))
+    assert_includes CallGraph.grantable(LeakyDoor), GraphedInner.permission
   end
 
-  def test_the_catalogue_walk_is_where_that_is_met
-    assert_raises(NotImplementedError) { CallGraph.grantable(LeakyDoor) }
+  # What it reaches aggregates upward, so a guarded caller still demands it; the anonymous door
+  # itself refuses nobody, because running before anyone is identified is what it declared.
+  def test_what_an_anonymous_operation_reaches_travels_up
+    assert_equal [GraphedInner.permission], GraphedLeaky.permissions
+    assert GraphedLeaky.permits?(Anyone.new([GraphedInner.permission]))
   end
 
   # Anonymous reaching anonymous is the shape the rule allows, and it demands nothing.
-  def test_an_anonymous_operation_may_reach_another_anonymous_one
+  def test_an_anonymous_operation_reaching_another_demands_nothing
     assert_empty GraphedHelper.permissions
+    assert_empty CallGraph.leaks(GraphedDoor)
     assert GraphedHelper.permits?(Anyone.new([GraphedHelper.permission]))
   end
 

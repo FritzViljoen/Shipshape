@@ -61,6 +61,10 @@ class CanonTest < Minitest::Test
     "EveryDoorChecksPermission" =>
       "authorisation is a rollout rather than a decomposition: nothing is moved, a check " \
       "is added. It reports zero until `shipshape install --auth` has been run.",
+    "AnonymityIsClosedDownward" =>
+      "the fix is a one-word decision — this operation is anonymous or it is not — and " \
+      "nothing moves either way. It also reports zero until authorisation is installed, " \
+      "because without it no operation is anonymous.",
   }.freeze
 
   ARCHITECTURE_WITHOUT_A_LAW = {

@@ -158,9 +158,12 @@ that is part of its caller's act implements `anonymous_call` and is not.
 **And anonymity is closed downward: an anonymous operation may not reach a guarded one.**
 Otherwise the declaration launders everything beneath it — a login page calling a guarded
 command would run that command for nobody, which is the loophole reopened one level down. An
-`anonymous_call` names anonymous operations or none at all, and reaching a guarded one raises
-rather than being reported, because there is no caller to refuse. `Permission.catalogue` walks
-every operation at boot, which is the cheap place to meet it.
+`anonymous_call` names anonymous operations or none at all.
+
+`Shipshape/AnonymityIsClosedDownward` fails the build on it, naming the file and the line. **It
+does not raise at runtime**, deliberately: a catalogue that died on one bad declaration would
+report none of the good rows, and the point of the graph is to be readable. `CallGraph.leaks`
+is the same fact as data, per operation.
 
 What an anonymous operation reaches still **aggregates upward** into a guarded caller, so
 nothing is lost by passing through one.
@@ -205,6 +208,8 @@ content — translated, edited, versioned — and belongs in a row, not in a con
   That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.
+- **Guard:** `Shipshape/AnonymityIsClosedDownward`, over the operation kinds. Fails an
+  `anonymous_call` that names a guarded operation — the escape hatch used to launder a write.
 - **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture.
   `Permission#permissions` aggregates what an operation reaches and `permits?` demands all of
   it; `Calls` reads the syntax tree; `CallGraph` turns that into edges, `grantable`, `unchecked`
@@ -214,6 +219,12 @@ content — translated, edited, versioned — and belongs in a row, not in a con
   closure rule stops it laundering a guarded operation, but a read that genuinely should have
   been granted, declared anonymous and reaching nothing, is unguarded and looks correct. The
   audit is `grep -rn "def anonymous_call"`, and nothing counts them for you.
+
+  The closure cop resolves a callee to a file and reads it for `def anonymous_call`, so a
+  constant resolving to no file — a gem's, or a tree the layout does not govern — is skipped
+  rather than guessed at. It reads `anonymous_call` only: an anonymous operation reaching a
+  guarded one through a private helper, a variable or `send` is invisible to it, exactly as it
+  is to the base class.
 
   `Calls` is **syntactic**. A class reached through a variable, `const_get` or `send` is not an
   edge, so an operation reaching one that way demands a permission neither the aggregate nor

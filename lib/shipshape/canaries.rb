@@ -122,6 +122,11 @@ module Shipshape
           Settle.send(:new, amount: 1)
         end
       RUBY
+      "Shipshape/AnonymityIsClosedDownward" => { kind: "command", body: <<~RUBY },
+        def anonymous_call
+          OtherQuery.call
+        end
+      RUBY
       "Shipshape/OperationsAreLeaves" => { kind: "command", body: <<~RUBY },
         def self.call(**arguments)
           new(**arguments).call

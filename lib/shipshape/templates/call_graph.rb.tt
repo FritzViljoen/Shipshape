@@ -57,11 +57,22 @@ class CallGraph
       application.routes.routes.filter_map { |route| endpoint(route) }
     end
 
-    # Declared to need no grant, by implementing `anonymous_call` rather than `call`. These are
-    # never granted and never aggregated into a caller, so a screen must not offer them — not
-    # because they are unreachable, but because holding one would mean nothing.
+    # Declared to need no grant, by implementing `anonymous_call` rather than `call`. A screen
+    # must not offer these — not because they are unreachable, but because holding one would
+    # mean nothing.
     def unchecked(*doors)
       operations(*doors).select(&:anonymous?).map(&:permission).uniq.sort
+    end
+
+    # **Anonymity that is not closed downward.** An anonymous operation runs unchecked, so a
+    # guarded one below it runs unchecked too — the loophole reopened one level down.
+    # `Shipshape/AnonymityIsClosedDownward` fails the build on this; here it is readable at
+    # runtime, per operation, so one bad declaration is a row rather than a dead catalogue.
+    def leaks(*doors)
+      operations(*doors).select(&:anonymous?).each_with_object({}) do |operation, found|
+        guarded = operation.send(:reaches).reject(&:anonymous?)
+        found[operation.name] = guarded.map(&:name).sort if guarded.any?
+      end
     end
 
     private

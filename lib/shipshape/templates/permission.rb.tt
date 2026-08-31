@@ -111,34 +111,20 @@ module Permission
   # **An anonymous operation contributes no permission of its own, and still aggregates what it
   # reaches.** It is never granted — that is what anonymous means — so demanding its name would
   # make every caller permanently forbidden. What is below it is a different question, and the
-  # answer travels upward.
+  # answer travels upward, so nothing is lost by passing through one.
   #
-  # **So an anonymous operation may not reach a guarded one, and that raises.** Anonymity is a
-  # declaration that this runs unchecked; if what it reaches were checked, the declaration would
-  # launder it — a login page calling a guarded command would run that command for nobody. The
-  # rule is that anonymity is closed downward: an `anonymous_call` names anonymous operations or
-  # none at all.
-  #
-  # It raises rather than being reported, because there is no caller to refuse. `Permission
-  # .catalogue` walks every operation at boot, which is the cheap place to meet it.
+  # **Anonymity must be closed downward**: an `anonymous_call` reaching a guarded operation runs
+  # that operation for nobody, which is the loophole reopened one level down.
+  # `Shipshape/AnonymityIsClosedDownward` fails the build on it, naming the file and the line.
+  # This does not raise — a catalogue that died on one bad declaration would report none of the
+  # good ones, and `CallGraph.leaks` is how the same fact is read at runtime.
   def aggregate(seen)
     return [] if seen.include?(self)
 
     onward = seen + [self]
-    below = reaches
-    refuse_guarded(below) if anonymous?
-    inherited = below.flat_map { |operation| operation.permissions(onward) }
+    inherited = reaches.flat_map { |operation| operation.permissions(onward) }
 
     (anonymous? ? inherited : [permission] + inherited).uniq
-  end
-
-  def refuse_guarded(below)
-    guarded = below.reject(&:anonymous?)
-    return if guarded.empty?
-
-    raise NotImplementedError,
-          "#{name} is anonymous and reaches #{guarded.map(&:name).join(', ')}, which are not. " \
-          "An anonymous operation runs unchecked, so what it calls runs unchecked with it."
   end
 
   # The operations this one names in the method it actually runs.
@@ -149,9 +135,12 @@ module Permission
   # Absence of an actor is a caller's defect, never a quiet pass. A nil actor reaching
   # `may?` would raise somewhere less obvious, and a nil actor taken to mean "public" would
   # be the fail-open this module exists to prevent.
-  # No `anonymous?` branch: an anonymous operation aggregates only anonymous operations, so its
-  # demand is empty and this returns true without being told to.
+  # **`permissions` is what the work needs; this is whether the door refuses.** They differ for
+  # an anonymous operation: it aggregates what it reaches so a caller can demand it, and refuses
+  # nobody itself, because running before anyone is identified is what it declared.
   def permits?(actor)
+    return true if anonymous?
+
     demanded = permissions
     return true if demanded.empty?
     raise ArgumentError, "#{name} requires an actor" if actor.nil?
