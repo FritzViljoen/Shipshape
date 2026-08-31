@@ -56,9 +56,8 @@ correct anyway, arriving at the moment the requirement proves it.
 
 **Work spanning several permitted acts calls them**, and the caller demands all of them. That
 is not an escape hatch and needs no kind of its own — a command reaching a query is already it.
-A workflow is the kind that *only* sequences: it names its steps in `call`, is refused whole
-([`a-workflow-aggregates-its-permissions`](a-workflow-aggregates-its-permissions.md)), and
-contributes no name of its own because it performs no act.
+A workflow is the kind that *only* sequences: it names its steps in `call`, is refused whole,
+and contributes no name of its own because it performs no act.
 
 **The kinds are not a permission count.** They say what a class does — a command writes, a
 query reads, a workflow sequences — and every one of them demands what it reaches. A model in
@@ -173,6 +172,24 @@ is the same fact as data, per operation.
 What an anonymous operation reaches still **aggregates upward** into a guarded caller, so
 nothing is lost by passing through one.
 
+## A workflow contributes no name, and refuses before its first transaction
+
+Two things follow from a workflow being the kind that only sequences, and they are the whole of
+what used to be a law of its own.
+
+**It contributes no permission of its own.** Granting `:SettleMonth` does nothing: a workflow
+performs no act, so there is no act to permit. What an actor holds is the steps.
+
+**And it refuses before the first step, because it cannot take one back.** A workflow spans
+several transactions, so discovering at step three that the actor may not run step three leaves
+steps one and two done, committed and visible, with no rollback. For a command the aggregate
+buys a tidier refusal; for a workflow it buys the only moment at which refusing is free.
+
+That is also why the coarse thing an administrator wants — "may they close the month" — is a
+**read** rather than an override. A workflow that overrode its steps would need an unchecked
+path into each command, and a command reachable unchecked is reachable unchecked by whoever
+finds that path. The bucket is data, mapped to the step permissions.
+
 ## The catalogue knows which permissions are real
 
 ```ruby
@@ -213,6 +230,10 @@ content — translated, edited, versioned — and belongs in a row, not in a con
   That is a test, not a cop, for the same bounded reason
   [`one-mechanism-guards-everything`](one-mechanism-guards-everything.md) allows `CanonTest`:
   it ships with the gem's own suite and never runs in a consuming build.
+- **Guard:** `Shipshape/AggregationIsReadable`, over every operation kind. What an operation
+  reaches is read out of its `call`, so this fails the shapes that cannot be read there — a
+  receiver that is not a constant, and an operation reached from another method — plus a
+  workflow whose `call` names nothing, which sequences nothing and so refuses nobody.
 - **Guard:** `Shipshape/AnonymityIsClosedDownward`, over the operation kinds. Fails an
   `anonymous_call` that names a guarded operation — the escape hatch used to launder a write.
 - **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture.

@@ -120,7 +120,7 @@ So: **the local step must be idempotent, and the remote one needs an idempotency
 serious payment API has one; using it is the difference between a retry that is safe and a
 retry that charges twice.
 
-**Check:** `WorkflowAggregatesPermissions` answers the union of the steps, and the local step's
+**Check:** `AggregationIsReadable` is silent, the workflow demands the union of its steps, and the local step's
 test calls it twice.
 
 ---

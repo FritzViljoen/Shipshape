@@ -11,10 +11,10 @@ require "test_helper"
 # - Making `unreadable_receivers` answer `[]` reddens the variable-receiver test.
 # - Dropping `call_later` from `RUNS` reddens the deferred tests.
 # - Removing the nested-class guard reddens the nested-part test.
-class WorkflowAggregatesPermissionsTest < Minitest::Test
+class AggregationIsReadableTest < Minitest::Test
   include CopRunner
 
-  COP = RuboCop::Cop::Shipshape::WorkflowAggregatesPermissions
+  COP = RuboCop::Cop::Shipshape::AggregationIsReadable
 
   LAYOUT = {
     "Shipshape/CallGraph" => {
@@ -138,7 +138,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
 
     # Two: `call` names nothing, and the step is somewhere the reading does not reach.
     assert_equal 2, found.length
-    assert(found.any? { |offence| offence.message.include?("called from somewhere the permissions are not read from") })
+    assert(found.any? { |offence| offence.message.include?("reached from somewhere the permissions are not read from") })
   end
 
   # **The fail-open the old shape allowed through.** One visible step satisfied the cop, and
@@ -161,7 +161,7 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`NotifyCustomer` is a step"
+    assert_includes found.first.message, "`NotifyCustomer` is reached from somewhere"
   end
 
   # Legal Ruby that no reader can resolve to a permission.
@@ -247,7 +247,40 @@ class WorkflowAggregatesPermissionsTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_is_not_a_workflow
+  # A command naming no operation is an ordinary command, so only a workflow is failed for
+  # sequencing nothing.
+  def test_a_command_that_names_no_operation_is_not_an_offence
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
+      class SettleInvoice < Command
+        def call
+          success(:settled)
+        end
+      end
+    RUBY
+  end
+
+  # **The widening.** Scoped to workflows, this was unreported — and it is the same fail-open
+  # one kind down: the command demands nothing for a query it performs.
+  def test_a_command_reaching_a_query_from_a_helper_is_an_offence
+    found = offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
+      class SettleInvoice < Command
+        def call
+          success(load)
+        end
+
+        private
+
+        def load
+          ListInvoices.call(actor: @actor)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`ListInvoices` is reached from somewhere"
+  end
+
+  def test_a_command_naming_its_query_in_call_is_the_shape
     assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
       class SettleInvoice < Command
         def call

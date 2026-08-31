@@ -119,8 +119,12 @@ class Command
     Result.success(value)
   end
 
-  def failure(error)
-    Result.failure(error)
+  # **A failure carries a value, because a refusal often has to be rendered.** A form that did
+  # not save comes back with what was typed and what was wrong with it, and the caller cannot
+  # re-read the request — it was parsed at the seam and is gone. The operation hands back a
+  # shape and the edge places it.
+  def failure(error, value = nil)
+    Result.failure(error, value)
   end
 
   # **Dispatches with an implicit receiver**, so it works whether the operation left its

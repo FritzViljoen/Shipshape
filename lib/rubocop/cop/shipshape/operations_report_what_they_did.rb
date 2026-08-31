@@ -38,7 +38,8 @@ module RuboCop
         include Explains
 
         # The operations that write. A query answers a caller and changes nothing.
-        WRITING = %w[command io_command legacy_command workflow].freeze
+        # A workflow is not here: it performs no act, so it has nothing of its own to record.
+        WRITING = %w[command io_command legacy_command].freeze
 
         RECORDER = "AuditLog"
 

@@ -64,8 +64,8 @@ the command**, not a callback and not a validation — it is the first thing `ca
 it answers `failure(:code)` so the caller can act.
 
 Where a workflow sequences several,
-[`a-workflow-aggregates-its-permissions`](../laws/a-workflow-aggregates-its-permissions.md)
-applies: the steps are read out of `call`, and it is refused whole.
+[`a-permission-is-the-class-name`](../laws/a-permission-is-the-class-name.md) applies: what it
+reaches is read out of `call`, and it is refused whole before the first step runs.
 
 **Check:** `Shipshape/NoCallbacks` is silent — no transition happens because something was
 saved.

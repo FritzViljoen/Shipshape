@@ -34,7 +34,7 @@ module TypedArguments
   # type match, so `typed(person, PersonRecord)` fails as what it is rather than passing: the
   # declared type being a record is not a licence, it is the clearest statement of the defect.
   def refuse_record(value, type)
-    return unless Persistence.anywhere_in?(value)
+    return unless HoldsNoRecords.anywhere_in?(value)
 
     raise ArgumentError, "#{value.class} is a record, and a record is not an argument " \
                          "(declared #{type}). Hand over the fields it needs, a shape built " \

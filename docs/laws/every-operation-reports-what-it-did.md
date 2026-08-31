@@ -1,8 +1,13 @@
 # `every-operation-reports-what-it-did` — One record of every attempt, including the refused ones
 
-Every operation that writes — a command, a workflow, an io command, a legacy command — records what
-was attempted, by whom, and what it answered. A query does not: a read is not an attempt to
-change anything, and recording every read is how an audit log becomes a log.
+Every operation that performs an act — a command, an io command, a legacy command — records what
+was attempted, by whom, and what it answered.
+
+**A query does not**: a read is not an attempt to change anything, and recording every read is
+how an audit log becomes a log. **A workflow does not either**: it performs no act, only
+sequencing ones that do, and each of those records itself. An entry from the workflow would be a
+second row saying that the rows beneath it happened — and the sequence is already legible from
+them, in order, with the same actor on each.
 
 ## It records the attempt, not the change
 

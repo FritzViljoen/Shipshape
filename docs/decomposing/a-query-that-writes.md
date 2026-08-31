@@ -101,7 +101,7 @@ end
 transaction or silently widened one, and nobody decided which — `CallGraph` refuses it, and
 `a-command-is-one-transaction` is why.
 
-**Check:** `WorkflowAggregatesPermissions` answers the union of the steps' permissions, and
+**Check:** `AggregationIsReadable` is silent, the workflow demands the union of its steps, and
 `CallGraph` reports nothing new.
 
 ---

@@ -28,7 +28,6 @@ module Shipshape
     # name before it is used.
     FILES = %w[
       boolean
-      persistence
       typed_arguments
       permission
       calls

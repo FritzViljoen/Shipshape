@@ -139,7 +139,7 @@ module Shipshape
           success(1) if charge.value.total > 100
         end
       RUBY
-      "Shipshape/WorkflowAggregatesPermissions" => { kind: "workflow", body: <<~RUBY },
+      "Shipshape/AggregationIsReadable" => { kind: "workflow", body: <<~RUBY },
         def call
           SomeCommand.call
         end

@@ -574,22 +574,26 @@ Shipshape/NoGeneratedInterfaces:
     # and finds the generator instead.
     - view_component
 
-Shipshape/WorkflowAggregatesPermissions:
+Shipshape/AggregationIsReadable:
   Description: >-
-    A workflow's steps are read out of its `call`, so the base class can check every
-    permission before the first one runs. A `call` that names none refuses nobody.
+    An operation demands what it reaches, read out of its `call`. So what it reaches must be
+    readable there: a receiver that is not a constant, or an operation called from another
+    method, makes the aggregate short - and a short aggregate refuses at the work, not the door.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
-  # The kinds that count as steps. A workflow calling a workflow would
-  # be a sister call, which Shipshape/CallGraph already refuses.
-  StepKinds:
+  Kinds:
+    - workflow
     - command
     - query
     - io_command
     - io_query
-  Kinds:
+    - legacy_command
+    - legacy_query
+  # A command naming no operation is an ordinary command. A workflow naming none is not a
+  # workflow, so only this kind is failed for sequencing nothing.
+  SequencingKinds:
     - workflow
 
 Shipshape/EveryDoorChecksPermission:
@@ -953,10 +957,11 @@ Shipshape/OperationsReportWhatTheyDid:
   # one of them.
   Include:
     - '**/shipshape/*.rb'
-  # The operations that write. A query answers a caller and changes nothing.
+  # The operations that perform an act. A query answers a caller and changes nothing, and a
+  # workflow only sequences — its steps each record what they did, so an entry from the
+  # workflow would be a second row saying that the rows below it happened.
   Operations:
     - command
     - io_command
     - legacy_command
-    - workflow
   Recorder: AuditLog

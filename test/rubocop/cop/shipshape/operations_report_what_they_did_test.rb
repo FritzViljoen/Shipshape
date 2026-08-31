@@ -63,10 +63,17 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
     assert_empty offences(SILENT, cop_class: COP, path: "app/shipshape/command.rb", files: {})
   end
 
-  def test_it_covers_every_writing_operation
-    %w[command io_command legacy_command workflow].each do |name|
+  def test_it_covers_every_operation_that_performs_an_act
+    %w[command io_command legacy_command].each do |name|
       assert_equal 1, check(SILENT, "app/shipshape/#{name}.rb").length, name
     end
+  end
+
+  # **A workflow performs no act**, so it records nothing of its own: each step records what it
+  # did, and an entry here would be a second row saying the rows beneath it happened. Holding
+  # the installed `workflow.rb` to an audit call made a correct install fail this cop.
+  def test_a_workflow_is_not_held_to_it
+    assert_empty check(SILENT, "app/shipshape/workflow.rb")
   end
 
   # A read is not an attempt to change anything.

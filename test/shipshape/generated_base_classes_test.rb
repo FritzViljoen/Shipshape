@@ -884,6 +884,43 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert(CallGraph.grantable(GraphedDoor).all? { |key| key.is_a?(Symbol) })
   end
 
+  # **A refusal often has to be rendered.** A form that did not save comes back with what was
+  # typed and what was wrong with it, and the caller cannot re-read the request — it was parsed
+  # at the seam and is gone. `a-form-that-fails` prescribes exactly this call, and until the
+  # helper took a value it prescribed an `ArgumentError`.
+  class Draft < Shape
+    def initialize(subject:)
+      @subject = typed(subject, String)
+    end
+
+    attr_reader :subject
+  end
+
+  class RefusingCommand < Command
+    def initialize(subject:)
+      @subject = typed(subject, String)
+    end
+
+    def call
+      failure(:invalid, Draft.new(subject: @subject))
+    end
+  end
+
+  def test_a_failure_carries_what_the_edge_has_to_redraw_with
+    result = RefusingCommand.call(actor: ANYONE, subject: "hi")
+
+    refute_predicate result, :success?
+    assert_equal :invalid, result.error
+    assert_equal "hi", result.value.subject
+  end
+
+  def test_a_failure_still_carries_nothing_when_it_has_nothing
+    result = Charge.call(actor: ANYONE, amount: -1)
+
+    assert_equal :not_positive, result.error
+    assert_nil result.value
+  end
+
   # A door of its own, so the catalogue under test is this file's classes and not every
   # subclass any other test in the process happened to create.
   class CataloguedFlow < Workflow; end
@@ -1320,6 +1357,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
+  # A workflow records nothing of its own; its steps do. Kept as a fixture so the sequence is
+  # exercised, and asserted on below rather than in AUDITED_DOORS.
   class AuditedFlow < Workflow
     def initialize; end
 
@@ -1329,7 +1368,16 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
-  AUDITED_DOORS = [AuditedCommand, AuditedIo, AuditedLegacy, AuditedFlow].freeze
+  def test_a_workflow_writes_no_entry_of_its_own
+    entries = audited { AuditedFlow.call(actor: ANYONE) }
+
+    assert_equal [AuditedCommand.name], entries.map(&:operation)
+    refute_includes entries.map(&:operation), AuditedFlow.name
+  end
+
+  # **A workflow is not here.** It performs no act, so it writes no entry: every step records
+  # what it did, and a row saying the rows below it happened is a second copy of the sequence.
+  AUDITED_DOORS = [AuditedCommand, AuditedIo, AuditedLegacy].freeze
 
   # A workflow asks `permissions`, a command asks `permission`; an actor that says no to
   # everything refuses both without the test having to know which.
@@ -1344,8 +1392,6 @@ class GeneratedBaseClassesTest < Minitest::Test
   def test_every_writing_door_records_what_it_did
     AUDITED_DOORS.each do |door|
       entries = audited { door.call(actor: ANYONE) }
-      # A workflow's steps record their own entries, so the count is the depth of the
-      # sequence. What must hold on every door is that it recorded itself, exactly once.
       own = entries.select { |entry| entry.operation == door.name }
 
       assert_equal 1, own.length, door.name
