@@ -5,62 +5,30 @@
 #
 # Holds `a-permission-is-the-class-name`.
 #
-# **The permission IS the class name — not derived from it.** `SettleInvoice` needs
-# `:SettleInvoice`. There is no transform, because every transform is lossy and a lossy
-# transform collides: `FooBar` and `Foo::Bar` both underscore to `:foo_bar`, so a grant
-# issued for one silently runs the other. Using the constant name itself is injective by
-# construction — two classes cannot share a name, so two operations cannot share a
-# permission, and no guard has to check it.
+# **The permission IS the class name, not a transform of it.** Every transform is lossy and a
+# lossy transform collides: `FooBar` and `Foo::Bar` both underscore to `:foo_bar`, so a grant
+# issued for one runs the other. The constant name is injective, so uniqueness needs no guard.
 #
-# **Renaming an operation renames the act, and that is a data migration.** Every stored
-# grant of `:SettleInvoice` becomes `:SettleBooking`, written and reviewed like any other
-# migration. That is not a cost this introduced — it is the cost a separate constant
-# hides, while the code and the granted permission drift into naming two different things.
-#
-# **The catalogue is derived, never maintained.** Every operation answers `permission` and
-# every workflow answers `permissions`, so the set the system recognises is read off the
-# classes. No seed file to fall behind the code.
-#
-# **A human-readable name is data**, and so is the coarse bucket an administrator actually
-# grants. Code carries one name; data carries the label, the description, and the grouping.
-#
-# **An operation with no actor says so by implementing `anonymous_call`.** Login, bootstrap
-# and an unauthenticated upload run before anyone is identified, so there is nothing to
-# check against. Naming the method is the declaration, which makes it a property of the
-# operation rather than of whoever calls it — `grep -rn "def anonymous_call"` is the whole
-# set, and it should only ever shrink.
-#
-# An actor who IS known but needs no grant is not this. Give it an ordinary permission
-# granted to everyone, so it stays in the catalogue and can still be revoked for a
-# suspended account.
+# Renaming an operation renames the act, and stored grants are a data migration. That is the
+# cost a separate constant hides rather than avoids.
 module Permission
   # Every permission this application recognises, read off the classes.
   #
-  # **Pass the doors you installed**, because a module cannot know which of them your
-  # application uses:
-  #
   #   Permission.catalogue(Command, Query, IoCommand, IoQuery, Workflow)
   #
-  # Eager-load first outside production, or `descendants` answers only what has been
-  # autoloaded so far and the catalogue comes back short — which is the one failure mode
-  # that would make a coverage check pass while covering nothing:
+  # **Eager-load first outside production**, or `descendants` answers only what has been
+  # autoloaded and the catalogue comes back short — a coverage check passing while covering
+  # nothing:
   #
   #   Rails.application.eager_load!
-  #
-  # **What this is for.** An operation contained by no capability is unreachable —
-  # fail-closed, correct, and invisible, surfacing as a refusal nobody can explain. Both
-  # sides are enumerable, so the check is a comparison:
-  #
   #   missing = Permission.catalogue(Command, Query, Workflow) - CapabilityRecord.permissions
   #   raise "not in any capability: #{missing.join(', ')}" if missing.any?
   #
-  # Anonymous operations are left out: they are never granted, so demanding a capability
-  # contain one would fail every check for ever. So are nameless classes — a `Class.new`
-  # subclass has no constant, so it has no permission, and asking for one raises.
+  # An operation in no capability is unreachable: fail-closed, correct, and invisible until it
+  # surfaces as a refusal nobody can explain.
   #
-  # **It raises on a workflow whose `call` names no operation, deliberately.** That workflow
-  # would otherwise refuse nothing at its first real call, in production; walking the
-  # catalogue at boot is the cheapest place to find it.
+  # Anonymous operations are left out, because they are never granted. So are nameless classes:
+  # a `Class.new` subclass has no constant and so no permission.
   def self.catalogue(*doors)
     doors.flat_map { |door| door.descendants }
          .select(&:name)
@@ -74,51 +42,35 @@ module Permission
     name.to_sym
   end
 
-  # **`false` is load-bearing: this class only, never an ancestor.** `method_defined?`
-  # searches the whole chain, so `class AdminUpload < PublicUpload` inherited its parent's
-  # `anonymous_call` and ran unauthenticated — and a concern defining one made every command
-  # that included it public. Publicness is declared by the class that is public, or the
-  # audit `grep -rn "def anonymous_call"` does not name the classes it applies to.
+  # **`false` is load-bearing: this class only, never an ancestor.** `method_defined?` searches
+  # the chain, so `class AdminUpload < PublicUpload` inherited its parent's `anonymous_call` and
+  # ran unauthenticated, and a concern defining one made every command that included it public.
   def anonymous?
     instance_methods(false).include?(:anonymous_call) ||
       private_instance_methods(false).include?(:anonymous_call)
   end
 
-  # **An operation demands its own permission and every permission it reaches.**
+  # **An operation demands its own permission and every permission it reaches** — a workflow
+  # calling its steps and a command calling a query are one rule, not two.
   #
-  # **One rule, every kind.** An operation that calls operations demands what they demand.
-  # That is true of a workflow calling its steps and of a command calling a query, and the two
-  # are the same sentence — a command is not a smaller case with a lighter rule.
+  # Without it each door still checked on its own way in, so an inner query refused mid-command
+  # raised *there*: a 500 after the outer check passed, where the model promises a Result.
   #
-  # It is also what the doors already enforced, badly. Each operation checks on its own way in,
-  # so an inner query refused mid-command raised there: a 500 after the outer check had passed,
-  # where the model promises a Result. Aggregating moves that refusal to the door.
-  #
-  # **There is no third answer for an actor short of an inner permission.** Grant it, or make
-  # the inner operation anonymous, which is the declaration that it needs no grant of its own.
-  #
-  # Read from `call` by `Calls`, so it cannot disagree with what the operation does. **One
-  # aggregation, not two**: a workflow's steps are this same rule, not a second kind of it.
-  #
-  # `seen` breaks a cycle. Two operations that reach each other would otherwise recurse until
-  # the stack ends, and a stack overflow at boot is a worse way to learn about a cycle than
-  # the call graph is.
+  # `seen` breaks a cycle: two operations that reach each other would recurse until the stack
+  # ends, and a stack overflow at boot is a worse way to learn about a cycle than the graph is.
   def permissions(seen = [])
     return aggregate(seen) unless seen.empty?
 
     @permissions ||= aggregate([])
   end
 
-  # **An anonymous operation contributes no permission of its own, and still aggregates what it
-  # reaches.** It is never granted — that is what anonymous means — so demanding its name would
-  # make every caller permanently forbidden. What is below it is a different question, and the
-  # answer travels upward, so nothing is lost by passing through one.
+  # An anonymous operation contributes no permission of its own — it is never granted, so
+  # demanding its name would forbid every caller — but what it reaches still travels upward.
   #
   # **Anonymity must be closed downward**: an `anonymous_call` reaching a guarded operation runs
-  # that operation for nobody, which is the loophole reopened one level down.
-  # `Shipshape/AnonymityIsClosedDownward` fails the build on it, naming the file and the line.
-  # This does not raise — a catalogue that died on one bad declaration would report none of the
-  # good ones, and `CallGraph.leaks` is how the same fact is read at runtime.
+  # that operation for nobody. `Shipshape/AnonymityIsClosedDownward` fails the build on it. This
+  # does not raise, because a catalogue that died on one bad declaration would report none of
+  # the good rows; `CallGraph.leaks` is the same fact as data.
   def aggregate(seen)
     return [] if seen.include?(self)
 
@@ -128,28 +80,19 @@ module Permission
     (anonymous? ? inherited : [permission] + inherited).uniq
   end
 
-  # The operations this one names in the method it actually runs.
   def reaches
     Calls.in(self, anonymous? ? :anonymous_call : :call)
   end
 
-  # Absence of an actor is a caller's defect, never a quiet pass. A nil actor reaching
-  # `may?` would raise somewhere less obvious, and a nil actor taken to mean "public" would
-  # be the fail-open this module exists to prevent.
-  # **`permissions` is what the work needs; this is whether the door refuses.** They differ for
-  # an anonymous operation: it aggregates what it reaches so a caller can demand it, and refuses
-  # nobody itself, because running before anyone is identified is what it declared.
-  # **Private, because the only reason to ask is to branch.** A view asking "may they?" is a
-  # view deciding, and a decision has one home — the operation. A page either offers the action
-  # and places the refusal that comes back, or it is handed a shape whose fields already say
-  # what is offerable, computed by the query that built it.
+  # **`permissions` is what the work needs; this is whether the door refuses.** An anonymous
+  # operation aggregates what it reaches so a caller can demand it, and refuses nobody itself.
   #
-  # The door asks this. Nobody else may, and `Shipshape/OnlyTheDoorIsCalled` no longer lists it
-  # among the messages an operation answers.
+  # **Private, because the only reason to ask is to branch**, and a decision has one home. A
+  # page offers the action and places the refusal, or is handed a shape that already says what
+  # is offerable.
   #
-  # **The nil check comes first.** Behind an empty demand it let a caller that forgot `actor:`
-  # through in silence — a workflow whose steps are all anonymous opened for `nil` where it used
-  # to raise. Absence of an actor is a caller's defect whatever the demand turns out to be.
+  # **The nil check comes first.** Behind the empty-demand check it let a caller that forgot
+  # `actor:` through in silence.
   def permits?(actor)
     return true if anonymous?
     raise ArgumentError, "#{name} requires an actor" if actor.nil?
@@ -161,8 +104,8 @@ module Permission
   end
   private :permits?
 
-  # Raised where an operation answers no envelope — a query says what it found or raises,
-  # so a refusal cannot come back as a value without every caller unwrapping one.
+  # A query says what it found or raises, so a refusal cannot come back as a value without
+  # every caller unwrapping one.
   class Refused < StandardError
     def initialize(permission)
       super("not permitted: #{permission}")

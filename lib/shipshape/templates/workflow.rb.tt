@@ -29,44 +29,28 @@
 # closed. Step three refusing leaves steps one and two done, committed and visible, with no
 # rollback. Before the first step is the only moment refusing is free.
 #
-# **The steps are read out of `call`, not declared.** They were a `STEPS` constant for a
-# while, and a constant beside the method that already lists them is the same fact written
-# twice — guarded by a cop, but still two places to change and one of them easy to forget.
-# `RubyVM::AbstractSyntaxTree.of` hands back the syntax tree of `call` itself, so the list is
-# derived from the only copy there is and cannot disagree with it.
+# **The steps are read out of `call`, not declared**, so the list cannot disagree with what
+# runs. Only `call` is read: a workflow *is* a sequence, and a step behind a private helper is
+# a sequence that does not read as one.
 #
-# **Only `call` is read, and that is a constraint worth having.** A workflow *is* a sequence;
-# a step hidden behind a private helper is a sequence that does not read as one.
-#
-# **Anything the walker cannot see is a step whose permission is never demanded**, so the
-# reading and the cop have to recognise the same shapes or the build is green over a
-# fail-open. `Shipshape/AggregationIsReadable` fails a step this cannot read — a
-# receiver that is not a constant, or an operation called from a method other than `call` —
-# rather than describing it as a limit and leaving it to production.
+# Anything the reader cannot see is a step whose permission is never demanded, so
+# `Shipshape/AggregationIsReadable` fails those shapes rather than leaving them to production.
 class Workflow
   include TypedArguments
 
 <%- if auth -%>
   extend Permission
 
-  # Ask a workflow what it needs without running it: hide a button the actor cannot use,
-  # populate an admin screen, seed the permission table. Read out of `call`, so it cannot
-  # disagree with what the workflow actually does — there is only one copy.
+  # **A workflow contributes no permission of its own**: granting `:SettleMonth` does nothing,
+  # because a workflow performs no act. What an actor holds is the steps, and anonymous ones
+  # contribute nothing because they are never granted.
   #
-  # **Anonymous steps contribute nothing.** An anonymous operation is never granted — that
-  # is what anonymous means — so aggregating its name would demand a grant nobody can hold
-  # and make the whole workflow permanently forbidden.
-  # **A workflow contributes no permission of its own**, which is the one place it differs
-  # from every other operation: granting `:SettleMonth` does nothing, because a workflow is
-  # only the acts it sequences. Its steps aggregate the same way anything else does.
-  # **Memoised at the top of the walk**, the way `Permission#permissions` is. Recursing with a
-  # non-empty `seen` bypassed that memo, so every `permits?` re-parsed the syntax tree of every
-  # operation in the closure — 24 parses and 4.2ms for a six-step workflow, on the request path,
-  # and again for every view asking whether to show a button.
-  # **A workflow writes no audit entry, because it performs no act.** Every step records what
-  # it did, so the sequence is already in the trail — an entry here would be a second row
-  # saying that the rows below it happened. `EXCLUDE_FROM_AUDIT` is a command's concern for the
-  # same reason: there are no arguments of this class's own to redact.
+  # **It writes no audit entry either**, for the same reason — each step records what it did,
+  # so an entry here would be a second row saying the rows below it happened. That is also why
+  # `EXCLUDE_FROM_AUDIT` is a command's concern: there is nothing of this class's own to redact.
+  #
+  # Memoised at the top of the walk, or every check re-parses the syntax tree of every
+  # operation in the closure.
   def self.permissions(seen = [])
     return [] if anonymous?
     return @permissions ||= aggregate_steps([]) if seen.empty?
@@ -77,31 +61,23 @@ class Workflow
   def self.aggregate_steps(seen)
     onward = seen + [self]
     found = steps
-    # **A workflow with no steps is not a workflow**, and answering `[]` here would be the
-    # fail-open this model must never allow: `[].all?` is true, so it would run for an actor
-    # holding no grants at all. That is also what a step hidden behind a private helper looks
-    # like from here, which is why the shape is refused rather than tolerated.
-    # An anonymous workflow is unchecked by declaration, so an empty list is its intent rather
-    # than the fail-open this raise exists to refuse.
+    # **A workflow with no steps is not a workflow.** Answering `[]` would be a fail-open —
+    # `[].all?` is true — so it would run for an actor holding no grants at all. An anonymous
+    # workflow is unchecked by declaration, so for that one an empty list is the intent.
     raise NotImplementedError, "#{name}#call names no operations to run" if found.empty? && !anonymous?
 
     found.flat_map { |step| step.permissions(onward) }.uniq
   end
   private_class_method :aggregate_steps
 
-  # The operations `call` names, read by `Calls` — the same reader the call graph uses, so a
-  # step and an edge are one fact found one way. Memoised per class: the tree is parsed from the
-  # file on disk, and a workflow is asked this on every invocation.
+  # Read by `Calls` — the same reader the call graph uses, so a step and an edge are one fact
+  # found one way.
   def self.steps
     return @steps if instance_variable_defined?(:@steps)
 
     @steps = Calls.in(self, anonymous? ? :anonymous_call : :call)
   end
 
-  # `permits?` is inherited and needs no override: every operation demands what it reaches, and
-  # a workflow's steps are that same aggregation. It is private — the door asks it and nobody
-  # else may, because the only reason to ask is to branch. A page offers the action and places
-  # the refusal that comes back.
 
 <%- end -%>
 <%- if auth -%>

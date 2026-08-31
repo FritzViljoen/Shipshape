@@ -12,9 +12,7 @@
 #
 # **A command never calls another command.** Sequencing writes is a workflow's job, and a
 # command that calls one has either nested this transaction or silently widened it, with
-# nobody deciding which. A workflow crossing several transactions is obliged to make each
-# step idempotent and each intermediate state legal; a command that quietly became one has
-# accepted none of that.
+# nobody deciding which — becoming a workflow without accepting a workflow's bill.
 class Command
   include TypedArguments
 
@@ -54,21 +52,14 @@ class Command
     result
   end
 
-  # **Setup asks what state is legal, not who may reach it.** A test building a booking to
-  # cancel is not testing who may build one, and assembling a grant bag to get there teaches
-  # nothing.
+  # **Setup asks what state is legal, not who may reach it**, so this skips the permission
+  # check and the audit entry and nothing else — the two things about the caller rather than
+  # the state. Typed arguments, the transaction and the rules still run, so what it produces is
+  # a state the application can produce, which is the whole point of `no-test-factories`.
   #
-  # **It skips the permission check and the audit entry, and nothing else.** Typed arguments,
-  # the transaction and the rules all still run, so the state it produces is a state the
-  # application can produce — which is the whole point of `no-test-factories`. The two it skips
-  # are the two that are about the caller rather than the state: who asked, and the record that
-  # they did. A suite writing an audit row per fixture fills the trail with rows no operator
-  # ever performed.
-  #
-  # **A test uses it for the subject too, not only for setup.** A permission is the class name,
-  # so authorisation is class-sized — an actor holds the permission or does not — and the check
-  # is this base class's, identical for every operation and proven once in its own suite. An
-  # operation has no authorisation behaviour of its own for a test to assert.
+  # **A test uses it for the subject too.** A permission is the class name, so authorisation is
+  # class-sized and the check is this base class's, proven once in its own suite; an operation
+  # has no authorisation behaviour of its own to assert.
   #
   # **It raises outside the test environment**, so it cannot become a production door. That is
   # the one thing an unchecked entry point must promise, and it is why this is a method rather
