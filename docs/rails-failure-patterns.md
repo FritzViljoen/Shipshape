@@ -1,12 +1,11 @@
-# What shipshape covers, against a list it did not write
+# What shipshape covers, and what it does not
 
-A survey, not a law. Its companion, [the patterns people reach for](rails-patterns.md), takes
-the list from the other end — what teams adopt to stop these failures, and what this canon does
-instead.
+A survey, not a law. It works through the ways Rails applications fail — around 120 of them,
+gathered without reference to this canon so the answers could not be arranged to flatter it —
+and asks of each **which ones a guard here actually holds**.
 
-Somebody handed over a catalogue of about 120 ways Rails applications
-fail, assembled independently of this canon, and the useful question is not "does shipshape
-sound relevant" but **which rows it actually holds, and which it does not**.
+Its companion, [the patterns people reach for](rails-patterns.md), takes the same subject from
+the other end: what teams adopt to stop these failures, and what this canon does instead.
 
 The short answer: **it holds roughly half, and the half it holds is one half on purpose.**
 
