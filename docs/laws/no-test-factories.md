@@ -33,34 +33,35 @@ Dogfooding also means the suite exercises the operations it sets up with. A test
 because `CreateBooking` broke, that is not a cascading failure to be engineered away. It is
 true.
 
-## Setup runs unchecked, and `test_call` is how
+## A test calls `test_call`, because authorisation is not the operation's behaviour
 
-Calling operations for setup does not mean assembling a grant bag to build a booking.
-**Authorisation answers "who may"; setup is asking "what state is legal".** Those are different
-questions, and only the second one matters before the test starts.
-
-So `Command` and `Query` carry a second entry point:
+Calling operations for setup does not mean assembling a grant bag to build a booking. So
+`Command` and `Query` carry a second entry point:
 
 ```ruby
-booking = CreateBooking.test_call(offer_id: offer.id).value        # setup
-result  = CancelBooking.call(actor: staff, booking_id: booking.id) # the subject
+booking = CreateBooking.test_call(offer_id: offer.id).value
+result  = CancelBooking.test_call(booking_id: booking.id)
 ```
 
 **It skips the permission check and skips nothing else.** Typed arguments, the transaction, the
 business rules and the audit entry all still run, so the state it produces is a state the
 application can produce — which is the entire point of this law.
 
-**It is a separate door, not `call` with a permissive actor.** That distinction is what keeps
-permissions testable: wrapping `call` would make the checked path the one exercised by every
-setup line, and a test of refusal would be testing the wrapper. `call` is untouched, so
-`assert_equal :forbidden, result.error` still means what it says.
+**And it is used on the operation under test as well, not only on setup.** A permission *is*
+[the class name](a-permission-is-the-class-name.md), so authorisation here is class-sized: an
+actor holds `:CancelBooking` or does not. There is no per-row rule, no per-field rule, and no
+condition to get wrong — which means an operation has no authorisation behaviour of its own to
+test. The check is the base class's, it is identical for every operation, and it is proven once
+in the generated base classes' own suite. Re-asserting it per operation tests the framework,
+and drags an actor into every test that was never about actors.
 
 **It raises outside the test environment.** An unchecked entry point has to promise that, and a
 method that exists everywhere and is merely discouraged does not. It asks `Rails.env.test?`,
 which is the one ambient read in the whole shape and is on the door rather than in the work.
 
-**Use a real actor for the operation under test**, always, and a refusing one to prove it
-refuses. A subject reached by `test_call` has stopped being able to notice a missing check.
+**That promise is why it is a second door rather than `call` with a permissive actor.** An
+actor that says yes to everything is a value, and a value can be constructed anywhere,
+including in production. A method that refuses to exist outside tests cannot be.
 
 ## What it costs, and it is real
 
@@ -80,11 +81,7 @@ factoried. If nothing in the application creates a thing, a test may load it dir
 - **Guard:** `Shipshape/NoTestFactories`, over the test trees. Fails `create`/`build`/
   `build_stubbed`/`attributes_for` on a symbol, `FactoryBot`/`FactoryGirl`/`Fabricate` by name,
   and Rails fixtures — `fixtures :all` and the accessors it generates.
-- **Guard's limit:** **nothing stops a test using `test_call` on the operation under test.**
-  That is the one misuse of the second door, it turns a permission test into a test of nothing,
-  and no cop reads which call in a test file is the subject.
-
-  **It reads how state is built, never whether the state is right.** A test
+- **Guard's limit:** **it reads how state is built, never whether the state is right.** A test
   that calls the correct operations to reach a state nobody wants passes; so does one that
   reaches a legal state and asserts nothing about it.
 

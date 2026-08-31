@@ -40,14 +40,15 @@ class Query
   # a state the application can produce — which is the whole point of
   # `no-test-factories`.
   #
-  # **It is a separate door, not `call` with a permissive actor.** Wrapping `call` would mean
-  # the checked path is the one under test in every setup line, and the real one would never
-  # be exercised on its own. Here `call` is untouched, so a permission test still calls it and
-  # still gets refused.
+  # **A test uses it for the subject too, not only for setup.** A permission is the class name,
+  # so authorisation is class-sized — an actor holds the permission or does not — and the check
+  # is this base class's, identical for every operation and proven once in its own suite. An
+  # operation has no authorisation behaviour of its own for a test to assert.
   #
   # **It raises outside the test environment**, so it cannot become a production door. That is
-  # the one thing an unchecked entry point must promise, and a method that exists everywhere
-  # and is merely discouraged does not promise it.
+  # the one thing an unchecked entry point must promise, and it is why this is a method rather
+  # than an actor that says yes to everything: such an actor is a value, and a value can be
+  # constructed anywhere, including in production.
   def self.test_call(actor: nil, **arguments)
     unless defined?(::Rails) && ::Rails.env.test?
       raise "#{name}.test_call is for tests: there is no unchecked door outside the test environment"

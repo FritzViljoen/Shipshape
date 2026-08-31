@@ -83,15 +83,14 @@ ConfirmBooking.test_call(booking_id: booking.id)
 it takes; the cop's count falls per file, and a failure is attributable to the file you just
 changed.
 
-**Setup runs unchecked, and the subject does not.** Setup asks what state is legal, not who may
-reach it, so it uses `test_call` on `Command` and `Query` — which skips the permission check
-and nothing else, and raises outside the test environment. Everything that decides whether the
-state is legal still runs.
+**`test_call` is what a test uses — for setup and for the subject alike.** It skips the
+permission check and nothing else, and raises outside the test environment.
 
-**The operation under test is called with `call` and a real actor**, and a refusing one proves
-it refuses. That separation is the reason `test_call` is a second door rather than `call` with
-a permissive actor: the checked path stays exercised on its own, so a refusal test is testing
-the refusal. A subject reached by `test_call` has stopped being able to notice a missing check.
+**No actor is threaded through any of it**, and that is not a shortcut. A permission is the
+class name, so authorisation is class-sized: an actor holds `:CancelBooking` or does not, there
+is no per-row or per-condition rule, and the check is the base class's — identical everywhere
+and proven once. An operation has no authorisation behaviour of its own, so a test asserting
+one is testing the framework.
 
 **Check:** the file passes, and `Shipshape/NoTestFactories` is silent on it.
 
