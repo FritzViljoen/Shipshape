@@ -33,6 +33,12 @@ other in place, which is what says they are not one guard written twice.
 
 - **Guard:** the generated `typed_arguments.rb` — architecture. `typed` asserts and never
   coerces, and refuses a record before it matches the type.
+- **Guard:** `Shipshape/PresentationHoldsNoRecords`, over any class that inherits a component
+  library's own base. That class is where the sweep has to be extended, because everything
+  below it inherits it — and an application that already had such a base before shipshape
+  arrived never inherits the generated one, so the sweep is simply absent. Nothing else
+  reports that: the kind-scoped cops still fire on those components by path, so the tree looks
+  governed while the one guard that catches a record arriving through an argument is missing.
 - **Guard:** `Shipshape/TypedArguments`. Within a governed tree the **superclass decides
   the kind**, so an operation stays covered wherever it is filed inside one. Every keyword
   must reach a
@@ -48,7 +54,12 @@ guard knows the name by identity instead and includes it nowhere. `nil` is not f
 truthy value is not true: absence says so with `allow_nil:`, and anything else would be a
 coercion.
 
-- **Guard's limit:** it checks that a keyword **is** guarded, never that the type named is
+- **Guard's limit:** `Shipshape/PresentationHoldsNoRecords` reads the superclass as written,
+  so a base reached through an alias or built by a factory is invisible, and it asks only that
+  the module is extended — not that its sweep is reached, which a class overriding `new`
+  could still avoid.
+
+  `Shipshape/TypedArguments` checks that a keyword **is** guarded, never that the type named is
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
   helper it does not know by name.
 

@@ -27,6 +27,8 @@ class CanonTest < Minitest::Test
   PROCEDURE_WOULD_NOT_HELP = {
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
+    "PresentationHoldsNoRecords" =>
+      "the fix is one line in a base class the application already has, and nothing moves.",
     "CommentBudget" =>
       "nothing is moved. The fix is to delete prose, or to put it in the law it paraphrases, " \
       "and which of the two is a judgement about that one comment.",

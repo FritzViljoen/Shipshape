@@ -78,6 +78,8 @@ Shipshape/PersistenceHoldsNoBehaviour:
   Enabled: true
 Shipshape/PersonalDataIsDeclared:
   Enabled: true
+Shipshape/PresentationHoldsNoRecords:
+  Enabled: true
 Shipshape/QueriesOnlyRead:
   Enabled: true
 Shipshape/ShapeIsComposed:

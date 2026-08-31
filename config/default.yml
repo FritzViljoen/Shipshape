@@ -297,6 +297,18 @@ Shipshape/NoCallbacks:
   Kinds:
     - record
 
+Shipshape/PresentationHoldsNoRecords:
+  Description: >-
+    A class inheriting a component library's own base extends HoldsNoRecords, because
+    everything below it inherits the sweep and an argument names no constant a cop can see.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Bases:
+    - ViewComponent::Base
+  Sweep: HoldsNoRecords
+
 Shipshape/CommentBudget:
   Description: >-
     A file carries at most a tenth of its own code in comment lines. A comment is a second

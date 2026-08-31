@@ -154,6 +154,13 @@ module Shipshape
           end
         end
       RUBY
+      "Shipshape/PresentationHoldsNoRecords" => { path: "app/components/canary_component.rb", raw: <<~RUBY },
+        class CanaryComponent < ViewComponent::Base
+          def initialize(person:)
+            @person = person
+          end
+        end
+      RUBY
       "Shipshape/CommentBudget" => { path: "lib/canary_prose.rb", raw: <<~RUBY },
         # One line of code, and eight of prose about it, which is what the budget refuses.
         # The rule this paraphrases has a home, and that home is the one that gets reviewed
