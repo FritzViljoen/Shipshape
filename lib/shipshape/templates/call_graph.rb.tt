@@ -1,57 +1,32 @@
 # frozen_string_literal: true
 
-# **Which operations exist, which call which, and what each endpoint demands.** An operation
-# demands its own permission and everything it reaches, read from the same source the base
-# classes read.
-#
-#   CallGraph.edges(Command, Query)     # => { "CancelBooking" => ["FindBooking"] }
-#   CallGraph.grantable(Command, Query) # every permission an actor can be asked for
-#   CallGraph.unchecked(Command, Query) # declared `anonymous_call`, so never granted
-#   CallGraph.leaks(Command, Query)     # anonymity that is not closed downward
-#   CallGraph.routes                    # per endpoint, which is the question being asked
-#
-# Nothing is left off `grantable` for being reached from inside another operation: aggregation
-# means the actor holds it either way, and a screen that hid it would produce a refusal nobody
-# could explain.
-#
-# **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
-# content, and belongs in a row.
+# `edges` / `grantable` / `unchecked` / `leaks` / `routes`. An operation demands its own
+# permission and everything it reaches. Keys are class names; a label is content and
+# belongs in a row.
 class CallGraph
   FORMAT = /\(\.:format\)\z/.freeze
 
   class << self
-    # `{ "CancelBooking" => ["FindBooking"] }`, for every operation of the given doors.
     def edges(*doors)
       operations(*doors).each_with_object({}) do |operation, found|
         found[operation.name] = Calls.in(operation, entry_point(operation)).map(&:name).uniq.sort
       end
     end
 
-    # Every permission an actor can be asked for. An operation aggregates what it reaches, so
-    # reaching one from inside another does not excuse the actor from holding it.
     def grantable(*doors)
       permissions_of(operations(*doors)).uniq.sort
     end
 
-    # **What each endpoint demands.** Empty when there is no Rails to ask, which is a fact about
-    # this process rather than about the application, so it says nothing rather than guessing.
     def routes(application = rails_application)
       return [] unless application
 
       application.routes.routes.filter_map { |route| endpoint(route) }
     end
 
-    # Declared to need no grant, by implementing `anonymous_call` rather than `call`. A screen
-    # must not offer these — not because they are unreachable, but because holding one would
-    # mean nothing.
     def unchecked(*doors)
       operations(*doors).select(&:anonymous?).map(&:permission).uniq.sort
     end
 
-    # **Anonymity that is not closed downward.** An anonymous operation runs unchecked, so a
-    # guarded one below it runs unchecked too — the loophole reopened one level down.
-    # `Shipshape/AnonymityIsClosedDownward` fails the build on this; here it is readable at
-    # runtime, per operation, so one bad declaration is a row rather than a dead catalogue.
     def leaks(*doors)
       operations(*doors).select(&:anonymous?).each_with_object({}) do |operation, found|
         guarded = operation.send(:reaches).reject(&:anonymous?)
@@ -61,16 +36,11 @@ class CallGraph
 
     private
 
-    # A route names its controller and action as strings. The controller may not be loadable,
-    # and an action may be inherited or handled by something that is not a class here.
     def endpoint(route)
       controller = controller_for(route)
       action = route.defaults[:action]
       return nil unless controller && action
 
-      # **An endpoint demanding nothing is kept.** It reaches no governed operation, or only
-      # anonymous ones — one of those is a decision and the other is a route nobody has looked
-      # at, and dropping the row hid both.
       demanded = permissions_of(Calls.in(controller, action.to_sym))
 
       { verb: route.verb.to_s, path: route.path.spec.to_s.sub(FORMAT, ""),
@@ -87,10 +57,6 @@ class CallGraph
       nil
     end
 
-    # **ActiveSupport's, never a hand-rolled one.** An application declaring
-    # `inflect.acronym "API"` names its controller `API::BookingsController`, and splitting on
-    # underscores answers `Api::BookingsController` — which raises `NameError`, is rescued, and
-    # drops the route silently. Every acronym namespace was invisible.
     def camelize(path)
       return path.camelize if path.respond_to?(:camelize)
 
@@ -98,8 +64,6 @@ class CallGraph
           .join("::")
     end
 
-    # `permissions` is the aggregate — its own name and everything it reaches — so an endpoint
-    # demands the whole chain behind the operation it names.
     def permissions_of(found)
       found.flat_map(&:permissions).uniq
     end
@@ -110,14 +74,10 @@ class CallGraph
       ::Rails.application
     end
 
-    # Nameless classes have no permission — a `Class.new` subclass has no constant — and asking
-    # one for its name would put `nil` in the graph.
     def operations(*doors)
       doors.flat_map { |door| door.descendants }.select(&:name).uniq
     end
 
-    # A workflow sequences in `call`; an operation that runs before anyone is identified
-    # implements `anonymous_call` instead, and its body names steps the same way.
     def entry_point(operation)
       operation.anonymous? ? :anonymous_call : :call
     end

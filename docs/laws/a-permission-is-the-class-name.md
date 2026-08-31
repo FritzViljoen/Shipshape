@@ -13,8 +13,10 @@ A new command's permission exists the moment the class does, and nobody holds it
 constant to forget, so requiring nothing cannot happen by omission — the way an omitted
 declaration fails open.
 
-**An operation that runs before anyone is identified implements `anonymous_call`.** That makes
-publicness a property of the class, never of the caller: there is no `public_call` for a caller
+**An operation that runs before anyone is identified implements `anonymous_call`.** The base
+class asks `instance_methods(false)` — **this class only, never an ancestor or a module.**
+`method_defined?` searches both, and a concern defining `anonymous_call` then made every command
+that included it public. That makes publicness a property of the class, never of the caller: there is no `public_call` for a caller
 to reach for. `grep -rn "def anonymous_call"` is the whole set, and it should only shrink. An
 actor who is known but needs no grant is a different case — give it an ordinary permission
 granted to everyone, so it stays revocable.
