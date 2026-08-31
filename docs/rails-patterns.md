@@ -85,13 +85,6 @@ and a year. `one-mechanism-guards-everything` is the claim that a convention nob
 CI is indistinguishable from a convention nobody has — and every pattern above is a convention
 until something fails the build over it.
 
-Two details of that advice are refused outright:
-
-- **`after_commit` rather than `after_save`.** Callbacks are banned, not relocated. Moving the
-  trigger later keeps everything that made it unreadable.
-- **"POROs for domain logic."** Yes — and they are `Shape`s that hold no records, which is the
-  part that decides whether the PORO stays one.
-
 ## What this document is not
 
 **It is not a verdict on your application.** A pattern refused here may be right where you are,
