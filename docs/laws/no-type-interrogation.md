@@ -16,7 +16,6 @@ to raise rather than to branch — see
 [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md). The
 difference is what happens next: an assertion has one outcome, a dispatch has two.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `one-way-to-say-each-thing` governs. `tell-dont-ask` also produces it.
 - **Guard:** `Shipshape/NoTypeInterrogation`, over the operation, shape and view-component
   trees. Exempts the argument-assertion helper by name, and nothing else.

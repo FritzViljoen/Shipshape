@@ -44,6 +44,7 @@ not make it hold.
 | [`no-database-defaults`](no-database-defaults.md) | `absence-is-absence` |
 | [`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) | `model-concerns-not-groups` |
 | [`a-shape-is-composed-not-flattened`](a-shape-is-composed-not-flattened.md) | `model-concerns-not-groups` |
+| [`a-comment-is-a-second-copy`](a-comment-is-a-second-copy.md) | `one-way-to-say-each-thing` |
 | [`no-lifecycle-callbacks`](no-lifecycle-callbacks.md) | `tell-dont-ask` |
 | [`no-decisions-in-request-handling`](no-decisions-in-request-handling.md) | `tell-dont-ask` |
 | [`no-type-interrogation`](no-type-interrogation.md) | `one-way-to-say-each-thing` |

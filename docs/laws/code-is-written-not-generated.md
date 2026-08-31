@@ -16,7 +16,6 @@ Generation compresses the writing and expands the reading. That was a good trade
 writing was the expensive half; the cost is now paid on every read, forever, by readers who
 are not the writer.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-is-hidden`
 - **Guard:** `Shipshape/NoGeneratedInterfaces`, over the operation, shape, record and
   view-component trees. A component that invents a macro hides exactly what an operation

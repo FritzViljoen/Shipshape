@@ -3,8 +3,6 @@
 # Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
 # `test_call` skips the permission check and the audit entry, and raises outside tests.
 # `new` and `allocate` are private: `allocate` skips `initialize` and was a way in.
-# Implicit receiver, so the entry point may be public or private. `send` would work too
-# and is banned: a base class that writes it cannot ask an application not to.
 class Command
   include TypedArguments
 

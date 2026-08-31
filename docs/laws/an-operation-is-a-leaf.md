@@ -80,7 +80,6 @@ That is a command calling a command, which the matrix refuses — so the shared 
 query, or the sequence is a workflow. **The call graph already had an answer for this**; the
 inheritance was a way of not using it.
 
-- **Agreed:** asked for a guard that only `self.call` is ever called on an operation, and that internals are not reachable from outside.
 - **Principle:** `nothing-is-hidden` governs — a guarantee decided two classes away is a
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.

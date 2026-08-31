@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Sequences operations across several transactions and opens none of its own: every step
-# idempotent, every intermediate state legal, undo written as a further step.
-# Steps are read out of `call`, so a workflow may only name what `call` names.
+# Sequences operations across transactions and opens none of its own: every step idempotent,
+# every state legal, undo a further step. Steps are read out of `call`, so only what it names.
 class Workflow
   include TypedArguments
 

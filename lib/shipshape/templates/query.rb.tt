@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# Exactly one read, answering shapes and no envelope: finding nothing is an answer.
-# A query never calls a query — two reads wearing one name, and the shape of an N+1.
+# One read, answering shapes: finding nothing is an answer. A query never calls a query.
 class Query
   include TypedArguments
 

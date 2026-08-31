@@ -3,7 +3,6 @@
 # A write to something outside this process. A sister of Command, because an external
 # call inside a transaction holds it open over the wire. Assume it will be retried.
 # `new` and `allocate` are private: `allocate` skips `initialize` and was a way in.
-# Implicit receiver, so the entry point may be public or private.
 class IoCommand
   include TypedArguments
 

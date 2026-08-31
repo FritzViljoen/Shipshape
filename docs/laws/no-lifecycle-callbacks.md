@@ -11,7 +11,6 @@ It is also the commonest form of action at a distance: the effect is real, and i
 the path anyone is reading — see
 [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md).
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `tell-dont-ask` governs — a callback is the record deciding on the caller's
   behalf. `nothing-is-hidden` also produces it, for the reason above.
 - **Guard:** `Shipshape/NoCallbacks`, over the record tree, including concerns mixed into

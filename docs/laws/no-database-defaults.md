@@ -11,7 +11,6 @@ This is the mirror of [`no-nullable-columns`](no-nullable-columns.md). One forbi
 being given a meaning; this forbids a fact being stated twice. Both defects end in the same
 place: a value nobody can point at the source of.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `absence-is-absence` governs. `good-boundaries-make-good-neighbours` also
   produces it — a fact has one home — and on conflict `absence-is-absence` wins, because
   the reason a default is tempting at all is a column that should have refused the gap.

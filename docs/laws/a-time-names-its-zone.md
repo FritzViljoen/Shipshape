@@ -20,7 +20,6 @@ Converting one moves it a day. And a wall-clock reading that is not a moment —
 meaning half past six wherever it happens — travels as a String, because building a time for
 one invents a date and an offset it never had.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-crosses-unasserted`. `absence-is-absence` produces the no-default
   half: an ambient zone is a fact nobody stated.
 - **Guard:** the required keyword, which is the language's own error at the call site; the

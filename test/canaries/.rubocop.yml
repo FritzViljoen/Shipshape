@@ -21,6 +21,8 @@ Shipshape/CallGraph:
   Enabled: true
 Shipshape/CommandsProveIdempotence:
   Enabled: true
+Shipshape/CommentBudget:
+  Enabled: true
 Shipshape/EnforcementMessagesAreDocumentation:
   Enabled: true
 Shipshape/EveryDoorChecksPermission:

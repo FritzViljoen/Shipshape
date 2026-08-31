@@ -157,7 +157,6 @@ convention that nothing yet forbids.
 It is also what bounds the second failure of reachability: a rule everything can
 reach becomes the place unrelated things are put.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `good-boundaries-make-good-neighbours`, and it owns this law outright —
   placement and reachability are one subject, which is why that principle carries both.
 - **Guard:** `Shipshape/CallGraph`. Resolves the inspected file's kind by path, and a

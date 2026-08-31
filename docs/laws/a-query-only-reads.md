@@ -20,10 +20,6 @@ find.
 and the caller has no reason to think about ordering, retries or idempotence. A command
 announces all three by being a command.
 
-- **Agreed:** "definitely", ratified on review. Drafted by an agent in
-  answer to "is all our class kinds gaurded", which was a question: a cop and a law were built
-  where a finding had been asked for. It found 376 instances across seven public repositories,
-  including a class named `...Query` calling `create!`.
 - **Principle:** `good-boundaries-make-good-neighbours`
 - **Guard:** `Shipshape/QueriesOnlyRead`, over `query`, `io_query` and `legacy_query`. Fails a
   known writing message — `create!`, `update!`, `save`, `destroy_all`, `update_all`,

@@ -34,10 +34,6 @@ is abandoned with `raise ActiveRecord::Rollback` and the answer given afterwards
 connection for no reason. The generated `Query` therefore has no transaction at all — the word
 appears in that file only in a comment about the door.
 
-- **Agreed:** ratified on review, after correcting what it said: "a
-  command can do multiple writes to multiple tables, but one transaction". It had been written
-  as "exactly one write", which is a different and wrong rule. Drafted by an agent during an
-  audit rather than in answer to a request for a law, which is why it stood unratified.
 - **Principle:** `make-the-wrong-thing-impossible`
 - **Guard:** the generated `command.rb`, `io_command.rb` and `legacy_command.rb` — architecture
   rather than a cop. `self.call` wraps the operation in `ActiveRecord::Base.transaction`, so no

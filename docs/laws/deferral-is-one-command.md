@@ -51,9 +51,6 @@ Two things follow, and both are refused at enqueue rather than discovered in the
   side. It used to be dropped in silence: the caller was told the work was accepted, the job
   died, and no audit entry was written at all.
 
-- **Agreed:** "implement call_later", after choosing `call_later` over a
-  `Schedules` row on the call graph, on the grounds that application code should never name a
-  job class.
 - **Principle:** `good-boundaries-make-good-neighbours`
 - **Guard:** the generated `operation_job.rb` and the three writing operations — architecture.
   The operation asserts, refuses an unnameable actor, and enqueues; the job rebuilds the

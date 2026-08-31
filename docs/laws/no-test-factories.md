@@ -74,9 +74,6 @@ spends them deliberately, because a fast suite that proves the wrong thing is no
 Reference data — currencies, countries, a tenant — that no operation creates is seeded, not
 factoried. If nothing in the application creates a thing, a test may load it directly.
 
-- **Agreed:** "Canon governs test aswell. We dogfood our own
-  implementation. No test factories", deciding that `test/` is governed rather than merely
-  required to exist.
 - **Principle:** `one-way-to-say-each-thing` governs — a factory is a second way to construct
   the same state, and the second way is the one that obeys no rules. `nothing-is-hidden`
   supplies the rest: a state nothing can explain is the least visible thing a suite contains.

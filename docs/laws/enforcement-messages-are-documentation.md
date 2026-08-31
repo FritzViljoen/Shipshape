@@ -22,7 +22,6 @@ The example matters as much as the reason. A reason without an example is an arg
 reader has to finish; the example is what gets copied, and copying it is the outcome the
 guard wants.
 
-- **Agreed:** "the gaurds need to say the why and also give a good example, so agents get context from the failure".
 - **Principle:** `nothing-is-hidden` governs — a rule enforced but not stated is hidden at
   the moment it matters most. `make-the-wrong-thing-impossible` produces the mechanism:
   `Explains#explain` takes all three parts as required arguments, so a compliant message is

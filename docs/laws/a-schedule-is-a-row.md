@@ -74,9 +74,6 @@ runs automatically, nothing can ask whose authority a job runs under, and nothin
 revoke or audit an entry. A row answers all four by being data, and adding a schedule stops
 being a deploy.
 
-- **Agreed:** "make schedule a row and the actor is just a required field
-  on it. Its exactly like calling the controller at a set frequency", after the drafted
-  alternative was deleted for having been written without a decision behind it.
 - **Principle:** `nothing-is-hidden` governs — work that starts by itself, under nobody's
   name, is the least visible thing a system does. `absence-is-absence` supplies the required
   actor, and `good-boundaries-make-good-neighbours` keeps the clock outside, where every other

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# A door to the old world that writes. A sister of Command, which is what forbids a
-# command from calling one. Their population rises before it falls.
-# The transaction is opened here; skip it where the legacy code manages its own.
+# A door to the old world that writes. A sister of Command, which is what forbids a command
+# from calling one. The transaction is opened here; skip it where the legacy code owns one.
 # `new` and `allocate` are private: `allocate` skips `initialize` and was a way in.
 class LegacyCommand
   include TypedArguments

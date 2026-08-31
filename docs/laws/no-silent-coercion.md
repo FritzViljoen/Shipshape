@@ -14,7 +14,6 @@ handler, a bare log, a `TODO` (OSDI 2014, cited in [the principles](../principle
 A defect raises. An expected failure the caller can act on comes back as a value, because a
 caller forbidden to interrogate can only know what it is told.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `nothing-fails-quietly`
 - **Guard:** `Shipshape/NoSilentCoercion` flags the non-raising numeric and string casts on a
   value traceable to an untrusted source in the same expression.

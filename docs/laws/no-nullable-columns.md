@@ -17,7 +17,6 @@ column cannot be added to a populated table in one statement, so it is added nul
 filled, and promoted — and the promotion comes later in the same method. A nullable column
 that outlives its migration is what this law forbids.
 
-- **Agreed:** grandfathered — predates this record, and its provenance is the repository's early history rather than a decision anybody can now point at.
 - **Principle:** `absence-is-absence`
 - **Guard:** `Shipshape/NoNullableColumns`, over migrations. Covers creation and alteration,
   resolves a reference to the column it really creates, exempts the reverse direction, and

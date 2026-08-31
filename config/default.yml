@@ -297,6 +297,16 @@ Shipshape/NoCallbacks:
   Kinds:
     - record
 
+Shipshape/CommentBudget:
+  Description: >-
+    A file carries at most a tenth of its own code in comment lines. A comment is a second
+    copy of a rule, and the copy is the one that goes on being believed once the rule moves.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Max: 10
+
 Shipshape/EnforcementMessagesAreDocumentation:
   Description: >-
     An offence message states what is wrong, why the rule exists, and a correct example.

@@ -77,10 +77,6 @@ CallGraph.leaks(Command, Query)       # anonymity that is not closed downward
 **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is
 content, and belongs in a row.
 
-- **Agreed:** asked how auth is handled for reads and writes, then chose the class name over a
-  mapping. Later: "commands must aggregate there permissions just like workflows. It's a loop
-  hole we need to close", overruling a recommendation that the command's door alone was the
-  check; and "Queries should use the same anonymous_call pattern".
 - **Principle:** `one-way-to-say-each-thing` governs — one thing, one name.
   `make-the-wrong-thing-impossible` produces the base-class placement.
 - **Guard:** the generated `permission.rb`, `calls.rb` and `call_graph.rb` — architecture. The

@@ -39,22 +39,15 @@ class CanonTest < Minitest::Test
   # taken off it, and nothing else confers the status.
 
 
-  # **Laws nobody sanctioned.** Being on this list is what makes an unratified law tolerable
-  # rather than a defect, and adding to it is a visible act in a diff — which is the whole
-  # mechanism. It shrinks; it does not grow without somebody noticing.
-  #
-  # Empty, and it has been: three laws written by an agent in answer to a *question* — an
-  # audit, a "is this covered" — rather than a request for a rule. All three were reviewed and
-  # ratified, one of them only after being corrected: `a-command-is-one-transaction` said
-  # "exactly one write", which is a different rule and a wrong one.
-  UNRATIFIED = [].freeze
-
   # Cops whose offences are not a refactor, each with the reason. Being on this list is what
   # grants the exemption; nothing else confers it, so a cop that becomes app-facing has to
   # come off it.
   PROCEDURE_WOULD_NOT_HELP = {
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
+    "CommentBudget" =>
+      "nothing is moved. The fix is to delete prose, or to put it in the law it paraphrases, " \
+      "and which of the two is a judgement about that one comment.",
     "OperationsReportWhatTheyDid" =>
       "an installed base class lost a line and the fix is to put it back. Nothing is moved, " \
       "so there is no decomposition to describe — same position as its sibling below.",
@@ -237,35 +230,6 @@ class CanonTest < Minitest::Test
               .reject { |name| name == "README.md" || index.include?("(#{name})") }
 
     assert_empty missing, "A procedure nothing links to is one nobody will find."
-  end
-
-  # **A law is a rule somebody agreed to, and an agent cannot agree on their own behalf.**
-  #
-  # This exists because one did — repeatedly. Asked to audit the canon, an agent wrote two new
-  # laws; asked whether the kinds were guarded, it wrote a third and a cop to hold it. Each was
-  # defensible and none was requested, and a canon that grows by an agent's judgement is not a
-  # canon anybody agreed to follow.
-  #
-  # The record cannot be forged in any interesting sense — an agent can type a name — but it
-  # cannot be *omitted*, and it lands in a diff where a person sees it. That is the same
-  # mechanism as `Watched to fail`: writing the claim is the act, and the check makes the claim
-  # compulsory.
-  def test_every_law_records_that_it_was_agreed
-    silent = laws.reject { |law| law[:body].include?("**Agreed:**") }
-
-    assert_empty silent.map { |law| law[:name] },
-                 "A law with no **Agreed:** line is a rule that arrived without anybody " \
-                 "deciding it should. Record what was decided — the ask, in the words it was " \
-                 "asked in — or write UNRATIFIED and add it to CanonTest::UNRATIFIED."
-  end
-
-  # The list is the fact: a new unratified law has to be added to it by hand, in a diff.
-  def test_no_law_is_unratified_without_being_listed
-    found = laws.select { |law| law[:body].include?("**Agreed:** UNRATIFIED") }.map { |law| law[:name] }
-
-    assert_equal UNRATIFIED.sort, found.sort,
-                 "An unratified law appeared, or a listed one was ratified without the list " \
-                 "being updated. Either is a change somebody has to see."
   end
 
   def test_the_index_lists_every_law

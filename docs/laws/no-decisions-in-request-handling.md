@@ -53,9 +53,6 @@ caller of the operation that owns totals — and the next sequence will not have
 **The law's name is about the case it was written for**, which was an action. The defect is the
 same wherever a coordinator decides, and `tell-dont-ask` is the principle either way.
 
-- **Agreed:** grandfathered for request handling — predates this record. The workflow half was
-  asked for as "workflows are closer to controllers than commands", then "add a gaurd against a
-  workflow doing result.value.total > 100".
 - **Principle:** `tell-dont-ask` governs. `good-boundaries-make-good-neighbours` also
   produces it — a decision made here is a rule outside its one home.
 - **Guard:** `Shipshape/WorkflowsBranchOnOutcome`, over the workflow tree. Fails a condition

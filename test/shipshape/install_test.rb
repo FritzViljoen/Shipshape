@@ -8,12 +8,33 @@ require "tmpdir"
 # does-not-overwrite case, and it is the one that matters — a generator that clobbers a
 # file the application has since edited has taken a decision that was never its own.
 class InstallTest < Minitest::Test
+  include CopRunner
+
   def everything
     Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
   end
 
   def install(root)
     Shipshape::Install.new(root: root, auth: true, view_components: true).call
+  end
+
+  # **The templates are ERB, so no cop can read one.** `<%- if auth -%>` is not Ruby, and a
+  # `.rb.tt` in a cop's Include is a parse error rather than an offence. What ships is the
+  # rendered file, so `Shipshape/CommentBudget` is run over that, in both installs.
+  def test_nothing_installed_is_over_its_comment_budget
+    [true, false].each do |auth|
+      in_app do |root|
+        Shipshape::Install.new(root: root, auth: auth, view_components: true).call
+
+        over = Dir[File.join(root, "**/*.rb")].sort.filter_map do |path|
+          found = offences(File.read(path), cop_class: RuboCop::Cop::Shipshape::CommentBudget,
+                           path: path.delete_prefix("#{root}/"))
+          "#{File.basename(path)}: #{found.first.message.lines.first.strip}" if found.any?
+        end
+
+        assert_empty over, "auth: #{auth}"
+      end
+    end
   end
 
   def test_it_writes_every_base_class
