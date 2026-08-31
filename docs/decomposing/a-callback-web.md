@@ -56,6 +56,40 @@ work becomes a step that applies to some rows and not others, and *which* is a c
 
 **Check:** "Rules that are really data" falls in `shipshape report`.
 
+### When the effect varies per tenant, the step still runs
+
+This is the case an automation engine gets bought for — "tenant A emails on cancel, tenant B
+does not" — and it is the one that tempts a `when X, do Y` table. **Do not build one.** A rule
+that fires at a command which never mentioned it is a callback with a table in front of it, and
+it brings back everything this procedure just removed: an order nothing states, chains where
+neither rule names the other, and work you cannot find by reading the code.
+
+A workflow's steps are read out of its `call`, so they are fixed, and
+`Shipshape/WorkflowsBranchOnOutcome` refuses `if policy.emails_on_cancel?`. Three placements
+cover it, and they are the three the workflow already allows:
+
+| The step | Where the variation lives |
+|---|---|
+| needs no grant from anyone — a notice the system always may send | make it **anonymous**, and it contributes no permission to the sequence |
+| needs a grant, and policy decides whether it does anything | it stays a step and **no-ops convergently**, reading the policy itself |
+| the sequences are genuinely different, not one sequence with a gap | **two workflows**, chosen at the edge |
+
+**The command reads the policy; the policy does not fire the command.** That is the whole
+distinction — `Finance::StatementPolicy` is pulled by the operation that decided to ask, and a
+trigger table is pushed at one that did not.
+
+**Anonymity is not a way around the permission.** It is declared on the class, for every
+caller, so an operation made anonymous to keep a workflow's demands down is anonymous on the
+admin screen where somebody resends it by hand. If it needs a grant there, it is not anonymous
+and the second row applies.
+
+**And the second row over-demands on purpose.** An actor running the sequence needs the fee
+permission even for a tenant that never charges one, because the sequence *may* charge. If that
+is wrong, the sequences were different and the third row is the answer.
+
+**Check:** no table maps an event to an operation, and every conditional consequence is one of
+the three rows.
+
 ---
 
 ## 4. Make the sequence explicit, in the order you wrote down in step 1

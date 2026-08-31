@@ -111,6 +111,7 @@ shape you cannot express is not a guard at all.
 |---|---|---|
 | Helper methods that query the database | **Guarded** | `CallGraph` — the view kind has no edge to a record |
 | Turbo streams broadcasting from models | **Guarded** | `PersistenceHoldsNoBehaviour`, `NoDistantWrites`, `NoCallbacks` |
+| Work that happens because something was saved | **Guarded** + **Procedure** | `NoCallbacks`; [a callback web](decomposing/a-callback-web.md). A consequence becomes a named step in a workflow — there is no "also", and a trigger table is a callback with a table in front of it |
 | Logic in ERB templates | **Guarded** + **Procedure** | A view component holds shapes and nothing else; [a form that fails](decomposing/a-form-that-fails.md) |
 | N+1 from partials, `render` in a loop | **Uncovered** | Bullet |
 | `html_safe` discipline, global CSS/JS, asset pipeline | **Uncovered** | Not shape questions |
