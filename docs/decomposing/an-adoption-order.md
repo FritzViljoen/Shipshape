@@ -72,6 +72,23 @@ From here the inherited pile is not your bill; a rise is. **Enabling a cop is fr
 trees are measured with the head configuration, so switching one on finds its offences in the
 baseline too and none of them count as new.
 
+**Two cops start `Enabled: false`, and it is not a concession.** A cop is off while obeying it
+would require something that does not exist yet:
+
+| cop | off until | because |
+|---|---|---|
+| `Shipshape/NoTestFactories` | step 8 | a test builds state by calling operations, and until step 6 there are none to call |
+| `Shipshape/NoDecisionsInRequestHandling` | step 6 | an action places what an operation answered, and until then there is nothing answering |
+
+**The test for the list is not volume.** `Shipshape/PersistenceHoldsNoBehaviour` reports 351 on
+lobsters and stays on, because a large inherited count is exactly what the ratchet is for. What
+earns a place here is a cop that **penalises the work you are doing to satisfy it** — one that
+fires when you write a test, or when you write an action. Those two block adoption; a big number
+does not.
+
+**The list only shrinks.** Turning one on is free at any point, because both trees are measured
+with the head configuration. Adding a third is a decision somebody has to see in a diff.
+
 **Check:** `check` runs and reports a baseline sha. If the application's own `.rubocop.yml`
 cannot be loaded beside RuboCop 1.x, use `--config` with a file at the repository root — a
 config in a subdirectory resolves its globs against that directory and silences every
