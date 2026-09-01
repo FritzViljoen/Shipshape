@@ -13,6 +13,11 @@ factory can build a state the application cannot, and a test asserting behaviour
 asserts behaviour on fiction. [`no-test-factories`](../laws/no-test-factories.md) is the law,
 and `Shipshape/NoTestFactories` fails the call.
 
+**A `create!` written in the test is not the enemy here.** It builds the same fiction and it
+admits it: that row was stuffed together by this test, and it reads that way. A factory is
+shared, curated and used everywhere, so it blesses what it builds — which is why the law bans
+the one and leaves the other alone.
+
 **This one is migrated, never swept.** Deleting the factory directory reddens the whole suite
 at once, and a suite that is entirely red teaches nothing about which part you broke.
 
@@ -103,12 +108,22 @@ Fourteen calls to reach one fixture is a finding about the model, not about the 
 required collaborators, an act that cannot be expressed in one step, an operation nobody has
 written.
 
+**Nobody writes a factory for a class that takes two arguments.** They become necessary when
+one valid object means fifteen columns and four associations — a model nobody divided by who
+may do what. The factory is downstream of that, so the pain here is the undivided model asking
+to be split, and easing it with a helper is how the question gets postponed again.
+
 **The wrong reflex is a test helper that wraps raw `create!`.** The cop does not catch it — a
 helper of your own is not in its list — and it restores exactly what was removed, with the
 audit trail of a refactor. If a helper is genuinely wanted, let it call the operations.
 
-**Check:** every setup helper you write calls operations, and `grep -rn "create!" test spec`
-returns only seeds.
+**Check:** every setup helper you write calls operations. Do not grep for `create!` and expect
+nothing — a record written directly in one test is the honest spelling. Grep for the helper that
+wraps one, because that is a factory with a different name:
+
+```sh
+grep -rn "def .*_for_test\|def make_\|def a_valid_" test spec
+```
 
 ---
 

@@ -121,6 +121,6 @@ factoried. If nothing in the application creates a thing, a test may load it dir
 
   It matches the factory libraries it knows by name, so a helper of your own — `def
   a_booking(...)` wrapping raw `create!` — is not caught, and that is the shape a suite reaches
-  for the day after this lands. `Record.create!` called directly in a test is likewise not
-  matched: distinguishing it from the same call inside a legitimately seeded reference row
-  needs a judgement no cop makes. The rule that survives is the one a reader applies.
+  for the day after this lands. **That one is a factory**: shared, curated, and blessing what it
+  builds, with none of the honesty of the `create!` inside it. The rule that survives is the one
+  a reader applies.
