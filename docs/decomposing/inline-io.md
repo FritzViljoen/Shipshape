@@ -4,6 +4,31 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — one method, two responsibilities, one transaction held open over the wire
+class SettleInvoice < Command
+  def call
+    response = HTTParty.post(gateway_url, body: payload)
+    @invoice.update!(settled: response["ok"])
+  end
+end
+
+# after — the crossing is its own operation, and a workflow sequences the two
+class SettleInvoice < Workflow
+  def call
+    charged = ChargeCard.call(actor: actor, invoice_id: @id)   # IoCommand, no transaction
+    return charged if charged.failure?
+
+    RecordPayment.call(actor: actor, invoice_id: @id, reference: charged.value)
+  end
+end
+```
+
+The network call and the write it records become two steps. Neither holds a database
+connection across a round trip, and the retry story is written where the retry happens.
+
 The shape, all four from real repositories:
 
 ```ruby

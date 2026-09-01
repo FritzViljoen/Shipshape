@@ -4,6 +4,23 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the interface exists only at runtime
+[:draft, :active, :archived].each do |state|
+  define_method("#{state}?") { self.state == state.to_s }
+end
+
+# after — three methods a grep can find, and a reader can read
+def draft?    = state == "draft"
+def active?   = state == "active"
+def archived? = state == "archived"
+```
+
+Written methods are greppable, jump-to-definition works, and the list stops being code at all
+where it is really data — a state that anybody may add is a row, not a loop.
+
 The shape:
 
 ```ruby

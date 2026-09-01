@@ -19,6 +19,21 @@ write down** — the caller gets `nil`, and `nil` now means "it worked and there
 return", "it failed and we chose to continue", and "something we never thought about happened",
 with no way to tell which.
 
+**What you are aiming at:**
+
+```ruby
+# before — three outcomes, one branch, and the reason is gone
+charge = ChargeCard.new(amount).call
+redirect_to failed_path unless charge
+
+# after — the failure carries a code the caller can act on
+result = ChargeCard.call(actor: current_user, amount_cents: amount.cents)
+return redirect_to failed_path, alert: t(result.error) if result.failure?
+```
+
+An expected failure comes back as a value with a name. A defect raises, because a Result is
+not a place to put a bug — and a swallowed one is neither.
+
 ---
 
 ## 0. Read what the rescue is actually catching

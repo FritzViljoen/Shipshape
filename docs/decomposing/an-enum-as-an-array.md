@@ -15,6 +15,16 @@ Insert `:partner` at the front and every `web` order becomes `partner`, every `p
 `web`, silently, with no migration, no error, and no way to notice except by reading rows. A
 reorder is a data migration that does not look like one.
 
+**What you are aiming at:**
+
+```ruby
+# the column holds the meaning, so a reorder cannot change what a row says
+enum channel: { web: "web", phone: "phone", api: "api" }
+```
+
+The row reads `"phone"` in psql, in a report and on a replica. Where the set is really data —
+somebody adds a channel without a deploy — it stops being an enum at all and becomes a table.
+
 ---
 
 ## 0. First: does the column deserve to exist?

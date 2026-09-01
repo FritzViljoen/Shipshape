@@ -10,6 +10,24 @@ The shape:
 Story.where(is_deleted: false).joins(:user).includes(:tags).order(created_at: :desc).limit(25)
 ```
 
+**What you are aiming at:**
+
+```ruby
+class FrontPageStories < Query
+  def initialize(reader_id:, page: 1)
+    @reader_id = typed(reader_id, Integer)
+    @page = typed(page, Integer)
+  end
+
+  def call
+    rows.map { |row| StorySummary.new(title: row.title, author: row.user.username) }
+  end
+end
+```
+
+The chain gets the name it never had, answers shapes rather than records, and the question it
+asks is written once instead of at every call site that assembled it.
+
 **Measured across seven public Rails codebases: 1,600 chains and 952 declared scopes.** It is
 the most common shape in this playbook by some distance, and the least often treated as a
 decomposition at all.

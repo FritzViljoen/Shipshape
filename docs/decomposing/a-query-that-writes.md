@@ -17,6 +17,22 @@ end
 That is a real file from a real repository, named `...Query`, calling `create!`. 376 of these
 across seven repositories, and the call sites all read like reads.
 
+**What you are aiming at:**
+
+```ruby
+class RegisterConsumerApp < Workflow
+  def call
+    found = FindConsumerApp.call(actor: actor, name: @name)   # the read
+    return found if found.value
+
+    CreateConsumerApp.call(actor: actor, name: @name)         # the write
+  end
+end
+```
+
+The read and the write become two operations with two names, and the sequence that used to hide
+inside one method becomes a workflow that states it.
+
 ---
 
 ## 0. Understand why nothing else catches this
