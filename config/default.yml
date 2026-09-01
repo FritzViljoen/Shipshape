@@ -802,6 +802,24 @@ Shipshape/QueriesOnlyRead:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
+Shipshape/OperationsOpenNoTransaction:
+  Description: >-
+    An operation never opens a database transaction. The generated base class already opens
+    exactly one; a subclass calling `transaction` has nested it or silently widened it, with
+    nobody deciding which.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query
+
 Shipshape/IoIsItsOwnKind:
   Description: >-
     A call to the outside is an operation of its own. The call matrix cannot refuse one

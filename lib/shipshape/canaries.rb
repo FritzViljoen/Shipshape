@@ -218,6 +218,11 @@ module Shipshape
           CanaryRecord.create!(name: "x")
         end
       RUBY
+      "Shipshape/OperationsOpenNoTransaction" => { kind: "command", body: <<~RUBY },
+        def call
+          ActiveRecord::Base.transaction { @thing.save! }
+        end
+      RUBY
       "Shipshape/OperationsReportWhatTheyDid" => { path: "app/shipshape/workflow.rb", raw: <<~RUBY },
         class Workflow
           def self.call(**arguments)

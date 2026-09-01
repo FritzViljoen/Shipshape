@@ -34,23 +34,6 @@ module RuboCop
 
         private
 
-        # **The constant a chain starts from.** `PersonRecord.find(1).update!` has a send for a
-        # receiver, so looking only one hop back sees nothing and the commonest write of all
-        # goes unreported.
-        def root_constant(node)
-          receiver = node.receiver
-
-          while receiver&.send_type? || receiver&.csend_type?
-            receiver = receiver.receiver
-          end
-
-          receiver&.const_type? ? receiver.source.sub(/\A::/, "") : nil
-        end
-
-        def record?(name)
-          record_kinds.include?(kinds.for_constant(name))
-        end
-
         def message_for(name, writer)
           explain(
             "`#{name}.#{writer}` is a write, and a query is one read.",
@@ -88,10 +71,6 @@ module RuboCop
 
         def governed_kinds
           cop_config.fetch("Kinds", %w[query io_query legacy_query])
-        end
-
-        def record_kinds
-          cop_config.fetch("RecordKinds", %w[record])
         end
       end
     end

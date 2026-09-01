@@ -25,6 +25,25 @@ module RuboCop
           wanted.flatten.include?(kind_of_inspected_file)
         end
 
+        # The constant a chain starts from: `PersonRecord.find(1).update!` roots at the first.
+        def root_constant(node)
+          receiver = node.receiver
+
+          while receiver&.send_type? || receiver&.csend_type?
+            receiver = receiver.receiver
+          end
+
+          receiver&.const_type? ? receiver.source.sub(/\A::/, "") : nil
+        end
+
+        def record?(name)
+          record_kinds_setting.include?(kinds.for_constant(name))
+        end
+
+        def record_kinds_setting
+          cop_config.fetch("RecordKinds", %w[record])
+        end
+
         def kinds
           @kinds ||= ::Shipshape::Kinds.new(settings: settings, base_dir: base_dir)
         end

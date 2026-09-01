@@ -35,11 +35,15 @@ connection for no reason. The generated `Query` therefore has no transaction at 
 appears in that file only in a comment about the door.
 
 - **Principle:** `make-the-wrong-thing-impossible`
-- **Guard:** the generated `command.rb`, `io_command.rb` and `legacy_command.rb` — architecture
-  rather than a cop. `self.call` wraps the operation in `ActiveRecord::Base.transaction`, so no
-  subclass writes one and none can omit one. `Shipshape/CallGraph` holds the other half by
-  refusing a command that calls a command, which is what would nest one. Proven by
-  `generated_base_classes_test.rb`, a listed suite guard.
+- **Guard:** the generated `command.rb` and `legacy_command.rb` — architecture rather than a
+  cop. `self.call` wraps the operation in `ActiveRecord::Base.transaction`, so no subclass
+  writes one and none can omit one. `Shipshape/CallGraph` holds the other half by refusing a
+  command that calls a command, which is what would nest one.
+  `Shipshape/OperationsOpenNoTransaction` refuses a `transaction` send written inside any
+  operation kind — catching a second one opened directly in `command` and `legacy_command`,
+  one opened where a workflow's steps should each own their own, one held open over the wire
+  in `io_command` and `io_query`, and one wrapped around a read that needs none in `query` and
+  `legacy_query`. Proven by `generated_base_classes_test.rb`, a listed suite guard.
 - **Guard's limit:** nothing counts the writes, and nothing should — the number is not the
   rule. **What no check makes is the judgement of whether those writes are one act**: a
   command updating an invoice and archiving an unrelated report is two acts sharing a
@@ -47,3 +51,16 @@ appears in that file only in a comment about the door.
 
   It cannot see a transaction opened inside a called library, and it cannot see one opened by
   a callback on a record — which is among the reasons `no-lifecycle-callbacks` exists.
+  `Shipshape/OperationsOpenNoTransaction` sees only a *send named `transaction`*: one opened
+  through a helper method, or by a gem calling back into the operation, is invisible to it.
+  So is one opened on a record **instance** rather than the class: `@booking.transaction do
+  ... end` reaches the same `ActiveRecord::Transactions#transaction`, and the matcher only
+  roots a bare call or a call on a resolvable constant — an instance variable is neither, so
+  it passes unrefused.
+
+  **It also over-catches.** The matcher refuses a `transaction` send with a block that is
+  either bare or rooted in a record constant — `ActiveRecord::Base` included — so a same-named
+  method on something that is not a record is a false positive to be argued in review: a
+  payment gateway's own `#transaction` API, a `transaction` association, an `attr_reader`
+  named `transaction`. Attaching a block to one of those and rooting it in a record-looking
+  constant this configuration does not resolve would still slip through unrefused.
