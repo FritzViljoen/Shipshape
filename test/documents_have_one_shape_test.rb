@@ -68,6 +68,34 @@ class DocumentsHaveOneShapeTest < Minitest::Test
     assert_empty bare, "An unlabelled fence renders unhighlighted and reads as prose."
   end
 
+  # Two documents on one subject disagree eventually, so which one changes is decided here
+  # rather than in the moment.
+  PROSE = %w[README.md docs/principles.md docs/rails-patterns.md docs/rails-failure-patterns.md].freeze
+
+  def test_every_prose_document_has_an_agent_twin_that_defers_to_it
+    PROSE.each do |human|
+      twin = human.sub(/\.md\z/, ".agent.md")
+      full = File.join(ROOT, twin)
+
+      assert_path_exists full, "#{human} is written for a person and needs a twin for an agent"
+      assert_match(/governs nothing/, File.read(full),
+                   "#{twin} must say the human copy wins, or a reader has to guess which is right")
+      assert_includes File.read(full), File.basename(human),
+                      "#{twin} must name the document it defers to"
+    end
+  end
+
+  # A twin longer than what it compacts is not a compaction.
+  def test_every_twin_is_shorter_than_its_document
+    longer = PROSE.reject do |human|
+      twin = human.sub(/\.md\z/, ".agent.md")
+
+      File.read(File.join(ROOT, twin)).split.length < File.read(File.join(ROOT, human)).split.length
+    end
+
+    assert_empty longer, "a twin that is not shorter has stopped compacting and started competing"
+  end
+
   private
 
   def steps(source)
