@@ -25,6 +25,19 @@ Scattered like this, the authorisation half is also unenumerable: `story.is_edit
 `user.can_flag?`, `tag.can_be_applied_by?` — no screen can offer them, no grant can revoke
 them, and a refusal leaves no trace.
 
+**What you are aiming at:**
+
+```ruby
+# the permission is the class name of the command that does the thing
+EditStory.call(actor: actor, story_id: id, title: title)
+
+# the setting is a row, read by the query that builds the shape
+plan.allows_images?
+```
+
+One list answers who may do what, and it is the list a permissions screen is built from.
+Nothing is left on a table deciding on the actor's behalf.
+
 ---
 
 ## Why they land on classes

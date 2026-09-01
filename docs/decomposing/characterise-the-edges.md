@@ -4,6 +4,11 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:** a test at every edge that **survives every procedure in this
+playbook** — one that asserts what a request answers, never how it got there. `POST /messages`
+with these params returns a 302 to `/messages` and sends one email, before the work and after.
+Anything asserting an internal is deleted by the extraction it was meant to protect.
+
 **Every other procedure here ends with the same admission: nothing it does proves the code
 still works.** `shipshape check` proves the offence count fell. Split a service into six
 operations and every check goes green whether or not the behaviour survived.

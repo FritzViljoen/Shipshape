@@ -4,6 +4,12 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:** every guard on, with a floor that only falls — reached in an order
+where **no step trades one count for another.** Turning everything on at once produces a number
+nobody can act on and a build nobody can go green on; the sequence below exists so that each
+step leaves the repository better by a measure you can name, and none of them undoes an earlier
+one.
+
 **Start here**, before any other procedure. The rest of this playbook takes one shape apart;
 this one gets the guards onto a repository that already runs, in an order that does not fight
 them.

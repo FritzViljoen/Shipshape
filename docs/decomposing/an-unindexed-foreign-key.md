@@ -4,6 +4,19 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```sql
+-- the key the database enforces, and the index that makes it affordable
+ALTER TABLE comments ADD CONSTRAINT fk_comments_story
+  FOREIGN KEY (story_id) REFERENCES stories(id);
+CREATE INDEX CONCURRENTLY index_comments_on_story_id ON comments (story_id);
+```
+
+**They are two separate things and both are wanted.** The constraint keeps the data honest; the
+index keeps the join and the cascading delete from being a sequential scan. A key without an
+index is a correctness win that arrives as a performance regression.
+
 The shape: `comments.order_id` with no index. Every `order.comments` scans the comments table.
 It was instant with a thousand rows and it is the incident at ten million.
 

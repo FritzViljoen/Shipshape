@@ -4,6 +4,17 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:** every call site of the thing you are changing moved in **one
+commit**, with the callee changed last. Not a compatibility shim, not a deprecation warning, not
+two spellings living side by side while the sweep finishes — because the half-swept state is the
+one where a reader cannot tell which spelling is current, and it is the state that lasts.
+
+The check is that the old name returns nothing:
+
+```sh
+grep -rn "OldName" app lib spec test
+```
+
 **Every other procedure here takes one class apart. This one is the opposite shape:** one
 decision, repeated across every caller of the thing you just moved. It is the largest single
 category of work in the corpus this canon was measured against — 1,883 sites across seven

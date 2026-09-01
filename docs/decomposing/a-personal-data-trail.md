@@ -4,6 +4,27 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# every column holding something about a person is declared, once, in code
+COLUMNS = {
+  "users" => { "email" => :anonymise, "country_code" => :not_personal },
+}.freeze
+
+# and erasure is a sequence somebody can read
+class ForgetPerson < Workflow
+  def call
+    AnonymiseComments.call(actor: actor, person_id: @id)
+    DeleteSessions.call(actor: actor, person_id: @id)
+    AnonymiseUser.call(actor: actor, person_id: @id)
+  end
+end
+```
+
+Erasure is unimplementable without an inventory — you cannot delete what nobody can enumerate.
+The declaration is what makes the workflow writable, and it is the deliverable of step 0.
+
 **This one has a stronger warning than the others.** Every step here makes erasure *more
 possible*; none of them makes an application lawful, and the two are easy to confuse when a
 build goes green. If somebody reads the output of this procedure as legal assurance, the

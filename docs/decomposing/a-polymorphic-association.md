@@ -4,6 +4,21 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```sql
+-- before: one table, a type string, and no foreign key the database can enforce
+comments (id, commentable_type, commentable_id, body)
+
+-- after: one table per owner, and a key the database checks
+article_comments (id, article_id REFERENCES articles, body_id REFERENCES comment_bodies)
+story_comments   (id, story_id   REFERENCES stories,  body_id REFERENCES comment_bodies)
+```
+
+A polymorphic key is a foreign key the database cannot check, because the table it points at is
+in a string. Splitting it buys referential integrity back — and usually reveals that the two
+owners wanted different columns anyway.
+
 The shape: `belongs_to :commentable, polymorphic: true`, and a table with `commentable_type`
 and `commentable_id`. Two columns, one association, any number of parents.
 

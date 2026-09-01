@@ -4,6 +4,23 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — two code paths, and nobody can say which runs in production
+if Flipper.enabled?(:new_checkout)
+  NewCheckout.call(...)
+else
+  OldCheckout.call(...)
+end
+
+# after — one path, and the other is deleted
+NewCheckout.call(...)
+```
+
+A flag removed is a dimension removed: two live flags are four reachable configurations, ten
+are a thousand. Nothing else in this playbook halves the state space with a deletion.
+
 The shape: `if Flipper.enabled?(:new_checkout)` in fourteen places. It was added for a rollout
 that finished two years ago. Both branches are still there, and nobody can say which one runs
 in production without opening an admin page.
