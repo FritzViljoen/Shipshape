@@ -179,6 +179,25 @@ class CanonTest < Minitest::Test
     assert_empty missing, "A procedure nothing links to is one nobody will find."
   end
 
+  # A glob carrying a filename suffix cannot see a concerns directory, and a concern included
+  # into a kind IS that kind. `app/controllers/**/*_controller.rb` left lobsters' `story_finder`
+  # reporting clean while it read two records, took a raw parameter into `find_by` and branched
+  # on `is_admin?`. Derived from the globs, so the next kind added cannot repeat it.
+  def test_every_governed_tree_governs_its_concerns
+    globs = kinds.values.flatten
+    flags = File::FNM_PATHNAME | File::FNM_EXTGLOB
+
+    blind = kinds.flat_map do |kind, own|
+      own.filter_map { |glob| glob[%r{\A(?:app|packs/\*)/([^/*]+)/}, 1] }.uniq.reject do |root|
+        globs.any? { |glob| File.fnmatch?(glob, "app/#{root}/concerns/anything.rb", flags) }
+      end.map { |root| "#{kind}: app/#{root}/concerns" }
+    end
+
+    assert_empty blind,
+                 "A concern included into a kind is that kind, and a glob with a filename " \
+                 "suffix cannot see one. Declare the concerns directory beside the tree."
+  end
+
   def test_the_index_lists_every_law
     index = File.read(File.expand_path("../docs/laws/README.md", __dir__))
 
@@ -186,6 +205,10 @@ class CanonTest < Minitest::Test
   end
 
   private
+
+  def kinds
+    default_config.fetch("Shipshape/CallGraph").fetch("Kinds")
+  end
 
   def default_config
     @default_config ||= YAML.load_file(File.expand_path("../config/default.yml", __dir__))

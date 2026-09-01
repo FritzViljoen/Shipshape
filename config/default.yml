@@ -22,6 +22,12 @@ Shipshape/CallGraph:
     request_handling:
       - 'app/controllers/**/*_controller.rb'
       - 'packs/*/controllers/**/*_controller.rb'
+      # A concern included into a controller IS request handling, and the suffix above cannot
+      # see one. Over lobsters `story_finder.rb` reached two records, read a raw parameter into
+      # `find_by`, branched on `is_admin?` and wrote through the row it found — four laws in
+      # 26 lines, reported clean. The record kind already declares its concerns this way.
+      - 'app/controllers/concerns/**/*.rb'
+      - 'packs/*/controllers/concerns/**/*.rb'
     # The other doors. A job, a subscriber and a channel are request handling through a
     # different entrance: each parses its input, calls operations and decides nothing.
     #
@@ -113,6 +119,11 @@ Shipshape/CallGraph:
     legacy_command:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'
+      # A concern has no superclass, so the path decides — and the two legacy kinds share one
+      # glob. It goes to the command, whose matrix row is the wider of the two: over-firing on
+      # correct code is how a cop gets switched off, and under-firing here costs one row.
+      - 'app/legacy/concerns/**/*.rb'
+      - 'packs/*/legacy/concerns/**/*.rb'
     shape:
       - 'app/shapes/**/*.rb'
       - 'packs/*/shapes/**/*.rb'
