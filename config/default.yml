@@ -1039,3 +1039,20 @@ Shipshape/OperationsReportWhatTheyDid:
     - io_command
     - legacy_command
   Recorder: AuditLog
+
+Shipshape/OnlyOperationsCalculate:
+  Description: >-
+    A command and a query calculate. Everything else translates the answer and places it - a
+    derivation written where it is rendered is a rule with two owners and no test.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # The kinds that are handed an answer rather than working one out. A record is absent
+  # because Shipshape/PersistenceHoldsNoBehaviour already refuses every method on one, and two
+  # cops reporting one line is how a team learns to read past both.
+  Kinds:
+    - view_component
+    - request_handling
+    - entry_point
+    - shape

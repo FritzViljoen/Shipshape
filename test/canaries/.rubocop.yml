@@ -70,6 +70,8 @@ Shipshape/NothingSchedulesWork:
 Shipshape/OneOperationOneClass:
   Enabled: true
   AutoCorrect: false
+Shipshape/OnlyOperationsCalculate:
+  Enabled: true
 Shipshape/OnlyTheDoorIsCalled:
   Enabled: true
 Shipshape/OperationsAreLeaves:

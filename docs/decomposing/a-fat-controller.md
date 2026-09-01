@@ -154,7 +154,15 @@ them. The commonest way to fail this step is to move the branch rather than the 
 contract. One shape, built by the query, is what the view should be handed —
 `view_component` may hold shapes and nothing else.
 
-**Check:** "Actions orchestrating several classes" falls in `shipshape report`.
+**And the fields the shape carries are answers, not ingredients.** Wherever the action or the
+component worked a value out — a total, a difference, a `full_name`, a `ends_at < now` — that
+derivation moves into the query that builds the shape and arrives as a field.
+`Shipshape/OnlyOperationsCalculate` names each one. Moving the arithmetic into a private
+method of the component is the way this step gets failed: the rule is still outside the
+operation that owns it, one call deeper.
+
+**Check:** `Shipshape/OnlyOperationsCalculate` is silent on the controller and on the
+component, and "Actions orchestrating several classes" falls in `shipshape report`.
 
 ---
 
