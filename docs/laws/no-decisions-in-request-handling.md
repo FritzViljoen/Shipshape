@@ -9,13 +9,18 @@ test is mechanical: does a result flow straight into another call, or does the a
 at it?
 
 ```ruby
-CancelBooking.call(booking: FindBooking.call(id: id), reason: reason)   # resolving an
-                                                                       # argument — fine
+booking = FindBooking.call(id: id)
+CancelBooking.call(booking: booking, reason: reason)     # resolving an argument — fine
 
 booking = FindBooking.call(id: id)
-return redirect_to root_path if booking.cancelled?                     # deciding — not
+return redirect_to root_path if booking.cancelled?       # deciding — not
 CancelBooking.call(booking: booking)
 ```
+
+Two calls in an action are fine; **nesting the first inside the second is not**, and that is
+[`an-operation-call-is-its-own-statement`](an-operation-call-is-its-own-statement.md) rather
+than this law — the objection there is the hidden step and the misattributed failure, not a
+decision.
 
 **A workflow is optional.** It is what you reach for when a sequence has obligations worth
 naming — it spans transactions deliberately, needs compensation, or runs from a job as well

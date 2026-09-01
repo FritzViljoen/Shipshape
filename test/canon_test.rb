@@ -43,6 +43,9 @@ class CanonTest < Minitest::Test
     "EveryDoorChecksPermission" =>
       "authorisation is a rollout rather than a decomposition: nothing is moved, a check " \
       "is added. It reports zero until `shipshape install --auth` has been run.",
+    "NoNestedOperationCalls" =>
+      "the fix is to assign the inner call to a local on the line above. Nothing is " \
+      "decomposed and nothing moves — the same two operations run, in the same order.",
     "AnonymityIsClosedDownward" =>
       "the fix is a one-word decision — this operation is anonymous or it is not — and " \
       "nothing moves either way. It also reports zero until authorisation is installed, " \

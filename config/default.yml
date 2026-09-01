@@ -1039,3 +1039,41 @@ Shipshape/OperationsReportWhatTheyDid:
     - io_command
     - legacy_command
   Recorder: AuditLog
+
+Shipshape/OnlyOperationsCalculate:
+  Description: >-
+    A command and a query calculate. Everything else translates the answer and places it - a
+    derivation written where it is rendered is a rule with two owners and no test.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # The kinds that are handed an answer rather than working one out. A record is absent
+  # because Shipshape/PersistenceHoldsNoBehaviour already refuses every method on one, and two
+  # cops reporting one line is how a team learns to read past both.
+  Kinds:
+    - view_component
+    - request_handling
+    - entry_point
+    - shape
+
+Shipshape/NoNestedOperationCalls:
+  Description: >-
+    Each operation call is its own statement. Nested as an argument, two operations run under
+    one name and a failure in the inner one is attributed to the outer.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Every kind the matrix lets call an operation. A view_component is absent: its row is
+  # `shape`, so a call from one is Shipshape/CallGraph's offence, not this one's.
+  Kinds:
+    - request_handling
+    - entry_point
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - legacy_command
+    - legacy_query

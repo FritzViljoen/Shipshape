@@ -51,6 +51,8 @@ Shipshape/NoGeneratedInterfaces:
 Shipshape/NoInlineParamParse:
   Enabled: true
   AutoCorrect: false
+Shipshape/NoNestedOperationCalls:
+  Enabled: true
 Shipshape/NoNullableColumns:
   Enabled: true
 Shipshape/NoSilentCoercion:
@@ -70,6 +72,8 @@ Shipshape/NothingSchedulesWork:
 Shipshape/OneOperationOneClass:
   Enabled: true
   AutoCorrect: false
+Shipshape/OnlyOperationsCalculate:
+  Enabled: true
 Shipshape/OnlyTheDoorIsCalled:
   Enabled: true
 Shipshape/OperationsAreLeaves:

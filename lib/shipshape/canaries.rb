@@ -235,6 +235,16 @@ module Shipshape
           end
         end
       RUBY
+      "Shipshape/NoNestedOperationCalls" => { kind: "workflow", body: <<~RUBY },
+        def call
+          CreateOrder.call(composition: FindOrderComposition.call(cart_id: 1))
+        end
+      RUBY
+      "Shipshape/OnlyOperationsCalculate" => { kind: "view_component", body: <<~RUBY },
+        def call
+          @adults + @children
+        end
+      RUBY
       "Shipshape/MixinsAddNothingPublic" => { path: "app/models/concerns/paying.rb", raw: <<~RUBY },
         module Paying
           def total
