@@ -4,6 +4,23 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+class ListStories < Query
+  MAX = 100
+
+  def initialize(page:, per_page:)
+    @page = typed(page, Integer)
+    # a caller asking for 10,000 gets 100 — the ceiling is the query's, not the caller's
+    @per_page = [typed(per_page, Integer), MAX].min
+  end
+end
+```
+
+Every read has a ceiling it owns. A page size that arrives from outside is a request, not an
+instruction, and the query is the only thing that knows what it can afford to answer.
+
 The shape: `Story.all.each`, an index action with no pagination, a query that answers "every
 row matching this". It worked for two years and then one account had forty thousand rows.
 

@@ -4,6 +4,23 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — every operation takes the primitive and re-derives the rule
+def initialize(email:)
+  @email = typed(email, String).downcase
+end
+
+# after — the rule lives once, and the operation cannot receive an unnormalised one
+def initialize(email:)
+  @email = typed(email, EmailAddress)
+end
+```
+
+The rule travels with the value instead of being remembered at each call site. The test for
+whether it deserves a type is exactly that: does the same rule get re-applied somewhere else?
+
 The shape: `amount` is a `Float`, `state` is a `String`, `email` is a `String`, and every place
 that touches one re-derives what it means — rounds it, downcases it, compares it against a
 literal, formats it for a view.

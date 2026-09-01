@@ -4,6 +4,28 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the caller says what happened, and hopes
+order = OrderRecord.create!(...)
+publish(:order_created, order)
+
+# after — the caller says what it wants to happen, all of it
+class PlaceOrder < Workflow
+  def call
+    order = CreateOrder.call(actor: actor, ...)
+    return order if order.failure?
+
+    SendConfirmation.call(actor: actor, order_id: order.value.id)
+    IndexOrder.call(actor: actor, order_id: order.value.id)
+  end
+end
+```
+
+**There is no "also".** Every consequence becomes a named step, and the sequence is the thing
+with a name — so what happens after an order is placed can be read in one file.
+
 The shape: `publish(:order_created, order)`, a `wisper` or `rails_event_store` or
 `dry-events` in the Gemfile, and forty subscriber registrations in an initializer nobody opens.
 

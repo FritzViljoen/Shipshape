@@ -4,6 +4,21 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# the command answers the same shape the form was built from, so the page can redraw itself
+result = SendMessage.call(actor: current_user, to: recipient, body: body)
+return redirect_to messages_path if result.success?
+
+@form = result.value          # a failure carries what was wrong
+render :index
+```
+
+The request was parsed at the seam and is gone, so a refusal has to bring back something the
+edge can place. That is why a failure carries a value: not for the caller to inspect, but for
+the page to render.
+
 **This one exists because a real refactor hit a wall three times and every wall had the same
 cause.** Extracting `MessagesController#create` in lobsters ran into: a failure that could not
 carry the invalid record, a `Query` that must answer shapes, and a view calling `form_with
