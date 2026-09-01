@@ -133,6 +133,16 @@ module Shipshape
         end
       RUBY
       # Not kind-scoped: these read paths of their own, so the canary goes there directly.
+      #
+      # `NoTypeSuffix` also belongs here even though it IS kind-scoped: the offence is the
+      # class's own name, and `wrap` names every kind-scoped canary after the cop under test
+      # (`NoTypeSuffix`, which does not end in a banned suffix) — a body-only canary could
+      # never carry a bad name, so it is written raw instead.
+      "Shipshape/NoTypeSuffix" => { path: "app/commands/canary_service.rb", raw: <<~RUBY },
+        class CanaryService < Command
+          def call; end
+        end
+      RUBY
       "Shipshape/NoTestFactories" => { path: "test/canary_factory_test.rb", raw: <<~RUBY },
         class CanaryFactoryTest
           def test_it

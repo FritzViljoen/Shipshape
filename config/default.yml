@@ -382,6 +382,25 @@ Shipshape/NoTypeInterrogation:
     # a shape, and this kind carried none of the rules until it was audited for it.
     - view_component
 
+Shipshape/NoTypeSuffix:
+  Description: >-
+    The base class already declares what kind of thing an operation is; a name ending in
+    Service, Manager, Interactor, Handler, Command, Query or Workflow restates it as a
+    second copy that can drift from the first.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  Kinds:
+    - workflow
+    - command
+    - query
+    - io_command
+    - io_query
+    - shape
+    - legacy_command
+    - legacy_query
+
 Shipshape/NoAmbientReads:
   Description: >-
     An operation reads what it was given. The clock, the zone, a global, a thread local

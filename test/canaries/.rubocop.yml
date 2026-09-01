@@ -60,6 +60,8 @@ Shipshape/NoTestFactories:
   Enabled: true
 Shipshape/NoTypeInterrogation:
   Enabled: true
+Shipshape/NoTypeSuffix:
+  Enabled: true
 Shipshape/NoUnparsedLookup:
   Enabled: true
   AutoCorrect: false

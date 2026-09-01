@@ -48,6 +48,7 @@ not make it hold.
 | [`no-lifecycle-callbacks`](no-lifecycle-callbacks.md) | `tell-dont-ask` |
 | [`no-decisions-in-request-handling`](no-decisions-in-request-handling.md) | `tell-dont-ask` |
 | [`no-type-interrogation`](no-type-interrogation.md) | `one-way-to-say-each-thing` |
+| [`no-type-suffix`](no-type-suffix.md) | `one-way-to-say-each-thing` |
 | [`code-is-written-not-generated`](code-is-written-not-generated.md) | `nothing-is-hidden` |
 | [`no-silent-coercion`](no-silent-coercion.md) | `nothing-fails-quietly` |
 | [`a-guard-states-its-limit`](a-guard-states-its-limit.md) | `nothing-fails-quietly` |

@@ -2,6 +2,6 @@
 
 class AggregationIsReadable < Workflow
 def call
-  success(:done)
+  SomeCommand.call
 end
 end

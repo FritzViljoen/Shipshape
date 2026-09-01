@@ -25,6 +25,9 @@ class CanonTest < Minitest::Test
 
   # Being on this list is what grants the exemption; an app-facing cop comes off it.
   PROCEDURE_WOULD_NOT_HELP = {
+    "NoTypeSuffix" =>
+      "the fix is a rename, and nothing is decomposed or moved — there is no multi-step " \
+      "procedure to write, only a single edit at the class's own definition.",
     "EnforcementMessagesAreDocumentation" =>
       "guards this gem's own cops, so it never fires on an application at all.",
     "PresenceIsNotRedefined" =>
