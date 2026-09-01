@@ -697,7 +697,56 @@ class ReportTest < Minitest::Test
                "a share over a subject set nobody recognised is a clean bill nobody earned"
   end
 
+  # Devs reach for a predicate on the class in front of them, and authorisation ends up where
+  # nothing can enumerate it. Whether one is auth or a setting is the finding, not a judgement
+  # this makes.
+  def test_it_finds_authorisation_decided_on_a_class
+    labels = authorisation_in(<<~RUBY)
+      class Story < ApplicationRecord
+        def is_editable_by_user?(user)
+          true
+        end
+
+        def can_have_images?
+          true
+        end
+
+        def total
+          1
+        end
+      end
+    RUBY
+
+    assert_equal ["#is_editable_by_user?", "#can_have_images?"], labels
+  end
+
+  # It must ask. A bang method does the thing, and reporting one made the measure look careless.
+  def test_a_command_that_names_a_user_is_not_a_question
+    assert_empty authorisation_in(<<~RUBY)
+      class User < ApplicationRecord
+        def ban_by_user_for_reason!(banner, reason)
+          1
+        end
+      end
+    RUBY
+  end
+
+  # An operation carries its permission in its class name, so a predicate there is the model
+  # working. What this hunts is the same decision anywhere else.
+  def test_a_predicate_inside_an_operation_is_the_model_working
+    assert_empty authorisation_in("class Settle < Command\n  def can_run?\n    true\n  end\nend\n",
+                                  relative: "app/commands/settle.rb")
+  end
+
   private
+  def authorisation_in(body, relative: "app/models/story.rb")
+    source = Shipshape::Sources::Source.new(
+      path: relative, relative: relative,
+      ast: RuboCop::ProcessedSource.new(body, RUBY_VERSION.to_f, relative).ast
+    )
+
+    Shipshape::Measures::AuthorisationScatteredOnClasses.new.call([source]).map(&:label)
+  end
 
   def section_of(title)
     text = in_app { |root| Shipshape::ReportAsMarkdown.new(report: report_for(root)).call }

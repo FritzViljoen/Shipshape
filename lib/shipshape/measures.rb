@@ -18,6 +18,7 @@ require "shipshape/measures/actions_branching_on_domain_state"
 require "shipshape/measures/several_classes_in_one_file"
 require "shipshape/measures/inheritance_deeper_than_one_level"
 require "shipshape/measures/rules_that_are_really_data"
+require "shipshape/measures/authorisation_scattered_on_classes"
 
 module Shipshape
   # What the report measures, in the order it reads best: the shape of the classes first,
@@ -36,6 +37,7 @@ module Shipshape
       AskingThenBranching,
       RequestHandlingThatReachesPersistence,
       PersistenceWithBehaviour,
+      AuthorisationScatteredOnClasses,
       MethodsThatCouldMoveToAShape,
       LifecycleCallbacks,
       InputParsedInTheAction,
