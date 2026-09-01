@@ -1,23 +1,33 @@
 # frozen_string_literal: true
 
-require "rubocop/cop/shipshape/explains"
+require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
   module Cop
     module Shipshape
       class NoTestFactories < Base
-        include Explains
+        include ReadsKinds
 
         # `create(:booking)` — the bare-word DSL, which is what a suite actually contains.
         BUILDERS = %i[create create_list build build_list build_stubbed attributes_for].freeze
         LIBRARIES = %w[FactoryBot FactoryGirl Fabricate Fabricator].freeze
         FIXTURES = %i[fixtures set_fixture_class].freeze
 
+        # The class methods that persist a row, and the messages that persist one already built.
+        FABRICATORS = %i[
+          create create! find_or_create_by find_or_create_by!
+          create_or_find_by create_or_find_by! insert insert!
+        ].freeze
+        PERSISTS = %i[save save! update update!].freeze
+
         def on_send(node)
           return add_offense(node, message: fixture_message) if fixtures?(node)
-          return unless factory?(node)
+          return add_offense(node, message: factory_message(node.method_name)) if factory?(node)
 
-          add_offense(node, message: factory_message(node.method_name))
+          fabricated = fabricated_record(node)
+          return unless fabricated
+
+          add_offense(node, message: record_message(fabricated))
         end
 
         private
@@ -39,6 +49,61 @@ module RuboCop
 
         def fixtures?(node)
           FIXTURES.include?(node.method_name) && node.receiver.nil? && node.arguments.any?
+        end
+
+        # `BookingRecord.create!(...)` or `BookingRecord.new(...).save!`, and only where the
+        # constant resolves to a record. A helper of the suite's own that happens to answer
+        # `create` is not one.
+        def fabricated_record(node)
+          code = if FABRICATORS.include?(node.method_name)
+                   fabrication(node)
+                 elsif PERSISTS.include?(node.method_name)
+                   deferred_fabrication(node)
+                 end
+
+          code if code && record?(code.last)
+        end
+
+        def fabrication(node)
+          name = constant(node.receiver)
+
+          ["#{name}.#{node.method_name}", name] if name
+        end
+
+        def deferred_fabrication(node)
+          built = node.receiver
+          return unless built.respond_to?(:send_type?) && built.send_type? && built.method_name == :new
+
+          name = constant(built.receiver)
+
+          ["#{name}.new(...).#{node.method_name}", name] if name
+        end
+
+        def constant(node)
+          node&.const_type? ? node.source.sub(/\A::/, "") : nil
+        end
+
+        def record?(name)
+          record_kinds.include?(kinds.for_constant(name))
+        end
+
+        def record_message(fabricated)
+          code, name = fabricated
+
+          explain(
+            "`#{code}` writes a row instead of calling the operation that produces one.",
+            because: "It is the same second construction a factory is, spelled honestly: no " \
+                     "permission is checked, no argument is typed, no rule about which " \
+                     "combination of columns is legal runs. So it can persist a row the " \
+                     "application cannot — and every assertion after it describes a system " \
+                     "that does not exist. The `#{name}` a command would have built is the " \
+                     "one worth asserting on.",
+            instead: CALLED,
+          )
+        end
+
+        def record_kinds
+          cop_config.fetch("RecordKinds", %w[record])
         end
 
         def factory_message(name)

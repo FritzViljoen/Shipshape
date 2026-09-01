@@ -29,10 +29,11 @@ shared, it is what everybody uses — so a reader takes the booking it returns t
 `BookingRecord.create!(status: "confirmed", offer_id: 3, ...)` reads as what it is: somebody
 stuffed columns into a row, here, in this test, and it may be nonsense.
 
-**Both build the same fiction. Only one admits it.** That is why this law bans the factory and
-not the direct write: the defect is identical, and the factory launders it into an authority.
-A `create!` in a spec is ugly every time it is written, stays visible in review, and belongs to
-the one test that wrote it.
+**Both build the same fiction. Only one admits it.** The factory launders it into an authority,
+and a `create!` in a spec is ugly every time it is written, stays visible in review, and belongs
+to the one test that wrote it. That is a difference in how the two are *read*, not in what they
+produce — so the law refuses both, and refuses the factory the more loudly. Honest fiction is
+still fiction.
 
 ## A factory is a symptom of a model nobody divided
 
@@ -103,12 +104,17 @@ factoried. If nothing in the application creates a thing, a test may load it dir
   supplies the rest: a state nothing can explain is the least visible thing a suite contains.
 - **Guard:** `Shipshape/NoTestFactories`, over the test trees. Fails `create`/`build`/
   `build_stubbed`/`attributes_for` on a symbol, `FactoryBot`/`FactoryGirl`/`Fabricate` by name,
-  and the `fixtures` and `set_fixture_class` declarations.
-- **Guard's limit:** **a record written directly is not matched, and that is deliberate.**
-  `BookingRecord.create!` in a spec builds the same unreachable state a factory would, and it
-  is left alone for the reason above: it confesses rather than blesses. It is also
-  indistinguishable from the reference-data setup this law permits — a currency or a tenant that
-  no operation creates is loaded directly — so a cop matching it would fail correct code.
+  and the `fixtures` and `set_fixture_class` declarations. **And the row written directly** —
+  `BookingRecord.create!(...)`, a find-or-create, or `BookingRecord.new(...).save!` — where the
+  constant resolves to the `record` kind. The kind registry is what makes that possible: it
+  tells a record apart from a suite helper that happens to answer `create`, so the cop refuses
+  the write without failing every method in the suite named like one.
+- **Guard's limit:** **it cannot tell an aggregate from reference data.** A currency or a tenant
+  no operation creates is loaded directly, which this law permits, and to the cop that reads
+  exactly like fabricating a booking — both are a `record` constant being written. A suite that
+  seeds reference rows through a record either loads them by a read (`find_by!` against a seed)
+  or excludes the file. Activitar's ancestor of this cop took the other route and kept an
+  explicit list of aggregates, which is a second copy of a fact the layout already holds.
 
   **The fixture accessors are not matched either.** `fixtures :all` is caught and `bookings(:one)`
   is not — it is an ordinary method call on an implicit receiver, and matching it would flag every
@@ -119,8 +125,15 @@ factoried. If nothing in the application creates a thing, a test may load it dir
   that calls the correct operations to reach a state nobody wants passes; so does one that
   reaches a legal state and asserts nothing about it.
 
+  **The write must name its constant, in the call.** `described_class.create!`, a record held in
+  a local (`booking.save!`), and a constant the layout cannot resolve to a file are all
+  invisible — the cop reads the source and never loads the application, so an unresolvable name
+  is skipped rather than assumed.
+
   It matches the factory libraries it knows by name, so a helper of your own — `def
-  a_booking(...)` wrapping raw `create!` — is not caught, and that is the shape a suite reaches
-  for the day after this lands. **That one is a factory**: shared, curated, and blessing what it
-  builds, with none of the honesty of the `create!` inside it. The rule that survives is the one
-  a reader applies.
+  a_booking(...)` — is not itself reported; what is reported is the `create!` inside it, if the
+  helper lives in a test tree and writes a record by name. A helper that reaches for a factory
+  library the cop does not know, or builds its row somewhere outside the test trees, gets past
+  both halves. **That one is a factory**: shared, curated, and blessing what it builds, with
+  none of the honesty of the `create!` inside it. The rule that survives is the one a reader
+  applies.

@@ -986,6 +986,11 @@ Shipshape/NoTestFactories:
     state, obeying none of the rules - so it can build a row the application cannot.
   Enabled: true
   VersionAdded: '0.0.1'
+  # Which kinds a written row belongs to, so `BookingRecord.create!` in a spec is told apart from
+  # a suite helper that happens to answer `create`. The layout itself is declared once on
+  # Shipshape/CallGraph and read from there.
+  RecordKinds:
+    - record
   Include:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
