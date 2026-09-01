@@ -62,7 +62,9 @@ The cops have already done the enumeration:
 And the cops are not the only free list. **Every `transaction do` in the service is a command
 somebody already named**, because they decided those writes were one act — see
 [the index](README.md), "Start from the transaction blocks". It is the one boundary in a
-legacy file that was not inferred.
+legacy file that was not inferred. Extracted into a `Command`, that block's own `transaction`
+line is deleted — the base class already opens it — and `Shipshape/OperationsOpenNoTransaction`
+is what catches one written back in.
 
 **Check:** you can list the target classes before writing any of them.
 

@@ -120,7 +120,8 @@ exactly the ambiguity `a-command-is-one-transaction` refuses when it forbids a c
 a command. An inner block is usually a command that was already extracted in someone's head.
 
 **Check:** every block on the list is either a command now, or has a sentence next to it
-saying why it is not.
+saying why it is not. Once it is a command (or a workflow of them), `Shipshape/OperationsOpenNoTransaction`
+is the guard that keeps a `transaction` block from being written back into it.
 
 ## No industry terms in code
 

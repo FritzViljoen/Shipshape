@@ -72,6 +72,8 @@ Shipshape/OnlyTheDoorIsCalled:
   Enabled: true
 Shipshape/OperationsAreLeaves:
   Enabled: true
+Shipshape/OperationsOpenNoTransaction:
+  Enabled: true
 Shipshape/OperationsReportWhatTheyDid:
   Enabled: true
 Shipshape/PersistenceHoldsNoBehaviour:
