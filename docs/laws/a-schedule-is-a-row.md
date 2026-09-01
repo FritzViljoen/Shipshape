@@ -8,7 +8,7 @@ mechanism.
 So the schedule is a **row**, and the row is a stored request: where to call, with what, how
 often, and — required — as whom.
 
-```
+```text
 schedules
   method     NOT NULL   -- POST
   path       NOT NULL   -- /invoices/settle

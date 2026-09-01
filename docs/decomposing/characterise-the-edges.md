@@ -29,6 +29,12 @@ these params returned a 302 to `/messages` and sent one email; after the work it
 or the work is wrong. That sentence survives every procedure here, which is what makes it worth
 writing down before any of them start.
 
+**Check:** you can name every edge without opening a file of internals.
+
+```sh
+shipshape edges
+```
+
 ---
 
 ## 1. Find the edges nothing names
@@ -41,7 +47,7 @@ The layout already declares where they are — `request_handling` and `entry_poi
 so an application that told `Shipshape/CallGraph` where its controllers and jobs live is not
 asked twice.
 
-```
+```text
 54 edges, 210 actions.
 
 NOT NAMED BY ANY TEST — characterise these before moving anything behind them:

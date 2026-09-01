@@ -149,7 +149,7 @@ reason, example — so it is actionable with nothing else loaded.
 **Best-covered first, counted per method**, because a file-level answer was nearly useless:
 `story.rb` has a test, and that says nothing about the method you are about to move.
 
-```
+```text
 ── 2. app/models/story.rb
    24 of 80 methods named in tests
    NOT NAMED BY ANY TEST: accepting_comments?, archiveorg_url, as_json, …

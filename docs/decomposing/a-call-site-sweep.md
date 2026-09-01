@@ -24,7 +24,7 @@ shipshape next --json
 `OnlyTheDoorIsCalled` names every site. The list is the work — nobody has to go looking, and
 nobody should:
 
-```
+```text
 app/controllers/invoices_controller.rb:31  SettleInvoice.new(invoice) is not the door
 app/jobs/settle_job.rb:12                  SettleInvoice.new(invoice) is not the door
 ```

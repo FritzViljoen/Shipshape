@@ -94,7 +94,7 @@ floor, and that is the same dependency with no name at all.
 
 ## 4. Find the data pretending to be code
 
-```
+```text
 Rules that are really data — 6
   app/models/email.rb:39  3 branches over status, each answering with a literal
 ```

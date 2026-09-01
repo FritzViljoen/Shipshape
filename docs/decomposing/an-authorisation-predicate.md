@@ -74,6 +74,10 @@ setting. If it changes with both, it is two things wearing one name and it split
 Write the answer next to each finding before you move anything. This is the step that cannot
 be automated, and it is the step that makes the rest mechanical.
 
+**Check:** every finding from step 0 carries one of the three words — permission, setting, or
+both — and none is left blank. A blank is not a small omission: it is the judgement the rest of
+the procedure is waiting on.
+
 ---
 
 ## 2. A permission becomes the operation that does the thing
@@ -131,6 +135,13 @@ comes back as a `failure(:too_old)`, which the action places:
 
 ```ruby
 if EditStory.call(actor: actor, story_id: id, title: title).success?
+```
+
+**Check:** the rule has one home. `grep -rn "created_at > " app/models` no longer finds it, and
+the command's own test names the outcome:
+
+```sh
+grep -rn "too_old" app/commands spec test
 ```
 
 ---
