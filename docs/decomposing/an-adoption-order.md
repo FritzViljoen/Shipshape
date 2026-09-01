@@ -144,8 +144,14 @@ until step 6 there are no operations to call. Attempting it earlier is how a sui
 a helper wrapping `create!`, which the cop cannot see and which restores exactly what was
 removed.
 
-**Check:** `Shipshape/NoTestFactories` falls, and `grep -rn "create!" test spec` returns only
-seeds.
+**Check:** `Shipshape/NoTestFactories` falls. Do **not** grep for `create!` and expect nothing:
+a record written directly in a test is the honest spelling and this law leaves it alone. What to
+look for instead is a shared helper that wraps one — that is a factory with a different name, it
+blesses what it builds, and no cop can see it:
+
+```sh
+grep -rn "def .*_for_test\|def make_\|def a_valid_" test spec
+```
 
 ---
 

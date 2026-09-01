@@ -22,6 +22,30 @@ The inverse is worse and quieter. If a command *cannot* reach a state it should,
 would have found it never notices, because the factory reached it instead. **The bug is in the
 thing the factory replaced.**
 
+## A factory blesses a construction; a record confesses one
+
+`create(:booking, status: "confirmed")` reads as sanctioned. Somebody wrote that factory, it is
+shared, it is what everybody uses — so a reader takes the booking it returns to be a booking.
+`BookingRecord.create!(status: "confirmed", offer_id: 3, ...)` reads as what it is: somebody
+stuffed columns into a row, here, in this test, and it may be nonsense.
+
+**Both build the same fiction. Only one admits it.** That is why this law bans the factory and
+not the direct write: the defect is identical, and the factory launders it into an authority.
+A `create!` in a spec is ugly every time it is written, stays visible in review, and belongs to
+the one test that wrote it.
+
+## A factory is a symptom of a model nobody divided
+
+Nobody writes a factory for a class that takes two arguments. They are necessary when making
+one valid object means fifteen columns and four associations — which is what a model looks like
+when it was never divided by **who may do what**. A permission is
+[the class name](a-permission-is-the-class-name.md), so an operation is auth-sized; setting up
+an auth-sized operation is one call, and there is nothing left for a factory to do.
+
+So the factory is downstream of the undivided model, and removing it before the operations exist
+only moves the pain. That is also why this is the **last** guard to switch on: `test_call` has
+nothing to call until the commands are there.
+
 ## Setup pain is a signal, and a factory is a way of not hearing it
 
 Fourteen calls to build one fixture says the model is wrong: too many required collaborators,
@@ -80,10 +104,16 @@ factoried. If nothing in the application creates a thing, a test may load it dir
 - **Guard:** `Shipshape/NoTestFactories`, over the test trees. Fails `create`/`build`/
   `build_stubbed`/`attributes_for` on a symbol, `FactoryBot`/`FactoryGirl`/`Fabricate` by name,
   and the `fixtures` and `set_fixture_class` declarations.
-- **Guard's limit:** **the fixture accessors are not matched.** `fixtures :all` is caught and
-  `bookings(:one)` is not — it is an ordinary method call on an implicit receiver, and matching
-  it would flag every helper a suite defines. A suite that deletes the declaration and keeps
-  every accessor reads green while nothing changed.
+- **Guard's limit:** **a record written directly is not matched, and that is deliberate.**
+  `BookingRecord.create!` in a spec builds the same unreachable state a factory would, and it
+  is left alone for the reason above: it confesses rather than blesses. It is also
+  indistinguishable from the reference-data setup this law permits — a currency or a tenant that
+  no operation creates is loaded directly — so a cop matching it would fail correct code.
+
+  **The fixture accessors are not matched either.** `fixtures :all` is caught and `bookings(:one)`
+  is not — it is an ordinary method call on an implicit receiver, and matching it would flag every
+  helper a suite defines. A suite that deletes the declaration and keeps every accessor reads
+  green while nothing changed.
 
   **It reads how state is built, never whether the state is right.** A test
   that calls the correct operations to reach a state nobody wants passes; so does one that
