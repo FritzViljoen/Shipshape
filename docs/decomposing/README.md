@@ -37,7 +37,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a primitive that should be a type](a-primitive-that-should-be-a-type.md) | `amount` as a float, `state` as a string, the rule re-derived at every call site |
 | [an enum as an array](an-enum-as-an-array.md) | the column holds a position, so reordering the source rewrites the data |
 | [a feature flag](a-feature-flag.md) | a branch with no owner and no expiry, doubling the state space |
-| [an authorisation predicate](an-authorisation-predicate.md) | a permission on a class, which nothing can enumerate and no grant can revoke |
+| [an authorisation predicate](an-authorisation-predicate.md) | `can_flag?` beside `can_have_images?` — one is a permission, one is a setting, and nothing tells them apart |
 | [a personal data trail](a-personal-data-trail.md) | erasure, which is unimplementable without an inventory |
 | [a call-site sweep](a-call-site-sweep.md) | the callers of everything the procedures above moved |
 | [a form that fails](a-form-that-fails.md) | the view still holds a record, and every rule here says it may not |

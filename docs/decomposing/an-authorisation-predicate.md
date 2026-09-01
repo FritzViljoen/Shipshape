@@ -1,20 +1,29 @@
-# Decomposing an authorisation predicate — a permission nothing can enumerate
+# Decomposing an authorisation predicate — auth and settings wearing one name
 
 A procedure, meant to be followed by an agent one step at a time. Every step ends with
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
-The shape: `story.is_editable_by_user?(user)` on the record, `user.can_flag?(obj)` on the
-actor, `tag.can_be_applied_by?(user)` on a third thing. Each answers who may do something.
-None of them is a permission anything can list, so no screen can offer them, no grant can
-revoke them, and a refusal leaves no trace.
+The shape, and the reason it is hard:
 
-**They are not all authorisation, and that is the whole difficulty.** `can_have_images?` on a
-story looks identical to `can_flag?` on a user and is a different kind of thing entirely: one
-asks whether this actor is allowed, the other asks what this tier of account includes. The
-first is a permission. The second is a setting — a row, per
-[`no-industry-terms-in-code`](../laws/no-industry-terms-in-code.md). Sorting them is the work,
-and no tool does it for you.
+```ruby
+class Story < ApplicationRecord
+  def can_be_seen_by_user?(user)  # who is asking      — a permission
+  def can_have_images?            # which plan they buy — a setting
+```
+
+**Two different things, indistinguishable at the call site.** One asks whether this actor is
+allowed; the other asks what this tier of account includes. They are written the same way, sit
+on the same class, and read the same in a controller — and they belong in opposite places. A
+permission belongs to the operation that does the thing; a setting is a row, per
+[`no-industry-terms-in-code`](../laws/no-industry-terms-in-code.md).
+
+Neither is a method on a table, which is why they are found together and sorted before
+anything moves. **The sorting is the work, and no tool does it for you.**
+
+Scattered like this, the authorisation half is also unenumerable: `story.is_editable_by_user?`,
+`user.can_flag?`, `tag.can_be_applied_by?` — no screen can offer them, no grant can revoke
+them, and a refusal leaves no trace.
 
 ---
 
