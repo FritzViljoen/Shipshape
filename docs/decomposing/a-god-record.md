@@ -1,5 +1,9 @@
 # Decomposing a god record — the columns are several things sharing a table
 
+A procedure, meant to be followed by an agent one step at a time. Every step ends with
+something to **run**, because a decomposition nobody can verify is a rewrite with extra
+confidence.
+
 113 columns, 251 public methods, and every rule about the noun lives on it. `User`,
 `Booking`, `Article`, `Story` — every codebase has one, and it is the top of every report.
 
@@ -134,7 +138,7 @@ at different times, or owned by different tenants.
 **A question has one place to be answered.** "What is a booking's total?" is one query, not a
 method on a record reachable from every controller, view and job in the application.
 
-## What it does not settle
+## What none of this proves
 
 Whether the columns belong together at all — the actual god-object question, and the one no
 check answers. `shipshape report` counts the columns and lists the widest tables in order,

@@ -1,5 +1,9 @@
 # Decomposing a callback web — the ordering is data nobody wrote down
 
+A procedure, meant to be followed by an agent one step at a time. Every step ends with
+something to **run**, because a decomposition nobody can verify is a rewrite with extra
+confidence.
+
 `before_save`, `after_create`, `after_commit`, and a `save` that does nine things. Somewhere
 a callback sets a field another callback reads, and the reason it works is the order they
 were registered in.
@@ -143,7 +147,7 @@ shipshape check
 **`save` saves.** A reader following a call sees everything that happens, and a failure is
 attributed to the thing that failed rather than to the save.
 
-## What it does not settle
+## What none of this proves
 
 Callbacks registered by a gem on your behalf stay invisible — the cop sees registration
 syntax, not behaviour. And a subscriber or observer attached outside the record is a

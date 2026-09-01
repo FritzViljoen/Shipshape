@@ -1,5 +1,9 @@
 # Decomposing a type hierarchy — the purest case of a concept that is data
 
+A procedure, meant to be followed by an agent one step at a time. Every step ends with
+something to **run**, because a decomposition nobody can verify is a rewrite with extra
+confidence.
+
 A `type` column, or a class per variant, or both. `Payment`, `CardPayment < Payment`,
 `EftPayment < Payment`, and a `payment_type` column that says which.
 
@@ -108,7 +112,7 @@ shipshape check
 row, and only a variant with genuinely new *behaviour* needs code — which is rare, and
 obvious when it happens.
 
-## What it does not settle
+## What none of this proves
 
 Whether two variants are really one thing with a different rate, or two things, is a
 judgement and no check makes it. The signal that you got it wrong: a subclass that exists

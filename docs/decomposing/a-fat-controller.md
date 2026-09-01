@@ -1,5 +1,9 @@
 # Decomposing a fat controller — the action is deciding, not placing
 
+A procedure, meant to be followed by an agent one step at a time. Every step ends with
+something to **run**, because a decomposition nobody can verify is a rewrite with extra
+confidence.
+
 An action that parses, finds, checks, branches, writes, and renders. It is the largest
 cluster in every report — in lobsters, five measures and about five hundred findings all
 describe this one shape.
@@ -167,7 +171,7 @@ shipshape check
 **The action is readable in one screen and says nothing about the domain.** A rule changes in
 one place, and the controller is not one of the places you have to check.
 
-## What it does not settle
+## What none of this proves
 
 Whether a `before_action` is a decision. Most are — a filter that finds, authorises, or
 branches is the action's work moved one line up, and the cop does not see it because it is

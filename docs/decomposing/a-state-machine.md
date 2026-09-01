@@ -1,5 +1,9 @@
 # Decomposing a state machine — the status column is a denormalisation
 
+A procedure, meant to be followed by an agent one step at a time. Every step ends with
+something to **run**, because a decomposition nobody can verify is a rewrite with extra
+confidence.
+
 A `status` column, a gem that declares transitions, and branches all over the codebase that
 read it. `draft → active → delivered → archived`.
 
@@ -105,7 +109,7 @@ shipshape check
 **Every state is explicable.** "Why is this delivered?" has a row as its answer, with a time
 and an actor, instead of "because the column says so and nobody knows who set it."
 
-## What it does not settle
+## What none of this proves
 
 Whether a state is worth deriving at all. Some are genuinely a single flag somebody flips,
 and modelling three tables to avoid one boolean is the opposite mistake. The test is whether
