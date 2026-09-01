@@ -19,6 +19,20 @@ module RuboCop
           "Time.zone" => %i[now today],
         }.freeze
 
+        # Each of these builds a moment in whatever zone the process happens to have, so the
+        # zone is read without being named. `Date.parse` and `Date.new` are deliberately
+        # absent: a calendar date carries no zone by design, so building one reads nothing
+        # ambient. `DateTime.new` is absent for the same reason — Ruby gives it a stated
+        # offset. `Time.new` is not: with arguments or without, it lands in the local zone.
+        NAIVE_BUILDERS = {
+          "Time" => %i[parse strptime iso8601 at new],
+          "DateTime" => %i[parse strptime iso8601],
+        }.freeze
+
+        # A bare cast builds its result in the process's local zone. `to_date` is absent for
+        # the same reason `Date.parse` is.
+        NAIVE_CASTS = %i[to_time to_datetime].freeze
+
         AMBIENT_CONSTANTS = %w[ENV Thread Current RequestStore].freeze
 
         ZONE_READS = %i[zone zone_default].freeze
@@ -26,7 +40,7 @@ module RuboCop
         def on_send(node)
           return unless one_of?(governed_kinds)
 
-          reason = clock(node) || ambient(node) || zone(node)
+          reason = clock(node) || builder(node) || cast(node) || ambient(node) || zone(node)
           return unless reason
 
           add_offense(node, message: reason)
@@ -57,6 +71,34 @@ module RuboCop
           )
         end
 
+        # Parsing at all is `input-is-parsed-at-the-seam`'s business. What this reports is the
+        # narrower fact that these spellings take their zone from the process.
+        def builder(node)
+          return unless NAIVE_BUILDERS.fetch(node.receiver&.source, []).include?(node.method_name)
+
+          placed_by_nobody(node.source)
+        end
+
+        def cast(node)
+          return unless NAIVE_CASTS.include?(node.method_name)
+          return if node.receiver.nil? || node.arguments.any?
+
+          placed_by_nobody(node.source)
+        end
+
+        def placed_by_nobody(source)
+          explain(
+            "`#{source}` builds a moment in whatever zone the process happens to have.",
+            because: "The zone is a dependency that is not on the call path: nothing at the " \
+                     "call site chose it, a test cannot set it without reaching around the " \
+                     "object, and the same input becomes a different instant on a " \
+                     "differently configured machine. A string is parsed once, at the seam, " \
+                     "against a zone the request stated — and the moment travels from there " \
+                     "as a value.",
+            instead: MOMENT,
+          )
+        end
+
         def ambient(node)
           receiver = node.receiver
           return unless receiver&.const_type?
@@ -68,8 +110,7 @@ module RuboCop
         def zone(node)
           return unless ZONE_READS.include?(node.method_name)
           return unless node.receiver&.source == "Time"
-          # `Time.zone.now` is one piece of code, and the clock message already covers it.
-          return if node.parent&.send_type? && node.parent.receiver.equal?(node)
+          return if reported_as_a_clock?(node)
 
           explain(
             "`#{node.source}` reads the ambient zone.",
@@ -79,6 +120,17 @@ module RuboCop
                      "because a default was quietly applied.",
             instead: MOMENT,
           )
+        end
+
+        # `Time.zone.now` is one piece of code and the clock message already covers it, so the
+        # inner read is not reported twice. **Only the clock reads earn that**: exempting every
+        # `Time.zone.*` chain left `Time.zone.parse(raw)` reported by nothing at all, while the
+        # zone it applies is still one nobody stated.
+        def reported_as_a_clock?(node)
+          parent = node.parent
+          return false unless parent&.send_type? && parent.receiver.equal?(node)
+
+          CLOCKS.fetch("Time.zone", []).include?(parent.method_name)
         end
 
         def message_for(source, what)
