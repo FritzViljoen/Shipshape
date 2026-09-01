@@ -8,6 +8,22 @@ The shape: `spec/factories/`, forty definitions, `create(:booking)` pulling in a
 supplier, a tenant and a currency because each declared an association. One line of setup, four
 hundred milliseconds, and a row nobody can explain.
 
+**What you are aiming at:**
+
+```ruby
+# before
+booking = create(:booking, :confirmed)
+
+# after — a state the application can produce, because the application produced it
+offer   = CreateOffer.test_call(supplier_id: supplier.id).value
+booking = CreateBooking.test_call(offer_id: offer.id).value
+ConfirmBooking.test_call(booking_id: booking.id)
+```
+
+`test_call` skips the permission check and the audit entry, and nothing else — typed arguments,
+the transaction and the rules all still run. That is the whole point: the row it leaves behind
+is one an operator could have produced.
+
 **A factory sets columns; a command enforces which combinations of them are legal.** So a
 factory can build a state the application cannot, and a test asserting behaviour on that state
 asserts behaviour on fiction. [`no-test-factories`](../laws/no-test-factories.md) is the law,
