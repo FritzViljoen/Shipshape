@@ -6,7 +6,9 @@ require "test_helper"
 # `check_argument` return early on `:arg` reddens the positional test; emptying `UNNAMED` reddens
 # the splat tests; emptying `NAIVE_MOMENTS` reddens the bare-`Time` and bare-`DateTime` tests;
 # making `on_def` skip the `initialize` check reddens nothing on its own, which is
-# why there is a test that a guard-free `call` is not this cop's business.
+# why there is a test that a guard-free `call` is not this cop's business; emptying `COLLECTIONS`
+# reddens the hand-rolled tests, and making `asserted_type` answer a type unconditionally reddens
+# the tests for the checks a signature cannot express.
 class TypedArgumentsTest < Minitest::Test
   include CopRunner
 
@@ -69,6 +71,72 @@ class TypedArgumentsTest < Minitest::Test
         def initialize(lines:, rates:)
           @lines = typed_array(lines, Line)
           @rates = typed_hash(rates, Symbol, BigDecimal)
+        end
+      end
+    RUBY
+  end
+
+  def test_a_hand_rolled_element_check_is_an_offence
+    found = check(<<~RUBY)
+      class SettleInvoice
+        def initialize(lines:)
+          @lines = typed(lines, Array).each { |line| typed(line, Line) }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message,
+                    "The block asserts by hand what `typed_array(lines, Line)` states as a signature"
+  end
+
+  def test_the_hand_rolled_offence_carries_the_reason_and_an_example
+    message = check(<<~RUBY).first.message
+      class SettleInvoice
+        def initialize(lines:)
+          @lines = typed(lines, Array).each { |line| typed(line, Line) }
+        end
+      end
+    RUBY
+
+    assert_includes message, "WHY: The two do the same work and only one of them says so"
+    assert_includes message, "INSTEAD:"
+    assert_includes message, "@lines = typed_array(lines, Line)"
+  end
+
+  def test_a_hand_rolled_hash_check_names_both_types
+    found = check(<<~RUBY)
+      class SettleInvoice
+        def initialize(rates:)
+          @rates = typed(rates, Hash).each { |code, rate| typed(code, Symbol); typed(rate, BigDecimal) }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`typed_hash(rates, Symbol, BigDecimal)`"
+  end
+
+  # The block form is legal for the element check a signature cannot express, and firing on
+  # those is how this stops being worth having.
+  def test_a_check_no_signature_can_express_is_left_alone
+    assert_empty check(<<~RUBY)
+      class SettleInvoice
+        def initialize(variants:, tabs:, pairs:)
+          @variants = typed(variants, Array).each { |v| typed_enum(v, ALLOWED) }
+          @tabs = typed(tabs, Array).each { |t| typed(t, Hash); typed(t[:id], String) }
+          @pairs = typed(pairs, Array).each { |label, value| typed(label, String) }
+        end
+      end
+    RUBY
+  end
+
+  def test_iterating_a_collection_that_was_not_guarded_here_is_not_this_cops_business
+    assert_empty check(<<~RUBY)
+      class SettleInvoice
+        def initialize(lines:)
+          @lines = typed_array(lines, Line)
+          @lines.each { |line| typed(line, Line) }
         end
       end
     RUBY

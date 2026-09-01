@@ -19,6 +19,8 @@ module RuboCop
         # the source, so a reader of the source can refuse it and nothing else can.
         NAIVE_MOMENTS = %w[Time DateTime].freeze
 
+        COLLECTIONS = %w[Array Hash].freeze
+
         UNNAMED = {
           restarg: "a positional splat",
           kwrestarg: "a keyword splat",
@@ -34,7 +36,95 @@ module RuboCop
           guards(node).each { |guard| check_declared_type(guard) }
         end
 
+        # `typed(lines, Array).each { |line| typed(line, Line) }` — the collection guard written
+        # out by hand, which is the one shape that passes `on_def` and still says it wrong.
+        def on_block(node)
+          return unless one_of?(governed_kinds)
+
+          signature = signature_for(node)
+          return unless signature
+
+          add_offense(node, message: hand_rolled(signature))
+        end
+
         private
+
+        def signature_for(node)
+          guarded = bare_collection_guard(node)
+          return unless guarded
+
+          subject, collection = guarded
+          collection == "Array" ? array_signature(node, subject) : hash_signature(node, subject)
+        end
+
+        def bare_collection_guard(node)
+          each = node.send_node
+          return unless each.method_name == :each
+
+          call = each.receiver
+          return unless call.respond_to?(:send_type?) && call.send_type? && call.receiver.nil?
+          return unless call.method_name == :typed && call.arguments.length == 2
+
+          collection = named_constant(call.arguments.last)
+          [call.arguments.first.source, collection] if COLLECTIONS.include?(collection)
+        end
+
+        def array_signature(node, subject)
+          return unless node.arguments.length == 1
+
+          element = asserted_type(node.body, node.arguments.first.name)
+
+          "typed_array(#{subject}, #{element})" if element
+        end
+
+        def hash_signature(node, subject)
+          return unless node.arguments.length == 2
+          return unless node.body&.begin_type? && node.body.children.length == 2
+
+          key, value = node.body.children.zip(node.arguments).map do |check, argument|
+            asserted_type(check, argument.name)
+          end
+
+          "typed_hash(#{subject}, #{key}, #{value})" if key && value
+        end
+
+        # The type this check asserts the block's own parameter to be, when it is exactly
+        # `typed(name, Type)`. Anything else is a check no signature can express.
+        def asserted_type(check, name)
+          return unless check.respond_to?(:send_type?) && check.send_type? && check.receiver.nil?
+          return unless check.method_name == :typed && check.arguments.length == 2
+
+          subject, type = check.arguments
+          return unless subject.lvar_type? && subject.children.first == name
+
+          named_constant(type)
+        end
+
+        def named_constant(node)
+          node.const_type? ? node.source.sub(/\A::/, "") : nil
+        end
+
+        def hand_rolled(signature)
+          explain(
+            "The block asserts by hand what `#{signature}` states as a signature.",
+            because: "The two do the same work and only one of them says so. The hand-rolled " \
+                     "loop reports `expected Line, got NilClass` with no index and no argument " \
+                     "name, where the signature names both; it leans on `Array#each` answering " \
+                     "its receiver, which the reader has to already know for the assignment to " \
+                     "parse; and for a Hash it spends four lines saying what a key and a value " \
+                     "type say in one. A Hash caught here is often a shape nobody has named — " \
+                     "if the entries are not one homogeneous map, the fix is to define it.",
+            instead: SIGNED,
+          )
+        end
+
+        SIGNED = <<~RUBY
+          @lines = typed_array(lines, Line)
+          @rates = typed_hash(rates, Symbol, BigDecimal)
+
+          # the block form stays, for the element check no signature can express
+          @variants = typed(variants, Array).each { |v| typed_enum(v, ALLOWED) }
+        RUBY
 
         def check_argument(argument, definition)
           case argument.type

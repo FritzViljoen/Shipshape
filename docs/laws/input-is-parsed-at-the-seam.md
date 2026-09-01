@@ -29,12 +29,23 @@ only one of them is absence.
   implementation is private is a law nobody can keep.
 - **Guard:** the generated `typed_params.rb` — architecture. The parsers raise on input
   they cannot read, so a seam has no way to coerce silently.
-- **Guard:** `Shipshape/NoInlineParamParse` flags parse, strptime, iso8601 on any receiver,
-  the raising conversions, and the casts, whenever the value came from request parameters.
+- **Guard:** `Shipshape/NoInlineParamParse` flags `parse`/`parse!`/`strptime`/`iso8601`/
+  `rfc3339`/`civil`/`new` on a date, time or decimal class, the raising Kernel conversions
+  (`Integer`, `Float`, `Rational`, `Complex`, `BigDecimal`), and the three raising casts
+  (`to_date`, `to_datetime`, `to_time`) on any receiver — whenever the value came from request
+  parameters. The casts raise `Date::Error` on a typo exactly as `Date.parse` does; only the
+  spelling differs, and a rule that reads one spelling holds nothing.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an
   argument, in a hash, or nested any depth down.
 
 - **Guard's limit:** both hold **closed method lists**, so a finder or a parser they do not
-  name is uncovered. The parameter must be reached syntactically inside the call, so a local
-  assigned from it earlier is invisible. `to_i` and `to_f` cannot raise, so they are left to
+  name is uncovered. A parser is matched only where its **receiver is a class the cop names**,
+  so `Time.zone.parse(params[:at])` and a house parser of your own get past it — the casts are
+  the exception, matched on any receiver, because there is no class to name. The parameter must
+  be reached syntactically inside the call, so a local assigned from it earlier is invisible
+  either way. `to_i` and `to_f` cannot raise, so they are left to
   [`no-silent-coercion`](no-silent-coercion.md). Views are not covered.
+
+  **Nothing that takes a zone is corrected**, only reported: which zone a date or a time belongs
+  to is a decision the source does not contain, and inventing one would write the defect this
+  law forbids. The numeric conversions are corrected, and only when the key is a literal.

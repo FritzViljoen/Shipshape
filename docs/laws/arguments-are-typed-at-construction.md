@@ -47,6 +47,11 @@ other in place, which is what says they are not one guard written twice.
   guard call. Anything that is not a named keyword is its own offence — `**rest`, `(...)`, a
   positional parameter, a positional Hash default — because a keyword-less initializer
   silently accepts the caller's keywords as one Hash and the call succeeds.
+  **And the collection guard written out by hand** — `typed(lines, Array)` followed by a block
+  doing the per-element check `typed_array` already does — is refused where the loop is exactly
+  what a signature states. Both assert the same thing and only one of them says so: the loop
+  reports `expected Line, got NilClass` with no index and no argument name, and it leans on
+  `Array#each` answering its receiver for the assignment to parse at all.
 
 **`Boolean` is a name, not a class.** Ruby has none, and the usual workaround — reopening
 `TrueClass` and `FalseClass` to include a marker module — changes two objects nobody owns,
@@ -65,6 +70,13 @@ coercion.
   `Shipshape/TypedArguments` checks that a keyword **is** guarded, never that the type named is
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
   helper it does not know by name.
+
+  The hand-rolled collection check is matched **only where a signature would have replaced it
+  exactly**, and that cuts both ways. A block doing anything else is left alone deliberately —
+  a closed set, a nested guard, a heterogeneous pair — because those are the cases no signature
+  can express and firing on them is how a cop gets switched off. But the same narrowness means
+  a loop written with `map`, `each_with_object` or a numbered parameter (`_1`) is invisible, as
+  is one moved a hop away into a private method. It reads the shape, never the intent.
 
   **An operation with no initializer at all is invisible**, because the cop hangs off
   `def initialize` and there is nothing to hang off. Found by running this over a repository

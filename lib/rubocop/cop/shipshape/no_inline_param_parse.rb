@@ -14,14 +14,16 @@ module RuboCop
         CONVERSIONS = %i[Integer Float Rational Complex BigDecimal].freeze
         TYPES = %w[Date Time DateTime BigDecimal ActiveSupport::TimeZone].freeze
 
+        # The casts that raise, and what each of them is asking for. `to_i`/`to_f`/`to_s` cannot
+        # raise, so they are silent coercion and a different cop holds them.
+        CASTS = { to_date: "Date", to_datetime: "DateTime", to_time: "Time" }.freeze
+
         def on_send(node)
           return unless one_of?(governed_kinds)
           return unless reads_params?(node)
+          return unless parser?(node) || conversion?(node) || cast?(node)
 
-          named = node.receiver ? node.receiver.source : node.method_name.to_s
-          return unless parser?(node) || conversion?(node)
-
-          add_offense(node, message: message_for(node.source, suggestion_for(named))) do |corrector|
+          add_offense(node, message: message_for(node.source, suggestion_for(named_type(node)))) do |corrector|
             replacement = correction_for(node)
             corrector.replace(node, replacement) if replacement
           end
@@ -36,6 +38,18 @@ module RuboCop
 
         def conversion?(node)
           node.receiver.nil? && CONVERSIONS.include?(node.method_name)
+        end
+
+        # `params[:from].to_date` — the type is in the message name, not in a receiver naming a
+        # class, so the suggestion has to be read from the cast.
+        def cast?(node)
+          CASTS.key?(node.method_name) && !node.receiver.nil?
+        end
+
+        def named_type(node)
+          return CASTS.fetch(node.method_name) if cast?(node)
+
+          node.receiver ? node.receiver.source : node.method_name.to_s
         end
 
         # Date and time are never corrected: the replacement takes a zone, and which zone is a
