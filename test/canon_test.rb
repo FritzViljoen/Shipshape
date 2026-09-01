@@ -201,7 +201,8 @@ class CanonTest < Minitest::Test
   def test_the_index_lists_every_law
     index = File.read(File.expand_path("../docs/laws/README.md", __dir__))
 
-    assert_empty laws.map { |law| law[:name] }.reject { |name| index.include?("(#{name}.md)") }
+    assert_empty laws.map { |law| law[:name] }.reject { |name| index.include?("(#{name}.md)") },
+                 "A law nothing links to is one nobody will find. Add it to docs/laws/README.md."
   end
 
   private

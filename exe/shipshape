@@ -144,7 +144,9 @@ def option(name, default = nil)
   joined = ARGV.find { |argument| argument.start_with?("#{flag}=") }
   if joined
     value = joined.split("=", 2).last
-    raise Shipshape::Error, "shipshape: #{flag} needs a value" if value.empty?
+    if value.empty?
+      raise Shipshape::Error, "shipshape: #{flag}= has nothing after the \"=\". Write \"#{flag}=<value>\"."
+    end
 
     return value
   end
@@ -153,7 +155,11 @@ def option(name, default = nil)
   return default unless index
 
   value = ARGV[index + 1]
-  raise Shipshape::Error, "shipshape: #{flag} needs a value" if value.nil? || value.start_with?("--")
+  if value.nil? || value.start_with?("--")
+    raise Shipshape::Error, "shipshape: #{flag} was the last thing on the line, or the next " \
+                             "word is another flag. Write \"#{flag} <value>\", with the value " \
+                             "right after it."
+  end
 
   value
 end

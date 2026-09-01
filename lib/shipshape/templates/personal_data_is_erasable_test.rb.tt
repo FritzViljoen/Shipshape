@@ -60,10 +60,12 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
     end
 
 <%- if rspec -%>
-    expect(unknown.sort).to eq([])
+    expect(unknown.sort).to eq([]),
 <%- else -%>
-    assert_equal [], unknown.sort
+    assert_equal [], unknown.sort,
 <%- end -%>
+                 "PersonalData::COLUMNS points at a route PersonalData::ROUTES does not " \
+                 "define. Add the route, or point the column at one that exists."
   end
 
 <%- if rspec -%>
@@ -95,10 +97,12 @@ class PersonalDataIsErasableTest < ActiveSupport::TestCase
     end
 
 <%- if rspec -%>
-    expect(missing.sort).to eq([])
+    expect(missing.sort).to eq([]),
 <%- else -%>
-    assert_equal [], missing.sort
+    assert_equal [], missing.sort,
 <%- end -%>
+                 "PersonalData names a column the table does not have. A stale inventory " \
+                 "reads as coverage."
   end
 
   private
