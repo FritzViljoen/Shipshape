@@ -1,29 +1,34 @@
 # frozen_string_literal: true
 
-require "rubocop/cop/shipshape/explains"
+require "rubocop/cop/shipshape/reads_kinds"
 
 module RuboCop
   module Cop
     module Shipshape
-      # Matches the superclass as written, so it reaches a base the installer wrote and one the
-      # application already had. A leaf inheriting the library base directly is the same gap.
+      # Scoped by kind, never by a list of base classes: naming `ViewComponent::Base` covered
+      # that one gem and left Phlex, ActionView and a house base uncovered, which is the copy
+      # of a fact this canon refuses. A class inheriting one already governed is swept by it.
       class PresentationHoldsNoRecords < Base
-        include Explains
-
-        BASES = ["ViewComponent::Base"].freeze
+        include ReadsKinds
 
         SWEEP = "HoldsNoRecords"
 
         def on_class(node)
-          parent = node.parent_class
-          return unless parent&.const_type?
-          return unless bases.include?(parent.source.sub(/\A::/, ""))
+          return unless one_of?(governed_kinds)
+          return if inherits_a_governed_class?(node)
           return if extends_the_sweep?(node)
 
-          add_offense(node.identifier, message: message_for(node.identifier.source, parent.source))
+          add_offense(node.identifier, message: message_for(node.identifier.source))
         end
 
         private
+
+        def inherits_a_governed_class?(node)
+          parent = node.parent_class
+          return false unless parent&.const_type?
+
+          governed_kinds.include?(kinds.for_constant(parent.source.sub(/\A::/, "")))
+        end
 
         def extends_the_sweep?(node)
           node.body&.each_node(:send)&.any? do |send|
@@ -32,35 +37,35 @@ module RuboCop
           end
         end
 
-        def bases
-          cop_config.fetch("Bases", BASES)
+        def message_for(name)
+          explain(
+            "Nothing sweeps `#{name}`, so a record handed to it stays.",
+            because: "A record is only allowed in a command or a query, and the matrix holds " \
+                     "that where the record is NAMED. It can say nothing about one arriving " \
+                     "as an argument — `#{name}.new(person: person)` names no record at all — " \
+                     "so the object is asked instead. The sweep is inherited, which is why a " \
+                     "class below a swept base needs nothing; this is the base itself, or a " \
+                     "class standing on its own outside one.",
+            instead: <<~RUBY
+              class #{name} < ApplicationViewComponent   # or Shape, or your own swept base
+              end
+
+              # standing on its own? then it does the asking itself
+              class #{name}
+                include TypedArguments
+
+                extend #{sweep}
+              end
+            RUBY
+          )
         end
 
         def sweep
           cop_config.fetch("Sweep", SWEEP)
         end
 
-        def message_for(name, parent)
-          explain(
-            "`#{name}` inherits `#{parent}` and does not extend `#{sweep}`.",
-            because: "A record handed to a component can lazily load an association, write " \
-                     "through it, and reopen a query inside a view. The call graph refuses a " \
-                     "record being NAMED out of place, and can say nothing about one arriving " \
-                     "as an argument — `Card.new(person: PersonRecord.find(1))` names no " \
-                     "record at the component. The sweep is what asks the object instead, and " \
-                     "it is inherited, so the class that inherits the library's base is where " \
-                     "it has to go. An application that already had such a base never " \
-                     "inherits the generated one, and nothing else reports the absence: the " \
-                     "components are still governed by path, so the tree looks covered.",
-            instead: <<~RUBY
-              class #{name} < #{parent}
-                include TypedArguments
-
-                # asked of the object, because an argument names no constant for a cop to see
-                extend #{sweep}
-              end
-            RUBY
-          )
+        def governed_kinds
+          cop_config.fetch("Kinds", %w[shape view_component])
         end
       end
     end

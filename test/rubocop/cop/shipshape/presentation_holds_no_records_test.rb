@@ -2,83 +2,66 @@
 
 require "test_helper"
 
-# Watched to fail: making `extends_the_sweep?` answer true reddens both offence tests, and false
-# reddens the accepted ones — including the file shipshape itself writes.
+# Watched to fail: making `extends_the_sweep?` answer true reddens both offence tests, and
+# `inherits_a_governed_class?` answer false reddens the class-below-a-base test.
 class PresentationHoldsNoRecordsTest < Minitest::Test
   include CopRunner
 
   COP = RuboCop::Cop::Shipshape::PresentationHoldsNoRecords
 
-  PATH = "app/components/card_component.rb"
+  LAYOUT = {
+    "Shipshape/CallGraph" => {
+      "Kinds" => { "shape" => ["app/shapes/**/*.rb"],
+                   "view_component" => ["app/view_components/**/*.rb"],
+                   "record" => ["app/models/**/*.rb"] },
+      "Matrix" => { "shape" => [], "view_component" => %w[shape], "record" => [] },
+    },
+  }.freeze
 
-  def test_a_base_that_does_not_extend_the_sweep_is_an_offence
-    found = check(<<~RUBY)
-      class ApplicationComponent < ViewComponent::Base
-      end
-    RUBY
+  SHAPE = "app/shapes/basket.rb"
+
+  def test_a_shape_nothing_sweeps_is_an_offence
+    found = check("class Basket\n  def initialize(lines:)\n    @lines = lines\n  end\nend\n")
 
     assert_equal 1, found.length
-    assert_includes found.first.message,
-                    "`ApplicationComponent` inherits `ViewComponent::Base` and does not extend"
+    assert_includes found.first.message, "Nothing sweeps `Basket`"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
-    message = check("class ApplicationComponent < ViewComponent::Base\nend\n").first.message
+    message = check("class Basket\nend\n").first.message
 
-    assert_includes message, "WHY: A record handed to a component can lazily load"
+    assert_includes message, "WHY: A record is only allowed in a command or a query"
     assert_includes message, "INSTEAD:"
     assert_includes message, "extend HoldsNoRecords"
   end
 
-  def test_the_generated_base_is_the_shape
-    assert_empty check(<<~RUBY)
-      class ApplicationViewComponent < ViewComponent::Base
-        include TypedArguments
-
-        extend HoldsNoRecords
-      end
-    RUBY
+  def test_a_base_that_does_the_asking_itself_is_the_shape
+    assert_empty check("class Shape\n  extend HoldsNoRecords\nend\n")
   end
 
-  def test_a_component_built_straight_on_the_library_is_held_to_it_too
-    found = check(<<~RUBY)
-      class CardComponent < ViewComponent::Base
-        def initialize(person:)
-          @person = person
-        end
-      end
-    RUBY
-
-    assert_equal 1, found.length,
-                 "a leaf inheriting the library base directly is the same gap, not a new one"
+  # The sweep is inherited, so a class below a swept base declares nothing.
+  def test_a_class_below_a_governed_base_is_swept_by_it
+    assert_empty offences("class Basket < Money\nend\n", cop_class: COP, path: SHAPE,
+                          other_cops: LAYOUT,
+                          files: { "app/shapes/money.rb" => "class Money\n  extend HoldsNoRecords\nend\n" })
   end
 
-  def test_a_component_below_a_base_is_not_asked_again
-    assert_empty check("class CardComponent < ApplicationViewComponent\nend\n"),
-                 "the sweep is inherited, so a component below the base declares nothing"
+  # Any component library, without this cop naming one: the kind is declared by path.
+  def test_a_component_on_a_library_this_cop_never_heard_of
+    found = offences("class CardComponent < Phlex::HTML\nend\n", cop_class: COP,
+                     path: "app/view_components/card_component.rb", other_cops: LAYOUT)
+
+    assert_equal 1, found.length, "the kind is the subject, not a list of base classes"
   end
 
-  def test_a_leading_colon3_names_the_same_base
-    assert_equal 1, check("class ApplicationComponent < ::ViewComponent::Base\nend\n").length,
-                 "`::ViewComponent::Base` and `ViewComponent::Base` name one thing"
-  end
-
-  def test_a_class_inheriting_something_else_is_not_this_cop_s_business
-    assert_empty check("class Money < Shape\nend\n"),
-                 "it reads the superclass as written; anything else is another cop's business"
-  end
-
-  def test_the_base_and_the_sweep_are_configurable
-    source = "class ApplicationComponent < Phlex::HTML\nend\n"
-
-    assert_empty offences(source, cop_class: COP, path: PATH)
-    assert_equal 1, offences(source, cop_class: COP, path: PATH,
-                                     cop_config: { "Bases" => ["Phlex::HTML"] }).length
+  def test_a_record_is_not_this_cop_s_business
+    assert_empty offences("class PersonRecord < ApplicationRecord\nend\n", cop_class: COP,
+                          path: "app/models/person_record.rb", other_cops: LAYOUT)
   end
 
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: PATH)
+    offences(source, cop_class: COP, path: SHAPE, other_cops: LAYOUT)
   end
 end

@@ -316,14 +316,15 @@ Shipshape/NoCallbacks:
 
 Shipshape/PresentationHoldsNoRecords:
   Description: >-
-    A class inheriting a component library's own base extends HoldsNoRecords, because
-    everything below it inherits the sweep and an argument names no constant a cop can see.
+    A record is only allowed in a command or a query. The matrix holds that where the record is
+    named; a shape or a component is asked instead, because an argument names no constant.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
-  Bases:
-    - ViewComponent::Base
+  Kinds:
+    - shape
+    - view_component
   Sweep: HoldsNoRecords
 
 Shipshape/CommentBudget:

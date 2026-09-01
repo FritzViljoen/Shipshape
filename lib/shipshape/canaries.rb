@@ -159,8 +159,10 @@ module Shipshape
           end
         end
       RUBY
-      "Shipshape/PresentationHoldsNoRecords" => { path: "app/components/canary_component.rb", raw: <<~RUBY },
-        class CanaryComponent < ViewComponent::Base
+      # Standing on its own, because a class below a governed base is swept by it — planting
+      # `class X < Shape` proved nothing and the cop was silent while perfectly healthy.
+      "Shipshape/PresentationHoldsNoRecords" => { path: "app/shapes/canary_unswept.rb", raw: <<~RUBY },
+        class CanaryUnswept
           def initialize(person:)
             @person = person
           end
