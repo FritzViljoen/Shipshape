@@ -21,6 +21,22 @@ Drop the assumption and the fact has an obvious home: **a slug is a thing, and t
 tables.** One `slugs` table, keyed by what it belongs to, and the twenty-two tables go back to
 holding what they are about.
 
+**What you are aiming at:**
+
+```ruby
+# before — twenty-two tables each carrying slug and slug_generated_at
+class Story < ApplicationRecord
+  include Sluggable
+end
+
+# after — one table for the thing, and the twenty-two hold what they are about
+class SlugRecord < ApplicationRecord
+  belongs_to :sluggable, polymorphic: false   # one column per owner, not a type string
+end
+
+AssignSlug.call(actor: actor, story_id: id)   # the act that used to be a callback
+```
+
 This is the same reading [a god record](a-god-record.md) applies to one class — the columns
 are several things sharing a table — applied to one module across many. **A record concern is
 a god record distributed**, and it is harder to see for exactly that reason: the god record is

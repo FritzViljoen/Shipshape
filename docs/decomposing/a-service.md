@@ -8,6 +8,21 @@ It assumes a 600-line service with fifteen public methods, which is the shape th
 Other shapes have their own procedure — see [the index](README.md), which also carries the
 one step they all share and the test for what belongs in a table.
 
+**What you are aiming at:**
+
+```ruby
+# before
+BookingService.new(booking).confirm!          # one of fifteen public methods
+
+# after — one class per act, and the name says which
+ConfirmBooking.call(actor: actor, booking_id: id)   # answers success(...) or failure(:code)
+FindBooking.call(id: id)                            # answers a shape, or nothing
+```
+
+Fifteen public methods become fifteen classes, each named for what it does, each with its own
+permission — because [a permission is the class name](../laws/a-permission-is-the-class-name.md).
+That is the whole shape; the steps below are how to get there without a red suite.
+
 ---
 
 ## 0. Make the file visible, or nothing below is true

@@ -7,6 +7,27 @@
 Past the point where the noun stops explaining them, every column is a concept with nowhere
 else to go.
 
+**What you are aiming at:**
+
+```ruby
+class BookingRecord < ApplicationRecord   # the table, and nothing else
+  belongs_to :supplier_record
+end
+
+class Booking < Shape                     # what travels, detached
+  def initialize(reference:, supplier:, lines:)
+    @reference = typed(reference, String)
+    @supplier  = typed(supplier, Supplier)          # held, not flattened
+    @lines     = typed_array(lines, Booking::Line)  # a part, nested
+  end
+end
+
+ConfirmBooking.call(actor: actor, booking_id: id)   # the rules, one act per class
+```
+
+One table becomes a record that maps rows, a shape that travels, and one command per thing
+the business does to it. The rename is what frees the name for the shape.
+
 ---
 
 ## 0. Make it visible, and find where it is reached from

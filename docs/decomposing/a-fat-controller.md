@@ -7,6 +7,21 @@ describe this one shape.
 **An action places what an operation answered.** It reads the request, calls one thing, and
 chooses a response. Everything else it currently does belongs somewhere with a name.
 
+**What you are aiming at:**
+
+```ruby
+def update
+  if EditStory.call(actor: actor, story_id: integer_param!(:id), title: text_param!(:title)).success?
+    redirect_to story_path
+  else
+    render :edit, status: :unprocessable_entity
+  end
+end
+```
+
+Parse at the seam, call one thing, place a response per outcome. The action tests `success?`
+and `present?` and nothing else — every other question moved inside the operation.
+
 ## It is a command turned inside out
 
 **The command is already written — it is in the action, with its parts the wrong way round.**

@@ -7,6 +7,21 @@ were registered in.
 **That order is a fact, and it exists only as the order lines appear in a file.** Nobody
 chose it; it accreted. Move two lines and the behaviour changes with nothing failing.
 
+**What you are aiming at:**
+
+```ruby
+class ConfirmBooking < Command
+  def call
+    booking = BookingRecord.create!(...)   # the write
+    RecalculateTotals.call(booking: booking)   # what a callback used to do, in order, by name
+    success(booking)
+  end
+end
+```
+
+The ordering stops being the order lines happen to appear in a file and becomes the order they
+are written in one method a reader can follow.
+
 ---
 
 ## 0. Make it visible, and count what you are dealing with
