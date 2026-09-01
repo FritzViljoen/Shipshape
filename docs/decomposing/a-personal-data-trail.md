@@ -175,6 +175,12 @@ it is, what that vendor's deletion route is.
 
 ---
 
+## What this leaves you
+
+**An inventory that makes erasure writable.** "Where is this person's data" has an answer in
+code rather than in somebody's memory, and the answer is checked against the database on every
+run — so a column added next year fails the build until somebody classifies it.
+
 ## What none of this proves
 
 **Nothing here shows you are lawful, and nothing here shows the data is gone.**

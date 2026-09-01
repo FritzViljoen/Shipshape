@@ -154,6 +154,12 @@ a floor.
 
 ---
 
+## What this leaves you
+
+**One class per act, each named for what it does.** "What can happen to a booking" is answered
+by listing a directory, every entry carries its own permission because a permission is the
+class name, and a new case has nowhere to go but a new class — there is no branch to grow.
+
 ## What none of this proves
 
 **Nothing here shows the code still works.** `shipshape check` proves the offence count fell.

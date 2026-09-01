@@ -163,6 +163,12 @@ grep -rn "\.save!\|\.update!\|\.touch\|\.destroy" app/queries app/services
 
 ---
 
+## What this leaves you
+
+**Call sites that read like what they do.** A name ending in `Query` reads, a name that is a
+verb writes, and nothing hides a `create!` behind a word meaning "look something up". The
+sequence that used to be implicit is a workflow with the steps named.
+
 ## What none of this proves
 
 **Nothing here shows the caller still gets what it expected.** Splitting a

@@ -157,6 +157,12 @@ one mistake this migration reliably produces. It is green in Ruby and wrong at r
 
 ---
 
+## What this leaves you
+
+**Every outcome has a name.** A caller can tell "it worked and there was nothing to return"
+from "it failed, here is why" from "something nobody thought about happened" — which was one
+`nil` before. The deliberate silences survive, with the reason written beside them.
+
 ## What none of this proves
 
 **Nothing here shows you classified correctly.** A failure you called expected and returned as

@@ -130,6 +130,12 @@ different question: "will anything notice", not "is the outside contract held".
 
 ---
 
+## What this leaves you
+
+**Tests that outlive the refactor.** Every procedure in this playbook moves internals, and none
+of them touches what an edge answers — so the suite written here is the one that still means
+something afterwards, and the only evidence you will have that behaviour was preserved.
+
 ## What none of this proves
 
 **A test that names a class is not a test that characterises it**, and `shipshape edges` cannot

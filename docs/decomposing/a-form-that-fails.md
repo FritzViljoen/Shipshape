@@ -182,6 +182,12 @@ half-done.
 
 ---
 
+## What this leaves you
+
+**A page that can redraw itself from what the refusal carried.** The request was parsed at the
+seam and is gone, so a failure that carried only a code would leave the edge with nothing to
+render. Now the same shape the form was built from comes back, and the action places it.
+
 ## What none of this proves
 
 **Nothing here shows the page still renders**, and the checks are especially weak in this

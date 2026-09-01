@@ -178,6 +178,12 @@ broken:
 
 ---
 
+## What this leaves you
+
+**A transaction that is never held across a network round trip.** The database connection is
+released before the far end is asked anything, the retry story is written where the retry
+happens, and a slow gateway stops being a database incident.
+
 ## What none of this proves
 
 **Nothing here shows the retry is safe.** Splitting one command into a workflow makes the

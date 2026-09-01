@@ -154,6 +154,12 @@ green; one big one lands or does not.
 
 ---
 
+## What this leaves you
+
+**A schema where absence is the absence of a row.** Every column means one thing, no reader has
+to remember which of four meanings a null carried here, and the database refuses the state
+nobody wanted rather than trusting each writer to avoid it.
+
 ## What none of this proves
 
 **Nothing here shows the NULLs meant what you decided they meant.** The schema records that a

@@ -148,6 +148,12 @@ bundle exec rails test test/shipshape/operations_expose_nothing_test.rb
 
 ---
 
+## What this leaves you
+
+**Dependencies visible at the call site.** What the code needs is passed to it rather than
+reached for through an ancestor, so a reader can tell what a class uses without opening the
+modules it includes, and two includers can no longer disagree about what `@lines` means.
+
 ## What none of this proves
 
 **Nothing here shows the includers still work.** Moving a method from a module to a class

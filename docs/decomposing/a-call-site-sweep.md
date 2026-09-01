@@ -161,6 +161,13 @@ down in step 0 has been accounted for site by site.
 
 ---
 
+## What this leaves you
+
+**One spelling, everywhere, from one commit.** A reader never has to work out which of two
+names is current, because there was never a window in which both were. The cost is a bigger
+diff; what it buys is that `git log` has one entry for the change rather than a trail nobody
+can bisect.
+
 ## What none of this proves
 
 **Nothing here shows the callers still behave.** Every check above passes if the arguments

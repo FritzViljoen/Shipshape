@@ -156,6 +156,12 @@ silent on the tree.
 
 ---
 
+## What this leaves you
+
+**A question asked once, with a name.** The chain that was assembled differently at nine call
+sites is one class, and changing what the front page means is one edit rather than nine. What
+it answers is shapes, so nothing downstream can lazily load or write through what it was given.
+
 ## What none of this proves
 
 **Nothing here shows the two chains you merged were the same question.** Every check passes on

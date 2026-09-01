@@ -158,6 +158,12 @@ just wrote out.
 
 ---
 
+## What this leaves you
+
+**Methods a grep finds and a reader reads.** Jump-to-definition works, the interface is visible
+in the file that declares it, and the list that was a loop is either written out or has become
+what it always was — data in a table.
+
 ## What none of this proves
 
 **Nothing here shows you found every generated method.** A `define_method` over a constant
