@@ -4,6 +4,20 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# both timeouts, because setting one leaves the other unbounded
+Faraday.new(url: @endpoint) do |conn|
+  conn.options.open_timeout = 2   # refusing to connect
+  conn.options.timeout      = 5   # connected, and not answering
+end
+```
+
+A call with no ceiling is a thread held for as long as the far end likes, and the far end has
+no obligation to you. The second timeout is the one people forget, and it is the one that
+matters when a host accepts the connection and then goes quiet.
+
 The shape: `HTTParty.post(url, body: ...)` with no timeout. The supplier's endpoint stops
 answering — not refusing, answering slowly — and every thread that touches it waits. The pool
 fills, requests that never go near the supplier queue behind them, and the application is down

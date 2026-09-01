@@ -4,6 +4,25 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — two places decide, and they can disagree
+before_action :require_editable, only: %i[edit update]
+
+# after — one place decides, and the action places what came back
+def update
+  if UpdateStory.call(actor: current_user, id: integer_param!(:id), title: title).success?
+    redirect_to story_path
+  else
+    render :edit, status: :unprocessable_entity
+  end
+end
+```
+
+The rule moves inside the operation that needs it, and comes back as an outcome. The filter
+chain stops being a second, invisible place where the same question is answered differently.
+
 The shape: a controller with six `before_action`s and actions three lines long. It looks like
 the fat controller was already decomposed. It was not — the work moved above the actions,
 where nothing reads it.

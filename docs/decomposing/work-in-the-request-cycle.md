@@ -4,6 +4,19 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the caller waits for the email
+SendConfirmation.call(actor: actor, order_id: order.id)
+
+# after — the caller does not
+SendConfirmation.call_later(actor: actor, order_id: order.id)
+```
+
+One command, one transaction, one job — the grain at which a retry is safe, which
+`a-command-runs-twice` is what makes harmless. `success(:enqueued)` means accepted, not done.
+
 The shape: creating an order sends a confirmation email, posts to an analytics endpoint,
 rebuilds a cache and writes a PDF — all before the response. The user waits for four things
 they cannot see, and any one of them failing loses the order.

@@ -4,6 +4,27 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — a cadence in a file, running as nobody
+every 1.day, at: "3:00 am" do
+  runner "SettleOverdueInvoices.call"
+end
+
+# after — a row, created by a command like any other, running as somebody
+Scheduling::CreateSchedule.call(
+  actor:      actor,
+  method:     "POST",
+  path:       "/invoices/settle",
+  cadence:    "0 3 * * *",
+  runs_as_id: treasurer.id,
+)
+```
+
+A schedule names a route and an actor. Changing when something runs stops being a deploy, and
+"as whom did this run" has an answer.
+
 The shape: `config/schedule.rb`, a `sidekiq-cron` initialiser, a `Clockwork` file. Fourteen
 entries. Nobody can say what they all do, whose authority they run under, or which of them
 still matter.
