@@ -4,6 +4,19 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```sql
+-- before: a blob whose keys nobody declared, and which no constraint can reach
+settings jsonb
+
+-- after: the keys that turned out to be real become columns the schema knows about
+ALTER TABLE accounts ADD COLUMN timezone text NOT NULL;
+```
+
+A column can be NOT NULL, indexed, and checked; a key inside a blob can be none of those. What
+stays in the blob is what is genuinely per-row and unqueried — and saying which is the work.
+
 The shape: `serialize :settings, JSON`, or a `jsonb` column, holding eleven keys that eleven
 places read. It was one column when it was written, which was the appeal.
 

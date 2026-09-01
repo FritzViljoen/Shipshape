@@ -4,6 +4,26 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# the act writes an event; the state is derived from what happened
+class DeliverEmail < Command
+  def call
+    return failure(:not_active) unless @email.active?
+
+    success(DeliveryRecord.create!(email_id: @email.id, at: @now))
+  end
+end
+
+class EmailState < Query
+  def call = state_of(@email)   # reads the events, answers a shape
+end
+```
+
+"Why is this delivered?" then has a row as its answer, with a time and an actor — instead of
+"because the column says so and nobody knows who set it."
+
 A `status` column, a gem that declares transitions, and branches all over the codebase that
 read it. `draft → active → delivered → archived`.
 

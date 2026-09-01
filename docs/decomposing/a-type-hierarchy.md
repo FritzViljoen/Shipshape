@@ -4,6 +4,23 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# the taxonomy is rows, and the record points at one
+class PaymentRecord < ApplicationRecord
+  belongs_to :payment_type_record
+end
+
+# only genuinely different BEHAVIOUR earns a class, and it is an operation
+class ChargeCard < Command
+  def call = success(@gateway.charge(@amount))
+end
+```
+
+Adding a variant stops being a deploy: a new payment type is a row. A subclass that exists only
+to hold a different constant is the taxonomy written twice, and the second copy drifts.
+
 A `type` column, or a class per variant, or both. `Payment`, `CardPayment < Payment`,
 `EftPayment < Payment`, and a `payment_type` column that says which.
 

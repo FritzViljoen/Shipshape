@@ -4,6 +4,22 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the column says "sometimes nobody", and every reader must remember
+add_column :bookings, :supplier_id, :integer, null: true
+
+# after — the absence of a row IS the absence, and the column cannot be empty
+create_table :booking_suppliers do |t|
+  t.references :booking, null: false, foreign_key: true, index: {unique: true}
+  t.references :supplier, null: false, foreign_key: true
+end
+```
+
+The unique index is half the fix: without it the join holds two answers to one question. Where
+the null meant "use the default", the domain names the fallback in one place instead.
+
 The shape is in `db/schema.rb` rather than in a class, which is why it is the category most
 often missed: a run over `app/` never sees it.
 
