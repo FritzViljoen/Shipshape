@@ -463,7 +463,8 @@ Shipshape/NoDistantWrites:
 Shipshape/TypedArguments:
   Description: >-
     Every keyword an operation takes passes through a type guard, in a hand-written
-    initializer. Anything that is not a named keyword is its own offence.
+    initializer. Anything that is not a named keyword is its own offence, and a keyword
+    declared as a bare Time or DateTime names no zone.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
