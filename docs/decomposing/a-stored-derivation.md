@@ -4,6 +4,22 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — a column holding an answer the data already contains
+orders.status   # 'delivered', set by whatever last remembered to
+
+# after — the facts are rows, and the answer is derived from them
+class OrderState < Query
+  def call = state_of(@order)   # a delivery row exists, so it is delivered
+end
+```
+
+Where deriving it every time is genuinely too slow, the column stays as a **cache** and says
+so: it is named for the query that rebuilds it, and every command that invalidates it names it
+too. What it may not be is the only place the fact lives.
+
 The shape: a column holding something the database could work out for itself. A `status`. A
 `price_paid`. A `comments_count`. A `total`.
 

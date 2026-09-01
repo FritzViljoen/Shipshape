@@ -4,6 +4,25 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the module reaches into whoever included it
+module Paying
+  def total
+    @lines.sum(&:amount)      # @lines belongs to somebody else
+  end
+end
+
+# after — what was shared is a collaborator, not an ancestor
+class Total
+  def self.of(lines) = lines.sum(&:amount)
+end
+```
+
+A module that reads the includer's state is inheritance wearing a smaller word. Passing what it
+needs makes the dependency visible at the call site, which is where a reader is looking.
+
 The shape: `app/models/concerns/paying.rb`, included by nine services, defining eleven public
 methods. 470 offences across seven repositories, and the reason they are hard to see is that
 **the module looks small**. The class that includes it is where the size went.

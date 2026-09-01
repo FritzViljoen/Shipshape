@@ -4,6 +4,22 @@ A procedure, meant to be followed by an agent one step at a time. Every step end
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
 confidence.
 
+**What you are aiming at:**
+
+```ruby
+# before — the row is fetched, then judged
+story = Story.find(@id)
+return failure(:forbidden) unless story.user_id == actor.id
+
+# after — a row that is not the actor's is not found
+story = actor.stories.find_by(id: @id)
+return failure(:not_found) unless story
+```
+
+Ownership moves into the load, so there is no window in which the operation holds a row it may
+not have. `:not_found` rather than `:forbidden` is deliberate: a refusal that distinguishes the
+two tells a stranger the row exists.
+
 The shape: `Story.find(params[:id])`. The row exists, so it comes back. Whether it is *this
 actor's* row was never asked, and nothing in the code records that the question was skipped
 rather than answered.
