@@ -115,7 +115,8 @@ class TypedArgumentsTimeZoneTest < Minitest::Test
   def test_a_naive_time_is_refused_where_a_moment_is_declared
     error = assert_raises(ArgumentError) { Moment.new(at: Time.now, on: Date.today) }
 
-    assert_includes error.message, "expected Time"
+    assert_includes error.message, "expected a zoned Time"
+    assert_includes error.message, "with no zone"
   end
 
   def test_a_naive_datetime_is_refused_the_same_way
