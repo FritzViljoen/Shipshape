@@ -58,6 +58,12 @@ names exactly this shape: a unique key back plus a single nullable column. That 
 god-record question as above, arriving one column at a time — if it recurs across a table's
 satellites, [go there](a-god-record.md) instead of writing a fix for each.
 
+**The fix and the dodge differ by exactly one `null: false`.** `booking_suppliers` in the
+example above — a unique key back to `bookings`, and one required `supplier_id` beside it —
+is `shipshape tables`' fourth shape: it unlocked *"linked to exactly one supplier, or not
+linked at all,"* with no null anywhere. Drop that one `null: false` and the same table has
+unlocked nothing: the supplier is still sometimes absent, just absent one table over.
+
 **Check:** before writing the migration, you can say in one sentence what the new shape lets
 you say that the old one could not — and the sentence names more than "not null now".
 

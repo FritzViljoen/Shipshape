@@ -337,7 +337,8 @@ end
 SHAPE_LABEL = {
   unlocked_cardinality: "unlocked cardinality",
   unlocked_composite_fact: "unlocked a composite fact",
-  unlocked_nothing: "unlocked nothing — a renamed column with extra steps",
+  unlocked_absence: "unlocked absence",
+  unlocked_nothing: "unlocked nothing",
 }.freeze
 
 def neighbour_label(neighbour)

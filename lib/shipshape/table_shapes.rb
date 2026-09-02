@@ -201,12 +201,13 @@ module Shipshape
       columns.reject { |column| column.name == fk_column || NOT_A_FACT.include?(column.name) }
     end
 
-    # `unique` false is an ordinary one-to-many: many rows per parent is sayable now, where
-    # before it was not. `unique` true is where the escape route from a nullable column lives
-    # — several NOT NULL facts arriving together earns the table; one nullable column does not.
+    # `unique` false is an ordinary one-to-many. `unique` true splits on the columns beside the
+    # key: 2+ NOT NULL is several facts together; one NOT NULL is the sanctioned fix — absence
+    # is the row, not a null; one nullable is that same column, moved but still nullable.
     def shape_of(unique, others)
       return :unlocked_cardinality unless unique
       return :unlocked_composite_fact if others.reject(&:nullable).length >= 2
+      return :unlocked_absence if others.length == 1 && !others.first.nullable
       return :unlocked_nothing if others.length == 1 && others.first.nullable
 
       nil
