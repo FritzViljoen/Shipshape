@@ -22,8 +22,8 @@ naming — it spans transactions deliberately, needs compensation, or runs from 
 as a request. Requiring one for every two calls would mean a `CancelBookingById` whose whole
 body is find-then-cancel, one per action, and nobody writes the second one.
 
-**This does not relax `command` calling `command`.** Two commands called from an action are
-visibly two transactions and nobody is pretending otherwise; a command calling a command
+**This does not relax `write` calling `write`.** Two writes called from an action are
+visibly two transactions and nobody is pretending otherwise; a write calling a write
 hides a widened one. The honest case stays allowed and the hidden case stays refused.
 
 **And it is a trade, not a free win.** The count was crude but mechanical. "Decides nothing"
@@ -40,7 +40,7 @@ turns inputs into a **new value** is a rule, and a rule has one home.
 escaped. The fix is to move the rule, not to tidy the conditional — often into an operation
 that answers with the decision already made.
 
-## A workflow is closer to a controller than to a command, and this law reaches it
+## A workflow is closer to a controller than to a write, and this law reaches it
 
 It sequences; it does not work. It opens no transaction of its own and it writes nothing, and
 the only thing it is entitled to know about a step is whether the step succeeded.
@@ -69,9 +69,9 @@ same wherever a coordinator decides, and `tell-dont-ask` is the principle either
   `Shipshape/CallGraph`: request handling may not reach a record, because the matrix does not
   give it that edge.
 
-  **Two conditions, and no others: `success?` and `present?`.** A command answers an outcome
-  and a query answers `nil`, a shape, or an array of shapes — so `present?` is correct across
-  all three, and "did it find anything" has one spelling whether the query answers one or many.
+  **Two conditions, and no others: `success?` and `present?`.** A write answers an outcome
+  and a read answers `nil`, a shape, or an array of shapes — so `present?` is correct across
+  all three, and "did it find anything" has one spelling whether the read answers one or many.
   Every other test is a rule. `unless` and `!` are the same branch spelled differently and are
   allowed; **`respond_to do |format|` is how a format is chosen**, and it is a dispatch rather
   than a conditional, so it is untouched. `if request.xhr?` is not — `respond_to` names both

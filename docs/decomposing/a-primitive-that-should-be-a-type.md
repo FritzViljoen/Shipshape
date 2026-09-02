@@ -91,7 +91,7 @@ end
 ```
 
 **The column is the harder half and it is a separate change.** `decimal(19, 4)` or an integer
-of minor units; never `float`. Migrating it is a data migration with a verification query, and
+of minor units; never `float`. Migrating it is a data migration with a verification read, and
 it does not belong in the same commit as the type.
 
 **Check:** `grep -rn "float" db/schema.rb` returns nothing that holds money.

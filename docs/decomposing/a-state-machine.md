@@ -8,7 +8,7 @@ confidence.
 
 ```ruby
 # the act writes an event; the state is derived from what happened
-class DeliverEmail < Command
+class DeliverEmail < Write
   def call
     return failure(:not_active) unless @email.active?
 
@@ -16,7 +16,7 @@ class DeliverEmail < Command
   end
 end
 
-class EmailState < Query
+class EmailState < Read
   def call = state_of(@email)   # reads the events, answers a shape
 end
 ```
@@ -72,10 +72,10 @@ it is code, so adding a state is a deploy and no tenant can differ.
 
 ---
 
-## 3. Each transition becomes a command
+## 3. Each transition becomes a write
 
 ```ruby
-class DeliverEmail < Command
+class DeliverEmail < Write
   def call
     return failure(:not_active) unless @email.active?
     success(DeliveryRecord.create!(email_id: @email.id, at: @now))
@@ -83,8 +83,8 @@ class DeliverEmail < Command
 end
 ```
 
-One transition, one command, one transaction, named by what it does. **The guard is inside
-the command**, not a callback and not a validation — it is the first thing `call` does, and
+One transition, one write, one transaction, named by what it does. **The guard is inside
+the write**, not a callback and not a validation — it is the first thing `call` does, and
 it answers `failure(:code)` so the caller can act.
 
 Where a workflow sequences several,
@@ -96,17 +96,17 @@ saved.
 
 ---
 
-## 4. The state becomes a query
+## 4. The state becomes a read
 
 ```ruby
-class EmailState < Query
+class EmailState < Read
   def call = success(state_of(@email))
 end
 ```
 
 Derived from the rows, in one place, so nothing else in the codebase reads the column and
 branches. If deriving is too slow, **then** cache it — in a suffixed cache table, written by
-a scheduled command that is idempotent, and understood as a cache rather than as the truth.
+a scheduled write that is idempotent, and understood as a cache rather than as the truth.
 
 That ordering matters: the column comes back only after the derivation exists, so there is
 always something to check the cache against.

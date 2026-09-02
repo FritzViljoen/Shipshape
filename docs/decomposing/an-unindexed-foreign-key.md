@@ -58,7 +58,7 @@ believing the silence.
 ## 1. Sort by whether anything actually joins on it
 
 An index is not free. It is paid on every insert, update and delete of that table, and an index
-no query uses is pure cost. The list from step 0 is candidates, not work.
+no read uses is pure cost. The list from step 0 is candidates, not work.
 
 ```sh
 grep -rn "order_id\|belongs_to :order\|has_many :comments" app
@@ -154,14 +154,14 @@ turning a working page into an outage, which is the one thing this shape reliabl
 
 ## What none of this proves
 
-**Nothing here measures a query.** An index existing is not an index being used: a query with a
+**Nothing here measures a read.** An index existing is not an index being used: a read with a
 function on the column, a mismatched type, or a leading-wildcard `LIKE` will not touch it, and
 only `EXPLAIN` says so. This gets the index into the schema; whether the planner picks it up is
 a different question with a different tool.
 
 **And the list is one-directional.** It finds keys with no index. It does not find the reverse
-— indexes nothing queries, a real cost on write-heavy tables — and no static reading can,
-because that needs the query log.
+— indexes nothing reads, a real cost on write-heavy tables — and no static reading can,
+because that needs the read log.
 
 **This is a cop that could exist.** `Shipshape/NoNullableColumns` already reads `db/schema.rb`,
 so a guard over unindexed keys would run on the same tree with the same instruments. It has not

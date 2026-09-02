@@ -88,7 +88,7 @@ were.** Three things change at once and each needs the site read:
 - **The order stops mattering**, which is what makes the next reordering safe, and is most of
   the reason for doing this at all.
 
-**Check:** `TypedArguments` is silent on the callee, and `QueriesOnlyRead` has not appeared at
+**Check:** `TypedArguments` is silent on the callee, and `ReadsWriteNothing` has not appeared at
 the call site (a caller that was passing a record it had just written is a caller doing the
 operation's job).
 
@@ -97,7 +97,7 @@ operation's job).
 ## 3. Take the answer apart at the same site
 
 The old call answered anything: a record, `nil`, `false`, a hash, a raised exception. The new
-one answers a `Result` for a command, shapes for a query. **The call site is where that lands,
+one answers a `Result` for a write, shapes for a read. **The call site is where that lands,
 and the two changes belong in one edit** — split across two passes, the intermediate state has
 callers reading a `Result` as though it were a record, which is green in Ruby and wrong.
 

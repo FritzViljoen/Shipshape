@@ -1,6 +1,6 @@
 # `an-operation-is-a-leaf` — A base class is inherited exactly once, and its door is not overridable
 
-`SettleInvoice < Command` is an operation. `AdminSettleInvoice < SettleInvoice` is not, and
+`SettleInvoice < Write` is an operation. `AdminSettleInvoice < SettleInvoice` is not, and
 the depth is what makes the model unsafe rather than merely untidy.
 
 **Everything the door decides, it decides for the class in front of it.** The permission
@@ -17,7 +17,7 @@ public operations, did not name it. The predicate was fixed to stop walking ance
 law removes the shape that made the question worth asking.**
 
 **A module is the same defect wearing different clothes.** A concern defining
-`anonymous_call` and included into forty commands makes forty public operations, none of
+`anonymous_call` and included into forty writes makes forty public operations, none of
 which says so at its own definition.
 
 **And the door itself is not overridable.** `def self.call` in an operation replaces the base
@@ -69,22 +69,22 @@ writing the test.
 Make it a collaborator, not an ancestor. Two operations that share work call a third:
 
 ```ruby
-class AdminUpload < Command
+class AdminUpload < Write
   def call
     Upload.call(actor: actor, file: @file)
   end
 end
 ```
 
-That is a command calling a command, which the matrix refuses — so the shared part is a
-query, or the sequence is a workflow. **The call graph already had an answer for this**; the
+That is a write calling a write, which the matrix refuses — so the shared part is a
+read, or the sequence is a workflow. **The call graph already had an answer for this**; the
 inheritance was a way of not using it.
 
 - **Principle:** `nothing-is-hidden` governs — a guarantee decided two classes away is a
   guarantee the reader cannot see. `good-boundaries-make-good-neighbours` produces the
   collaborator half.
-- **Guard:** the generated `command.rb`, `query.rb`, `workflow.rb`, `io_command.rb`,
-  `io_query.rb`, `legacy_command.rb` and `legacy_query.rb` — architecture. Each owns
+- **Guard:** the generated `write.rb`, `read.rb`, `workflow.rb`, `io_write.rb`,
+  `io_read.rb`, `legacy_write.rb` and `legacy_read.rb` — architecture. Each owns
   `self.call`, and `private_class_method :new, :allocate` means a caller cannot build one
   to go around it.
 - **Guard:** `Shipshape/OnlyTheDoorIsCalled` is the one that does not rely on visibility:
@@ -100,10 +100,10 @@ inheritance was a way of not using it.
   `def self.call` in one.
 
   **The depth rule is about this canon's base classes and no others.** A plain class in
-  `app/queries/` resolves to an operation kind by path alone, and `ApplicationMailer` is
+  `app/reads/` resolves to an operation kind by path alone, and `ApplicationMailer` is
   named in the layout so kinds resolve — neither makes the hierarchy below it ours. Applying
   the rule to them fired on every mailer in chatwoot and every operation in a repository that
-  files `Command` beside its commands.
+  files `Write` beside its writes.
   A door spelled `define_singleton_method(:call)` is refused by
   [`code-is-written-not-generated`](code-is-written-not-generated.md) rather than here.
   **Depth outside this canon's hierarchy is a smell, and the report counts it.** "Inheritance

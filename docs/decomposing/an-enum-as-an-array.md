@@ -161,7 +161,7 @@ running your code: a psql session, a BI tool, a replica consumer, an incident at
 
 **A reorder that already happened is invisible to all of this.** If the array was reordered in
 2023 and nobody noticed, the rows written before it hold the old meaning and the rows after it
-hold the new one, and both are the same integers. No query distinguishes them; only the git
+hold the new one, and both are the same integers. No read distinguishes them; only the git
 history of the enum line does. Look there before trusting step 2's mapping:
 
 ```sh

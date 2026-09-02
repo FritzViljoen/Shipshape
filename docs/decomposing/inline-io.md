@@ -8,7 +8,7 @@ confidence.
 
 ```ruby
 # before — one method, two responsibilities, one transaction held open over the wire
-class SettleInvoice < Command
+class SettleInvoice < Write
   def call
     response = HTTParty.post(gateway_url, body: payload)
     @invoice.update!(settled: response["ok"])
@@ -18,7 +18,7 @@ end
 # after — the crossing is its own operation, and a workflow sequences the two
 class SettleInvoice < Workflow
   def call
-    charged = ChargeCard.call(actor: actor, invoice_id: @id)   # IoCommand, no transaction
+    charged = ChargeCard.call(actor: actor, invoice_id: @id)   # IoWrite, no transaction
     return charged if charged.failure?
 
     RecordPayment.call(actor: actor, invoice_id: @id, reference: charged.value)
@@ -75,10 +75,10 @@ does not use them or the constants are spelled differently — find out which.
 Before moving anything, establish what the call is currently inside. This is the cost, and it
 is what decides the urgency:
 
-- **in a command** — a database transaction is open across the network round trip, including
+- **in a write** — a database transaction is open across the network round trip, including
   the far end's timeout and every retry underneath. Under load this is how a connection pool
-  empties while every individual query looks fast.
-- **in a query** — worse, because there is no transaction to blame and nothing about a read
+  empties while every individual read looks fast.
+- **in a read** — worse, because there is no transaction to blame and nothing about a read
   invites review.
 - **in a record** — worst. A model that makes an HTTP call has put the network inside every
   `save`, including the ones in other people's transactions.
@@ -92,7 +92,7 @@ is what decides the urgency:
 
 ```ruby
 # before — one method, two responsibilities, one transaction
-class SettleInvoice < Command
+class SettleInvoice < Write
   def call
     response = HTTParty.post(gateway_url, body: payload)
     @invoice.update!(settled: response["ok"])
@@ -100,18 +100,18 @@ class SettleInvoice < Command
 end
 
 # after — the crossing is its own operation
-class ChargeCard < IoCommand
+class ChargeCard < IoWrite
   def call
     success(HTTParty.post(@gateway_url, body: @payload))
   end
 end
 ```
 
-**The `IoCommand` does the call and nothing else.** Not the decision about what to do with the
+**The `IoWrite` does the call and nothing else.** Not the decision about what to do with the
 answer, not the local write, not the retry policy. It crosses the boundary and reports what it
 found — everything else is on this side and belongs to the workflow.
 
-An `io_command` may not reach a record. The matrix refuses it, and the reason is this exact
+An `io_write` may not reach a record. The matrix refuses it, and the reason is this exact
 temptation: an external write pulling from the local store is reaching back across the
 boundary it just crossed.
 
@@ -137,7 +137,7 @@ end
 two transactions, and the failure between them is expressible for the first time: the charge
 went through, the row did not.
 
-That state was always reachable. Written as one command it was reachable *and unnameable* —
+That state was always reachable. Written as one write it was reachable *and unnameable* —
 the transaction rolled back the row and the network call stayed done, and nothing in the code
 said so.
 
@@ -186,10 +186,10 @@ happens, and a slow gateway stops being a database incident.
 
 ## What none of this proves
 
-**Nothing here shows the retry is safe.** Splitting one command into a workflow makes the
+**Nothing here shows the retry is safe.** Splitting one write into a workflow makes the
 partial failure reachable and *does not* make it correct. Every check above passes on a
 workflow whose second step is not idempotent and whose first step has no idempotency key —
-and that combination is strictly worse than the single command it replaced, because the
+and that combination is strictly worse than the single write it replaced, because the
 transaction is gone and nothing took its place.
 
 That is the one judgement in this procedure that matters, and no tool makes it.

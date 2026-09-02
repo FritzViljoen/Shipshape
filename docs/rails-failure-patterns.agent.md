@@ -9,7 +9,7 @@ The rows are not copied here. Read the row.
 
 shipshape reads files. It sees where a rule lives, what a class may be, what the schema admits.
 
-It does not see a page issuing 400 queries, a cache key that never expires, or a pool smaller
+It does not see a page issuing 400 reads, a cache key that never expires, or a pool smaller
 than the thread count. Those need a running system. Bullet, `strong_migrations`, an APM and a
 load test find them.
 

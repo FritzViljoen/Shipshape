@@ -36,8 +36,8 @@ shipshape coverage
 code is fine" and means "nothing looked at it". **This is the most common way the whole
 exercise goes wrong**, and it is silent.
 
-Declare the tree as `legacy_query` or `legacy_command` — a legacy door is exactly a wrapper
-around old code — or as `query`/`command` if you intend to convert rather than wrap.
+Declare the tree as `legacy_read` or `legacy_write` — a legacy door is exactly a wrapper
+around old code — or as `read`/`write` if you intend to convert rather than wrap.
 
 **Check:** the file appears in `shipshape next`.
 
@@ -59,10 +59,10 @@ The cops have already done the enumeration:
   `ENV`, `current_user`. Each becomes an argument.
 - **`NoTypeInterrogation`** names the places a variant should have been a class.
 
-And the cops are not the only free list. **Every `transaction do` in the service is a command
+And the cops are not the only free list. **Every `transaction do` in the service is a write
 somebody already named**, because they decided those writes were one act — see
 [the index](README.md), "Start from the transaction blocks". It is the one boundary in a
-legacy file that was not inferred. Extracted into a `Command`, that block's own `transaction`
+legacy file that was not inferred. Extracted into a `Write`, that block's own `transaction`
 line is deleted — the base class already opens it — and `Shipshape/OperationsOpenNoTransaction`
 is what catches one written back in.
 
@@ -73,10 +73,10 @@ is what catches one written back in.
 ## 2. Take the reads and the writes apart first
 
 One method that reads and writes is two operations sharing a name, and the split is not a
-judgement — a query answers shapes, a command answers a `Result`. Do this before anything
+judgement — a read answers shapes, a write answers a `Result`. Do this before anything
 else, because every later decision depends on which side a piece is on.
 
-**Check:** `shipshape check` — the count falls, and no `CallGraph` offence appears (a query
+**Check:** `shipshape check` — the count falls, and no `CallGraph` offence appears (a read
 that writes will show up as reaching something it may not).
 
 ---
@@ -136,11 +136,11 @@ tool makes it.
 
 ## 6. Give the answer a shape
 
-A query answers a shape or an array of them, detached from the database. If a piece currently
+A read answers a shape or an array of them, detached from the database. If a piece currently
 returns a record, a hash, or `nil`-or-a-record, that is where the shape goes — one class, its
 fields asserted, holding parts nested rather than flattened.
 
-**Check:** the `Query` base class refuses anything that is not a `Shape`, at the door.
+**Check:** the `Read` base class refuses anything that is not a `Shape`, at the door.
 
 ---
 

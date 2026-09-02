@@ -26,7 +26,7 @@ for a reason nothing in it caused.
 **Nothing here is a shape defect, and that is the point.** The call is correct. What is missing
 is a bound, and a bound has nowhere to live until the call has a home — which is what
 [`io-is-its-own-kind`](../laws/io-is-its-own-kind.md) gives it. Once every outbound call is an
-`io_command` or `io_query`, "does this have a timeout" becomes a question with one place to ask
+`io_write` or `io_read`, "does this have a timeout" becomes a question with one place to ask
 it per integration, instead of one per call site.
 
 ---
@@ -42,7 +42,7 @@ grep -rn "Net::HTTP\|HTTParty\|Faraday\|RestClient\|\.get(\|\.post(" app lib | g
 — and that procedure comes first. A timeout on a call that holds a database transaction open
 converts one problem into a different one.
 
-**Check:** every outbound call is in an `io_command` or `io_query`, or is on the list for
+**Check:** every outbound call is in an `io_write` or `io_read`, or is on the list for
 [inline IO](inline-io.md).
 
 ---
@@ -105,7 +105,7 @@ A timeout plus automatic retries is the same wait multiplied. Three retries on a
 timeout is a fifteen-second request, and against a struggling dependency it is your traffic
 tripled at the moment it can least take it.
 
-Retries belong to the deferred path — `ATTEMPTS` on the command, which
+Retries belong to the deferred path — `ATTEMPTS` on the write, which
 [work in the request cycle](work-in-the-request-cycle.md) covers — and in the request cycle the
 right number is usually zero.
 

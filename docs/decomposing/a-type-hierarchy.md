@@ -13,7 +13,7 @@ class PaymentRecord < ApplicationRecord
 end
 
 # only genuinely different BEHAVIOUR earns a class, and it is an operation
-class ChargeCard < Command
+class ChargeCard < Write
   def call = success(@gateway.charge(@amount))
 end
 ```
@@ -79,20 +79,20 @@ hierarchy was never about behaviour at all.
 ## 3. Ask whether any behaviour is left
 
 If a subclass still has real behaviour after step 2 — a genuinely different algorithm — it
-stays a class. But it becomes a **command or query**, not a record subclass:
+stays a class. But it becomes a **write or read**, not a record subclass:
 
 ```ruby
-class ChargeCard < Command
+class ChargeCard < Write
   def call = success(@gateway.charge(@amount))
 end
 
-class ChargeEft < Command
+class ChargeEft < Write
   def call = success(@bank.debit(@amount))
 end
 ```
 
 One level from the base class, and `Shipshape/OperationsAreLeaves` holds that. The variant is
-chosen at the edge — request handling picks which command to call — rather than by a record
+chosen at the edge — request handling picks which write to call — rather than by a record
 answering questions about itself.
 
 **Check:** `Shipshape/NoTypeInterrogation` is silent. If it still fires, something is asking
