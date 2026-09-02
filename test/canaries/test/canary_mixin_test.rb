@@ -1,6 +1,3 @@
 module CanaryMixin
-end
-
-class CanaryMixinTest
-  include CanaryMixin
+  extend self
 end
