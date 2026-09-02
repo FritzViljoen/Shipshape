@@ -59,9 +59,50 @@ class RulesTest < Minitest::Test
     assert_includes rules, "a waypoint, not a destination"
   end
 
+  # The rules file is the one artifact an agent reads; a cop that will never fire must not
+  # appear to be in force, whether the count in the preamble or the list underneath it.
+  def test_a_disabled_cop_is_neither_listed_nor_counted
+    rules = generate(config: off_config("Enabled" => false))
+
+    refute_includes rules, "**`#{OFF_COP}`**"
+    assert_match(/#{enforced_count} cops\s+hold it/, rules)
+  end
+
+  def test_a_pending_cop_is_neither_listed_nor_counted
+    rules = generate(config: off_config("Enabled" => "pending"))
+
+    refute_includes rules, "**`#{OFF_COP}`**"
+    assert_match(/#{enforced_count} cops\s+hold it/, rules)
+  end
+
+  # The rule's other half: `NewCops: enable` makes a pending cop run, and it must be counted.
+  def test_a_pending_cop_is_listed_and_counted_once_new_cops_are_enabled
+    config = RuboCop::Config.new(
+      { "AllCops" => { "NewCops" => "enable" }, OFF_COP => { "Enabled" => "pending" } }, ".rubocop.yml"
+    )
+    rules = generate(config: config)
+
+    assert_includes rules, "**`#{OFF_COP}`**"
+    assert_match(/#{all_cops_count} cops\s+hold it/, rules)
+  end
+
   private
 
-  def generate(root: Dir.pwd)
-    Shipshape::Rules.new(config: RuboCop::ConfigStore.new.for_pwd, root: root).call
+  OFF_COP = "Shipshape/OneOperationOneClass"
+
+  def generate(root: Dir.pwd, config: RuboCop::ConfigStore.new.for_pwd)
+    Shipshape::Rules.new(config: config, root: root).call
+  end
+
+  def off_config(settings)
+    RuboCop::Config.new({ OFF_COP => settings }, ".rubocop.yml")
+  end
+
+  def enforced_count
+    all_cops_count - 1
+  end
+
+  def all_cops_count
+    RuboCop::Cop::Registry.global.cops.map(&:cop_name).grep(%r{\AShipshape/}).length
   end
 end
