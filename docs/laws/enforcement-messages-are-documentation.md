@@ -35,3 +35,17 @@ guard wants.
   through `explain` makes the shape structural instead. It will never tell you the example
   is wrong, the reason untrue, or the whole thing stale. That is the author's judgement, and
   no check will ever make it.
+
+  Judgement needs a rule to exercise: a message may state what the guard inspected, and
+  what to write instead. It may not state why the code came to be that way, and it may not
+  assert a fact about a file, a class, or a mechanism it did not itself read at the point it
+  fired.
+
+  "The base class already opened one" held for two of the seven kinds the cop fires on and
+  was wrong for the rest — a cause checked once and applied to every case. "The runtime
+  guard cannot catch this one" named a second mechanism's current behaviour, and the very
+  next commit made it false. `install` reporting a file as differing "from what the gem
+  ships now" assigns a cause — staleness — to a diff that can just as well be a deliberately
+  chosen flag; the guard compared two files and can name the diff, never why it exists. A
+  generated rules file or a base class header naming a method no installed class defines is
+  describing the template, not the file in front of the reader.
