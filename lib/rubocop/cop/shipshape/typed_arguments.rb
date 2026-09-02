@@ -33,6 +33,15 @@ module RuboCop
           end
         RUBY
 
+        MOMENT = <<~RUBY
+          class ExpireHolds < Command
+            def initialize(now:, departs_on:)
+              @now = typed(now, ActiveSupport::TimeWithZone)  # a point in time, placed
+              @departs_on = typed(departs_on, Date)           # a calendar date, no zone by design
+            end
+          end
+        RUBY
+
         def on_def(node)
           return unless node.method?(:initialize)
           return unless one_of?(governed_kinds)
@@ -107,15 +116,6 @@ module RuboCop
             instead: MOMENT,
           )
         end
-
-        MOMENT = <<~RUBY
-          class ExpireHolds < Command
-            def initialize(now:, departs_on:)
-              @now = typed(now, ActiveSupport::TimeWithZone)  # a point in time, placed
-              @departs_on = typed(departs_on, Date)           # a calendar date, no zone by design
-            end
-          end
-        RUBY
 
         def not_a_keyword(source, what)
           explain(
