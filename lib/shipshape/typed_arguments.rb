@@ -12,7 +12,14 @@ module Shipshape
       return value if allow_nil && value.nil?
       return value if matches?(value, type)
 
-      raise ArgumentError, "expected #{type}, got #{value.class}: #{value.inspect}"
+      raise ArgumentError, mismatch_message(value, type)
+    end
+
+    def mismatch_message(value, type)
+      return "expected #{type}, got #{value.class}: #{value.inspect}" unless type == Time || type == DateTime
+
+      "expected a zoned #{type} (e.g. ActiveSupport::TimeWithZone), got #{value.class} " \
+        "with no zone: #{value.inspect}"
     end
 
     def typed_array(values, type, allow_empty: true)

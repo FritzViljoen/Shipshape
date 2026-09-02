@@ -11,7 +11,14 @@ module TypedArguments
     refuse_record(value, type)
     return value if matches?(value, type)
 
-    raise ArgumentError, "expected #{type}, got #{value.class}: #{value.inspect}"
+    raise ArgumentError, mismatch_message(value, type)
+  end
+
+  def mismatch_message(value, type)
+    return "expected #{type}, got #{value.class}: #{value.inspect}" unless type == Time || type == DateTime
+
+    "expected a zoned #{type} (e.g. ActiveSupport::TimeWithZone), got #{value.class} " \
+      "with no zone: #{value.inspect}"
   end
 
   def refuse_record(value, type)
