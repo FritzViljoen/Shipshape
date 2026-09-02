@@ -5,9 +5,8 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds the ratchet half of `a-test-inherits-what-it-needs`: every definition a base test
-      # class or support module holds, watched to only fall. The size-in-lines half the law
-      # describes is not built yet — see its Guard's-limit.
+      # Holds both ratchet halves of `a-test-inherits-what-it-needs`: the definition count, and
+      # the same qualifying node's size in lines, read back by `ShipshapeTestClassSizes`.
       class BaseTestClassGrowth < Base
         include Explains
 
@@ -23,6 +22,41 @@ module RuboCop
           return false if source.nil?
 
           source.sub(/\A::/, "") =~ TEST_BASE_SUPERCLASS ? true : false
+        end
+
+        class << self
+          # Reset once per `rubocop` run, by the formatter - never per file, so spans
+          # accumulate across every file that run investigates rather than only the last one.
+          def reset_spans!
+            @spans = Hash.new { |hash, path| hash[path] = [] }
+          end
+
+          def spans
+            @spans ||= Hash.new { |hash, path| hash[path] = [] }
+          end
+
+          # `smart_path` matches how `Offences` reads paths from RuboCop's own JSON formatter.
+          def record_span(path, first_line, last_line)
+            spans[RuboCop::PathUtil.smart_path(path)] << (first_line..last_line)
+          end
+
+          # A module wrapping the class it declares would otherwise count the same lines
+          # twice; overlapping spans merge into one before they are summed.
+          def merged_sizes
+            spans.transform_values { |ranges| merge(ranges) }
+          end
+
+          def merge(ranges)
+            ranges.sort_by(&:first).each_with_object([]) do |range, merged|
+              last = merged.last
+
+              if last && range.first <= last.last
+                merged[-1] = last.first..[last.last, range.last].max
+              else
+                merged << range
+              end
+            end.sum(&:size)
+          end
         end
 
         INSTEAD = <<~RUBY
@@ -44,10 +78,12 @@ module RuboCop
         def on_class(node)
           return unless self.class.qualifying_superclass?(node.parent_class&.source)
 
+          self.class.record_span(processed_source.path, node.loc.line, node.loc.last_line)
           handle_body(node.body)
         end
 
         def on_module(node)
+          self.class.record_span(processed_source.path, node.loc.line, node.loc.last_line)
           handle_body(node.body)
         end
 
