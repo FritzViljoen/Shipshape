@@ -15,7 +15,11 @@ module Shipshape
   class Canaries
     include TypedArguments
 
-    Result = Struct.new(:fired, :silent, :unplanted, keyword_init: true) do
+    # `messages` is every rendered message, by cop, for every offense the run reported.
+    # `crashed` is every cop the run reported dead: rubocop caught it raising while
+    # computing its own message and turned that into an internal error instead of an
+    # offense, which is indistinguishable from `silent` unless something reads the log.
+    Result = Struct.new(:fired, :silent, :unplanted, :messages, :crashed, keyword_init: true) do
       def ok?
         silent.empty?
       end
@@ -284,12 +288,14 @@ module Shipshape
     end
 
     def call
-      seen = cops_that_fired
+      investigation = investigate
 
       Result.new(
-        fired: (planted.keys & seen).sort,
-        silent: (planted.keys - seen).sort,
+        fired: (planted.keys & investigation[:seen]).sort,
+        silent: (planted.keys - investigation[:seen]).sort,
         unplanted: (registered - PLANTED.keys).sort,
+        messages: investigation[:messages],
+        crashed: investigation[:crashed],
       )
     end
 
@@ -428,8 +434,14 @@ module Shipshape
       File.write(target, source)
     end
 
+    # A cop whose message raises while being computed never becomes an offense: rubocop's
+    # commissioner catches it, prints this line to stderr, and moves on — leaving the cop
+    # indistinguishable from one whose canary simply missed. Parsed here so the two stay
+    # distinguishable to whatever reads the result.
+    CRASH_LINE = /An error occurred while (\S+) cop was inspecting/.freeze
+
     # Not `inspect`: Ruby calls that regardless of visibility, so `p canaries` shelled out.
-    def cops_that_fired
+    def investigate
       # `-I` so the subprocess finds shipshape from a checkout rather than an installed gem.
       command = [RbConfig.ruby, "-I", File.expand_path("../..", __dir__) + "/lib",
                  rubocop, "--require", "shipshape", "--only", "Shipshape",
@@ -439,7 +451,14 @@ module Shipshape
       report = out[/\{.*\}/m]
       raise Error, "shipshape: rubocop produced no report for the canaries: #{err.strip}" unless report
 
-      JSON.parse(report)["files"].flat_map { |file| file["offenses"].map { |o| o["cop_name"] } }.uniq
+      offenses = JSON.parse(report)["files"].flat_map { |file| file["offenses"] }
+
+      {
+        seen: offenses.map { |offense| offense["cop_name"] }.uniq,
+        messages: offenses.group_by { |offense| offense["cop_name"] }
+                           .transform_values { |group| group.map { |offense| offense["message"] } },
+        crashed: err.scan(CRASH_LINE).flatten.uniq.sort,
+      }
     end
 
     def rubocop
