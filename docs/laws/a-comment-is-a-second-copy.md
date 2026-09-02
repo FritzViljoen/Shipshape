@@ -10,10 +10,11 @@ kinds that say something the code cannot: **why**, where the obvious approach wa
 is a paraphrase of a law, which has a home already.
 
 **It was measured, not guessed.** The base classes this gem installs carried 795 comment lines
-over 1,087 of code — 66%, and three of them were false. `io_command` described what happened
+over 1,087 of code — 66%, and four of them were false. `io_command` described what happened
 "after the transaction" it opens none of. `workflow` told views to call `permissions`, which
-had been made private. `query` documented an audit entry a query has never written. Each was
-true when written and none was reviewed, because the review was on the law.
+had been made private. `query` documented an audit entry a query has never written. `command`
+named a `test_call` a non-auth install never defines. Each was true when written and none was
+reviewed, because the review was on the law.
 
 **The budget is per file, and it is a ceiling on prose, not on thought.** A file that needs
 more explanation than a tenth is usually a file whose reasoning belongs in the law it
