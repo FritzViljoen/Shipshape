@@ -66,7 +66,7 @@ module Shipshape
     end
 
     def call
-      report = { written: [], skipped: [], diverged: [] }
+      report = { written: [], skipped: [], diverged: [], stale: [] }
 
       write_into(directory, files, report)
       write_into(test_directory, TESTS, report, suffix: rspec ? "_spec" : "_test")
@@ -98,20 +98,32 @@ module Shipshape
         target = File.join(root, relative)
         rendered = template(name, extension)
 
-        next compare(target, relative, rendered, report) if File.exist?(target)
+        if File.exist?(target)
+          compare(target, relative, rendered, report)
+        else
+          File.write(target, rendered)
+          report[:written] << relative
+        end
 
-        File.write(target, rendered)
-        report[:written] << relative
+        note_stale_new(target, relative, report)
       end
     end
 
-    # Nothing to compare against but what the gem writes today. Identical: silence. Different:
-    # the new version lands beside it as `.new` — diffing here would blend their edits into ours.
+    # Nothing to compare against but what this run would write. Identical: silence. Different:
+    # this run's version lands beside it as `.new` — diffing here would blend their edits into ours.
     def compare(target, relative, rendered, report)
       return report[:skipped] << relative if File.read(target) == rendered
 
       File.write("#{target}.new", rendered)
       report[:diverged] << relative
+    end
+
+    # A `.new` outlives the divergence that wrote it: once the file matches this run again —
+    # edited back by hand, or the gem's version adopted — nothing else ever revisits it.
+    def note_stale_new(target, relative, report)
+      return if report[:diverged].include?(relative)
+
+      report[:stale] << relative if File.exist?("#{target}.new")
     end
 
     def files
