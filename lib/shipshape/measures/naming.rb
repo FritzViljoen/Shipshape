@@ -25,7 +25,7 @@ module Shipshape
       end
 
       # The message is better evidence than the action name: an action outside Rails' seven
-      # says nothing about direction, and guessing Command from silence gets laughed at.
+      # says nothing about direction, and guessing Write from silence gets laughed at.
       WRITES = %i[create create! update update! destroy destroy_all delete delete_all save
                   save! insert insert_all upsert upsert_all increment! decrement! touch].freeze
 
@@ -67,14 +67,14 @@ module Shipshape
       end
 
       def kind_for(action, message: nil)
-        return "Command" if message && WRITES.include?(message.to_sym)
-        return "Query" if message
+        return "Write" if message && WRITES.include?(message.to_sym)
+        return "Read" if message
 
-        READS.include?(action.to_sym) ? "Query" : "Command"
+        READS.include?(action.to_sym) ? "Read" : "Write"
       end
 
       def path_for(name, kind)
-        directory = kind == "Query" ? "queries" : "commands"
+        directory = kind == "Read" ? "reads" : "writes"
 
         "app/#{directory}/#{snake(name)}.rb"
       end

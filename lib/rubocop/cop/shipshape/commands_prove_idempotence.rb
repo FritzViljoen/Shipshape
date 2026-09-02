@@ -6,15 +6,15 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-command-runs-twice`.
-      class CommandsProveIdempotence < Base
+      # Holds `a-write-runs-twice`.
+      class WritesProveIdempotence < Base
         include ReadsKinds
 
         # A phrase, not a heuristic: writing it is the act being required.
         CLAIM = "Idempotent:"
 
         IDEMPOTENT = <<~RUBY
-          # in the command's test, naming what makes the second run safe
+          # in the write's test, naming what makes the second run safe
           # Idempotent: the second call finds settled_at set and answers :already_settled.
           def test_settling_twice_settles_once
             SettleInvoice.call(actor: actor, invoice_id: id)
@@ -41,8 +41,8 @@ module RuboCop
         private
 
         # By file name, so a repository filing tests by kind, by path or flat is one case.
-        # Indexed once rather than scanned per command: re-globbing and building a Regexp per
-        # (command, test file) pair was thirteen seconds at 300 commands and 5,000 test files.
+        # Indexed once rather than scanned per write: re-globbing and building a Regexp per
+        # (write, test file) pair was thirteen seconds at 300 writes and 5,000 test files.
         def tests_for(path)
           stem = File.basename(path, ".rb")
 
@@ -69,9 +69,9 @@ module RuboCop
             "`#{name}` does not say what happens when it runs twice — #{found}.",
             because: "`tell-dont-ask` already obliges it: a caller may not ask whether this " \
                      "has happened already, because branching is asking, so the caller " \
-                     "cannot guard the call and the command must own repetition itself. That " \
+                     "cannot guard the call and the write must own repetition itself. That " \
                      "is true today and it becomes load-bearing the moment the work is " \
-                     "deferred, because a queue retries — and a command that double-applies " \
+                     "deferred, because a queue retries — and a write that double-applies " \
                      "turns one retry into two charges. This checks that somebody decided " \
                      "how; it cannot check that they were right.",
             instead: IDEMPOTENT,
@@ -87,7 +87,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[command io_command legacy_command])
+          cop_config.fetch("Kinds", %w[write io_write legacy_write])
         end
 
         def base_dir

@@ -13,28 +13,28 @@ class OperationsAreLeavesTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      "BaseClasses" => { "command" => %w[Command ApplicationMailer], "shape" => ["Shape"] },
-      "Matrix" => { "command" => ["shape"], "shape" => [] },
+      "BaseClasses" => { "write" => %w[Write ApplicationMailer], "shape" => ["Shape"] },
+      "Matrix" => { "write" => ["shape"], "shape" => [] },
     },
   }.freeze
 
   TREE = {
-    "app/commands/log_in.rb" => "class LogIn < Command\n  def anonymous_call; end\nend\n",
-    "app/commands/command.rb" => "class Command\nend\n",
-    "app/commands/theirs.rb" => "class Theirs\n  def self.call; end\nend\n",
-    "app/commands/a_mailer.rb" => "class AMailer < ApplicationMailer\nend\n",
+    "app/writes/log_in.rb" => "class LogIn < Write\n  def anonymous_call; end\nend\n",
+    "app/writes/write.rb" => "class Write\nend\n",
+    "app/writes/theirs.rb" => "class Theirs\n  def self.call; end\nend\n",
+    "app/writes/a_mailer.rb" => "class AMailer < ApplicationMailer\nend\n",
   }.freeze
 
-  COMMAND = "app/commands/admin_upload.rb"
+  WRITE = "app/writes/admin_upload.rb"
 
   def test_a_second_level_of_inheritance_is_an_offence
     found = check("class AdminUpload < LogIn\nend\n")
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`AdminUpload` inherits from `LogIn`, which is already a command",
+    assert_includes found.first.message, "`AdminUpload` inherits from `LogIn`, which is already a write",
       "The fail-open review found: `AdminUpload < PublicUpload` was public, inheriting an `anonymous_call` nothing at its own definition mentioned."
   end
 
@@ -48,12 +48,12 @@ class OperationsAreLeavesTest < Minitest::Test
   end
 
   def test_one_level_from_the_base_class_is_the_shape
-    assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
+    assert_empty check("class AdminUpload < Write\n  def call; end\nend\n")
   end
 
   def test_overriding_the_door_is_an_offence
     found = check(<<~RUBY)
-      class AdminUpload < Command
+      class AdminUpload < Write
         def self.call(**arguments)
           new(**arguments).call
         end
@@ -66,13 +66,13 @@ class OperationsAreLeavesTest < Minitest::Test
   end
 
   def test_the_instance_call_is_not_the_door
-    assert_empty check("class AdminUpload < Command\n  def call\n    success(:done)\n  end\nend\n")
+    assert_empty check("class AdminUpload < Write\n  def call\n    success(:done)\n  end\nend\n")
   end
 
-  # A base class filed with its operations is still a base class: resolving `Command` in a
-  # repository keeping `app/commands/command.rb` made 22 of stratum's 80 files false positives.
+  # A base class filed with its operations is still a base class: resolving `Write` in a
+  # repository keeping `app/writes/write.rb` made 22 of stratum's 80 files false positives.
   def test_a_base_class_kept_beside_its_operations_is_not_a_second_level
-    assert_empty check("class AdminUpload < Command\n  def call; end\nend\n")
+    assert_empty check("class AdminUpload < Write\n  def call; end\nend\n")
   end
 
   # A plain class in a governed tree resolves to a kind by path alone, and is not ours.
@@ -97,6 +97,6 @@ class OperationsAreLeavesTest < Minitest::Test
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: COMMAND, files: TREE, other_cops: LAYOUT)
+    offences(source, cop_class: COP, path: WRITE, files: TREE, other_cops: LAYOUT)
   end
 end

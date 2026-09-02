@@ -1,4 +1,4 @@
-class PaysSomething < Command
+class PaysSomething < Write
   include Paying
 
   def call; end

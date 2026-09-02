@@ -18,7 +18,7 @@ module RuboCop
           return failure(charge.error) if charge.failure?
 
           # the rule belongs to whoever owns the number, and comes back as a code
-          class ChargeCard < IoCommand
+          class ChargeCard < IoWrite
             def call
               return failure(:over_limit) if @amount_cents > LIMIT
 
@@ -59,7 +59,7 @@ module RuboCop
           explain(
             "`#{receiver}.#{node.method_name}` is what a step answered with, and a workflow " \
             "decides nothing about it.",
-            because: "A workflow is closer to a controller than to a command: it sequences, " \
+            because: "A workflow is closer to a controller than to a write: it sequences, " \
                      "it opens no transaction and it writes nothing. The only thing it is " \
                      "entitled to know about a step is whether the step succeeded. A rule " \
                      "read out of the answer — a total, a status, a tier — is a rule that " \

@@ -15,9 +15,9 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "record" => ["app/records/**/*_record.rb"],
-        "query" => ["app/queries/**/*.rb"],
+        "read" => ["app/reads/**/*.rb"],
       },
-      "Matrix" => { "record" => [], "query" => ["record"] },
+      "Matrix" => { "record" => [], "read" => ["record"] },
     },
   }.freeze
 
@@ -57,8 +57,8 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
 
   # A delegating operation is the other cop's business, and neither is the record tree.
   def test_delegate_outside_a_record_is_not_this_cops_business
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
-      class ListBookings < Query
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/reads/list_bookings.rb", other_cops: LAYOUT)
+      class ListBookings < Read
         delegate :name, to: :supplier
       end
     RUBY
@@ -85,7 +85,7 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
   end
 
-  def test_the_default_scope_offence_names_create_and_offers_a_named_query
+  def test_the_default_scope_offence_names_create_and_offers_a_named_read
     message = check(<<~RUBY).first.message
       class BookingRecord < ApplicationRecord
         default_scope { where(cancelled_at: nil) }
@@ -95,12 +95,12 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     assert_includes message, "WHY:"
     assert_includes message, "nothing-travels-off-the-call-path"
     assert_includes message, "sets attributes on `create`"
-    assert_includes message, "class ListLiveBookings < Query"
+    assert_includes message, "class ListLiveBookings < Read"
   end
 
   def test_a_default_scope_outside_a_record_is_not_this_cops_business
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/list_bookings.rb", other_cops: LAYOUT)
-      class ListBookings < Query
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/reads/list_bookings.rb", other_cops: LAYOUT)
+      class ListBookings < Read
         default_scope { where(cancelled_at: nil) }
       end
     RUBY
@@ -130,7 +130,7 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
 
     assert_includes message, "WHY: A method here is reachable from everywhere a record is"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "class TotalBooking < Query"
+    assert_includes message, "class TotalBooking < Read"
   end
 
   def test_a_class_method_is_behaviour_too
@@ -192,8 +192,8 @@ class PersistenceHoldsNoBehaviourTest < Minitest::Test
     RUBY
   end
 
-  def test_a_query_may_hold_all_the_behaviour_it_likes
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/queries/total_booking.rb", other_cops: LAYOUT)
+  def test_a_read_may_hold_all_the_behaviour_it_likes
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/reads/total_booking.rb", other_cops: LAYOUT)
       class TotalBooking
         def call
           success(@lines.sum(&:amount))

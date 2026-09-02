@@ -1,2 +1,2 @@
-class OtherQuery < Query
+class OtherRead < Read
 end

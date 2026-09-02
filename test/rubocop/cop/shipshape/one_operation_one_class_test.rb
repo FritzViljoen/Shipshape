@@ -14,18 +14,18 @@ class OneOperationOneClassTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
-        "query" => ["app/queries/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
+        "read" => ["app/reads/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
         "record" => ["app/records/**/*_record.rb"],
       },
-      "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [], "shape" => [] },
+      "Matrix" => { "write" => %w[read record], "read" => ["record"], "record" => [], "shape" => [] },
     },
   }.freeze
 
-  CONFIG = { "OperationKinds" => %w[command query], "PublicMethod" => "call" }.freeze
+  CONFIG = { "OperationKinds" => %w[write read], "PublicMethod" => "call" }.freeze
 
-  TREE = ["app/commands/create_person.rb", "app/queries/list_people.rb", "app/shapes/place.rb"].freeze
+  TREE = ["app/writes/create_person.rb", "app/reads/list_people.rb", "app/shapes/place.rb"].freeze
 
   def test_a_private_call_with_keywords_is_the_shape
     assert_empty check(<<~RUBY)
@@ -451,7 +451,7 @@ class OneOperationOneClassTest < Minitest::Test
 
   private
 
-  PATH = "app/commands/create_person.rb"
+  PATH = "app/writes/create_person.rb"
 
   def check(source, path = PATH)
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: TREE, other_cops: LAYOUT)

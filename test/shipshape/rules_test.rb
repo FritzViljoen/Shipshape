@@ -11,8 +11,8 @@ class RulesTest < Minitest::Test
   def test_it_names_the_kinds_the_configuration_declares
     rules = generate
 
-    assert_includes rules, "| `command` |"
-    assert_includes rules, "app/commands/**/*.rb"
+    assert_includes rules, "| `write` |"
+    assert_includes rules, "app/writes/**/*.rb"
   end
 
   def test_it_names_every_loaded_cop_with_its_own_description
@@ -54,7 +54,7 @@ class RulesTest < Minitest::Test
   def test_the_kinds_table_says_which_are_destinations
     rules = generate
 
-    assert_includes rules, "| `legacy_command` |"
+    assert_includes rules, "| `legacy_write` |"
     assert_includes rules, "on its way out — never move code here"
     assert_includes rules, "a waypoint, not a destination"
   end

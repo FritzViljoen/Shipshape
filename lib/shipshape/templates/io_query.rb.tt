@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # A read outside this process, no record so no `test_call`: nothing found is an answer, unreachable raises.
-class IoQuery
+class IoRead
   include TypedArguments
 
 <%- if auth -%>

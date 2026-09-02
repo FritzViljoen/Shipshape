@@ -18,9 +18,9 @@ class GuardsTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        write: ['app/writes/**/*.rb']
       BaseClasses:
-        command: [Command]
+        write: [Write]
 
     Shipshape/OneOperationOneClass:
       Enabled: false
@@ -39,9 +39,9 @@ class GuardsTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        write: ['app/writes/**/*.rb']
       BaseClasses:
-        command: [Command]
+        write: [Write]
   YAML
 
   PENDING_YML = <<~YAML
@@ -54,9 +54,9 @@ class GuardsTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        write: ['app/writes/**/*.rb']
       BaseClasses:
-        command: [Command]
+        write: [Write]
 
     Shipshape/OneOperationOneClass:
       Enabled: pending
@@ -72,9 +72,9 @@ class GuardsTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        write: ['app/writes/**/*.rb']
       BaseClasses:
-        command: [Command]
+        write: [Write]
 
     Shipshape/OneOperationOneClass:
       Enabled: pending
@@ -94,9 +94,9 @@ class GuardsTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        write: ['app/writes/**/*.rb']
       BaseClasses:
-        command: [Command]
+        write: [Write]
 
     Shipshape/OneOperationOneClass:
       Enabled: pending

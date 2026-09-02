@@ -13,14 +13,14 @@ class NoTypeInterrogationTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
         "record" => ["app/records/**/*_record.rb"],
       },
-      "Matrix" => { "command" => ["record"], "record" => [] },
+      "Matrix" => { "write" => ["record"], "record" => [] },
     },
   }.freeze
 
-  COMMAND = "app/commands/price_party.rb"
+  WRITE = "app/writes/price_party.rb"
 
   def test_a_predicate_is_a_dispatch
     found = check(<<~RUBY)
@@ -177,6 +177,6 @@ class NoTypeInterrogationTest < Minitest::Test
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: COMMAND, other_cops: LAYOUT)
+    offences(source, cop_class: COP, path: WRITE, other_cops: LAYOUT)
   end
 end

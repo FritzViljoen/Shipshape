@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class TypedArguments < Command
+class TypedArguments < Write
 def initialize(unasserted:)
   @unasserted = unasserted
 end

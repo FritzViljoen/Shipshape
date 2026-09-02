@@ -27,7 +27,7 @@ class InstallCliTest < Minitest::Test
   def test_a_new_file_no_longer_needed_is_named_stale
     Dir.mktmpdir("shipshape-cli") do |dir|
       run_install(dir)
-      target = File.join(dir, "app/shipshape/command.rb")
+      target = File.join(dir, "app/shipshape/write.rb")
       File.write(target, "#{File.read(target)}# mine\n")
       run_install(dir)
       FileUtils.cp("#{target}.new", target)
@@ -35,7 +35,7 @@ class InstallCliTest < Minitest::Test
       out, = run_install(dir)
 
       assert_includes out, "STALE"
-      assert_includes out, "app/shipshape/command.rb.new"
+      assert_includes out, "app/shipshape/write.rb.new"
       assert_path_exists "#{target}.new", "a `.new` is reported, never deleted"
     end
   end

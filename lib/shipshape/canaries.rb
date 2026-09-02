@@ -27,37 +27,37 @@ module Shipshape
 
     # The smallest thing its cop must refuse. `kind` picks which glob it is written under.
     PLANTED = {
-      "Shipshape/CallGraph" => { kind: "query", body: <<~RUBY },
+      "Shipshape/CallGraph" => { kind: "read", body: <<~RUBY },
         def call
-          OtherQuery.call
+          OtherRead.call
         end
       RUBY
-      "Shipshape/NoAmbientReads" => { kind: "command", body: <<~RUBY },
+      "Shipshape/NoAmbientReads" => { kind: "write", body: <<~RUBY },
         def call
           Time.now
         end
       RUBY
-      "Shipshape/NoDistantWrites" => { kind: "command", body: <<~RUBY },
+      "Shipshape/NoDistantWrites" => { kind: "write", body: <<~RUBY },
         def call
           $canary = 1
         end
       RUBY
-      "Shipshape/NoTypeInterrogation" => { kind: "command", body: <<~RUBY },
+      "Shipshape/NoTypeInterrogation" => { kind: "write", body: <<~RUBY },
         def call
           @thing.is_a?(String)
         end
       RUBY
-      "Shipshape/NoGeneratedInterfaces" => { kind: "command", body: <<~RUBY },
+      "Shipshape/NoGeneratedInterfaces" => { kind: "write", body: <<~RUBY },
         def call
           define_method(:x) { 1 }
         end
       RUBY
-      "Shipshape/TypedArguments" => { kind: "command", body: <<~RUBY },
+      "Shipshape/TypedArguments" => { kind: "write", body: <<~RUBY },
         def initialize(unasserted:)
           @unasserted = unasserted
         end
       RUBY
-      "Shipshape/OneOperationOneClass" => { kind: "command", body: <<~RUBY },
+      "Shipshape/OneOperationOneClass" => { kind: "write", body: <<~RUBY },
         def call; end
 
         def second_operation; end
@@ -106,7 +106,7 @@ module Shipshape
       RUBY
       "Shipshape/OnlyTheDoorIsCalled" => { kind: "request_handling", body: <<~RUBY },
         def show
-          OtherQuery.build_from(params)
+          OtherRead.build_from(params)
         end
       RUBY
       "Shipshape/NoEntryPointBypass" => { kind: "request_handling", body: <<~RUBY },
@@ -114,12 +114,12 @@ module Shipshape
           Settle.send(:new, amount: 1)
         end
       RUBY
-      "Shipshape/AnonymityIsClosedDownward" => { kind: "command", body: <<~RUBY },
+      "Shipshape/AnonymityIsClosedDownward" => { kind: "write", body: <<~RUBY },
         def anonymous_call
-          OtherQuery.call
+          OtherRead.call
         end
       RUBY
-      "Shipshape/OperationsAreLeaves" => { kind: "command", body: <<~RUBY },
+      "Shipshape/OperationsAreLeaves" => { kind: "write", body: <<~RUBY },
         def self.call(**arguments)
           new(**arguments).call
         end
@@ -133,7 +133,7 @@ module Shipshape
       RUBY
       "Shipshape/AggregationIsReadable" => { kind: "workflow", body: <<~RUBY },
         def call
-          SomeCommand.call
+          SomeWrite.call
         end
       RUBY
       # Not kind-scoped: these read paths of their own, so the canary goes there directly.
@@ -192,8 +192,8 @@ module Shipshape
           end
         end
       RUBY
-      "Shipshape/EveryDoorChecksPermission" => { path: "app/shipshape/command.rb", raw: <<~RUBY },
-        class Command
+      "Shipshape/EveryDoorChecksPermission" => { path: "app/shipshape/write.rb", raw: <<~RUBY },
+        class Write
           def self.call(**arguments)
             new(**arguments).call
           end
@@ -204,7 +204,7 @@ module Shipshape
           t.string "email"
         end
       RUBY
-      "Shipshape/CommandsProveIdempotence" => { kind: "command", body: <<~RUBY },
+      "Shipshape/WritesProveIdempotence" => { kind: "write", body: <<~RUBY },
         def call
           success(1)
         end
@@ -212,17 +212,17 @@ module Shipshape
       "Shipshape/AssociationsSurviveErasure" => { kind: "record", body: <<~RUBY },
         has_many :comments
       RUBY
-      "Shipshape/IoIsItsOwnKind" => { kind: "command", body: <<~RUBY },
+      "Shipshape/IoIsItsOwnKind" => { kind: "write", body: <<~RUBY },
         def call
           Net::HTTP.get(URI("http://example.com"))
         end
       RUBY
-      "Shipshape/QueriesOnlyRead" => { kind: "query", body: <<~RUBY },
+      "Shipshape/ReadsWriteNothing" => { kind: "read", body: <<~RUBY },
         def call
           CanaryRecord.create!(name: "x")
         end
       RUBY
-      "Shipshape/OperationsOpenNoTransaction" => { kind: "command", body: <<~RUBY },
+      "Shipshape/OperationsOpenNoTransaction" => { kind: "write", body: <<~RUBY },
         def call
           ActiveRecord::Base.transaction { @thing.save! }
         end
@@ -262,15 +262,15 @@ module Shipshape
       "Shipshape/OperationsReportWhatTheyDid" => {
         "app/shipshape/audit_log.rb" => "module AuditLog\nend\n",
       },
-      "Shipshape/CallGraph" => { kind: "query", name: "OtherQuery" },
-      "Shipshape/OnlyTheDoorIsCalled" => { kind: "query", name: "OtherQuery" },
-      "Shipshape/QueriesOnlyRead" => { kind: "record", name: "Canary" },
+      "Shipshape/CallGraph" => { kind: "read", name: "OtherRead" },
+      "Shipshape/OnlyTheDoorIsCalled" => { kind: "read", name: "OtherRead" },
+      "Shipshape/ReadsWriteNothing" => { kind: "record", name: "Canary" },
       "Shipshape/PersonalDataIsDeclared" => {
         "app/shipshape/personal_data.rb" => "module PersonalData\n  COLUMNS = {}.freeze\nend\n",
       },
       # A module is only a violation because an operation includes it.
       "Shipshape/MixinsAddNothingPublic" => {
-        "app/commands/pays_something.rb" => "class PaysSomething < Command\n  include Paying\n\n  def call; end\nend\n",
+        "app/writes/pays_something.rb" => "class PaysSomething < Write\n  include Paying\n\n  def call; end\nend\n",
       },
     }.freeze
 
@@ -431,7 +431,7 @@ module Shipshape
       cop.split("/").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
     end
 
-    # Never overwrites: `--plant --dir .` replaced `.rubocop.yml` and `command.rb` with stubs.
+    # Never overwrites: `--plant --dir .` replaced `.rubocop.yml` and `write.rb` with stubs.
     def write(relative, source)
       target = File.join(root, relative)
       raise Error, "shipshape: #{relative} already exists; canaries never overwrite" if File.exist?(target)

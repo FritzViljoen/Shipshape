@@ -43,8 +43,8 @@ class InstallTest < Minitest::Test
   end
 
   # `test_call` is declared entirely inside each template's auth branch, so a comment naming it
-  # must be too. Watched to fail: putting the line above `<%- if auth -%>` in `command.rb.tt`
-  # reddens this, because the rendered `Command` then describes a method it does not define.
+  # must be too. Watched to fail: putting the line above `<%- if auth -%>` in `write.rb.tt`
+  # reddens this, because the rendered `Write` then describes a method it does not define.
   def test_a_non_auth_install_has_no_comment_promising_test_call
     in_app do |root|
       Shipshape::Install.new(root: root, auth: false).call
@@ -131,8 +131,8 @@ class InstallTest < Minitest::Test
 
       assert_equal everything.length, report[:written].length
       assert_empty report[:skipped]
-      assert_path_exists File.join(root, "app/shipshape/command.rb")
-      assert_path_exists File.join(root, "app/shipshape/legacy_query.rb")
+      assert_path_exists File.join(root, "app/shipshape/write.rb")
+      assert_path_exists File.join(root, "app/shipshape/legacy_read.rb")
       assert_path_exists File.join(root, "lib/tasks/shipshape_routes.rake")
     end
   end
@@ -165,7 +165,7 @@ class InstallTest < Minitest::Test
     in_app do |root|
       install(root)
 
-      target = File.join(root, "app/shipshape/command.rb")
+      target = File.join(root, "app/shipshape/write.rb")
       File.write(target, "# mine now\n")
 
       report = install(root)
@@ -179,7 +179,7 @@ class InstallTest < Minitest::Test
     in_app do |root|
       report = install(root)
 
-      assert_includes report[:written], "app/shipshape/command.rb"
+      assert_includes report[:written], "app/shipshape/write.rb"
       assert_empty report[:skipped]
       assert_empty report[:diverged]
     end
@@ -200,13 +200,13 @@ class InstallTest < Minitest::Test
   def test_a_file_present_and_differing_is_reported_and_left_untouched
     in_app do |root|
       install(root)
-      target = File.join(root, "app/shipshape/command.rb")
+      target = File.join(root, "app/shipshape/write.rb")
       File.write(target, "# mine now\n")
 
       report = install(root)
 
-      assert_includes report[:diverged], "app/shipshape/command.rb"
-      refute_includes report[:skipped], "app/shipshape/command.rb"
+      assert_includes report[:diverged], "app/shipshape/write.rb"
+      refute_includes report[:skipped], "app/shipshape/write.rb"
       assert_equal everything.length - 1, report[:skipped].length,
         "everything else still matches what the gem would write"
       assert_equal "# mine now\n", File.read(target), "the adopter's file is never touched"
@@ -215,7 +215,7 @@ class InstallTest < Minitest::Test
       assert_path_exists new_file
       refute_equal "# mine now\n", File.read(new_file)
 
-      in_app { |fresh| install(fresh) && assert_equal(read_installed(fresh, "app/shipshape/command.rb"), File.read(new_file)) }
+      in_app { |fresh| install(fresh) && assert_equal(read_installed(fresh, "app/shipshape/write.rb"), File.read(new_file)) }
     end
   end
 
@@ -225,7 +225,7 @@ class InstallTest < Minitest::Test
   def test_a_new_file_no_longer_needed_is_reported_stale_and_left_alone
     in_app do |root|
       install(root)
-      target = File.join(root, "app/shipshape/command.rb")
+      target = File.join(root, "app/shipshape/write.rb")
       File.write(target, "# mine now\n")
       install(root)
       new_file = "#{target}.new"
@@ -233,7 +233,7 @@ class InstallTest < Minitest::Test
       File.write(target, File.read(new_file))
       report = install(root)
 
-      assert_includes report[:stale], "app/shipshape/command.rb"
+      assert_includes report[:stale], "app/shipshape/write.rb"
       assert_empty report[:diverged]
       assert_path_exists new_file, "reported, never deleted"
     end
@@ -242,13 +242,13 @@ class InstallTest < Minitest::Test
   def test_a_new_file_still_diverging_is_not_reported_stale
     in_app do |root|
       install(root)
-      target = File.join(root, "app/shipshape/command.rb")
+      target = File.join(root, "app/shipshape/write.rb")
       File.write(target, "# mine now\n")
       install(root)
 
       report = install(root)
 
-      assert_includes report[:diverged], "app/shipshape/command.rb"
+      assert_includes report[:diverged], "app/shipshape/write.rb"
       assert_empty report[:stale]
     end
   end
@@ -267,16 +267,16 @@ class InstallTest < Minitest::Test
     in_app do |root|
       install(root)
 
-      refute_path_exists File.join(root, "app/commands")
-      refute_path_exists File.join(root, "app/queries"),
-        "The base classes define the shapes; they are not instances of them. `Command` is not a command, so they sit outside the governed trees and no cop classifies them."
+      refute_path_exists File.join(root, "app/writes")
+      refute_path_exists File.join(root, "app/reads"),
+        "The base classes define the shapes; they are not instances of them. `Write` is not a write, so they sit outside the governed trees and no cop classifies them."
     end
   end
 
   def test_it_writes_every_class_the_default_config_names
     defaults = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s)
     named = defaults.fetch("Shipshape/CallGraph").fetch("BaseClasses").values.flatten
-    generated = %w[Workflow Command Query IoQuery IoCommand LegacyQuery LegacyCommand Shape]
+    generated = %w[Workflow Write Read IoRead IoWrite LegacyRead LegacyWrite Shape]
 
     # Named so kinds resolve and so a class inheriting one reads as a first level. Shipshape
     # does not write them, because they already exist.
@@ -297,7 +297,7 @@ class InstallTest < Minitest::Test
     in_app do |root|
       report = Shipshape::Install.new(root: root, directory: "lib/shapes").call
 
-      assert_includes report[:written], "lib/shapes/command.rb"
+      assert_includes report[:written], "lib/shapes/write.rb"
     end
   end
 

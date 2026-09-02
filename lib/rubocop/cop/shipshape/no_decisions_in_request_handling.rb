@@ -9,8 +9,8 @@ module RuboCop
       class NoDecisionsInRequestHandling < Base
         include ReadsKinds
 
-        # The two questions this layer may ask, and the only two. `success?` is a command's
-        # outcome; `present?` is whether a query found anything, and it answers correctly for
+        # The two questions this layer may ask, and the only two. `success?` is a write's
+        # outcome; `present?` is whether a read found anything, and it answers correctly for
         # all three legal answers — `nil` and `[]` are absent, a shape and an array are present.
         PERMITTED = %i[success? present?].freeze
 
@@ -35,7 +35,7 @@ module RuboCop
         RUBY
 
         PLACED = <<~RUBY
-          result = SomeCommand.call(...)   # answers success(...) or failure(:code)
+          result = SomeWrite.call(...)   # answers success(...) or failure(:code)
 
           if result.success?               # placing, not deciding
             redirect_to somewhere_path
