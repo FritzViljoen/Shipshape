@@ -21,8 +21,6 @@ Shipshape/BaseTestClassGrowth:
   Enabled: true
 Shipshape/CallGraph:
   Enabled: true
-Shipshape/CommandsProveIdempotence:
-  Enabled: true
 Shipshape/CommentBudget:
   Enabled: true
 Shipshape/EnforcementMessagesAreDocumentation:
@@ -88,13 +86,15 @@ Shipshape/PresenceIsNotRedefined:
   Enabled: true
 Shipshape/PresentationHoldsNoRecords:
   Enabled: true
-Shipshape/QueriesOnlyRead:
+Shipshape/ReadsWriteNothing:
   Enabled: true
 Shipshape/ShapeIsComposed:
   Enabled: true
 Shipshape/TypedArguments:
   Enabled: true
 Shipshape/WorkflowsBranchOnOutcome:
+  Enabled: true
+Shipshape/WritesProveIdempotence:
   Enabled: true
 
 AllCops:
