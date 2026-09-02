@@ -41,6 +41,8 @@ module Shipshape
     # Tests, not cops: a cop reads source and cannot see an include through a variable.
     TESTS = %w[operations_expose_nothing_test personal_data_is_erasable_test].freeze
 
+    BASE_TESTS = %w[test_case].freeze # never for RSpec: its own sharing is a mixin
+
     TEST_DIRECTORY = "test/shipshape"
 
     RSPEC_DIRECTORY = "spec/shipshape"
@@ -70,6 +72,7 @@ module Shipshape
 
       write_into(directory, files, report)
       write_into(test_directory, TESTS, report, suffix: rspec ? "_spec" : "_test")
+      write_into(test_directory, rspec ? [] : BASE_TESTS, report)
       write_into(TASK_DIRECTORY, auth ? TASKS : [], report, extension: "rake")
 
       report
