@@ -3,7 +3,7 @@
 require "test_helper"
 
 # Watched to fail: dropping `node.receiver` reddens the receiver test; dropping `self_type?`
-# reddens the `extend self` test; resolving against the wrong tree reddens the Devise test.
+# reddens the `extend self` test; an exact-join-only `Kinds#under_roots` reddens the support tests.
 class NoTestMixinsTest < Minitest::Test
   include CopRunner
 
@@ -18,6 +18,21 @@ class NoTestMixinsTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "puts behaviour on this test from a file"
+  end
+
+  # Exercises constant resolution, unlike every case above, which reaches for `extend self`.
+  def test_a_module_in_the_support_directory_is_an_offence
+    found = check("class FooTest < TestCase\n  include SignsInAsAdmin\nend\n",
+                   files: { "test/support/signs_in_as_admin.rb" => "module SignsInAsAdmin\nend\n" })
+
+    assert_equal 1, found.length
+  end
+
+  def test_a_module_in_the_spec_support_directory_is_an_offence
+    found = check("class FooTest < TestCase\n  include SignsInAsAdmin\nend\n",
+                   files: { "spec/support/signs_in_as_admin.rb" => "module SignsInAsAdmin\nend\n" })
+
+    assert_equal 1, found.length
   end
 
   def test_extend_and_prepend_are_the_same_offence
