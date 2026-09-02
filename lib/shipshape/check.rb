@@ -5,6 +5,7 @@ require "tmpdir"
 require "shipshape/error"
 require "shipshape/git"
 require "shipshape/coverage"
+require "shipshape/guards"
 require "shipshape/offences"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
@@ -32,10 +33,12 @@ module Shipshape
       raise Error, "shipshape: #{root} is not a git repository." unless git.repository?
 
       sha = git.merge_base(trunk_name)
-      head = Offences.new(directory: root, config: config && File.join(root, config)).call
+      resolved = config && File.join(root, config)
+      head = Offences.new(directory: root, config: resolved).call
+      off = Guards.new(directory: root, config: resolved).call
       base, lived = git.at(sha) { |path| [measure_base(path), population(path)] }
 
-      report(base: base, head: head, sha: sha, before: lived, after: population(root))
+      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root))
     end
 
     private
@@ -97,7 +100,7 @@ module Shipshape
     end
 
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
-    def report(base:, head:, sha:, before: {}, after: {})
+    def report(base:, head:, off:, sha:, before: {}, after: {})
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -112,7 +115,7 @@ module Shipshape
         rows[cop] = { was: was, now: now } if now < was
       end
 
-      { base: base, head: head, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
+      { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
         retiring: arrived_in(before, after) }
     end
   end

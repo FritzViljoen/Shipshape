@@ -275,6 +275,11 @@ def check(trunk)
   puts "baseline #{report[:sha][0, 12]} (merge-base with #{report[:trunk]})"
   puts
 
+  if report[:off].any?
+    report[:off].each { |cop| puts "  OFF      #{cop} — disabled, so nothing here is measured" }
+    puts
+  end
+
   report[:fallen].each { |cop, row| puts "  fell     #{cop}  #{row[:was]} -> #{row[:now]}" }
   report[:risen].each { |cop, row| puts "  ROSE     #{cop}  #{row[:was]} -> #{row[:now]}" }
   report[:retiring].each do |kind, row|
@@ -295,10 +300,13 @@ end
 
 def report_clean(report)
   total = report[:head].values.sum
+  off = report[:off]
 
   puts "  held     nothing rose"
   puts
-  puts "#{total} offence(s) remain, and that is the new floor."
+  line = "#{total} offence(s) remain, and that is the new floor."
+  line += " #{off.length} guard(s) are off; their code is unmeasured." if off.any?
+  puts line
   0
 end
 
