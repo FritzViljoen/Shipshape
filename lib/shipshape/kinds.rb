@@ -93,8 +93,19 @@ module Shipshape
       nil
     end
 
+    # A `**` root matches at any depth, so an unnamespaced file falls back to a recursive search.
     def under_roots(glob, relative)
-      roots_of(glob).map { |root| File.join(root, relative) }.find { |path| File.file?(path) }
+      recursive = glob.include?("**")
+
+      roots_of(glob).each do |root|
+        exact = File.join(root, relative)
+        return exact if File.file?(exact)
+
+        found = recursive && Dir.glob(File.join(root, "**", relative)).find { |path| File.file?(path) }
+        return found if found
+      end
+
+      nil
     end
 
     # A glob naming one file is not a root: resolving constants against its directory classified
@@ -118,8 +129,7 @@ module Shipshape
       absolute[prefix.length..-1]
     end
 
-    # Trailing wildcards are dropped and the rest expanded on disk, so Packwerk works. Taking
-    # everything before the FIRST wildcard resolved every pack constant against `packs`, silently.
+    # Trailing wildcards drop and the rest expands on disk — the FIRST wildcard alone resolved every pack against `packs`.
     def roots_of(glob)
       root_cache[glob] ||= begin
         segments = glob.split("/")
