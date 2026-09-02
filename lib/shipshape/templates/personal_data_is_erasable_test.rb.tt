@@ -4,6 +4,7 @@
 require "rails_helper"
 <%- else -%>
 require "test_helper"
+require_relative "test_case"
 <%- end -%>
 
 # Read from the schema, so a new column fails this until it is classified. It proves the
@@ -11,7 +12,7 @@ require "test_helper"
 <%- if rspec -%>
 RSpec.describe "personal data is erasable" do
 <%- else -%>
-class PersonalDataIsErasableTest < ActiveSupport::TestCase
+class PersonalDataIsErasableTest < TestCase
 <%- end -%>
   NAMES = %w[
     email phone mobile telephone address postcode zipcode ip_address

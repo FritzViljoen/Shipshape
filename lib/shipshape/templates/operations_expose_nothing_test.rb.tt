@@ -7,9 +7,10 @@ require "rails_helper"
 RSpec.describe "operations expose nothing" do
 <%- else -%>
 require "test_helper"
+require_relative "test_case"
 
 # `one-operation-one-class`, asked of the loaded app.
-class OperationsExposeNothingTest < ActiveSupport::TestCase
+class OperationsExposeNothingTest < TestCase
 <%- end -%>
   DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
 
