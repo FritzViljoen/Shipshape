@@ -23,9 +23,18 @@ one invents a date and an offset it never had.
 - **Principle:** `nothing-crosses-unasserted`. `absence-is-absence` produces the no-default
   half: an ambient zone is a fact nobody stated.
 - **Guard:** the required keyword, which is the language's own error at the call site; the
-  offset check in the parser; the type refusal in the argument guard; and
-  `Shipshape/NoAmbientReads`, which forbids the ambient read that would go around all three.
+  offset check in the parser; `Shipshape/TypedArguments`, which holds the declared-type half
+  at lint time; `typed`'s own `matches?`, which holds the value half at runtime; and
+  `Shipshape/NoAmbientReads`, which forbids the ambient read that would go around all four.
 
 - **Guard's limit:** nothing stops an ambient zone being read outside the trees
   `NoAmbientReads` covers. Within its trees the read list is closed. Neither guard can tell
   whether a `Date` should have been a moment.
+
+  `Shipshape/TypedArguments` only reads inside `initialize` of a governed kind: a bare
+  `typed(at, Time)` in `call`, or in a private assert helper reached from `initialize`,
+  reports nothing. It also matches the spelling written at the call site, not the type it
+  resolves to — `Moment = Time` then `typed(at, Moment)` reports 0, and so does `MyApp::Time`.
+
+  `install` never overwrites, so an application installed before this fix keeps the old,
+  permissive `matches?` — the value half is simply absent there.
