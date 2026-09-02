@@ -60,7 +60,9 @@ true.
 ## A test calls `test_call`, because authorisation is not the operation's behaviour
 
 Calling operations for setup does not mean assembling a grant bag to build a booking. So
-`Command` and `Query` carry a second entry point:
+`Command`, `Query`, `LegacyCommand` and `LegacyQuery` carry a second entry point — every kind
+that reaches a record. `IoCommand` and `IoQuery` do not: they touch no record, so there is no
+state for a test to build through them, and a test doubles the wire instead:
 
 ```ruby
 booking = CreateBooking.test_call(offer_id: offer.id).value
