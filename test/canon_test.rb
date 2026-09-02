@@ -40,6 +40,11 @@ class CanonTest < Minitest::Test
     "EveryDoorChecksPermission" =>
       "authorisation is a rollout rather than a decomposition: nothing is moved, a check " \
       "is added. It reports zero until `shipshape install --auth` has been run.",
+    "NoTestMixins" =>
+      "the fix is one of two moves and deciding between them is the whole of the work: " \
+      "inline the method into the one test that needs it, or add it to the base class in " \
+      "the open. Unlike the operation-side module (`a-shared-concern.md`), a test mixin " \
+      "carries no concerns-of-concerns, no captured ivars and no split-by-includer question.",
     "AnonymityIsClosedDownward" =>
       "the fix is a one-word decision — this operation is anonymous or it is not — and " \
       "nothing moves either way. It also reports zero until authorisation is installed, " \

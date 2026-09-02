@@ -63,6 +63,7 @@ require "rubocop/cop/shipshape/commands_prove_idempotence"
 require "rubocop/cop/shipshape/personal_data_is_declared"
 require "rubocop/cop/shipshape/queries_only_read"
 require "rubocop/cop/shipshape/operations_open_no_transaction"
+require "rubocop/cop/shipshape/no_test_mixins"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),

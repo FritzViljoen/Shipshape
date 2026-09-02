@@ -241,6 +241,16 @@ module Shipshape
           end
         end
       RUBY
+      # Not kind-scoped: the test tree has none. A bare-word `include`, exactly as it appears
+      # opening a class, needs no companion to resolve.
+      "Shipshape/NoTestMixins" => { path: "test/canary_mixin_test.rb", raw: <<~RUBY },
+        module CanaryMixin
+        end
+
+        class CanaryMixinTest
+          include CanaryMixin
+        end
+      RUBY
     }.freeze
 
     # A canary sometimes needs a second file to be a violation at all: a cop that skips an

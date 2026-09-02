@@ -1039,3 +1039,16 @@ Shipshape/OperationsReportWhatTheyDid:
     - io_command
     - legacy_command
   Recorder: AuditLog
+
+Shipshape/NoTestMixins:
+  Description: >-
+    A test shares behaviour by inheriting the one base test class, never by mixing a module
+    into itself - the same argument Shipshape/MixinsAddNothingPublic makes for operations.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+    # `*` does not cross a `/` under `File::FNM_PATHNAME`, matching NoTestFactories's own fix.
+    - '**/test/**/*.rb'
+    - '**/spec/**/*.rb'

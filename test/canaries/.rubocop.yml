@@ -58,6 +58,8 @@ Shipshape/NoSilentCoercion:
   AutoCorrect: false
 Shipshape/NoTestFactories:
   Enabled: true
+Shipshape/NoTestMixins:
+  Enabled: true
 Shipshape/NoTypeInterrogation:
   Enabled: true
 Shipshape/NoUnparsedLookup:
