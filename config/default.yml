@@ -1052,3 +1052,21 @@ Shipshape/NoTestMixins:
     # `*` does not cross a `/` under `File::FNM_PATHNAME`, matching NoTestFactories's own fix.
     - '**/test/**/*.rb'
     - '**/spec/**/*.rb'
+
+Shipshape/BaseTestClassGrowth:
+  Description: >-
+    A base test class every other test inherits from is identified by where it lives, not by
+    what it is named - every file under a test tree that is not itself a leaf test. Growth on
+    it is a ratchet: the count of definitions it holds, and its size in lines, only fall.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  # A leaf test - one whose name says a suite runs it directly - is excluded; everything else
+  # under a test tree is presumed a base or support class and held to the ratchet.
+  Include:
+    - 'test/**/*.rb'
+    - 'spec/**/*.rb'
+    - '**/test/**/*.rb'
+    - '**/spec/**/*.rb'
+  Exclude:
+    - '**/*_test.rb'
+    - '**/*_spec.rb'

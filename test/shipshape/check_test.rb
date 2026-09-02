@@ -7,7 +7,9 @@ require "fileutils"
 
 # A real repository, two real commits, two real RuboCop runs. Stubbing any of it would test
 # the arithmetic and leave the part that goes wrong — the worktree, the config copy, the JSON.
-# Watched to fail: returning `{}` from `population` reddens the retiring test.
+# Watched to fail: returning `{}` from `population` reddens the retiring test. Returning `{}`
+# from `lines_of` reddens the growth test below it; reverting `Offences#call` to discard the
+# per-file grouping reddens it too, since `paths_for` would have nothing left to read.
 class CheckTest < Minitest::Test
   RUBOCOP_YML = <<~YAML
     require:
@@ -187,6 +189,37 @@ class CheckTest < Minitest::Test
     end
   end
 
+  def test_a_base_test_class_that_grew_is_refused
+    in_growth_repo(baseline: BASE_TEST_CASE) do |root|
+      write(root, "test/support/admin_test_case.rb", GROWN_BASE_TEST_CASE)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 3, now: 5 }, report[:growth]["test/support/admin_test_case.rb"])
+      assert_equal({ was: 1, now: 2 }, report[:risen]["Shipshape/BaseTestClassGrowth"],
+        "the definition count is the existing per-cop offence ratchet, unchanged")
+    end
+  end
+
+  def test_a_base_test_class_that_did_not_grow_is_not_refused
+    in_growth_repo(baseline: BASE_TEST_CASE) do |root|
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_empty report[:growth]
+      assert_empty report[:risen]
+    end
+  end
+
+  def test_a_leaf_test_growing_is_not_the_ratchets_business
+    in_growth_repo(path: "test/support/admin_test_case_test.rb", baseline: BASE_TEST_CASE) do |root|
+      write(root, "test/support/admin_test_case_test.rb", GROWN_BASE_TEST_CASE)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_empty report[:growth], "a file named like a leaf test is excluded, not ratcheted"
+    end
+  end
+
   private
 
   def gem_root
@@ -225,6 +258,51 @@ class CheckTest < Minitest::Test
         query: []
         legacy_query: []
   YAML
+
+  GROWTH_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+  YAML
+
+  BASE_TEST_CASE = <<~RUBY
+    class AdminTestCase < ActiveSupport::TestCase
+      def sign_in_as_admin; end
+    end
+  RUBY
+
+  GROWN_BASE_TEST_CASE = <<~RUBY
+    class AdminTestCase < ActiveSupport::TestCase
+      def sign_in_as_admin; end
+
+      def travel_to(time); end
+    end
+  RUBY
+
+  # A repository with no operations at all — `Shipshape/BaseTestClassGrowth` needs none, and
+  # this proves it: `Shipshape/CallGraph`'s Kinds fall back to the gem's own defaults, which
+  # name paths nothing here uses, so the retiring machinery stays empty and silent.
+  def in_growth_repo(path: "test/support/admin_test_case.rb", baseline:)
+    with_gem_on_the_load_path do
+      Dir.mktmpdir("shipshape-repo") do |root|
+        git!(root, "init", "--quiet", "-b", "trunk")
+        git!(root, "config", "user.email", "test@example.com")
+        git!(root, "config", "user.name", "test")
+
+        write(root, ".rubocop.yml", GROWTH_YML)
+        write(root, path, baseline)
+
+        git!(root, "add", "-A")
+        git!(root, "commit", "--quiet", "-m", "baseline")
+        git!(root, "checkout", "--quiet", "-b", "branch")
+
+        yield(root)
+      end
+    end
+  end
 
   def in_repo(baseline: OTHER_QUERY, config: nil)
     with_gem_on_the_load_path do

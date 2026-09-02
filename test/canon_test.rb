@@ -45,6 +45,10 @@ class CanonTest < Minitest::Test
       "inline the method into the one test that needs it, or add it to the base class in " \
       "the open. Unlike the operation-side module (`a-shared-concern.md`), a test mixin " \
       "carries no concerns-of-concerns, no captured ivars and no split-by-includer question.",
+    "BaseTestClassGrowth" =>
+      "the offence names the exact definition that grew the count. The fix is to delete it, " \
+      "inline it into the one test that needs it, or accept it as a reviewed addition - " \
+      "there is no multi-step decomposition to walk to find it.",
     "AnonymityIsClosedDownward" =>
       "the fix is a one-word decision — this operation is anonymous or it is not — and " \
       "nothing moves either way. It also reports zero until authorisation is installed, " \

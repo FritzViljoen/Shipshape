@@ -17,6 +17,8 @@ Shipshape/AnonymityIsClosedDownward:
   Enabled: true
 Shipshape/AssociationsSurviveErasure:
   Enabled: true
+Shipshape/BaseTestClassGrowth:
+  Enabled: true
 Shipshape/CallGraph:
   Enabled: true
 Shipshape/CommandsProveIdempotence:
