@@ -114,11 +114,12 @@ class BaseTestClassGrowthTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  # `BaseTestClassLines` reads sizes back from this same investigation - a qualifying class
-  # records its own span, not a second reader's re-walk of the file.
-  def test_a_qualifying_class_records_its_own_span
-    COP.reset_spans!
-    check(<<~RUBY)
+  # The span travels as an offence - `BaseTestClassLines` reads it back from RuboCop's own
+  # JSON, never from state held on this class. `record_span` is a no-op unless the reader
+  # asks for it, so a plain `rubocop` run - this test's default, `RECORD_SPANS_ENV` unset -
+  # emits none of it.
+  def test_a_span_offence_is_not_recorded_unless_asked_for
+    found = check(<<~RUBY)
       class TestCase < ActiveSupport::TestCase
         def sign_in_as(actor)
           @actor = actor
@@ -126,54 +127,90 @@ class BaseTestClassGrowthTest < Minitest::Test
       end
     RUBY
 
-    assert_equal [5], COP.merged_sizes.values
+    assert_empty spans(found)
+  end
+
+  # `BaseTestClassLines` reads sizes back from this same investigation - a qualifying class
+  # records its own span, not a second reader's re-walk of the file.
+  def test_a_qualifying_class_records_its_own_span
+    found = with_span_recording do
+      check(<<~RUBY)
+        class TestCase < ActiveSupport::TestCase
+          def sign_in_as(actor)
+            @actor = actor
+          end
+        end
+      RUBY
+    end
+
+    assert_equal [1..5], spans(found)
   end
 
   def test_a_qualifying_module_records_its_own_span
-    COP.reset_spans!
-    check(<<~RUBY, path: "test/support/shared_setup.rb")
-      module SharedSetup
-        extend self
+    found = with_span_recording do
+      check(<<~RUBY, path: "test/support/shared_setup.rb")
+        module SharedSetup
+          extend self
 
-        def a_confirmed_booking(**args)
-          BookingRecord.create!(**args, state: "confirmed")
+          def a_confirmed_booking(**args)
+            BookingRecord.create!(**args, state: "confirmed")
+          end
         end
-      end
-    RUBY
+      RUBY
+    end
 
-    assert_equal [7], COP.merged_sizes.values
+    assert_equal [1..7], spans(found)
   end
 
   def test_a_non_qualifying_class_records_no_span
-    COP.reset_spans!
-    check(<<~RUBY, path: "test/mailers/previews/user_mailer_preview.rb")
-      class UserMailerPreview < ActionMailer::Preview
-        def welcome
-          UserMailer.welcome
+    found = with_span_recording do
+      check(<<~RUBY, path: "test/mailers/previews/user_mailer_preview.rb")
+        class UserMailerPreview < ActionMailer::Preview
+          def welcome
+            UserMailer.welcome
+          end
         end
-      end
-    RUBY
+      RUBY
+    end
 
-    assert_empty COP.spans
+    assert_empty spans(found)
   end
 
-  # A module wrapping the class it declares would otherwise count the same lines twice.
-  def test_a_module_wrapping_a_qualifying_class_merges_into_one_span
-    COP.reset_spans!
-    check(<<~RUBY, path: "test/support/wrapped_test_case.rb")
-      module Support
-        class WrappedTestCase < ActiveSupport::TestCase
-          def sign_in_as_admin; end
+  # A module wrapping the class it declares emits two overlapping span offences - merging
+  # them into one size is `BaseTestClassLines`' job, over RuboCop's own JSON, not a second
+  # copy of this classification.
+  def test_a_module_wrapping_a_qualifying_class_records_both_spans
+    found = with_span_recording do
+      check(<<~RUBY, path: "test/support/wrapped_test_case.rb")
+        module Support
+          class WrappedTestCase < ActiveSupport::TestCase
+            def sign_in_as_admin; end
+          end
         end
-      end
-    RUBY
+      RUBY
+    end
 
-    assert_equal [5], COP.merged_sizes.values
+    assert_equal [1..5, 2..4], spans(found)
   end
 
   private
 
   def check(source, path: "test/support/admin_test_case.rb")
     offences(source, cop_class: COP, path: path)
+  end
+
+  # `RECORD_SPANS_ENV` is `BaseTestClassLines`' own signal to its subprocess - set and torn
+  # down around one call here, never left on for a test that runs after this one.
+  def with_span_recording
+    was = ENV[COP::RECORD_SPANS_ENV]
+    ENV[COP::RECORD_SPANS_ENV] = "1"
+    yield
+  ensure
+    ENV[COP::RECORD_SPANS_ENV] = was
+  end
+
+  def spans(found)
+    found.select { |offence| offence.message == COP::SPAN_MESSAGE }
+         .map { |offence| offence.location.line..offence.location.last_line }
   end
 end
