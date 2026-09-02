@@ -91,6 +91,9 @@ class CheckTest < Minitest::Test
       assert_equal 1, report[:head]["Shipshape/CallGraph"]
       assert_equal 1, report[:base]["Shipshape/CallGraph"],
         "Both trees are measured with the HEAD tree's config. Without that, turning a cop on would find its offences in head and none in base, and enabling a cop would be a five-hundred-offence event on any real application."
+      assert_includes report[:off], "Shipshape/OneOperationOneClass"
+      refute_includes report[:off], "Shipshape/CallGraph",
+        "off is read from the branch's own config, not the trunk's — the branch re-enabled this one"
     end
   end
 
