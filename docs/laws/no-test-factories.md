@@ -46,6 +46,14 @@ So the factory is downstream of the undivided model, and removing it before the 
 only moves the pain. That is also why this is the **last** guard to switch on: `test_call` has
 nothing to call until the commands are there.
 
+**The direction also runs the other way, which is why the guard is worth having at all.**
+Without a factory, a god model is improbable. Nobody tolerates constructing a 113-column row by
+hand, test after test — the pain lands on every test that touches it, and the model gets divided
+instead. **Improbable, not impossible**: a determined author can still hand-write the columns and
+a team can still tolerate it, so this is not a proof. But a factory is what removes the one force
+that would otherwise have made the model's size somebody's problem — so banning it is not only
+cleanup after the model is divided, it is part of what divides it.
+
 ## Setup pain is a signal, and a factory is a way of not hearing it
 
 Fourteen calls to build one fixture says the model is wrong: too many required collaborators,
@@ -119,8 +127,16 @@ factoried. If nothing in the application creates a thing, a test may load it dir
   that calls the correct operations to reach a state nobody wants passes; so does one that
   reaches a legal state and asserts nothing about it.
 
-  It matches the factory libraries it knows by name, so a helper of your own — `def
-  a_booking(...)` wrapping raw `create!` — is not caught, and that is the shape a suite reaches
-  for the day after this lands. **That one is a factory**: shared, curated, and blessing what it
-  builds, with none of the honesty of the `create!` inside it. The rule that survives is the one
-  a reader applies.
+  It matches the factory libraries it knows by name, so a helper of your own is not caught, and
+  that is the shape a suite reaches for the day after this lands. `BookingRecord.create!(status:
+  "confirmed", offer_id: 3, ...)` written inline, in the one test that needs it, is ugly, visible
+  in review, and belongs to that test — this law has no complaint. The same call moved into
+  `test/support/booking_helper.rb` and called by forty tests is a factory wearing a different
+  name: shared, blessed, laundering the same fiction, and invisible to a cop that only knows
+  `FactoryBot`'s shapes by name.
+
+  **The line this law draws was never factory-gem versus `ActiveRecord`. It is
+  shared-and-reused versus local-and-confessed.** A `create!` written once, in one test, stays
+  what it is. The same call behind a helper name, `include`d or required everywhere, is exactly
+  what this law exists to refuse — the guard just cannot see it yet. The rule that survives is
+  the one a reader applies.
