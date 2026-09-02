@@ -297,8 +297,12 @@ def check(trunk)
   report[:retiring].each do |kind, row|
     puts "  ARRIVED  #{kind}  #{row[:was]} -> #{row[:now]} files — that kind is on its way out"
   end
+  report[:growth].each do |path, row|
+    puts "  GREW     #{path}  #{row[:was]} -> #{row[:now]} lines"
+  end
 
-  return report_clean(report) if report[:risen].empty? && report[:retiring].empty?
+  clean = report[:risen].empty? && report[:retiring].empty? && report[:growth].empty?
+  return report_clean(report) if clean
 
   puts
   if report[:risen].any?
@@ -306,6 +310,9 @@ def check(trunk)
   end
   if report[:retiring].any?
     puts "Code arrived in a kind that is on its way out. It is a waypoint, not a destination."
+  end
+  if report[:growth].any?
+    puts "A base test class held less before. `a-test-inherits-what-it-needs` ratchets its size."
   end
   1
 end

@@ -34,16 +34,33 @@ module Shipshape
 
       sha = git.merge_base(trunk_name)
       resolved = config && File.join(root, config)
-      head = Offences.new(directory: root, config: resolved).call
+      head_offences = Offences.new(directory: root, config: resolved)
+      head = head_offences.call
       off = Guards.new(directory: root, config: resolved).call
-      base, lived = git.at(sha) { |path| [measure_base(path), population(path)] }
+      head_lines = lines_of(root, head_offences)
 
-      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root))
+      base, lived, base_lines = git.at(sha) do |path|
+        base_offences = measure_base(path)
+        [base_offences.call, population(path), lines_of(path, base_offences)]
+      end
+
+      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
+             lines_before: base_lines, lines_after: head_lines)
     end
 
     private
 
     attr_reader :root, :trunk, :git, :config
+
+    GROWTH_COP = "Shipshape/BaseTestClassGrowth"
+
+    # A file's line count, read once from exactly the files that cop already found — not a
+    # second count of what a base class is.
+    def lines_of(directory, offences)
+      offences.paths_for(GROWTH_COP).each_with_object({}) do |relative, rows|
+        rows[relative] = File.readlines(File.join(directory, relative)).length
+      end
+    end
 
     def trunk_name
       @trunk_name ||= trunk || git.default_trunk
@@ -67,7 +84,7 @@ module Shipshape
         FileUtils.cp(source, target)
       end
 
-      Offences.new(directory: path, config: config && target).call
+      Offences.new(directory: path, config: config && target)
     end
 
     def relative(path)
@@ -100,7 +117,7 @@ module Shipshape
     end
 
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
-    def report(base:, head:, off:, sha:, before: {}, after: {})
+    def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {})
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -116,7 +133,7 @@ module Shipshape
       end
 
       { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
-        retiring: arrived_in(before, after) }
+        retiring: arrived_in(before, after), growth: arrived_in(lines_before, lines_after) }
     end
   end
 end

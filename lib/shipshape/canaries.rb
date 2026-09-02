@@ -251,6 +251,15 @@ module Shipshape
           include CanaryMixin
         end
       RUBY
+      # Named so it is never mistaken for a leaf test: `Shipshape/BaseTestClassGrowth`
+      # excludes `_test.rb`, so a canary ending in it would prove nothing.
+      "Shipshape/BaseTestClassGrowth" => { path: "test/canary_base_test_class.rb", raw: <<~RUBY },
+        class CanaryBaseTestClass
+          def canary_definition
+            1
+          end
+        end
+      RUBY
     }.freeze
 
     # A canary sometimes needs a second file to be a violation at all: a cop that skips an

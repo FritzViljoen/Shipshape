@@ -20,19 +20,27 @@ module Shipshape
     end
 
     def call
-      report = JSON.parse(json)
+      Hash.new(0).merge(by_cop.transform_values(&:length))
+    end
 
-      report.fetch("files", []).each_with_object(Hash.new(0)) do |file, counts|
-        file.fetch("offenses", []).each do |offence|
-          name = offence.fetch("cop_name")
-          counts[name] += 1 if name.start_with?("#{DEPARTMENT}/")
-        end
-      end
+    def paths_for(cop_name) # what Check reads to measure what an offence count alone cannot
+      by_cop.fetch(cop_name, []).map { |offence| offence.fetch(:path) }.uniq
     end
 
     private
 
     attr_reader :directory, :config
+
+    def by_cop
+      @by_cop ||= JSON.parse(json).fetch("files", []).each_with_object(Hash.new { |h, k| h[k] = [] }) do |file, grouped|
+        path = file.fetch("path").sub(%r{\A\./}, "")
+
+        file.fetch("offenses", []).each do |offence|
+          name = offence.fetch("cop_name")
+          grouped[name] << { path: path } if name.start_with?("#{DEPARTMENT}/")
+        end
+      end
+    end
 
     # Exit 1 is normal, so only the parse is checked: a crash is not "none found".
     def json
