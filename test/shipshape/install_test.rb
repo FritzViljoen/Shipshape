@@ -41,6 +41,25 @@ class InstallTest < Minitest::Test
     end
   end
 
+  # `test_call` is declared entirely inside each template's auth branch, so a comment naming it
+  # must be too. Watched to fail: putting the line above `<%- if auth -%>` in `command.rb.tt`
+  # reddens this, because the rendered `Command` then describes a method it does not define.
+  def test_a_non_auth_install_has_no_comment_promising_test_call
+    in_app do |root|
+      Shipshape::Install.new(root: root, auth: false).call
+
+      offenders = Dir[File.join(root, "app/shipshape/*.rb")].sort.filter_map do |path|
+        source = File.read(path)
+        next if source.include?("def self.test_call")
+
+        promising = source.lines.select { |line| line.include?("test_call") && !line.match?(/no `test_call`/i) }
+        "#{path.delete_prefix("#{root}/")}: #{promising.join}" if promising.any?
+      end
+
+      assert_empty offenders, "a comment describes `test_call` in a kind whose non-auth render has none"
+    end
+  end
+
   # A guard written in the wrong framework is a file that never runs: lobsters got two Minitest
   # ones into a suite that is entirely RSpec. Detected from the tree, never asked.
   def test_a_repository_with_a_spec_directory_gets_rspec_guards
