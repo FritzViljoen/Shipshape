@@ -27,6 +27,14 @@ class BaseTestClassLinesTest < Minitest::Test
       Enabled: false
   YAML
 
+  # No `require:` at all - a `--format` naming an unresolved class crashes rubocop outright,
+  # unlike `Offences`, which just finds nothing.
+  NO_REQUIRE_YML = <<~YAML
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+  YAML
+
   def test_a_base_test_classs_own_span_is_its_size
     in_repo(RUBOCOP_YML) do |root|
       write(root, "test/support/admin_test_case.rb", <<~RUBY)
@@ -133,6 +141,18 @@ class BaseTestClassLinesTest < Minitest::Test
       RUBY
 
       assert_empty call(root)
+    end
+  end
+
+  def test_a_target_that_never_requires_shipshape_still_measures
+    in_repo(NO_REQUIRE_YML) do |root|
+      write(root, "test/support/admin_test_case.rb", <<~RUBY)
+        class AdminTestCase < ActiveSupport::TestCase
+          def sign_in_as_admin; end
+        end
+      RUBY
+
+      assert_equal 3, call(root).fetch("test/support/admin_test_case.rb")
     end
   end
 

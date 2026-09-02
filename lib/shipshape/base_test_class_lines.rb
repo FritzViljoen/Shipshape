@@ -8,8 +8,7 @@ require "shipshape/typed_arguments"
 
 module Shipshape
   # Every file `Shipshape/BaseTestClassGrowth` visits, and its qualifying bodies' merged size
-  # in lines - read back from that cop's own investigation via `ShipshapeTestClassSizes`,
-  # never a second walk of the AST, so `Enabled` and `Exclude` need no second reading either.
+  # in lines - read back from that cop's own investigation, never a second walk of the AST.
   class BaseTestClassLines
     include TypedArguments
 
@@ -40,8 +39,11 @@ module Shipshape
       end
     end
 
+    # `--require` loads the formatter itself - a target's own config may never say
+    # `require: shipshape`, and naming an unresolved class in `--format` crashes.
     def command(out)
-      arguments = [RbConfig.ruby, rubocop, "--format", FORMATTER, "--out", out, "--no-color"]
+      arguments = [RbConfig.ruby, rubocop, "--require", "shipshape", "--format", FORMATTER,
+                   "--out", out, "--no-color"]
       arguments += ["--config", config] if config
 
       arguments
