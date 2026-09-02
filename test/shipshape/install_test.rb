@@ -161,6 +161,40 @@ class InstallTest < Minitest::Test
     end
   end
 
+  # A `.new` outlives the divergence that wrote it. Adopting the gem's version leaves the file
+  # beside it referring to nothing; without this, `diverged` silently goes empty and the leftover
+  # is never named again.
+  def test_a_new_file_no_longer_needed_is_reported_stale_and_left_alone
+    in_app do |root|
+      install(root)
+      target = File.join(root, "app/shipshape/command.rb")
+      File.write(target, "# mine now\n")
+      install(root)
+      new_file = "#{target}.new"
+
+      File.write(target, File.read(new_file))
+      report = install(root)
+
+      assert_includes report[:stale], "app/shipshape/command.rb"
+      assert_empty report[:diverged]
+      assert_path_exists new_file, "reported, never deleted"
+    end
+  end
+
+  def test_a_new_file_still_diverging_is_not_reported_stale
+    in_app do |root|
+      install(root)
+      target = File.join(root, "app/shipshape/command.rb")
+      File.write(target, "# mine now\n")
+      install(root)
+
+      report = install(root)
+
+      assert_includes report[:diverged], "app/shipshape/command.rb"
+      assert_empty report[:stale]
+    end
+  end
+
   def test_every_generated_file_is_valid_ruby
     in_app do |root|
       install(root)

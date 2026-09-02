@@ -48,6 +48,7 @@ def install(auth, view_components)
   report[:written].each { |path| puts "  written  #{path}" }
   report[:skipped].each { |path| puts "  kept     #{path}" }
   report[:diverged].each { |path| puts "  DIFFERS  #{path} — wrote #{path}.new to compare against" }
+  report[:stale].each { |path| puts "  STALE    #{path}.new — #{path} matches this run again; remove the .new yourself" }
 
   outcome, path = Shipshape::WireTypedParams.new(root: Dir.pwd).call
   puts format(WIRING.fetch(outcome), path: path)
@@ -59,6 +60,10 @@ def install(auth, view_components)
          " and view-components: #{view_components} — diff each against its own .new file yourself;"
     puts "a diff run here would mix your edits into the gem's changes. If those are not the flags"
     puts "you meant to install with, that is the likely reason, not a template that moved on."
+  end
+  if report[:stale].any?
+    puts "#{report[:stale].length} .new file(s) are left from an earlier divergence that this run"
+    puts "no longer sees; nothing here deletes them."
   end
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
   puts auth ? AUTH_ON : AUTH_OFF

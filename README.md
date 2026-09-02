@@ -50,8 +50,11 @@ differs — it never recorded what wrote it — so it only ever compares against
 would write, and it prints the flags this run used: a common cause is installing with `--auth`
 one time and without it the next, not the template moving on. `install` never diffs the two for
 you, because that diff would mix your edits into the gem's changes with no way to tell which is
-which. They sit outside the governed trees because a base class is not an instance of the thing
-it defines: `Command` is not a command.
+which. A `.new` is never deleted either, even after it stops differing — once the file beside it
+matches this run again, `install` reports it `STALE` and leaves removing it to you. Neither kind
+of leftover is gitignored: a `.new` marks something still to review, and a `git status` that
+hides it is the wrong default. They sit outside the governed trees because a base class is not an
+instance of the thing it defines: `Command` is not a command.
 
 **Authorisation is opt-in and off by default.** Base classes demanding an `actor:` on day one
 would stop every call site at once — an outage, not a migration. See
