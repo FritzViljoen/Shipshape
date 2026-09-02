@@ -12,8 +12,9 @@ module RuboCop
 
         GUARDS = %i[typed typed_array typed_hash].freeze
 
-        # The declared spelling is the only place this rule can be held: `TimeWithZone`
-        # answers `is_a?(Time)` with true, so the runtime guard cannot tell a naive value apart.
+        # The declared type is caught here, at lint time, from the constant written at the
+        # call site. `typed` catches the value itself at runtime — but only on the line
+        # that actually runs, so this half still matters.
         NAIVE_MOMENTS = %w[Time DateTime].freeze
 
         UNNAMED = {
@@ -108,11 +109,10 @@ module RuboCop
             "`#{source}` names no zone, so this keyword accepts a moment nobody placed.",
             because: "A bare `#{source}` carries whatever offset the process happened to " \
                      "have, chosen by nobody, so the same instant renders as a different " \
-                     "wall clock on a differently configured machine. The runtime guard " \
-                     "cannot catch this one: `ActiveSupport::TimeWithZone` answers " \
-                     "`is_a?(Time)` with true, so a naive value declared `#{source}` passes " \
-                     "the assertion. The declared type is the only place the difference is " \
-                     "visible, and this is that place.",
+                     "wall clock on a differently configured machine. This cop catches the " \
+                     "declared type here, inside `initialize`, at lint time. `typed` catches " \
+                     "the value itself at runtime, wherever it is called, so a naive " \
+                     "#{source} still raises even from a call this cop cannot see.",
             instead: MOMENT,
           )
         end
