@@ -113,9 +113,51 @@ class InstallTest < Minitest::Test
       report = install(root)
 
       assert_empty report[:written]
-      assert_equal everything.length, report[:skipped].length,
-        "Once written, the file is the application's."
-      assert_equal "# mine now\n", File.read(target)
+      assert_equal "# mine now\n", File.read(target), "Once written, the file is the application's."
+    end
+  end
+
+  def test_a_file_absent_is_written
+    in_app do |root|
+      report = install(root)
+
+      assert_includes report[:written], "app/shipshape/command.rb"
+      assert_empty report[:skipped]
+      assert_empty report[:diverged]
+    end
+  end
+
+  def test_a_file_present_and_identical_is_kept_not_diverged
+    in_app do |root|
+      install(root)
+
+      report = install(root)
+
+      assert_empty report[:written]
+      assert_equal everything.length, report[:skipped].length
+      assert_empty report[:diverged]
+    end
+  end
+
+  def test_a_file_present_and_differing_is_reported_and_left_untouched
+    in_app do |root|
+      install(root)
+      target = File.join(root, "app/shipshape/command.rb")
+      File.write(target, "# mine now\n")
+
+      report = install(root)
+
+      assert_includes report[:diverged], "app/shipshape/command.rb"
+      refute_includes report[:skipped], "app/shipshape/command.rb"
+      assert_equal everything.length - 1, report[:skipped].length,
+        "everything else still matches what the gem would write"
+      assert_equal "# mine now\n", File.read(target), "the adopter's file is never touched"
+
+      new_file = "#{target}.new"
+      assert_path_exists new_file
+      refute_equal "# mine now\n", File.read(new_file)
+
+      in_app { |fresh| install(fresh) && assert_equal(read_installed(fresh, "app/shipshape/command.rb"), File.read(new_file)) }
     end
   end
 
