@@ -438,6 +438,12 @@ module Shipshape
     # commissioner catches it, prints this line to stderr, and moves on — leaving the cop
     # indistinguishable from one whose canary simply missed. Parsed here so the two stay
     # distinguishable to whatever reads the result.
+    #
+    # Neither rubocop's JSON report nor its exit status carries this: both stayed silent
+    # and 0 in a deliberately crashed run. This upstream sentence is the only signal, so
+    # `test/canaries_test.rb#test_the_crash_line_pattern_matches_rubocops_actual_crash_sentence`
+    # crashes a cop for real and pins this pattern against rubocop's own current wording —
+    # a reworded upstream sentence reddens that test instead of going silently unenforced.
     CRASH_LINE = /An error occurred while (\S+) cop was inspecting/.freeze
 
     # Not `inspect`: Ruby calls that regardless of visibility, so `p canaries` shelled out.
