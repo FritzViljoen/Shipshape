@@ -66,7 +66,6 @@ require "rubocop/cop/shipshape/reads_write_nothing"
 require "rubocop/cop/shipshape/operations_open_no_transaction"
 require "rubocop/cop/shipshape/no_test_mixins"
 require "rubocop/cop/shipshape/base_test_class_growth"
-require "rubocop/formatter/shipshape_test_class_sizes"
 
 RuboCop::ConfigLoader.default_configuration = RuboCop::ConfigLoader.merge_with_default(
   RuboCop::ConfigLoader.load_file(Shipshape::CONFIG_DEFAULT.to_s),
