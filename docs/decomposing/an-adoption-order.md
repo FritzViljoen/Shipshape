@@ -72,11 +72,15 @@ From here the inherited pile is not your bill; a rise is. **Enabling a cop is fr
 trees are measured with the head configuration, so switching one on finds its offences in the
 baseline too and none of them count as new.
 
-**Two cops start off, and it is not a concession.** A cop is off while obeying it would require
-something that does not exist yet. Add both to the repository's own `.rubocop.yml`:
+**Three cops start off, and it is not a concession.** A cop is off while obeying it would
+require something that does not exist yet. Add all three to the repository's own
+`.rubocop.yml`:
 
 ```yaml
 Shipshape/NoTestFactories:
+  Enabled: false
+
+Shipshape/NoTestMixins:
   Enabled: false
 
 Shipshape/NoDecisionsInRequestHandling:
@@ -86,10 +90,17 @@ Shipshape/NoDecisionsInRequestHandling:
 | cop | off until | because |
 |---|---|---|
 | `Shipshape/NoTestFactories` | step 8 | a test builds state by calling operations, and until step 6 there are none to call |
+| `Shipshape/NoTestMixins` | step 8 | a legacy suite shares setup through ad hoc modules the same way it shares state through factories, and turning this on before those are swept onto the base class makes every characterisation test's first touch a two-law fix |
 | `Shipshape/NoDecisionsInRequestHandling` | step 6 | an action places what an operation answered, and until then there is nothing answering |
 
-**Check:** `check` names both as `OFF` on every run, so the disclosure travels with the report
-rather than living only in `.rubocop.yml`.
+**`Shipshape/BaseTestClassGrowth` is not on this list, on purpose.** It fires only when a base
+or support class is itself edited — never on an ordinary leaf test — and the one thing it
+demands, growing the base class instead of a mixin, is the sanctioned alternative `NoTestMixins`
+already points at. Turning it off would remove the one guard against the first shared-setup
+addition ballooning, for a cop that does not penalise writing a test at all.
+
+**Check:** `check` names all three as `OFF` on every run, so the disclosure travels with the
+report rather than living only in `.rubocop.yml`.
 
 **The test for the list is not volume.** `Shipshape/PersistenceHoldsNoBehaviour` reports 351 on
 lobsters and stays on, because a large inherited count is exactly what the ratchet is for. What
@@ -186,6 +197,11 @@ blesses what it builds, and no cop can see it:
 ```sh
 grep -rn "def .*_for_test\|def make_\|def a_valid_" test spec
 ```
+
+**`Shipshape/NoTestMixins` turns on here too**, once the same sweep has moved a suite's shared
+`include`/`extend` modules onto the base class `shipshape install` wrote in step 0. It is the
+same migration the grep above is already looking for: a module a test mixes in to share setup is
+this law's target exactly as a helper wrapping `create!` is `no-test-factories`'s.
 
 ---
 
