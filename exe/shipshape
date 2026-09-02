@@ -23,8 +23,8 @@ WIRING = {
 AUTH_OFF = <<~TEXT
   Authorisation is OFF. `shipshape install --auth` writes the same base classes with a
   permission check in every door, and adds app/shipshape/permission.rb. Turn it on when
-  the seam is ready; existing files are never overwritten, so you will be shown a diff to
-  apply rather than having yours replaced.
+  the seam is ready; existing files are never overwritten, so a file that would change
+  lands beside yours as `.new` rather than having yours replaced.
 TEXT
 
 # The one generated file that can stop a boot: it inherits from the `view_component` gem.
@@ -47,12 +47,17 @@ def install(auth, view_components)
 
   report[:written].each { |path| puts "  written  #{path}" }
   report[:skipped].each { |path| puts "  kept     #{path}" }
+  report[:diverged].each { |path| puts "  DIFFERS  #{path} — wrote #{path}.new to compare against" }
 
   outcome, path = Shipshape::WireTypedParams.new(root: Dir.pwd).call
   puts format(WIRING.fetch(outcome), path: path)
 
   puts
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
+  if report[:diverged].any?
+    puts "#{report[:diverged].length} differ from what the gem ships now — diff each against its"
+    puts "own .new file yourself; a diff run here would mix your edits into the gem's changes."
+  end
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
   puts auth ? AUTH_ON : AUTH_OFF
   puts VIEW_COMPONENTS_OFF unless view_components

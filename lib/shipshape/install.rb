@@ -6,10 +6,8 @@ require "shipshape/error"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # Writes the base classes into an application. Generated, not inherited from this gem: one you
-  # can open beats one buried in a dependency, and it keeps shipshape a development dependency.
-  # They land in `app/shipshape/` because a base class is not an instance of what it defines.
-  # Nothing is ever overwritten — once written, a file is the application's.
+  # Writes the base classes into an application. Generated, not inherited from this gem — one
+  # you can open beats one buried in a dependency. Nothing already written is ever overwritten.
   class Install
     include TypedArguments
 
@@ -68,7 +66,7 @@ module Shipshape
     end
 
     def call
-      report = { written: [], skipped: [] }
+      report = { written: [], skipped: [], diverged: [] }
 
       write_into(directory, files, report)
       write_into(test_directory, TESTS, report, suffix: rspec ? "_spec" : "_test")
@@ -98,12 +96,22 @@ module Shipshape
         installed = suffix ? name.sub(/_test\z/, suffix) : name
         relative = File.join(folder, "#{installed}.#{extension}")
         target = File.join(root, relative)
+        rendered = template(name, extension)
 
-        next report[:skipped] << relative if File.exist?(target)
+        next compare(target, relative, rendered, report) if File.exist?(target)
 
-        File.write(target, template(name, extension))
+        File.write(target, rendered)
         report[:written] << relative
       end
+    end
+
+    # Nothing to compare against but what the gem writes today. Identical: silence. Different:
+    # the new version lands beside it as `.new` — diffing here would blend their edits into ours.
+    def compare(target, relative, rendered, report)
+      return report[:skipped] << relative if File.read(target) == rendered
+
+      File.write("#{target}.new", rendered)
+      report[:diverged] << relative
     end
 
     def files
