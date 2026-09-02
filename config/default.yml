@@ -776,8 +776,10 @@ Shipshape/MixinsAddNothingPublic:
     - io_query
     - legacy_command
     - legacy_query
-  # **Tests are exempt**, as they are for every rule about what code exposes. A test support
-  # module legitimately hands helpers to whatever includes it.
+  # Excluded because `OperationKinds` names workflows, commands, queries and IO doors, and no
+  # test file is any of those - not because a test module may hand out public helpers through a
+  # mixin. It may not: `Shipshape/NoTestMixins` forbids exactly that, everything this cop
+  # exempts included.
   Exclude:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
