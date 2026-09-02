@@ -18,6 +18,7 @@ class AssertionsCarryAMessageTest < Minitest::Test
     test/canaries_test.rb
     test/documents_have_one_shape_test.rb
     test/assertions_carry_a_message_test.rb
+    test/sanctioned_way_comes_first_test.rb
     lib/shipshape/templates/operations_expose_nothing_test.rb.tt
     lib/shipshape/templates/personal_data_is_erasable_test.rb.tt
   ].freeze
