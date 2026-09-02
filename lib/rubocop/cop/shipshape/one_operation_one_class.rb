@@ -33,6 +33,42 @@ module RuboCop
         # override the language asks for. Neither is a public method this counts.
         NOT_PUBLIC = %i[initialize initialize_copy respond_to_missing?].freeze
 
+        SPLIT = <<~RUBY
+          # nearly always: it is a helper, and it goes under `private`
+          class SettleInvoice < Command
+            def call
+              success(total)
+            end
+
+            private
+
+            def total
+              @lines.sum(&:amount)
+            end
+          end
+
+          # occasionally: it is a second operation, and it gets its own class
+          class TotalInvoice < Query
+            def call
+              success(@lines.sum(&:amount))
+            end
+          end
+        RUBY
+
+        ENTRANCE = <<~RUBY
+          # a constructor helper is the caller's business, or its own operation
+          SettleInvoice.call(invoice_id: invoice.id, settled_on: today)
+
+          # a constant belongs on the class; a computation belongs in `call`
+          class SettleInvoice < Command
+            TERMS = 30
+
+            def call
+              success(...)
+            end
+          end
+        RUBY
+
         def on_class(node)
           return unless operation?
           # A nested class is a part: judging `ReplyDraft::Draft` by the operation's rules
@@ -74,27 +110,7 @@ module RuboCop
                      "what both need — so nothing about the class can be asserted at " \
                      "construction. Only a shape exposes anything, because a shape's whole " \
                      "job is to be read.",
-            instead: <<~RUBY,
-              # nearly always: it is a helper, and it goes under `private`
-              class SettleInvoice < Command
-                def call
-                  success(total)
-                end
-
-                private
-
-                def total
-                  @lines.sum(&:amount)
-                end
-              end
-
-              # occasionally: it is a second operation, and it gets its own class
-              class TotalInvoice < Query
-                def call
-                  success(@lines.sum(&:amount))
-                end
-              end
-            RUBY
+            instead: SPLIT,
           )
         end
 
@@ -221,19 +237,7 @@ module RuboCop
                      "serves every call site — the permission check, the transaction, the " \
                      "return-type assertion — is not on the path that call took, and " \
                      "nothing at the call site shows which entrance was used.",
-            instead: <<~RUBY,
-              # a constructor helper is the caller's business, or its own operation
-              SettleInvoice.call(invoice_id: invoice.id, settled_on: today)
-
-              # a constant belongs on the class; a computation belongs in `call`
-              class SettleInvoice < Command
-                TERMS = 30
-
-                def call
-                  success(...)
-                end
-              end
-            RUBY
+            instead: ENTRANCE,
           )
         end
 

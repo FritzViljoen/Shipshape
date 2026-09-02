@@ -13,6 +13,21 @@ module RuboCop
         DECLARATIONS = %i[every recurring].freeze
         SCHEDULERS = %w[Sidekiq::Cron::Job Sidekiq::Scheduler Resque::Scheduler Clockwork].freeze
 
+        ROW = <<~RUBY
+          # a stored request, replayed on a cadence. It names a route rather than a class,
+          # because a path is a name already promised to the outside and a class name is one
+          # refactoring is free to change. `runs_as_id` is NOT NULL, so an unattributed
+          # schedule cannot be stored: if nobody will own it, it is not created.
+          Scheduling::CreateSchedule.call(
+            actor:      actor,
+            method:     "POST",
+            path:       "/invoices/settle",
+            params:     { tenant_id: tenant.id },
+            cadence:    "0 3 * * *",
+            runs_as_id: treasurer.id,
+          )
+        RUBY
+
         def on_send(node)
           return unless declaration?(node) || scheduler?(node)
 
@@ -46,21 +61,6 @@ module RuboCop
             instead: ROW,
           )
         end
-
-        ROW = <<~RUBY
-          # a stored request, replayed on a cadence. It names a route rather than a class,
-          # because a path is a name already promised to the outside and a class name is one
-          # refactoring is free to change. `runs_as_id` is NOT NULL, so an unattributed
-          # schedule cannot be stored: if nobody will own it, it is not created.
-          Scheduling::CreateSchedule.call(
-            actor:      actor,
-            method:     "POST",
-            path:       "/invoices/settle",
-            params:     { tenant_id: tenant.id },
-            cadence:    "0 3 * * *",
-            runs_as_id: treasurer.id,
-          )
-        RUBY
       end
     end
   end

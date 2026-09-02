@@ -18,6 +18,15 @@ module RuboCop
         # both machinery, and neither is prose anybody has to keep true.
         DIRECTIVE = /\A#\s*(frozen_string_literal|encoding|warn_indent|shareable_constant_value|rubocop):/.freeze
 
+        IN_THE_LAW = <<~RUBY
+          # The reasoning lives in the law, where it is reviewed when the law changes.
+          # What stays here is the clause that names it.
+
+          # Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
+          class Command
+          end
+        RUBY
+
         def on_new_investigation
           return if processed_source.blank?
 
@@ -58,14 +67,7 @@ module RuboCop
                      "Nobody reviews it, because nothing points at it when the rule " \
                      "changes. Three shipped in this gem were already false when this cop " \
                      "was written.",
-            instead: <<~RUBY
-              # The reasoning lives in the law, where it is reviewed when the law changes.
-              # What stays here is the clause that names it.
-
-              # Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
-              class Command
-              end
-            RUBY
+            instead: IN_THE_LAW,
           )
         end
       end

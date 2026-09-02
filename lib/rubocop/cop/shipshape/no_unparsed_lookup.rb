@@ -14,6 +14,12 @@ module RuboCop
                      exists? update update! create create! new destroy delete
                      insert insert_all upsert first_or_create].freeze
 
+        PARSED = <<~RUBY
+          # parsed once, at the edge, and refused if it is not what it claims to be
+          PersonRecord.find(integer_param!(:id))
+          BookingRecord.where(state: enum_param!(:state, %w[held sold]))
+        RUBY
+
         def on_send(node)
           return unless FINDERS.include?(node.method_name)
           return unless one_of?(governed_kinds)
@@ -74,11 +80,7 @@ module RuboCop
                      "`1abc` finds row 1 and nothing anywhere fails — no exception, no log " \
                      "line, no failing test. The request was wrong and the answer looked " \
                      "right, which is the one failure mode that survives to production.",
-            instead: <<~RUBY,
-              # parsed once, at the edge, and refused if it is not what it claims to be
-              PersonRecord.find(integer_param!(:id))
-              BookingRecord.where(state: enum_param!(:state, %w[held sold]))
-            RUBY
+            instead: PARSED,
           )
         end
 

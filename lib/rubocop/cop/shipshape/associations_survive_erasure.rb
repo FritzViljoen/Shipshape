@@ -13,6 +13,17 @@ module RuboCop
         # names is not this row's to delete.
         ASSOCIATIONS = %i[has_many has_one has_and_belongs_to_many].freeze
 
+        TEMPLATE = <<~RUBY
+          has_many :%<name>s, dependent: :destroy              # they go with it
+          has_many :%<name>s, dependent: :nullify              # they stay, unlinked
+          has_many :%<name>s, dependent: :restrict_with_error  # deletion is refused
+
+          # they stay and are anonymised? that is not a `dependent:` option at all. The
+          # anonymising is a command, called before the delete, and the column it
+          # overwrites is what app/shipshape/personal_data.rb marks :anonymise. Pick the
+          # option that says what happens to the rows, then write that command.
+        RUBY
+
         def on_send(node)
           return unless node.receiver.nil?
           return unless associations.include?(node.method_name)
@@ -46,16 +57,7 @@ module RuboCop
                      "problem is not that `:destroy` is missing; it is often the wrong " \
                      "answer. The problem is that nobody chose, and `dependent:` is the only " \
                      "place that choice can be written down.",
-            instead: <<~RUBY,
-              has_many :#{name}, dependent: :destroy              # they go with it
-              has_many :#{name}, dependent: :nullify              # they stay, unlinked
-              has_many :#{name}, dependent: :restrict_with_error  # deletion is refused
-
-              # they stay and are anonymised? that is not a `dependent:` option at all. The
-              # anonymising is a command, called before the delete, and the column it
-              # overwrites is what app/shipshape/personal_data.rb marks :anonymise. Pick the
-              # option that says what happens to the rows, then write that command.
-            RUBY
+            instead: format(TEMPLATE, name: name),
           )
         end
 

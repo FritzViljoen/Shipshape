@@ -17,6 +17,32 @@ module RuboCop
 
         READERS = %i[attr_reader attr_accessor attr_writer].freeze
 
+        PRIVATE_OR_QUERY = <<~RUBY
+          # the methods stay, and go under `private` — an operation's helpers, shared
+          module Paying
+            private
+
+            def total
+              @lines.sum(&:amount)
+            end
+          end
+
+          # if callers really need the answer, it is a query, not a mixin
+          class TotalOf < Query
+            def call
+              success(@lines.sum(&:amount))
+            end
+          end
+        RUBY
+
+        READER = <<~RUBY
+          module Paying
+            private
+
+            attr_reader :lines
+          end
+        RUBY
+
         def on_module(node)
           return unless mixin?(node)
 
@@ -73,23 +99,7 @@ module RuboCop
                      "reopened somewhere nobody looks for it. The same module is perfectly " \
                      "correct with these methods public if it is mixed into a shape, whose " \
                      "job is to be read; what makes it wrong is where it is going.",
-            instead: <<~RUBY,
-              # the methods stay, and go under `private` — an operation's helpers, shared
-              module Paying
-                private
-
-                def total
-                  @lines.sum(&:amount)
-                end
-              end
-
-              # if callers really need the answer, it is a query, not a mixin
-              class TotalOf < Query
-                def call
-                  success(@lines.sum(&:amount))
-                end
-              end
-            RUBY
+            instead: PRIVATE_OR_QUERY,
           )
         end
 
@@ -101,13 +111,7 @@ module RuboCop
             because: "A reader invites a caller to ask instead of tell: it reaches in, gets " \
                      "a value, and decides something the operation should have decided. " \
                      "What the operation has to say, it answers from `call`.",
-            instead: <<~RUBY,
-              module Paying
-                private
-
-                attr_reader :lines
-              end
-            RUBY
+            instead: READER,
           )
         end
 

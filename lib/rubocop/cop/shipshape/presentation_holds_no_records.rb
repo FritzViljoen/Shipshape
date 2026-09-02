@@ -13,6 +13,18 @@ module RuboCop
 
         SWEEP = "HoldsNoRecords"
 
+        TEMPLATE = <<~RUBY
+          class %<name>s < ApplicationViewComponent   # or Shape, or your own swept base
+          end
+
+          # standing on its own? then it does the asking itself
+          class %<name>s
+            include TypedArguments
+
+            extend %<sweep>s
+          end
+        RUBY
+
         def on_class(node)
           return unless one_of?(governed_kinds)
           return if inherits_a_governed_class?(node)
@@ -46,17 +58,7 @@ module RuboCop
                      "so the object is asked instead. The sweep is inherited, which is why a " \
                      "class below a swept base needs nothing; this is the base itself, or a " \
                      "class standing on its own outside one.",
-            instead: <<~RUBY
-              class #{name} < ApplicationViewComponent   # or Shape, or your own swept base
-              end
-
-              # standing on its own? then it does the asking itself
-              class #{name}
-                include TypedArguments
-
-                extend #{sweep}
-              end
-            RUBY
+            instead: format(TEMPLATE, name: name, sweep: sweep),
           )
         end
 

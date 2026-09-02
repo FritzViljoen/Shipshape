@@ -20,6 +20,24 @@ module RuboCop
           references belongs_to
         ].freeze
 
+        NOT_NULL = <<~RUBY
+          # the column refuses the gap
+          t.string :nickname, null: false
+
+          # nobody has said? That is the absence of a row, not a null in one.
+          create_table :person_nicknames do |t|
+            t.references :person, null: false, foreign_key: true
+            t.string :nickname, null: false
+          end
+          # the unique index is half the fix — without it the join holds two answers
+          add_index :person_nicknames, :person_id, unique: true
+
+          # adding to a populated table: nullable, filled, promoted, one method
+          add_column :people, :nickname, :string, null: true
+          PersonRecord.update_all(nickname: "")
+          change_column_null :people, :nickname, false
+        RUBY
+
         def on_new_investigation
           @promoted = []
         end
@@ -125,23 +143,7 @@ module RuboCop
                      "which. Every meaning given to it is a fact nobody declared, so the " \
                      "meaning lives in whichever query happens to be reading, and two " \
                      "queries disagree.",
-            instead: <<~RUBY,
-              # the column refuses the gap
-              t.string :nickname, null: false
-
-              # nobody has said? That is the absence of a row, not a null in one.
-              create_table :person_nicknames do |t|
-                t.references :person, null: false, foreign_key: true
-                t.string :nickname, null: false
-              end
-              # the unique index is half the fix — without it the join holds two answers
-              add_index :person_nicknames, :person_id, unique: true
-
-              # adding to a populated table: nullable, filled, promoted, one method
-              add_column :people, :nickname, :string, null: true
-              PersonRecord.update_all(nickname: "")
-              change_column_null :people, :nickname, false
-            RUBY
+            instead: NOT_NULL,
           )
         end
       end

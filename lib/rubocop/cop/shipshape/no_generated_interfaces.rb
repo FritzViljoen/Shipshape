@@ -19,6 +19,18 @@ module RuboCop
         # its own methods by name.
         SENDERS = %i[send __send__ public_send].freeze
 
+        WRITTEN = <<~RUBY
+          # written out: greppable, renameable, and the reader is done in one line
+          class Invoice < Shape
+            def initialize(number:, issued_on:)
+              @number = typed(number, String)
+              @issued_on = typed(issued_on, Date)
+            end
+
+            attr_reader :number, :issued_on
+          end
+        RUBY
+
         def on_send(node)
           return unless one_of?(governed_kinds)
 
@@ -84,18 +96,6 @@ module RuboCop
             instead: WRITTEN,
           )
         end
-
-        WRITTEN = <<~RUBY
-          # written out: greppable, renameable, and the reader is done in one line
-          class Invoice < Shape
-            def initialize(number:, issued_on:)
-              @number = typed(number, String)
-              @issued_on = typed(issued_on, Date)
-            end
-
-            attr_reader :number, :issued_on
-          end
-        RUBY
 
         def governed_kinds
           cop_config.fetch(

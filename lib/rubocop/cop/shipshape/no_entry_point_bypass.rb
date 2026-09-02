@@ -11,6 +11,15 @@ module RuboCop
 
         SENDERS = %i[send __send__ public_send method].freeze
 
+        THE_DOOR = <<~RUBY
+          # the door, which is the only supported way in
+          SettleInvoice.call(actor: actor, invoice_id: 1)
+
+          # in a test this is allowed and this cop is silent — but what the door does
+          # IS part of the behaviour, so a test that builds around it passes while the
+          # operation is unauthorised. Prefer going through it there too.
+        RUBY
+
         def on_send(node)
           return unless SENDERS.include?(node.method_name)
 
@@ -37,14 +46,7 @@ module RuboCop
                      "way has skipped all three, and the line reads like ordinary code. " \
                      "`private` is a convention in Ruby rather than a wall, so nothing the " \
                      "operation does can refuse this; the refusal has to be here.",
-            instead: <<~RUBY,
-              # the door, which is the only supported way in
-              SettleInvoice.call(actor: actor, invoice_id: 1)
-
-              # in a test this is allowed and this cop is silent — but what the door does
-              # IS part of the behaviour, so a test that builds around it passes while the
-              # operation is unauthorised. Prefer going through it there too.
-            RUBY
+            instead: THE_DOOR,
           )
         end
 

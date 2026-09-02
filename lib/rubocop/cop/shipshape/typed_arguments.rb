@@ -18,6 +18,16 @@ module RuboCop
           blockarg: nil,
         }.freeze
 
+        SHAPE = <<~RUBY
+          class SettleInvoice < Command
+            def initialize(invoice_id:, settled_on:, note: nil)
+              @invoice_id = typed(invoice_id, Integer)
+              @settled_on = typed(settled_on, Date)
+              @note = typed(note, String, allow_nil: true)   # absence says so, explicitly
+            end
+          end
+        RUBY
+
         def on_def(node)
           return unless node.method?(:initialize)
           return unless one_of?(governed_kinds)
@@ -73,16 +83,6 @@ module RuboCop
             instead: SHAPE,
           )
         end
-
-        SHAPE = <<~RUBY
-          class SettleInvoice < Command
-            def initialize(invoice_id:, settled_on:, note: nil)
-              @invoice_id = typed(invoice_id, Integer)
-              @settled_on = typed(settled_on, Date)
-              @note = typed(note, String, allow_nil: true)   # absence says so, explicitly
-            end
-          end
-        RUBY
 
         def governed_kinds
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query legacy_command legacy_query])

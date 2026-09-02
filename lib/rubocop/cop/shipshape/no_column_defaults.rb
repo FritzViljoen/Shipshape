@@ -15,6 +15,18 @@ module RuboCop
           add_column add_reference add_belongs_to change_column change_column_default
         ].freeze
 
+        NO_DEFAULT = <<~RUBY
+          # the column refuses the gap
+          t.string :state, null: false
+
+          # the domain names the fallback, in one place, where it can be read
+          class CreateBooking < Command
+            def call
+              BookingRecord.create!(state: @state || Booking::HELD)
+            end
+          end
+        RUBY
+
         def on_send(node)
           # `change_column_default` states the default positionally, with no `default:` to find.
           return positional_default(node) if node.method_name == :change_column_default
@@ -79,17 +91,7 @@ module RuboCop
                      "holds — not because nothing states it, but because two things do " \
                      "and they disagree. A row written outside the application silently " \
                      "gets the schema's answer instead of the domain's.",
-            instead: <<~RUBY,
-              # the column refuses the gap
-              t.string :state, null: false
-
-              # the domain names the fallback, in one place, where it can be read
-              class CreateBooking < Command
-                def call
-                  BookingRecord.create!(state: @state || Booking::HELD)
-                end
-              end
-            RUBY
+            instead: NO_DEFAULT,
           )
         end
       end

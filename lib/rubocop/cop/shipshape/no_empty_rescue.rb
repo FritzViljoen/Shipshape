@@ -12,6 +12,23 @@ module RuboCop
         LOGGERS = %w[logger Rails.logger Rails].freeze
         LOG_LEVELS = %i[debug info warn error fatal log].freeze
 
+        HANDLED = <<~RUBY
+          # a defect raises: it is nobody's answer, and the stack trace is the point
+          # an expected failure comes back as a value the caller can act on
+          def call
+            success(@gateway.charge(@amount))
+          rescue Supplier::Rejected => e
+            failure(:supplier_rejected, detail: e.message)
+          end
+
+          # at the call site, the only branch request handling is allowed
+          if result.success?
+            redirect_to receipt_path(result.value)
+          else
+            render :new, status: :unprocessable_entity
+          end
+        RUBY
+
         def on_resbody(node)
           body = node.body
 
@@ -63,22 +80,7 @@ module RuboCop
                      "errors that had already been signalled, and a third of those were " \
                      "an empty handler, a bare log, or a TODO. The caller now proceeds on " \
                      "a value that was never produced.",
-            instead: <<~RUBY,
-              # a defect raises: it is nobody's answer, and the stack trace is the point
-              # an expected failure comes back as a value the caller can act on
-              def call
-                success(@gateway.charge(@amount))
-              rescue Supplier::Rejected => e
-                failure(:supplier_rejected, detail: e.message)
-              end
-
-              # at the call site, the only branch request handling is allowed
-              if result.success?
-                redirect_to receipt_path(result.value)
-              else
-                render :new, status: :unprocessable_entity
-              end
-            RUBY
+            instead: HANDLED,
           )
         end
       end

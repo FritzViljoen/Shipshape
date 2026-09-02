@@ -20,6 +20,16 @@ module RuboCop
           after_rollback after_initialize after_find after_touch
         ].freeze
 
+        NAMED = <<~RUBY
+          # the operation that wanted the work says so, by name and in order
+          class ConfirmBooking < Command
+            def call
+              RecalculateTotals.call(booking: @booking)
+              success(@booking)
+            end
+          end
+        RUBY
+
         def on_send(node)
           return unless node.receiver.nil? && HOOKS.include?(node.method_name)
           return unless one_of?(record_kinds)
@@ -35,15 +45,7 @@ module RuboCop
             because: "The caller reads one method and gets several, in an order nothing " \
                      "states, and a failure in any of them is attributed to the save. A " \
                      "codebase with these cannot be read by following calls.",
-            instead: <<~RUBY,
-              # the operation that wanted the work says so, by name and in order
-              class ConfirmBooking < Command
-                def call
-                  RecalculateTotals.call(booking: @booking)
-                  success(@booking)
-                end
-              end
-            RUBY
+            instead: NAMED,
           )
         end
 

@@ -13,6 +13,16 @@ module RuboCop
         LIBRARIES = %w[FactoryBot FactoryGirl Fabricate Fabricator].freeze
         FIXTURES = %i[fixtures set_fixture_class].freeze
 
+        CALLED = <<~RUBY
+          # the state exists because the application can produce it, and the setup has
+          # exercised the operations that produce it
+          booking = CreateBooking.test_call(offer_id: offer.id).value
+          ConfirmBooking.test_call(booking_id: booking.id)
+
+          # reference data no operation creates is seeded, not factoried
+          currency = Currency.find_by!(code: "ZAR")
+        RUBY
+
         def on_send(node)
           return add_offense(node, message: fixture_message) if fixtures?(node)
           return unless factory?(node)
@@ -66,16 +76,6 @@ module RuboCop
             instead: CALLED,
           )
         end
-
-        CALLED = <<~RUBY
-          # the state exists because the application can produce it, and the setup has
-          # exercised the operations that produce it
-          booking = CreateBooking.test_call(offer_id: offer.id).value
-          ConfirmBooking.test_call(booking_id: booking.id)
-
-          # reference data no operation creates is seeded, not factoried
-          currency = Currency.find_by!(code: "ZAR")
-        RUBY
       end
     end
   end

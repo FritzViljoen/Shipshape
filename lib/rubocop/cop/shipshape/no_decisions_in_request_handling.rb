@@ -20,6 +20,30 @@ module RuboCop
         WRITES = %i[save save! update update! update_attributes destroy destroy! create create!
                     toggle touch increment decrement].freeze
 
+        TESTED = <<~RUBY
+          if SettleInvoice.call(id: integer_param!(:id)).success?
+            redirect_to invoices_path
+          else
+            render :show, status: :unprocessable_entity
+          end
+
+          if FindInvitation.call(code: text_param!(:code)).present?
+            render :invited
+          else
+            redirect_to signup_path
+          end
+        RUBY
+
+        PLACED = <<~RUBY
+          result = SomeCommand.call(...)   # answers success(...) or failure(:code)
+
+          if result.success?               # placing, not deciding
+            redirect_to somewhere_path
+          else
+            render :show, status: :unprocessable_entity
+          end
+        RUBY
+
         def on_if(node)
           return unless one_of?(handling_kinds)
           return if permitted?(node.condition)
@@ -49,19 +73,7 @@ module RuboCop
                      "greps a controller for business logic, so the copy here is the one that " \
                      "goes stale. An outcome arrives as a value; the action places a response " \
                      "for each one and reads straight down.",
-            instead: <<~RUBY,
-              if SettleInvoice.call(id: integer_param!(:id)).success?
-                redirect_to invoices_path
-              else
-                render :show, status: :unprocessable_entity
-              end
-
-              if FindInvitation.call(code: text_param!(:code)).present?
-                render :invited
-              else
-                redirect_to signup_path
-              end
-            RUBY
+            instead: TESTED,
           )
         end
 
@@ -79,15 +91,7 @@ module RuboCop
             because: "The rule now has two owners — this action and whatever else asks the " \
                      "same question — and they will disagree. Nobody greps a controller for " \
                      "business logic, so the copy here is the one that goes stale.",
-            instead: <<~RUBY,
-              result = SomeCommand.call(...)   # answers success(...) or failure(:code)
-
-              if result.success?               # placing, not deciding
-                redirect_to somewhere_path
-              else
-                render :show, status: :unprocessable_entity
-              end
-            RUBY
+            instead: PLACED,
           )
         end
 

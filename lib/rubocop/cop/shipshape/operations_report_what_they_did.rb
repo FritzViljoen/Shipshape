@@ -15,6 +15,19 @@ module RuboCop
 
         RECORDER = "AuditLog"
 
+        RECORDED = <<~RUBY
+          # after the work, before answering
+          AuditLog.record(
+            operation: name,
+            outcome: result.success? ? :succeeded : :failed,
+            error: result.error,
+          )
+
+          # and the refusal, before returning it — that is the entry somebody comes
+          # looking for
+          AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden)
+        RUBY
+
         def on_new_investigation
           return unless writing_operation?
           return unless audit_log_installed?
@@ -54,18 +67,7 @@ module RuboCop
                      "need them — and nothing else fails, so the trail is empty and the " \
                      "build is green. The gem's own suite proves the template records; once " \
                      "installed, the file is yours, and this is what notices.",
-            instead: <<~RUBY,
-              # after the work, before answering
-              AuditLog.record(
-                operation: name,
-                outcome: result.success? ? :succeeded : :failed,
-                error: result.error,
-              )
-
-              # and the refusal, before returning it — that is the entry somebody comes
-              # looking for
-              AuditLog.record(operation: name, outcome: :refused, actor: actor, error: :forbidden)
-            RUBY
+            instead: RECORDED,
           )
         end
 

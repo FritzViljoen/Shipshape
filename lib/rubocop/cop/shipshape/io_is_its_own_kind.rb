@@ -16,6 +16,26 @@ module RuboCop
           OpenURI Faraday RestClient HTTParty Excon Typhoeus Curl Curl::Easy HTTPX HTTPClient
         ].freeze
 
+        OWN_OPERATION = <<~RUBY
+          # the call is its own operation, in the kind that has accepted the bill for it
+          class ChargeCard < IoCommand
+            def call
+              success(Net::HTTP.post(uri, body))
+            end
+          end
+
+          # and a workflow sequences the outside call and the local write, which is the
+          # only kind obliged to make each step idempotent
+          class SettleInvoice < Workflow
+            def call
+              charged = ChargeCard.call(actor: actor, invoice_id: @id)
+              return charged if charged.failure?
+
+              RecordPayment.call(actor: actor, invoice_id: @id)
+            end
+          end
+        RUBY
+
         def on_send(node)
           receiver = node.receiver
           return unless receiver&.const_type?
@@ -41,25 +61,7 @@ module RuboCop
                      "file under any declared glob, and is skipped. So the rule held for IO " \
                      "filed as a kind and not for IO written inline, which is the form it " \
                      "arrives in.",
-            instead: <<~RUBY,
-              # the call is its own operation, in the kind that has accepted the bill for it
-              class ChargeCard < IoCommand
-                def call
-                  success(Net::HTTP.post(uri, body))
-                end
-              end
-
-              # and a workflow sequences the outside call and the local write, which is the
-              # only kind obliged to make each step idempotent
-              class SettleInvoice < Workflow
-                def call
-                  charged = ChargeCard.call(actor: actor, invoice_id: @id)
-                  return charged if charged.failure?
-
-                  RecordPayment.call(actor: actor, invoice_id: @id)
-                end
-              end
-            RUBY
+            instead: OWN_OPERATION,
           )
         end
 

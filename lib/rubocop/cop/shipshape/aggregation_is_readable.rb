@@ -12,6 +12,19 @@ module RuboCop
         RUNS = %i[call call_later].freeze
         SEQUENCES = %i[call anonymous_call].freeze
 
+        EXAMPLE = <<~RUBY
+          class SettleMonth < Workflow
+            # read out of `call`, so every permission below is demanded before the first
+            # line of work runs
+            def call
+              settled = SettleInvoice.call(actor: actor, invoice_id: @id)
+              return settled if settled.failure?
+
+              NotifyCustomer.call(actor: actor, invoice_id: @id)
+            end
+          end
+        RUBY
+
         def on_class(node)
           return unless one_of?(governed_kinds)
           return if node.each_ancestor(:class).any?
@@ -91,7 +104,7 @@ module RuboCop
                      "the actor may not run step three leaves steps one and two done and " \
                      "visible, with no rollback. Before the first step is the only moment " \
                      "refusing is free.",
-            instead: example,
+            instead: EXAMPLE,
           )
         end
 
@@ -103,7 +116,7 @@ module RuboCop
                      "demanded. The door then admits an actor the work will refuse, and the " \
                      "refusal arrives partway instead of at the door. It also makes the number " \
                      "`CallGraph.routes` prints wrong for every route above this one.",
-            instead: example,
+            instead: EXAMPLE,
           )
         end
 
@@ -114,23 +127,8 @@ module RuboCop
                      "at runtime resolves to none, so the operation demands nothing for work " \
                      "that still runs — and the build stays green, because there is nothing " \
                      "left to look at.",
-            instead: example,
+            instead: EXAMPLE,
           )
-        end
-
-        def example
-          <<~RUBY
-            class SettleMonth < Workflow
-              # read out of `call`, so every permission below is demanded before the first
-              # line of work runs
-              def call
-                settled = SettleInvoice.call(actor: actor, invoice_id: @id)
-                return settled if settled.failure?
-
-                NotifyCustomer.call(actor: actor, invoice_id: @id)
-              end
-            end
-          RUBY
         end
 
         def step_kinds

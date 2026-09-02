@@ -12,6 +12,19 @@ module RuboCop
         RUNS = %i[call call_later].freeze
         KINDS = %w[workflow command query io_command io_query legacy_command legacy_query].freeze
 
+        CLOSED = <<~RUBY
+          # what an anonymous operation reaches is anonymous too, so nothing guarded runs
+          # without somebody having been asked
+          class LogIn < Command
+            def anonymous_call
+              FindPersonByEmail.call(email: @email)
+            end
+          end
+
+          # and where the work genuinely needs a grant, the caller is the one that holds it:
+          # this operation implements `call`, takes an actor, and aggregates what it reaches
+        RUBY
+
         def on_def(node)
           return unless node.method_name == :anonymous_call
           return unless one_of?(governed_kinds)
@@ -70,19 +83,6 @@ module RuboCop
             instead: CLOSED,
           )
         end
-
-        CLOSED = <<~RUBY
-          # what an anonymous operation reaches is anonymous too, so nothing guarded runs
-          # without somebody having been asked
-          class LogIn < Command
-            def anonymous_call
-              FindPersonByEmail.call(email: @email)
-            end
-          end
-
-          # and where the work genuinely needs a grant, the caller is the one that holds it:
-          # this operation implements `call`, takes an actor, and aggregates what it reaches
-        RUBY
 
         # The legacy trees are in both lists: omitting them left the cop blind where laundering
         # is likeliest.
