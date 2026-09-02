@@ -4,6 +4,7 @@ require "fileutils"
 require "tmpdir"
 require "shipshape/error"
 require "shipshape/git"
+require "shipshape/base_test_class_lines"
 require "shipshape/coverage"
 require "shipshape/guards"
 require "shipshape/offences"
@@ -37,13 +38,15 @@ module Shipshape
       head_offences = Offences.new(directory: root, config: resolved)
       head = head_offences.call
       off = Guards.new(directory: root, config: resolved).call
+      lines_after = BaseTestClassLines.new(directory: root, config: resolved).call
 
-      base, lived = git.at(sha) do |path|
+      base, lived, lines_before = git.at(sha) do |path|
         base_offences, base_config = measure_base(path)
-        [base_offences.call, population(path)]
+        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call]
       end
 
-      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root))
+      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
+             lines_before: lines_before, lines_after: lines_after)
     end
 
     private
@@ -59,6 +62,17 @@ module Shipshape
         before = was.fetch(kind, 0)
         after = now.fetch(kind, 0)
         rows[kind] = { was: before, now: after } if after > before
+      end
+    end
+
+    # A file the base tree never had is not growth: it has nothing to compare against, so its
+    # size at HEAD becomes the new floor instead.
+    def grown_files(was, now)
+      now.each_with_object({}) do |(file, size), rows|
+        next unless was.key?(file)
+
+        before = was.fetch(file)
+        rows[file] = { was: before, now: size } if size > before
       end
     end
 
@@ -105,7 +119,7 @@ module Shipshape
     end
 
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
-    def report(base:, head:, off:, sha:, before: {}, after: {})
+    def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {})
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -121,7 +135,7 @@ module Shipshape
       end
 
       { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
-        retiring: arrived_in(before, after) }
+        retiring: arrived_in(before, after), growth: grown_files(lines_before, lines_after) }
     end
   end
 end
