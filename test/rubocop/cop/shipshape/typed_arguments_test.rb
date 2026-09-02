@@ -121,9 +121,8 @@ class TypedArgumentsTest < Minitest::Test
     RUBY
   end
 
-  # The runtime guard cannot hold this: `TimeWithZone` answers `is_a?(Time)` with true, so a
-  # naive value declared `Time` passes the assertion. The declared type is the only place the
-  # difference is visible, and the law claimed this was already refused when it was not.
+  # This cop catches the declared type, at lint time, before anything runs. `typed`
+  # catches the value too, at runtime — but only on the line that actually executes.
   def test_a_keyword_declared_as_a_bare_time_names_no_zone
     found = check(<<~RUBY)
       class SettleInvoice
