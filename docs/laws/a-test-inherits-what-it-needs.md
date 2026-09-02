@@ -163,13 +163,19 @@ a guard set is only tested by something actively trying to get work done through
   ratchet gamed by trading one number for another is that failure wearing this law's clothes.
   The second number that closes this hole — the qualifying node's own size in lines — is built
   against this cop's own classification, not a second copy of it: `on_class` and `on_module`
-  record the span of every class or module they already decided qualifies, and
-  `RuboCop::Formatter::ShipshapeTestClassSizes` reads that record back once the same run ends,
-  so a file's classification happens once, in one process, for both numbers. A working version
-  existed on an earlier branch and was pulled back out: it reimplemented this cop's
-  classification (`qualifying_superclass?`, the module rule, the dummy-app exclusion) a second
-  time, in a separate subprocess, and that duplication — not the law, not the offence-count
-  half — was where three straight review cycles kept finding new bugs. `Enabled` and `Exclude`
-  need no second reading either: a disabled cop or an excluded file never reaches `on_class` or
-  `on_module` at all, so nothing is recorded for it, exactly as the offence count sees nothing
-  from it.
+  are the only place that decides what qualifies, for both numbers alike. The span travels as
+  an offence, the same channel the definition count already uses, rather than as state held on
+  the cop's own class — RuboCop forks a worker per file once there is more than one to inspect,
+  and replays a warm run's offences from its own result cache without calling `on_class` or
+  `on_module` again, so state held in the parent process is blind to what a worker recorded or
+  what a cache hit skipped recording. Collecting and caching offences correctly across workers
+  and runs is RuboCop's own job, so an offence survives both; `BaseTestClassLines` reads the
+  span back from RuboCop's own JSON, filtering on a fixed, machine-read `SPAN_MESSAGE` no
+  human-facing offence uses, guarded by `RECORD_SPANS_ENV` so a plain `rubocop` run never emits
+  it. A working version existed on an earlier branch and was pulled back out: it reimplemented
+  this cop's classification (`qualifying_superclass?`, the module rule, the dummy-app
+  exclusion) a second time, in a separate subprocess, and that duplication — not the law, not
+  the offence-count half — was where three straight review cycles kept finding new bugs.
+  `Enabled` and `Exclude` need no second reading either: a disabled cop or an excluded file
+  never reaches `on_class` or `on_module` at all, so nothing is recorded for it, exactly as the
+  offence count sees nothing from it.
