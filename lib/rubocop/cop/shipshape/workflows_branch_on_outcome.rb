@@ -13,6 +13,20 @@ module RuboCop
         # work, and the work is for passing on.
         OUTCOME = %i[success? failure? error].freeze
 
+        ANSWERED = <<~RUBY
+          # the outcome is what a workflow may ask
+          return failure(charge.error) if charge.failure?
+
+          # the rule belongs to whoever owns the number, and comes back as a code
+          class ChargeCard < IoCommand
+            def call
+              return failure(:over_limit) if @amount_cents > LIMIT
+
+              success(...)
+            end
+          end
+        RUBY
+
         def on_if(node)
           return unless one_of?(governed_kinds)
 
@@ -51,19 +65,7 @@ module RuboCop
                      "read out of the answer — a total, a status, a tier — is a rule that " \
                      "now applies to this one sequence instead of to every caller of the " \
                      "operation that owns it, and the next sequence will not have it.",
-            instead: <<~RUBY,
-              # the outcome is what a workflow may ask
-              return failure(charge.error) if charge.failure?
-
-              # the rule belongs to whoever owns the number, and comes back as a code
-              class ChargeCard < IoCommand
-                def call
-                  return failure(:over_limit) if @amount_cents > LIMIT
-
-                  success(...)
-                end
-              end
-            RUBY
+            instead: ANSWERED,
           )
         end
 

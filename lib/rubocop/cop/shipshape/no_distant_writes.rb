@@ -9,6 +9,18 @@ module RuboCop
       class NoDistantWrites < Base
         include ReadsKinds
 
+        RETURNED = <<~RUBY
+          # the change comes back as a value, so the call site can see it
+          class SwitchTenant < Command
+            def call
+              success(Session.new(tenant: @tenant))
+            end
+          end
+
+          # and it is handed to whoever needs it, by name
+          RunReport.call(session: result.value)
+        RUBY
+
         def on_gvasgn(node)
           offend(node, "`#{node.children.first}` is a global.")
         end
@@ -48,18 +60,6 @@ module RuboCop
             instead: RETURNED,
           )
         end
-
-        RETURNED = <<~RUBY
-          # the change comes back as a value, so the call site can see it
-          class SwitchTenant < Command
-            def call
-              success(Session.new(tenant: @tenant))
-            end
-          end
-
-          # and it is handed to whoever needs it, by name
-          RunReport.call(session: result.value)
-        RUBY
 
         def governed_kinds
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])

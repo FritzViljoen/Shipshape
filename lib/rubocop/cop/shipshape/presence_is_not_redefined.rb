@@ -12,6 +12,20 @@ module RuboCop
 
         PRESENCE = %i[present? blank? empty?].freeze
 
+        SILENT = <<~RUBY
+          # a shape holds values and computes nothing, so it says nothing about presence
+          class Basket < Shape
+            def initialize(lines:)
+              @lines = typed_array(lines, Line)
+            end
+
+            attr_reader :lines
+          end
+
+          # the caller asks the question it actually has
+          if FindBasket.call(id: id).present?
+        RUBY
+
         def on_def(node)
           return unless PRESENCE.include?(node.method_name)
           return unless one_of?(governed_kinds)
@@ -31,19 +45,7 @@ module RuboCop
                      "shape rather than by whether there was an answer, and the branch reads " \
                      "the same either way. `nil` and `[]` are absent; a shape is present. That " \
                      "is the whole of it, and it is not the shape's to redefine.",
-            instead: <<~RUBY
-              # a shape holds values and computes nothing, so it says nothing about presence
-              class Basket < Shape
-                def initialize(lines:)
-                  @lines = typed_array(lines, Line)
-                end
-
-                attr_reader :lines
-              end
-
-              # the caller asks the question it actually has
-              if FindBasket.call(id: id).present?
-            RUBY
+            instead: SILENT,
           )
         end
 

@@ -19,6 +19,26 @@ module RuboCop
           first_or_create first_or_create! find_or_create_by find_or_create_by!
         ].freeze
 
+        COMMAND = <<~RUBY
+          # the write is a command, with its own name and its own permission
+          class CreatePerson < Command
+            def call
+              success(PersonRecord.create!(name: @name))
+            end
+          end
+
+          # needed both? that is a workflow, which is what accepts the bill for
+          # spanning two transactions
+          class RegisterPerson < Workflow
+            def call
+              found = FindPerson.call(actor: actor, email: @email)
+              return found if found.value
+
+              CreatePerson.call(actor: actor, email: @email)
+            end
+          end
+        RUBY
+
         def on_send(node)
           return unless writers.include?(node.method_name)
           return unless one_of?(governed_kinds)
@@ -43,25 +63,7 @@ module RuboCop
                      "nothing happened. The call graph cannot catch it: a query reaching a " \
                      "record is exactly what a query is for, so the matrix allows the call " \
                      "and only the message it sends is wrong.",
-            instead: <<~RUBY,
-              # the write is a command, with its own name and its own permission
-              class CreatePerson < Command
-                def call
-                  success(PersonRecord.create!(name: @name))
-                end
-              end
-
-              # needed both? that is a workflow, which is what accepts the bill for
-              # spanning two transactions
-              class RegisterPerson < Workflow
-                def call
-                  found = FindPerson.call(actor: actor, email: @email)
-                  return found if found.value
-
-                  CreatePerson.call(actor: actor, email: @email)
-                end
-              end
-            RUBY
+            instead: COMMAND,
           )
         end
 

@@ -11,6 +11,22 @@ module RuboCop
         ASKS = %i[is_a? kind_of? instance_of? respond_to?].freeze
         ASSERTS = %i[typed typed_array typed_hash].freeze
 
+        SHAPE = <<~RUBY
+          # each variant answers for itself; adding one adds a class and edits nothing
+          class GroupParty < Shape
+            def rate = @head_count * @unit_rate * 0.9
+          end
+
+          class SoloParty < Shape
+            def rate = @unit_rate
+          end
+
+          party.rate   # the caller no longer knows there are two
+
+          # asserting is not dispatching — one outcome, so it stays legal
+          @party = typed(party, Party)
+        RUBY
+
         def on_send(node)
           return unless one_of?(governed_kinds)
 
@@ -81,22 +97,6 @@ module RuboCop
             instead: SHAPE,
           )
         end
-
-        SHAPE = <<~RUBY
-          # each variant answers for itself; adding one adds a class and edits nothing
-          class GroupParty < Shape
-            def rate = @head_count * @unit_rate * 0.9
-          end
-
-          class SoloParty < Shape
-            def rate = @unit_rate
-          end
-
-          party.rate   # the caller no longer knows there are two
-
-          # asserting is not dispatching — one outcome, so it stays legal
-          @party = typed(party, Party)
-        RUBY
 
         def governed_kinds
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])

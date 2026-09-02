@@ -10,6 +10,24 @@ module RuboCop
 
         RAISES = :add_offense
 
+        MODEL = <<~RUBY
+          # `explain` takes all three parts as required arguments, so none can be left out
+          add_offense(node, message: explain(
+            "`before_save` hides work behind `save`.",
+            because: "The caller reads one method and gets several, in an order " \\
+                     "nothing states, and a failure in any of them is attributed " \\
+                     "to the save.",
+            instead: <<~EXAMPLE,
+              class ConfirmBooking < Command
+                def call
+                  RecalculateTotals.call(booking: @booking)
+                  success(@booking)
+                end
+              end
+            EXAMPLE
+          ))
+        RUBY
+
         def on_new_investigation
           @cop_file = nil
         end
@@ -47,23 +65,7 @@ module RuboCop
                      "the cop. The failure is where a rule is actually delivered, so it " \
                      "carries the reason and a correct example, not a restatement of the " \
                      "cop's own name.",
-            instead: <<~RUBY,
-              # `explain` takes all three parts as required arguments, so none can be left out
-              add_offense(node, message: explain(
-                "`before_save` hides work behind `save`.",
-                because: "The caller reads one method and gets several, in an order " \\
-                         "nothing states, and a failure in any of them is attributed " \\
-                         "to the save.",
-                instead: <<~EXAMPLE,
-                  class ConfirmBooking < Command
-                    def call
-                      RecalculateTotals.call(booking: @booking)
-                      success(@booking)
-                    end
-                  end
-                EXAMPLE
-              ))
-            RUBY
+            instead: MODEL,
           )
         end
 

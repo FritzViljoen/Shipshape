@@ -8,6 +8,24 @@ module RuboCop
       class ShapeIsComposed < Base
         include ReadsKinds
 
+        TEMPLATE = <<~RUBY
+          # it holds the other object, so there is one home for what a %<owner>s is
+          class Booking < Shape
+            def initialize(reference:, %<owner>s:)
+              @reference = typed(reference, String)
+              @%<owner>s = typed(%<owner>s, %<held>s)
+            end
+          end
+
+          # a part that belongs to this object and nothing else nests inside it
+          class Booking::Line < Shape
+            def initialize(description:, amount:)
+              @description = typed(description, String)
+              @amount = typed(amount, Money)
+            end
+          end
+        RUBY
+
         def on_def(node)
           return unless node.method?(:initialize)
           return unless one_of?(shape_kinds)
@@ -48,23 +66,7 @@ module RuboCop
                      "reasonable addition at a time. A change to what a #{owner} is now " \
                      "touches two classes, and the copies drift until nobody can say which " \
                      "one is right.",
-            instead: <<~RUBY,
-              # it holds the other object, so there is one home for what a #{owner} is
-              class Booking < Shape
-                def initialize(reference:, #{owner}:)
-                  @reference = typed(reference, String)
-                  @#{owner} = typed(#{owner}, #{held})
-                end
-              end
-
-              # a part that belongs to this object and nothing else nests inside it
-              class Booking::Line < Shape
-                def initialize(description:, amount:)
-                  @description = typed(description, String)
-                  @amount = typed(amount, Money)
-                end
-              end
-            RUBY
+            instead: format(TEMPLATE, owner: owner, held: held),
           )
         end
 

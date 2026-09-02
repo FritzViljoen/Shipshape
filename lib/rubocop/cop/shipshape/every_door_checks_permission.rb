@@ -16,6 +16,24 @@ module RuboCop
 
         CHECK = :permits?
 
+        TEMPLATE = <<~RUBY
+          # in app/shipshape/%<file>s
+          extend Permission
+
+          def self.call(actor: nil, **arguments)
+            return Result.failure(:forbidden) unless permits?(actor)
+
+            operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
+            # ... the work
+          end
+
+          # A query has no envelope, so it raises instead:
+          #   raise Permission::Refused, permission unless permits?(actor)
+          #
+          # Deliberately unauthenticated? The operation says so by implementing
+          # `anonymous_call` — never by the door skipping the check.
+        RUBY
+
         def on_new_investigation
           return unless door?
           return unless authorisation_installed?
@@ -53,23 +71,7 @@ module RuboCop
                      "every operation of this kind, in every controller and job, and " \
                      "nothing else anywhere fails. There is no test in your application " \
                      "that would go red.",
-            instead: <<~RUBY,
-              # in app/shipshape/#{File.basename(file)}
-              extend Permission
-
-              def self.call(actor: nil, **arguments)
-                return Result.failure(:forbidden) unless permits?(actor)
-
-                operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
-                # ... the work
-              end
-
-              # A query has no envelope, so it raises instead:
-              #   raise Permission::Refused, permission unless permits?(actor)
-              #
-              # Deliberately unauthenticated? The operation says so by implementing
-              # `anonymous_call` — never by the door skipping the check.
-            RUBY
+            instead: format(TEMPLATE, file: File.basename(file)),
           )
         end
       end

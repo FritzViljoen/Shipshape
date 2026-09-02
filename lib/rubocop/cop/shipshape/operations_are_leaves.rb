@@ -11,6 +11,25 @@ module RuboCop
 
         DOOR = :call
 
+        ONE_LEVEL = <<~RUBY
+          # one level from the base class, always
+          class AdminUpload < Command
+            def call
+              # what was shared is a collaborator, not an ancestor
+              Upload.call(file: @file)
+            end
+          end
+        RUBY
+
+        INSTANCE = <<~RUBY
+          # define the instance method; the base class calls it
+          class SettleInvoice < Command
+            def call
+              success(...)
+            end
+          end
+        RUBY
+
         def on_class(node)
           return unless one_of?(governed_kinds)
 
@@ -60,15 +79,7 @@ module RuboCop
                      "operation that implements `anonymous_call` runs unauthenticated with " \
                      "nothing at its own definition saying so, and the audit for public " \
                      "operations does not name it.",
-            instead: <<~RUBY,
-              # one level from the base class, always
-              class AdminUpload < Command
-                def call
-                  # what was shared is a collaborator, not an ancestor
-                  Upload.call(file: @file)
-                end
-              end
-            RUBY
+            instead: ONE_LEVEL,
           )
         end
 
@@ -80,14 +91,7 @@ module RuboCop
                      "true of every operation at once. A class that defines its own owns " \
                      "all three alone, and the difference is invisible: every caller still " \
                      "writes `#{name}.call(...)`.",
-            instead: <<~RUBY,
-              # define the instance method; the base class calls it
-              class SettleInvoice < Command
-                def call
-                  success(...)
-                end
-              end
-            RUBY
+            instead: INSTANCE,
           )
         end
 

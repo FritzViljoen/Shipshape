@@ -23,6 +23,27 @@ module RuboCop
 
         ZONE_READS = %i[zone zone_default].freeze
 
+        MOMENT = <<~RUBY
+          # the caller reads the clock once, at the edge, and hands the moment down
+          class ExpireHolds < Command
+            def initialize(now:)
+              @now = typed(now, ActiveSupport::TimeWithZone)
+            end
+          end
+
+          # in the action, where the zone is asked for rather than assumed
+          ExpireHolds.call(now: time_param!(:now, time_zone: time_zone_param!(:zone)))
+        RUBY
+
+        HANDED_IN = <<~RUBY
+          # it arrives as an argument, so the signature says what this operation needs
+          class SendReceipt < Command
+            def initialize(api_key:)
+              @api_key = typed(api_key, String)
+            end
+          end
+        RUBY
+
         def on_send(node)
           return unless one_of?(governed_kinds)
 
@@ -91,27 +112,6 @@ module RuboCop
             instead: HANDED_IN,
           )
         end
-
-        MOMENT = <<~RUBY
-          # the caller reads the clock once, at the edge, and hands the moment down
-          class ExpireHolds < Command
-            def initialize(now:)
-              @now = typed(now, ActiveSupport::TimeWithZone)
-            end
-          end
-
-          # in the action, where the zone is asked for rather than assumed
-          ExpireHolds.call(now: time_param!(:now, time_zone: time_zone_param!(:zone)))
-        RUBY
-
-        HANDED_IN = <<~RUBY
-          # it arrives as an argument, so the signature says what this operation needs
-          class SendReceipt < Command
-            def initialize(api_key:)
-              @api_key = typed(api_key, String)
-            end
-          end
-        RUBY
 
         def governed_kinds
           cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])

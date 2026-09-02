@@ -14,6 +14,15 @@ module RuboCop
         CONVERSIONS = %i[Integer Float Rational Complex BigDecimal].freeze
         TYPES = %w[Date Time DateTime BigDecimal ActiveSupport::TimeZone].freeze
 
+        TEMPLATE = <<~RUBY
+          # in the action — the bang form bounces with the reason, the plain form
+          # takes the default you name
+          value = %<suggestion>s
+
+          # past the seam nothing re-parses, because it was handed the real thing
+          SettleInvoice.call(settled_on: value)
+        RUBY
+
         def on_send(node)
           return unless one_of?(governed_kinds)
           return unless reads_params?(node)
@@ -86,14 +95,7 @@ module RuboCop
                      "of a bounce that says which field was wrong. Parsed in one place, " \
                      "at the edge, it is also parsed once: everything past the seam is " \
                      "handed a real value and never wonders.",
-            instead: <<~RUBY,
-              # in the action — the bang form bounces with the reason, the plain form
-              # takes the default you name
-              value = #{suggestion}
-
-              # past the seam nothing re-parses, because it was handed the real thing
-              SettleInvoice.call(settled_on: value)
-            RUBY
+            instead: format(TEMPLATE, suggestion: suggestion),
           )
         end
 

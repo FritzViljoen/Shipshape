@@ -40,6 +40,14 @@ module RuboCop
 
         UNTRUSTED = %i[params request env session cookies].freeze
 
+        TEMPLATE = <<~RUBY
+          # bounces with the reason, naming the field that was wrong
+          %<suggestion>s
+
+          # or a default you chose, rather than one the cast invented for you
+          integer_param(:page, default: 1)
+        RUBY
+
         def on_send(node)
           suggestion = CASTS[node.method_name]
           return unless suggestion
@@ -124,13 +132,7 @@ module RuboCop
                      "looked right, so the defect is found by a customer rather than by " \
                      "the build. An operation completes, or it says why it did not; what " \
                      "it may never do is answer.",
-            instead: <<~RUBY,
-              # bounces with the reason, naming the field that was wrong
-              #{suggestion}
-
-              # or a default you chose, rather than one the cast invented for you
-              integer_param(:page, default: 1)
-            RUBY
+            instead: format(TEMPLATE, suggestion: suggestion),
           )
         end
       end

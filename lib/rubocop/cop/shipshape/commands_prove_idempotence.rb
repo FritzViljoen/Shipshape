@@ -13,6 +13,20 @@ module RuboCop
         # A phrase, not a heuristic: writing it is the act being required.
         CLAIM = "Idempotent:"
 
+        IDEMPOTENT = <<~RUBY
+          # in the command's test, naming what makes the second run safe
+          # Idempotent: the second call finds settled_at set and answers :already_settled.
+          def test_settling_twice_settles_once
+            SettleInvoice.call(actor: actor, invoice_id: id)
+
+            assert_equal :already_settled, SettleInvoice.call(actor: actor, invoice_id: id).error
+          end
+
+          # an append has nothing to consult — two identical comments are both legal — so
+          # its answer is a key, not a judgement
+          # Idempotent: the unique index on (author_id, digest) refuses the second row.
+        RUBY
+
         def on_class(node)
           # `:class` only: including `:module` let `Billing::SettleInvoice` skip the claim.
           return if node.each_ancestor(:class).any?
@@ -60,19 +74,7 @@ module RuboCop
                      "deferred, because a queue retries — and a command that double-applies " \
                      "turns one retry into two charges. This checks that somebody decided " \
                      "how; it cannot check that they were right.",
-            instead: <<~RUBY,
-              # in the command's test, naming what makes the second run safe
-              # Idempotent: the second call finds settled_at set and answers :already_settled.
-              def test_settling_twice_settles_once
-                SettleInvoice.call(actor: actor, invoice_id: id)
-
-                assert_equal :already_settled, SettleInvoice.call(actor: actor, invoice_id: id).error
-              end
-
-              # an append has nothing to consult — two identical comments are both legal — so
-              # its answer is a key, not a judgement
-              # Idempotent: the unique index on (author_id, digest) refuses the second row.
-            RUBY
+            instead: IDEMPOTENT,
           )
         end
 

@@ -11,6 +11,36 @@ module RuboCop
       class OnlyTheDoorIsCalled < Base
         include ReadsKinds
 
+        SYNCHRONOUS = <<~RUBY
+          # every step runs, in the order written, before the workflow answers
+          class SettleMonth < Workflow
+            def call
+              settled = SettleInvoice.call(actor: actor, invoice_id: @id)
+              return settled if settled.failure?
+
+              NotifyCustomer.call(actor: actor, invoice_id: @id)
+            end
+          end
+
+          # work that genuinely belongs on a queue is deferred by the operation that owns it,
+          # or at the edge — never by the sequence, which would be stating an order it does
+          # not keep
+        RUBY
+
+        DIRECT = <<~RUBY
+          SettleInvoice.call(actor: actor, invoice_id: 1)
+
+          # needed a different starting point? That is a different operation, with its
+          # own name and its own door — not a second entrance to this one.
+          class SettleInvoiceFromParams < Command
+            private
+
+            def call
+              SettleInvoice.call(actor: actor, invoice_id: @invoice_id)
+            end
+          end
+        RUBY
+
         def on_send(node)
           receiver = node.receiver
           return unless receiver&.const_type?
@@ -48,22 +78,6 @@ module RuboCop
           )
         end
 
-        SYNCHRONOUS = <<~RUBY
-          # every step runs, in the order written, before the workflow answers
-          class SettleMonth < Workflow
-            def call
-              settled = SettleInvoice.call(actor: actor, invoice_id: @id)
-              return settled if settled.failure?
-
-              NotifyCustomer.call(actor: actor, invoice_id: @id)
-            end
-          end
-
-          # work that genuinely belongs on a queue is deferred by the operation that owns it,
-          # or at the edge — never by the sequence, which would be stating an order it does
-          # not keep
-        RUBY
-
         # A class naming itself is not a call site reaching in.
         def refers_to_itself?(name)
           resolved = kinds.file_for_constant(name)
@@ -80,19 +94,7 @@ module RuboCop
                      "Ruby will step over — `private` is not a wall, and `send` undoes " \
                      "`private_class_method`. This reads the call site instead, so it holds " \
                      "whatever the visibility says.",
-            instead: <<~RUBY,
-              SettleInvoice.call(actor: actor, invoice_id: 1)
-
-              # needed a different starting point? That is a different operation, with its
-              # own name and its own door — not a second entrance to this one.
-              class SettleInvoiceFromParams < Command
-                private
-
-                def call
-                  SettleInvoice.call(actor: actor, invoice_id: @invoice_id)
-                end
-              end
-            RUBY
+            instead: DIRECT,
           )
         end
 

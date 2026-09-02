@@ -22,6 +22,18 @@ module RuboCop
 
         TABLE_BLOCKS = %i[create_table change_table].freeze
 
+        TEMPLATE = <<~RUBY
+          # app/shipshape/personal_data.rb — one line, four possible answers
+          COLUMNS = {
+            "users" => {
+              "%<column>s" => :anonymise,       # overwritten, row stays
+              # or :delete_row          the row goes
+              # or :retain_with_reason  it stays, and the reason is written here
+              # or :not_personal        it matched the name and is not about a person
+            },
+          }.freeze
+        RUBY
+
         def on_new_investigation
           @table = nil
         end
@@ -131,17 +143,7 @@ module RuboCop
                      "whoever is on duty and differently each time. The decision is cheap " \
                      "now, while whoever added the column still remembers what it holds, " \
                      "and expensive on the day somebody asks.",
-            instead: <<~RUBY,
-              # app/shipshape/personal_data.rb — one line, four possible answers
-              COLUMNS = {
-                "users" => {
-                  "#{column}" => :anonymise,       # overwritten, row stays
-                  # or :delete_row          the row goes
-                  # or :retain_with_reason  it stays, and the reason is written here
-                  # or :not_personal        it matched the name and is not about a person
-                },
-              }.freeze
-            RUBY
+            instead: format(TEMPLATE, column: column),
           )
         end
 

@@ -9,6 +9,62 @@ module RuboCop
         include ReadsKinds
         include VisibilityHelp
 
+        # The example is what gets copied, so it must not hand the reader the flattening
+        # `a-shape-is-composed-not-flattened` names.
+        ASKED = <<~RUBY
+          # the record maps rows and nothing else
+          class BookingRecord < ApplicationRecord
+            belongs_to :supplier_record
+          end
+
+          # the query composes: a Booking holds a Supplier, and never copies its columns
+          class ShowBooking < Query
+            def call
+              row = BookingRecord.find(@id)
+              success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
+            end
+          end
+        RUBY
+
+        # A row's absence, not a column's NULL: `no-nullable-columns` refuses `cancelled_at`.
+        FILTERED = <<~RUBY
+          # the record maps rows, and says nothing about which of them anyone wants
+          class BookingRecord < ApplicationRecord
+            belongs_to :supplier_record
+            has_one :cancellation_record
+          end
+
+          # the filter is named, and it is read where it is used
+          class ListLiveBookings < Query
+            def call
+              success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
+            end
+          end
+        RUBY
+
+        SPLIT = <<~RUBY
+          # the record maps rows: columns and associations, nothing else
+          class BookingRecord < ApplicationRecord
+            belongs_to :supplier_record
+            has_many :line_records
+          end
+
+          # the domain object is detached, so nobody can query through it by accident
+          class Booking < Shape
+            def initialize(reference:, lines:)
+              @reference = typed(reference, String)
+              @lines = typed_array(lines, Booking::Line)
+            end
+          end
+
+          # and the operation is where deriving happens
+          class TotalBooking < Query
+            def call
+              success(@booking.lines.sum(&:amount) * (1 + @tax_rate))
+            end
+          end
+        RUBY
+
         def on_def(node)
           return unless one_of?(record_kinds)
           return if node_visibility(node) == :private
@@ -86,23 +142,6 @@ module RuboCop
           )
         end
 
-        # The example is what gets copied, so it must not hand the reader the flattening
-        # `a-shape-is-composed-not-flattened` names.
-        ASKED = <<~RUBY
-          # the record maps rows and nothing else
-          class BookingRecord < ApplicationRecord
-            belongs_to :supplier_record
-          end
-
-          # the query composes: a Booking holds a Supplier, and never copies its columns
-          class ShowBooking < Query
-            def call
-              row = BookingRecord.find(@id)
-              success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
-            end
-          end
-        RUBY
-
         # Never written at the call site, so never read there. Also the only one reaching `create`.
         def default_scope_message
           explain(
@@ -120,22 +159,6 @@ module RuboCop
           )
         end
 
-        # A row's absence, not a column's NULL: `no-nullable-columns` refuses `cancelled_at`.
-        FILTERED = <<~RUBY
-          # the record maps rows, and says nothing about which of them anyone wants
-          class BookingRecord < ApplicationRecord
-            belongs_to :supplier_record
-            has_one :cancellation_record
-          end
-
-          # the filter is named, and it is read where it is used
-          class ListLiveBookings < Query
-            def call
-              success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
-            end
-          end
-        RUBY
-
         def scope_message(node)
           explain(
             "This scope reaches another class, so it carries a rule rather than a filter.",
@@ -146,29 +169,6 @@ module RuboCop
             instead: SPLIT,
           )
         end
-
-        SPLIT = <<~RUBY
-          # the record maps rows: columns and associations, nothing else
-          class BookingRecord < ApplicationRecord
-            belongs_to :supplier_record
-            has_many :line_records
-          end
-
-          # the domain object is detached, so nobody can query through it by accident
-          class Booking < Shape
-            def initialize(reference:, lines:)
-              @reference = typed(reference, String)
-              @lines = typed_array(lines, Booking::Line)
-            end
-          end
-
-          # and the operation is where deriving happens
-          class TotalBooking < Query
-            def call
-              success(@booking.lines.sum(&:amount) * (1 + @tax_rate))
-            end
-          end
-        RUBY
 
         def record_kinds
           cop_config.fetch("Kinds", %w[record])
