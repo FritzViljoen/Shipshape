@@ -160,6 +160,22 @@ class GeneratedBaseClassesTest < Minitest::Test
     end
   end
 
+  class LegacyCharge < LegacyCommand
+    def initialize(amount:)
+      @amount = typed(amount, Integer)
+    end
+
+    def call
+      @amount.positive? ? success(@amount) : failure(:not_positive)
+    end
+  end
+
+  class LegacyListPlaces < LegacyQuery
+    def call
+      [Place.new(code: "ZA")]
+    end
+  end
+
   def test_a_command_answers_with_a_result
     result = Charge.call(actor: ANYONE, amount: 5)
 
@@ -586,15 +602,34 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_kind_of Array, ListPlaces.test_call
   end
 
+  # The door to the old world is a sister of Command, not a lesser copy: same second entry.
+  def test_test_call_runs_a_legacy_command_the_same_way
+    refused = Anyone.new([LegacyCharge.permission])
+
+    refute_predicate LegacyCharge.call(actor: refused, amount: 5), :success?
+    assert_predicate LegacyCharge.test_call(amount: 5), :success?
+  end
+
+  def test_test_call_runs_a_legacy_query_the_same_way
+    refused = Anyone.new([LegacyListPlaces.permission])
+
+    assert_raises(Permission::Refused) { LegacyListPlaces.call(actor: refused) }
+    assert_kind_of Array, LegacyListPlaces.test_call
+  end
+
   # Everything else still runs, so a state `test_call` builds is one the application can.
   def test_test_call_still_types_its_arguments
     assert_raises(ArgumentError) { Charge.test_call(amount: "5") }
+    assert_raises(ArgumentError) { LegacyCharge.test_call(amount: "5") }
   end
 
   # A suite writing an audit row per fixture fills the trail with rows nobody performed.
   def test_test_call_writes_no_audit_entry
     assert_empty audited { Charge.test_call(amount: 5) }
     assert_equal [Charge.name], audited { Charge.call(actor: ANYONE, amount: 5) }.map(&:operation)
+
+    assert_empty audited { LegacyCharge.test_call(amount: 5) }
+    assert_equal [LegacyCharge.name], audited { LegacyCharge.call(actor: ANYONE, amount: 5) }.map(&:operation)
   end
 
   # A method that exists everywhere and is merely discouraged promises nothing.
@@ -612,6 +647,15 @@ class GeneratedBaseClassesTest < Minitest::Test
     ::Rails.env.answer = false
 
     assert_raises(RuntimeError) { ListPlaces.test_call }
+  ensure
+    ::Rails.env.answer = true
+  end
+
+  def test_a_legacy_door_refuses_the_unchecked_door_outside_tests_too
+    ::Rails.env.answer = false
+
+    assert_raises(RuntimeError) { LegacyCharge.test_call(amount: 5) }
+    assert_raises(RuntimeError) { LegacyListPlaces.test_call }
   ensure
     ::Rails.env.answer = true
   end

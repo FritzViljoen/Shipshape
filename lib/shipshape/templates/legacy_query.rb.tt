@@ -12,6 +12,18 @@ class LegacyQuery
   def self.call(actor: nil, **arguments)
     raise Permission::Refused, permission unless permits?(actor)
 
+    perform(actor, arguments)
+  end
+
+  def self.test_call(actor: nil, **arguments)
+    unless defined?(::Rails) && ::Rails.env.test?
+      raise "#{name}.test_call is for tests: there is no unchecked door outside the test environment"
+    end
+
+    perform(actor, arguments)
+  end
+
+  def self.perform(actor, arguments)
     operation = new(**arguments)
     answer = operation.__perform__(actor)
 <%- else -%>
@@ -23,6 +35,9 @@ class LegacyQuery
 
     answer
   end
+<%- if auth -%>
+  private_class_method :perform
+<%- end -%>
 
   def self.shapes?(answer)
     return true if answer.nil?
