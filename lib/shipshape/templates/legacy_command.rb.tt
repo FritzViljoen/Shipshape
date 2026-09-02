@@ -2,7 +2,9 @@
 
 # A door to the old world that writes. A sister of Command, which is what forbids a command
 # from calling one. The transaction is opened here; skip it where the legacy code owns one.
+<%- if auth -%>
 # `test_call` skips the permission check and the audit entry, and raises outside tests.
+<%- end -%>
 class LegacyCommand
   include TypedArguments
 

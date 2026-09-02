@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 # Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
+<%- if auth -%>
 # `test_call` skips the permission check and the audit entry, and raises outside tests.
+<%- end -%>
 # `new` and `allocate` are private: `allocate` skips `initialize` and was a way in.
 class Command
   include TypedArguments
