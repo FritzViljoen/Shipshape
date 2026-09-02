@@ -55,8 +55,10 @@ def install(auth, view_components)
   puts
   puts "#{report[:written].length} written, #{report[:skipped].length} already yours."
   if report[:diverged].any?
-    puts "#{report[:diverged].length} differ from what the gem ships now — diff each against its"
-    puts "own .new file yourself; a diff run here would mix your edits into the gem's changes."
+    puts "#{report[:diverged].length} differ from what this run would write, with auth: #{auth}" \
+         " and view-components: #{view_components} — diff each against its own .new file yourself;"
+    puts "a diff run here would mix your edits into the gem's changes. If those are not the flags"
+    puts "you meant to install with, that is the likely reason, not a template that moved on."
   end
   puts "Nothing is overwritten. Point Shipshape/CallGraph's BaseClasses at these names."
   puts auth ? AUTH_ON : AUTH_OFF
