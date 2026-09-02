@@ -46,6 +46,14 @@ So the factory is downstream of the undivided model, and removing it before the 
 only moves the pain. That is also why this is the **last** guard to switch on: `test_call` has
 nothing to call until the commands are there.
 
+**The direction also runs the other way, which is why the guard is worth having at all.**
+Without a factory, a god model is improbable. Nobody tolerates constructing a 113-column row by
+hand, test after test — the pain lands on every test that touches it, and the model gets divided
+instead. **Improbable, not impossible**: a determined author can still hand-write the columns and
+a team can still tolerate it, so this is not a proof. But a factory is what removes the one force
+that would otherwise have made the model's size somebody's problem — so banning it is not only
+cleanup after the model is divided, it is part of what divides it.
+
 ## Setup pain is a signal, and a factory is a way of not hearing it
 
 Fourteen calls to build one fixture says the model is wrong: too many required collaborators,
