@@ -281,6 +281,74 @@ def next_work
   0
 end
 
+# One row per table, evidence only: `NoNullableColumns` reads a migration and cannot see what
+# a finished table's columns add up to. No verdict here either — the reader models the table.
+def tables
+  name = option("table")
+  finder = Shipshape::TableShapes.new(root: Dir.pwd)
+  all = finder.call
+
+  if all.empty?
+    warn "shipshape: no db/schema.rb at #{Dir.pwd}."
+    return 1
+  end
+
+  found = name ? all.select { |table| table.name == name } : all
+  if found.empty?
+    warn "shipshape: no table named #{name} in db/schema.rb."
+    return 1
+  end
+
+  ordered = found.sort_by { |table| [-table.nullable.length, table.name] }
+
+  puts "#{ordered.length} of #{all.length} table(s) in db/schema.rb, ordered by nullable-column" \
+       " count, most first — an ordering aid, not a severity ranking."
+  puts
+  puts "Zero nulls does not mean zero gaps: the gap can be spelled \"\", 0, or a default instead" \
+       " of NULL — `NoColumnDefaults` reads a migration too, so a default already in the schema" \
+       " is invisible to it the same way. And a table naming none of these signals can still be" \
+       " two concepts that both happen to be fully populated — this finds a symptom, never the disease."
+  puts
+  puts "#{finder.migrations_scanned} file(s) under db/migrate/ scanned. `NoNullableColumns` reads" \
+       " only those, so a nullable column none of them declares — predating adoption, or left" \
+       " behind by a squash — is one it can never see, clean report or not. \"migration-blind\"" \
+       " below names that set."
+  puts
+
+  ordered.each { |table| print_table(table) }
+  0
+end
+
+def print_table(table)
+  puts "#{table.name} — #{table.column_count} columns, #{table.nullable.length} nullable"
+  puts "  nullable columns:           #{named(table.nullable)}"
+  puts "  migration-blind:            #{named(table.migration_blind)}"
+  puts "  boolean columns:            #{named(table.booleans)}"
+  puts "  status-shaped columns:      #{named(table.status_shaped)}"
+  puts "  blank-sentinel-capable:     #{named(table.blank_sentinel_capable.map { |column| sentinel_label(column) })}"
+  puts "  foreign key neighbours:     #{named(table.neighbours.map { |neighbour| neighbour_label(neighbour) })}"
+  puts
+end
+
+def sentinel_label(column)
+  column.default ? "#{column.name} (default: #{column.default})" : column.name
+end
+
+SHAPE_LABEL = {
+  unlocked_cardinality: "unlocked cardinality",
+  unlocked_composite_fact: "unlocked a composite fact",
+  unlocked_nothing: "unlocked nothing — a renamed column with extra steps",
+}.freeze
+
+def neighbour_label(neighbour)
+  shape = neighbour.shape ? SHAPE_LABEL.fetch(neighbour.shape) : "#{neighbour.other_columns.length} other column(s), shape unclear"
+  "#{neighbour.table} (#{neighbour.column}, #{neighbour.unique ? 'unique' : 'not unique'}) — #{shape}"
+end
+
+def named(names)
+  names.empty? ? "none" : names.join(", ")
+end
+
 def check(trunk)
   report = Shipshape::Check.new(root: Dir.pwd, trunk: trunk, config: chosen_config).call
 
@@ -338,6 +406,7 @@ when "rules" then exit rules
 when "canaries" then exit canaries
 when "coverage" then exit coverage
 when "edges" then exit edges
+when "tables" then exit tables
 when "next" then exit next_work
 when "report" then exit report
 when "check" then exit check(option("trunk"))
@@ -345,7 +414,7 @@ when "version", "--version", "-v" then puts Shipshape::VERSION
 else
   warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant]"
   warn "       shipshape coverage [--config <path>] | edges [--config <path>] | next | report"
-  warn "       shipshape check [--trunk <ref>] [--config <path>]"
+  warn "       shipshape tables [--table <name>] | check [--trunk <ref>] [--config <path>]"
   warn "       shipshape version"
   exit 1
 end
