@@ -6,10 +6,8 @@ module RuboCop
   module Cop
     module Shipshape
       # Holds the ratchet half of `a-test-inherits-what-it-needs`: every definition a base test
-      # class or support module holds, and its size in lines, both watched to only fall.
-      #
-      # `shipshape check` reads `qualifying_superclass?` off this class, so a base test class is
-      # named once, here, not a second time in the code that sums its lines.
+      # class or support module holds, watched to only fall. The size-in-lines half the law
+      # describes is not built yet — see its Guard's-limit.
       class BaseTestClassGrowth < Base
         include Explains
 
@@ -26,6 +24,22 @@ module RuboCop
 
           source.sub(/\A::/, "") =~ TEST_BASE_SUPERCLASS ? true : false
         end
+
+        INSTEAD = <<~RUBY
+          # a genuine addition still lands here - reviewed once, used by every test after
+          class TestCase < ActiveSupport::TestCase
+            def sign_in_as(actor)
+              ...
+            end
+          end
+
+          # a helper only one test needs stays in that test, confessed rather than shared
+          class ConfirmBookingTest < TestCase
+            def test_it_confirms
+              ...
+            end
+          end
+        RUBY
 
         def on_class(node)
           return unless self.class.qualifying_superclass?(node.parent_class&.source)
@@ -115,21 +129,7 @@ module RuboCop
                      "`shipshape check` compares this cop's offence count, and the class's " \
                      "line count, against the merge base - both may only fall, so a real need " \
                      "still lands, and a need that was never reviewed does not land quietly.",
-            instead: <<~RUBY,
-              # a genuine addition still lands here - reviewed once, used by every test after
-              class TestCase < ActiveSupport::TestCase
-                def sign_in_as(actor)
-                  ...
-                end
-              end
-
-              # a helper only one test needs stays in that test, confessed rather than shared
-              class ConfirmBookingTest < TestCase
-                def test_it_confirms
-                  ...
-                end
-              end
-            RUBY
+            instead: INSTEAD,
           )
         end
       end

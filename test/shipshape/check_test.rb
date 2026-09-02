@@ -7,9 +7,9 @@ require "fileutils"
 
 # A real repository, two real commits, two real RuboCop runs. Stubbing any of it would test
 # the arithmetic and leave the part that goes wrong — the worktree, the config copy, the JSON.
-# Watched to fail: returning `{}` from `population` reddens the retiring test. Returning `{}`
-# from `lines_of` reddens the growth test below it; reverting `Offences#call` to discard the
-# per-file grouping reddens it too, since `paths_for` would have nothing left to read.
+# Watched to fail: returning `{}` from `population` reddens the retiring test; reverting
+# `Offences#call` to discard the per-file grouping reddens it too, since `paths_for` would have
+# nothing left to read.
 class CheckTest < Minitest::Test
   RUBOCOP_YML = <<~YAML
     require:
@@ -189,15 +189,13 @@ class CheckTest < Minitest::Test
     end
   end
 
-  def test_a_base_test_class_that_grew_is_refused
+  def test_a_grown_base_test_class_is_refused
     in_growth_repo(baseline: BASE_TEST_CASE) do |root|
       write(root, "test/support/admin_test_case.rb", GROWN_BASE_TEST_CASE)
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_equal({ was: 3, now: 5 }, report[:growth]["test/support/admin_test_case.rb"])
-      assert_equal({ was: 1, now: 2 }, report[:risen]["Shipshape/BaseTestClassGrowth"],
-        "the definition count is the existing per-cop offence ratchet, unchanged")
+      assert_equal({ was: 1, now: 2 }, report[:risen]["Shipshape/BaseTestClassGrowth"])
     end
   end
 
@@ -205,18 +203,18 @@ class CheckTest < Minitest::Test
     in_growth_repo(baseline: BASE_TEST_CASE) do |root|
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_empty report[:growth]
       assert_empty report[:risen]
     end
   end
 
-  def test_a_leaf_test_growing_is_not_the_ratchets_business
-    in_growth_repo(path: "test/support/admin_test_case_test.rb", baseline: BASE_TEST_CASE) do |root|
-      write(root, "test/support/admin_test_case_test.rb", GROWN_BASE_TEST_CASE)
+  # A concern loaded by the engine's own dummy app is not this law's business.
+  def test_a_dummy_app_concern_is_not_the_ratchets_business
+    in_growth_repo(baseline: BASE_TEST_CASE) do |root|
+      write(root, "test/dummy/app/models/concerns/payable.rb", "module Payable\n  def total\n    1\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_empty report[:growth], "a file named like a leaf test is excluded, not ratcheted"
+      assert_empty report[:risen]
     end
   end
 
