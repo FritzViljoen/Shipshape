@@ -83,7 +83,23 @@ class InstallTest < Minitest::Test
 
       assert_includes report[:written], "test/shipshape/personal_data_is_erasable_test.rb"
       assert_includes read_installed(root, "test/shipshape/operations_expose_nothing_test.rb"),
-                      "ActiveSupport::TestCase"
+                      "TestCase"
+    end
+  end
+
+  # An installed file nothing inherits is coverage-shaped: the two guards that need a booted
+  # application are the only proof that `test_case.rb` is wired to anything at all.
+  def test_the_installed_guards_inherit_the_installed_base_class
+    in_app do |root|
+      Shipshape::Install.new(root: root, auth: true).call
+
+      %w[test/shipshape/operations_expose_nothing_test.rb
+         test/shipshape/personal_data_is_erasable_test.rb].each do |relative|
+        contents = read_installed(root, relative)
+
+        assert_includes contents, 'require_relative "test_case"', relative
+        assert_includes contents, "< TestCase", relative
+      end
     end
   end
 
