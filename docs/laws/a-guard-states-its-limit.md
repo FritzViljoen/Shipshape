@@ -49,3 +49,12 @@ from version control on every run.
   The canary half has its own blind spot: it proves a cop **can** fire on one planted
   violation, never that it fires on everything it should. A cop narrowed to catch only the
   exact shape of its own canary would pass here and protect nothing else.
+
+  Neither half is independent evidence for the other. A canary and a cop's own test file
+  are written by whoever wrote the cop, from the same understanding, so agreement between
+  them proves nothing further. `Shipshape/NoTestMixins` reported zero offences against
+  `test/support/signs_in_as_admin.rb` — the case the law exists for — while its canary
+  fired clean: the canary used `extend self`, which reaches the offence without touching
+  constant resolution, and the cop's own test file put every positive case inside the one
+  directory the resolver searched. What catches a cop narrowed to its own shape is a case
+  built from the law, not from the cop.
