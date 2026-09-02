@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
+require "date"
 require "shipshape/boolean"
 
 module Shipshape
-  # Holds `arguments-are-typed-at-construction`, here and in a consumer's own code.
+  # Holds `arguments-are-typed-at-construction` and the runtime half of `a-time-names-its-zone`.
   module TypedArguments
     private
 
@@ -24,8 +25,15 @@ module Shipshape
 
     def matches?(value, type)
       return value == true || value == false if type.equal?(Boolean)
+      return value.is_a?(Date) && !value.is_a?(DateTime) if type == Date
+      return zoned_moment?(value) if type == Time || type == DateTime
 
       value.is_a?(type)
+    end
+
+    # No ActiveSupport dependency here (unlike the installed template) — `defined?` avoids `NameError`.
+    def zoned_moment?(value)
+      defined?(ActiveSupport::TimeWithZone) && value.is_a?(ActiveSupport::TimeWithZone)
     end
 
     def typed_hash(value, key_type, value_type)

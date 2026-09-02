@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-# Holds `arguments-are-typed-at-construction`. Asserts, never coerces.
+# Holds `arguments-are-typed-at-construction` and the runtime half of `a-time-names-its-zone`:
+# `Time`/`DateTime` require a zoned value; `Date` refuses a `DateTime`. Asserts, never coerces.
 module TypedArguments
   private
 
@@ -40,6 +41,8 @@ module TypedArguments
 
   def matches?(value, type)
     return value == true || value == false if type.equal?(Boolean)
+    return value.is_a?(Date) && !value.is_a?(DateTime) if type == Date
+    return value.is_a?(ActiveSupport::TimeWithZone) if type == Time || type == DateTime
 
     value.is_a?(type)
   end
