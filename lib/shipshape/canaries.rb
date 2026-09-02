@@ -241,16 +241,11 @@ module Shipshape
           end
         end
       RUBY
-      # `extend self` is refused on its own say-so, with no constant to resolve — the
-      # canary that needs no companion.
       "Shipshape/NoTestMixins" => { path: "test/canary_mixin_test.rb", raw: <<~RUBY },
         module CanaryMixin
           extend self
         end
       RUBY
-      # Named so it is never mistaken for a leaf test: `Shipshape/BaseTestClassGrowth`
-      # excludes `_test.rb`, so a canary ending in it would prove nothing. The superclass has
-      # to look like a test's own, or the cop reads this as an unrelated class under `test/`.
       "Shipshape/BaseTestClassGrowth" => { path: "test/canary_base_test_class.rb", raw: <<~RUBY },
         class CanaryBaseTestClass < ActiveSupport::TestCase
           def canary_definition
