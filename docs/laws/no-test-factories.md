@@ -126,3 +126,23 @@ factoried. If nothing in the application creates a thing, a test may load it dir
   for the day after this lands. **That one is a factory**: shared, curated, and blessing what it
   builds, with none of the honesty of the `create!` inside it. The rule that survives is the one
   a reader applies.
+
+  **The message assumes `test_call` exists, and a non-auth install has none at all.**
+  `test_call` is declared inside each template's `auth` branch, so `Shipshape::Install.new(auth:
+  false)` renders a `Command`, `Query`, `LegacyCommand` and `LegacyQuery` with no second entry
+  point on any of them. The cop is `Enabled: true` unconditionally and its message still reads
+  `CreateBooking.test_call(...)` there — a reader on that install cannot follow it, and this law
+  says nothing about what such a suite does instead. Today it has none: state is built through
+  `call` with whatever actor the install lets it construct.
+
+  **`Workflow` carries no `test_call` either, on any install — the one omission that is not
+  `IoCommand`/`IoQuery`'s.** Those two are absent from the enumeration above because they touch
+  no record; `Workflow` reaches one, through its steps, so it is exactly the kind this law is
+  about and it is missing anyway. The reason is its permission: `permits?` checks the union of
+  every step's (`aggregate_steps`), and a workflow-level `test_call` would still have to check
+  that union — reassembling the grant bag `test_call` exists to avoid. **What a test does today:
+  call each step's own `test_call`, in the order the workflow's `call` runs them.** A workflow
+  opens no transaction and writes no entry of its own — each step does both — so replaying the
+  steps reaches the same state the workflow would have left, with no permission check in the
+  chain. Whether `Workflow` should carry its own `test_call` is undecided; this states what a
+  reader has today, not a recommendation.
