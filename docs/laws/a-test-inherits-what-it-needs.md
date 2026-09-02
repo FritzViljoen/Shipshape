@@ -138,17 +138,19 @@ a guard set is only tested by something actively trying to get work done through
   superclass-based escape, so the dummy app is excluded by path instead: `test/dummy` and
   `spec/dummy` are that app's own root, generated once by `rails plugin new` and never hand
   edited, and this cop's own `Exclude` names both, at either nesting. Qualifying nodes are a
-  ratchet on the count of definitions they hold, only falling, per file: every `def`,
-  `define_method`, `alias_method` and `delegate`, every constant, every `attr_*`, every `setup`
-  and `teardown` block, wherever it sits behind an `if` or a block.
+  ratchet on two numbers, both only falling, per file: the count of definitions they hold —
+  every `def`, `define_method`, `alias_method` and `delegate`, every constant, every `attr_*`,
+  every `setup` and `teardown` block, wherever it sits behind an `if` or a block — and the
+  qualifying class or module's own size in lines, read from the same investigation that counts
+  the first number, not a second walk of the file.
 - **Guard's limit:** it identifies a base class by where its file lives, how it is named, and
   what it inherits, never by whether another test actually inherits from it. A helper file that
   happens to be named as though it were a leaf test, or a base class whose superclass does not
   read as a test's own, is invisible to it either way — the same convention that makes the
   ratchet derivable without a checked-in list is what a determined rename or an unconventional
-  superclass defeats. This number, once built, cannot tell whether a given growth in the base
-  class was the reviewed kind or the pressured kind — it can only make growth visible and
-  falling, never judge it. Nor can it see a private module defined and included from inside a
+  superclass defeats. Neither number can tell whether a given growth in the base class was the
+  reviewed kind or the pressured kind — together they can only make growth visible and
+  falling, never judge it. Nor can either see a private module defined and included from inside a
   base class it does watch, which would move the mixin one level down rather than remove it.
   Nor is the dummy-app exclusion itself immune to the same rename: it is a path match on
   `dummy`, so an engine built with `rails plugin new --dummy-path=spec/internal` gets none of
@@ -159,11 +161,15 @@ a guard set is only tested by something actively trying to get work done through
   two-hundred-line `setup` and the count *falls* while the base class gets worse underneath it.
   [The same principle already governs a cop's clause count](../rails-failure-patterns.md): a
   ratchet gamed by trading one number for another is that failure wearing this law's clothes.
-  The second number that closes this hole — the qualifying node's own size in lines, watched to
-  only fall beside the definition count — is **not built yet**. A working version existed on
-  this branch and is being pulled into its own: it reimplemented this cop's classification
-  (`qualifying_superclass?`, the module rule, the dummy-app exclusion) a second time, in a
-  separate subprocess, and that duplication — not the law, not the offence-count half — was
-  where three straight review cycles kept finding new bugs. Until the size ratchet lands built
-  against this cop's own classification rather than a second copy of it, a definition count
-  golfed into one giant `setup` is this guard's known, open door.
+  The second number that closes this hole — the qualifying node's own size in lines — is built
+  against this cop's own classification, not a second copy of it: `on_class` and `on_module`
+  record the span of every class or module they already decided qualifies, and
+  `RuboCop::Formatter::ShipshapeTestClassSizes` reads that record back once the same run ends,
+  so a file's classification happens once, in one process, for both numbers. A working version
+  existed on an earlier branch and was pulled back out: it reimplemented this cop's
+  classification (`qualifying_superclass?`, the module rule, the dummy-app exclusion) a second
+  time, in a separate subprocess, and that duplication — not the law, not the offence-count
+  half — was where three straight review cycles kept finding new bugs. `Enabled` and `Exclude`
+  need no second reading either: a disabled cop or an excluded file never reaches `on_class` or
+  `on_module` at all, so nothing is recorded for it, exactly as the offence count sees nothing
+  from it.
