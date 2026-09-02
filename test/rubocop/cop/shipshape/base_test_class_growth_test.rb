@@ -45,6 +45,75 @@ class BaseTestClassGrowthTest < Minitest::Test
     assert_empty check("class TestCase < ActiveSupport::TestCase\nend\n")
   end
 
+  # The back door the reviewer built: three definitions with no bare `def` at the class body's
+  # top level at all.
+  def test_define_method_alias_method_and_delegate_are_all_definitions
+    found = check(<<~RUBY)
+      class AdminTestCase < ActiveSupport::TestCase
+        %i[admin guest owner].each { |role| define_method("sign_in_as_\#{role}") { role } }
+
+        if ENV["FAST"]
+          def travel_to(time); end
+        end
+
+        class << self
+          def helper_one; end
+          def helper_two; end
+        end
+
+        alias_method :old_name, :new_name
+
+        delegate :time_zone, to: :actor
+      end
+    RUBY
+
+    assert_equal 6, found.length
+  end
+
+  def test_a_module_holds_definitions_the_same_way_a_class_does
+    found = check(<<~RUBY, path: "test/support/shared_setup.rb")
+      module SharedSetup
+        extend self
+
+        def a_confirmed_booking(**args)
+          BookingRecord.create!(**args, state: "confirmed")
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length, "extend self is not itself a definition; the method it shares is"
+  end
+
+  def test_a_mailer_preview_is_not_a_base_test_class
+    assert_empty check(<<~RUBY, path: "test/mailers/previews/user_mailer_preview.rb")
+      class UserMailerPreview < ActionMailer::Preview
+        def welcome
+          UserMailer.welcome
+        end
+      end
+    RUBY
+  end
+
+  def test_a_dummy_app_model_is_not_a_base_test_class
+    assert_empty check(<<~RUBY, path: "test/dummy/app/models/user.rb")
+      class User < ApplicationRecord
+        def full_name
+          "\#{first_name} \#{last_name}"
+        end
+      end
+    RUBY
+  end
+
+  def test_an_admin_test_case_in_a_support_file_is_still_caught
+    found = check(<<~RUBY, path: "test/support/admin_test_case.rb")
+      class AdminTestCase < ActiveSupport::TestCase
+        def sign_in_as_admin; end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+  end
+
   private
 
   def check(source, path: "test/support/admin_test_case.rb")
