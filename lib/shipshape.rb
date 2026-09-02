@@ -5,6 +5,7 @@ require "rubocop"
 
 require "shipshape/source_text"
 require "shipshape/edges"
+require "shipshape/table_shapes"
 require "shipshape/test_mentions"
 require "shipshape/version"
 require "shipshape/error"
