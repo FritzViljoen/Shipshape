@@ -14,7 +14,7 @@ chose it; it accreted. Move two lines and the behaviour changes with nothing fai
 **What you are aiming at:**
 
 ```ruby
-class ConfirmBooking < Command
+class ConfirmBooking < Write
   def call
     booking = BookingRecord.create!(...)   # the write
     RecalculateTotals.call(booking: booking)   # what a callback used to do, in order, by name
@@ -56,9 +56,9 @@ one that fires on an update nobody intended.
 
 | What it is | Where it goes |
 |---|---|
-| **Normalisation** — strip, downcase, default a field | into the **command** that builds the record, or a database default's honest replacement |
-| **Derivation** — set a column from other columns | a **query**, computed when asked, not stored |
-| **A second effect** — send mail, enqueue a job, touch another record | its **own command**, called by name |
+| **Normalisation** — strip, downcase, default a field | into the **write** that builds the record, or a database default's honest replacement |
+| **Derivation** — set a column from other columns | a **read**, computed when asked, not stored |
+| **A second effect** — send mail, enqueue a job, touch another record | its **own write**, called by name |
 
 The third is what the law is really about. The first two are usually smaller than they look
 once the third is gone.
@@ -79,7 +79,7 @@ work becomes a step that applies to some rows and not others, and *which* is a c
 
 This is the case an automation engine gets bought for — "tenant A emails on cancel, tenant B
 does not" — and it is the one that tempts a `when X, do Y` table. **Do not build one.** A rule
-that fires at a command which never mentioned it is a callback with a table in front of it, and
+that fires at a write which never mentioned it is a callback with a table in front of it, and
 it brings back everything this procedure just removed: an order nothing states, chains where
 neither rule names the other, and work you cannot find by reading the code.
 
@@ -93,7 +93,7 @@ cover it, and they are the three the workflow already allows:
 | needs a grant, and policy decides whether it does anything | it stays a step and **no-ops convergently**, reading the policy itself |
 | the sequences are genuinely different, not one sequence with a gap | **two workflows**, chosen at the edge |
 
-**The command reads the policy; the policy does not fire the command.** That is the whole
+**The write reads the policy; the policy does not fire the write.** That is the whole
 distinction — `Finance::StatementPolicy` is pulled by the operation that decided to ask, and a
 trigger table is pushed at one that did not.
 
@@ -114,7 +114,7 @@ the three rows.
 ## 4. Make the sequence explicit, in the order you wrote down in step 1
 
 ```ruby
-class ConfirmBooking < Command
+class ConfirmBooking < Write
   def call
     booking = BookingRecord.create!(...)   # the write
     RecalculateTotals.call(booking: booking)

@@ -25,7 +25,7 @@ is nothing to sequence.
 **The ratchet is what has an opinion.** `shipshape check` compares each cop's count against the
 merge-base and fails where one **rose**, cop by cop. That is deliberate: a total would let a new
 violation hide behind a fixed one. The cost is that work which *moves* an offence from one cop
-to another reads as a regression — take a rule off a record before the query tree is declared,
+to another reads as a regression — take a rule off a record before the read tree is declared,
 and `PersistenceHoldsNoBehaviour` falls while `CallGraph` climbs.
 
 **The unit is the branch, not the commit.** The baseline is the merge-base, so a trade that
@@ -133,7 +133,7 @@ moves internals; the edge test is the only thing that will notice if behaviour c
 and `delegate` clauses of `persistence-holds-no-behaviour`.
 
 **This is first because everything else lands on top of it.** An action decomposed while its
-rules still live on the record produces a command that wraps the same god object — the
+rules still live on the record produces a write that wraps the same god object — the
 extraction moved a call site and nothing else. [A fat controller](a-fat-controller.md) says so
 in its own step 0, and this is the same advice at repository scale.
 
@@ -220,8 +220,8 @@ Then seed the permissions from the graph rather than by hand:
 
 ```ruby
 CallGraph.routes        # what each endpoint demands
-CallGraph.grantable(Command, Query)
-CallGraph.leaks(Command, Query)   # anonymity that is not closed downward
+CallGraph.grantable(Write, Read)
+CallGraph.leaks(Write, Read)   # anonymity that is not closed downward
 ```
 
 **Check:** `leaks` is empty, and an actor holding nothing is refused at every door.

@@ -8,7 +8,7 @@ nobody can verify is a rewrite with extra confidence.
 |---|---|
 | [a service](a-service.md) | 600 lines, fifteen public methods, does everything for one noun |
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
-| [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
+| [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a read nobody named |
 | [an adoption order](an-adoption-order.md) | **start here** — getting the guards onto a repository that already runs |
 | [characterise the edges](characterise-the-edges.md) | the tests that survive every procedure above, written before anything moves |
 | [a factory graph](a-factory-graph.md) | `create(:booking)` pulling in four rows nobody asked for |
@@ -20,13 +20,13 @@ nobody can verify is a rewrite with extra confidence.
 | [a fat controller](a-fat-controller.md) | an action that parses, finds, checks, branches, writes and renders |
 | [a filter chain](a-filter-chain.md) | six `before_action`s and three-line actions — the work moved above them |
 | [an unowned find](an-unowned-find.md) | `Story.find(params[:id])` — the row exists, so it was returned |
-| [an unbounded read](an-unbounded-read.md) | a query with no answer to "how many?" — no page, no limit, no cursor |
+| [an unbounded read](an-unbounded-read.md) | a read with no answer to "how many?" — no page, no limit, no cursor |
 | [work in the request cycle](work-in-the-request-cycle.md) | the caller waiting for four things they cannot see |
 | [a cadence in code](a-cadence-in-code.md) | `config/schedule.rb` — work that starts under nobody's name |
 | [an untimed call](an-untimed-call.md) | somebody else's outage, arriving as yours |
 | [a shared concern](a-shared-concern.md) | a small module, included by nine classes, that is where their size went |
 | [a record concern](a-record-concern.md) | a module that obliges every table including it to carry its columns |
-| [a query that writes](a-query-that-writes.md) | a class named `...Query` calling `create!` |
+| [a read that writes](a-read-that-writes.md) | a class named `...Read` calling `create!` |
 | [inline IO](inline-io.md) | `HTTParty.post` in the middle of a method, inside a transaction |
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
 | [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
@@ -55,7 +55,7 @@ unnamed.
 taking this canon all the way means the view layer stops holding ActiveRecord objects, and
 Rails' view layer is built on the assumption that it does. It was written after a real
 refactor hit that wall three times in one afternoon — a failure that could not carry the
-invalid record, a query that must answer shapes, and `form_with model:`. If that cost is not
+invalid record, a read that must answer shapes, and `form_with model:`. If that cost is not
 acceptable for an application, stopping the boundary at the controller is a legitimate answer
 and pretending the cops are wrong is not.
 
@@ -70,10 +70,10 @@ have been found.
 
 ## Start from the transaction blocks — somebody already drew the boundary
 
-**A command is one transaction** ([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md)),
+**A write is one transaction** ([`a-write-is-one-transaction`](../laws/a-write-is-one-transaction.md)),
 however many writes that holds. Read backwards, that is a finding technique: every
 `transaction do` already in the codebase is a place where somebody decided *these writes are
-one act*, and that decision is a command waiting to be named.
+one act*, and that decision is a write waiting to be named.
 
 ```sh
 grep -rn "transaction do\|transaction {" app lib | grep -v spec
@@ -84,7 +84,7 @@ heuristics infer a boundary from shape — method length, coupling, a noun that 
 This one reads a boundary somebody wrote down, under pressure, because getting it wrong
 corrupted data. Whatever else is unclear about the code, the author was sure about that.
 
-**Take the whole block, not the method around it.** The block's contents are the command's
+**Take the whole block, not the method around it.** The block's contents are the write's
 `call`; what precedes it is the caller's business — parsing, finding, deciding — and belongs
 where the procedure for that shape says.
 
@@ -93,12 +93,12 @@ part — the list is ordered by what the corpus actually holds, not by what one 
 
 | Where it is | How many | What it is |
 |---|---|---|
-| a **model** method | 98 | a god record doing the work — [a god record](a-god-record.md) first, and the block is the command that comes out |
-| a **service** method | 89 | a command, and the rest of the method is its caller — [a service](a-service.md) |
+| a **model** method | 98 | a god record doing the work — [a god record](a-god-record.md) first, and the block is the write that comes out |
+| a **service** method | 89 | a write, and the rest of the method is its caller — [a service](a-service.md) |
 | a **controller** action | 60 | the action's whole job — [a fat controller](a-fat-controller.md) |
-| a **job** or elsewhere | 60 | usually a command with a doorbell attached |
+| a **job** or elsewhere | 60 | usually a write with a doorbell attached |
 
-A transaction wrapping **two** unrelated acts is two commands, and the warning below applies.
+A transaction wrapping **two** unrelated acts is two writes, and the warning below applies.
 One with an HTTP call inside it is [inline IO](inline-io.md), and urgent.
 
 **The model bucket being the largest is the finding.** A transaction inside a record is a
@@ -107,20 +107,20 @@ record deciding what is atomic, which is behaviour on a thing that should map ro
 directions.
 
 **The two-act case is the one that costs something, and it must be said out loud.** Splitting
-one transaction into two commands means the middle state becomes reachable: the first
+one transaction into two writes means the middle state becomes reachable: the first
 committed, the second did not. That state was always *possible* — a crash could produce it —
 but it was rare, and afterwards it is ordinary. So a workflow sequences them, every step is
 idempotent, and somebody decides what the half-done state means. **If nobody will do that
-work, leave the transaction alone**: one command doing two acts is a smell, and two commands
+work, leave the transaction alone**: one write doing two acts is a smell, and two writes
 with an unconsidered gap between them is a bug.
 
 **A nested transaction is not the savepoint it looks like.** Rails' default reuses the outer
 one, so an inner `transaction do` neither isolates nor rolls back on its own — which is
-exactly the ambiguity `a-command-is-one-transaction` refuses when it forbids a command calling
-a command. An inner block is usually a command that was already extracted in someone's head.
+exactly the ambiguity `a-write-is-one-transaction` refuses when it forbids a write calling
+a write. An inner block is usually a write that was already extracted in someone's head.
 
-**Check:** every block on the list is either a command now, or has a sentence next to it
-saying why it is not. Once it is a command (or a workflow of them), `Shipshape/OperationsOpenNoTransaction`
+**Check:** every block on the list is either a write now, or has a sentence next to it
+saying why it is not. Once it is a write (or a workflow of them), `Shipshape/OperationsOpenNoTransaction`
 is the guard that keeps a `transaction` block from being written back into it.
 
 ## No industry terms in code
@@ -146,7 +146,7 @@ is the failing question, because constants are code.
 A fat controller is the exception: its defect is misplacement rather than a term written as
 code, which is why it is the one procedure that does not begin with the data step. It is also
 rarely the cheapest place to start — the rules it branches on usually live on a record, so
-[a god record](a-god-record.md) comes first or the extracted command wraps the same god
+[a god record](a-god-record.md) comes first or the extracted write wraps the same god
 object.
 
 Each began the same way: a set of facts that grows — statuses, tiers, rates, steps — and no

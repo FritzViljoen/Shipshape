@@ -147,9 +147,9 @@ behind, a bad id cannot be written, and a class rename is a code change.
 
 ## What none of this proves
 
-**Query fan-out is worse, and that is the real cost.** "All comments by this user, across
-everything" was one query and is now a union over N tables, and it grows with each parent
-type. If that query is on a hot path, measure it before committing to the split — this
+**Read fan-out is worse, and that is the real cost.** "All comments by this user, across
+everything" was one read and is now a union over N tables, and it grows with each parent
+type. If that read is on a hot path, measure it before committing to the split — this
 procedure buys integrity with joins, and the trade is not free.
 
 **And nothing here finds the orphans that already exist.** The rows pointing at deleted

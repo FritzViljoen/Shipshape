@@ -1,7 +1,7 @@
 # `a-schedule-is-a-row` — Work that starts on a clock is a stored request, and it names its actor
 
 **A schedule is exactly a controller action called at a set frequency.** Something outside
-arrives, an actor is established, one command runs. The only difference from a request is that
+arrives, an actor is established, one write runs. The only difference from a request is that
 the caller is a clock rather than a browser, and nothing about that difference earns a second
 mechanism.
 
@@ -20,7 +20,7 @@ schedules
 ## It names a route, because a route is a public name
 
 **A path is a contract already promised not to break. A class name is one that refactoring is
-supposed to be free to change.** Storing a command's class name in a column would make renaming
+supposed to be free to change.** Storing a write's class name in a column would make renaming
 it a data migration — the defect [a polymorphic association](../decomposing/a-polymorphic-association.md)
 names, arriving through a different door. A route is the name the outside already uses, so
 storing it costs nothing that was not already owed.
@@ -35,7 +35,7 @@ The params are params. They are parsed by the same parsers
 not the undeclared schema that a blob of constructor arguments would be.
 
 **Long work does not make a long request.** The controller defers with `call_later` exactly as
-it would for a browser, so the chain is schedule → request → controller → command, and every
+it would for a browser, so the chain is schedule → request → controller → write, and every
 hop is one that already exists and is already governed.
 
 ## The actor is a column, so there is no system account
@@ -61,10 +61,10 @@ all — the row names a route, and the route is called the way routes are called
 
 ## Two servers firing one row is a double-post
 
-[`a-command-runs-twice`](a-command-runs-twice.md) already obliges every command to survive a
+[`a-write-runs-twice`](a-write-runs-twice.md) already obliges every write to survive a
 second call, and two servers reaching one schedule in the same minute is the same event as two
 browsers reaching one form. **A lock is an optimisation here, not a correctness requirement**,
-which is the difference between this and a `config/schedule.rb` where the command was never
+which is the difference between this and a `config/schedule.rb` where the write was never
 obliged to be idempotent in the first place.
 
 ## Why a row rather than a file

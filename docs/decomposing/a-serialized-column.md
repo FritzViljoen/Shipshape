@@ -93,8 +93,8 @@ answer is the same either way — a join, with a uniqueness constraint on the ke
 The order that stays green:
 
 1. add the column or table, `NOT NULL` with the value backfilled
-2. write both — the blob and the new place — in the same command, in one transaction
-   ([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md))
+2. write both — the blob and the new place — in the same write, in one transaction
+   ([`a-write-is-one-transaction`](../laws/a-write-is-one-transaction.md))
 3. backfill the rows written before step 2
 4. verify: nothing disagrees
 5. move the readers
@@ -106,10 +106,10 @@ SELECT COUNT(*) FROM accounts WHERE settings->>'timezone' IS DISTINCT FROM timez
 ```
 
 **Step 4 is the whole procedure.** Steps 1 to 3 are mechanical; the reason this shape is
-dangerous to unpick is that the blob's history is not uniform, and only a query over real rows
+dangerous to unpick is that the blob's history is not uniform, and only a read over real rows
 says so.
 
-**Check:** the verification query returns zero, on production-shaped data, before any reader
+**Check:** the verification read returns zero, on production-shaped data, before any reader
 moves.
 
 ---
@@ -143,7 +143,7 @@ production console.
 **Old rows have different key sets, and nothing in this procedure finds that except step 4.**
 A blob written across three years of deploys holds three years of shapes: keys renamed in code
 and not in data, values that were strings and became integers, a boolean stored as `"true"`
-in the rows from one particular importer. The verification query finds the disagreements it
+in the rows from one particular importer. The verification read finds the disagreements it
 was written to look for and no others.
 
 **And YAML is worse than JSON here.** `serialize :settings` with the default coder stores

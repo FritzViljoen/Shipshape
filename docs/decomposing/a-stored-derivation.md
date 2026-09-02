@@ -11,13 +11,13 @@ confidence.
 orders.status   # 'delivered', set by whatever last remembered to
 
 # after — the facts are rows, and the answer is derived from them
-class OrderState < Query
+class OrderState < Read
   def call = state_of(@order)   # a delivery row exists, so it is delivered
 end
 ```
 
 Where deriving it every time is genuinely too slow, the column stays as a **cache** and says
-so: it is named for the query that rebuilds it, and every command that invalidates it names it
+so: it is named for the read that rebuilds it, and every write that invalidates it names it
 too. What it may not be is the only place the fact lives.
 
 The shape: a column holding something the database could work out for itself. A `status`. A
@@ -80,7 +80,7 @@ on. Deleting it does not normalise anything; it loses the only record.
 @before_adjustments = typed(before_adjustments, Money, allow_nil: true)
 ```
 
-**The comment is load-bearing.** Without it the next reader runs the drift query, sees a
+**The comment is load-bearing.** Without it the next reader runs the drift read, sees a
 disagreement, and files a bug — or fixes it.
 
 **Check:** the write site says, in a sentence, why the copy is taken.
@@ -103,7 +103,7 @@ them is how a discount becomes unexplainable.
 
 ---
 
-## 3. Denormalisation — delete the column, and the answer is a query
+## 3. Denormalisation — delete the column, and the answer is a read
 
 The one defect. A stored summary of facts still live elsewhere, written because reading them
 was inconvenient.
@@ -112,7 +112,7 @@ was inconvenient.
 cached answer to a question the data already answers, and like every cache with no invalidation
 it goes stale and nobody can say which side is right.
 
-**The fix is not a better column.** It is the existence of rows, read by a query:
+**The fix is not a better column.** It is the existence of rows, read by a read:
 
 ```ruby
 # A row here is what "priced" means — it used to be `before_adjustments_cents` not being NULL.
@@ -120,7 +120,7 @@ class Sales::OrderLinePriceRecord < ApplicationRecord
 ```
 
 [a state machine](a-state-machine.md) is the full procedure. Before starting it, count the
-damage — the drift query is worth running *once you have decided it is this case*:
+damage — the drift read is worth running *once you have decided it is this case*:
 
 ```sql
 SELECT COUNT(*) FROM orders o WHERE o.status IS DISTINCT FROM (
@@ -136,48 +136,48 @@ the argument for doing the work.
 
 ## 4. Cache — sanctioned, last resort, and it carries three rules
 
-A saved query answer, kept because the query is genuinely too slow. **Legitimate, and the last
+A saved read answer, kept because the read is genuinely too slow. **Legitimate, and the last
 thing to reach for.**
 
-**Name it `{query_name}_cache_record`.** `ListOrderTotals` gets `ListOrderTotalsCacheRecord`.
-The name is not decoration: it says which query owns the row, so the pairing is derivable in
+**Name it `{read_name}_cache_record`.** `ListOrderTotals` gets `ListOrderTotalsCacheRecord`.
+The name is not decoration: it says which read owns the row, so the pairing is derivable in
 both directions and every cache in the system is one grep away. The naming half of "the two
 hard problems" is free now, which leaves invalidation as the entire remaining cost — so there
 is no excuse left for a cache that does not announce what it is a cache *of*.
 
-**It always has a matching Query, and that query rebuilds it.** Not "the source still exists
-somewhere" — one query, named by the record, which returns exactly what the record holds.
-Rebuilding is running it. A cache record with no matching query is not a cache; it is a
+**It always has a matching Read, and that read rebuilds it.** Not "the source still exists
+somewhere" — one read, named by the record, which returns exactly what the record holds.
+Rebuilding is running it. A cache record with no matching read is not a cache; it is a
 denormalisation that has been given a reassuring name.
 
-**Invalidation happens in the commands that wrote the rows the query reads.** Not a TTL, not a
-callback, not a subscriber — the command that changed the underlying data is the thing that
+**Invalidation happens in the writes that wrote the rows the read reads.** Not a TTL, not a
+callback, not a subscriber — the write that changed the underlying data is the thing that
 knows the cache is now wrong, and it says so in the same transaction as the write
-([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md)). There is no window
+([`a-write-is-one-transaction`](../laws/a-write-is-one-transaction.md)). There is no window
 in which the rows have moved and the cache has not.
 
-**This is only enumerable because the query is a class.** A query is one read in one file, so
-its source tables can be listed; from those, the commands that write them can be listed; and
+**This is only enumerable because the read is a class.** A read is one read in one file, so
+its source tables can be listed; from those, the writes that write them can be listed; and
 that set is exactly the set that must invalidate. In a codebase where reads are scope chains
 scattered across models, nobody can produce that list, which is why cache invalidation is hard
 there and merely tedious here.
 
 ```sh
-# the query names its tables; these are the commands that must invalidate
-grep -rn "OrderLineRecord\|OrderRecord" app/commands app/io_commands
+# the read names its tables; these are the writes that must invalidate
+grep -rn "OrderLineRecord\|OrderRecord" app/writes app/io_writes
 ```
 
 **Reach for it last**, after the cheaper answers: an index
 ([an unindexed foreign key](an-unindexed-foreign-key.md)), a bound
-([an unbounded read](an-unbounded-read.md)), or the query doing its work in the database rather
+([an unbounded read](an-unbounded-read.md)), or the read doing its work in the database rather
 than in Ruby. Slowness is the motivation, not the permission.
 
-**Check:** drop the table in a staging environment and rebuild it by running the query. Nothing
+**Check:** drop the table in a staging environment and rebuild it by running the read. Nothing
 is lost and nothing else broke. If dropping it loses information, it is a snapshot wearing a
 cache's name; if you are unwilling to try it, you have a denormalisation with a better name.
 
-**Check:** every command in the list above either invalidates the cache or is one you can say
-does not touch what the query reads.
+**Check:** every write in the list above either invalidates the cache or is one you can say
+does not touch what the read reads.
 
 ---
 
@@ -201,11 +201,11 @@ a rebuild.
 four look the same in `db/schema.rb`: a column holding a value that appears elsewhere. Why the
 write happens is not in the schema, and no cop reads a reason.
 
-**The cache's pairing is checkable, and that is a cop that could exist.** `{query_name}_cache_record`
-makes the query's name derivable from the record's, so a guard could fail a `*CacheRecord` with
-no matching `Query` class — the shape this procedure calls a denormalisation with a reassuring
-name. It has not been written. What no guard can add is the other half: that every command
-writing the query's source tables invalidates it, which needs to know what the query reads, and
+**The cache's pairing is checkable, and that is a cop that could exist.** `{read_name}_cache_record`
+makes the read's name derivable from the record's, so a guard could fail a `*CacheRecord` with
+no matching `Read` class — the shape this procedure calls a denormalisation with a reassuring
+name. It has not been written. What no guard can add is the other half: that every write
+writing the read's source tables invalidates it, which needs to know what the read reads, and
 that is the judgement in step 4.
 
 **And a label is not an invalidation.** Writing `_cache_record` on the end of a name records

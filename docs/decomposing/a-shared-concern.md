@@ -41,7 +41,7 @@ shipshape next --json
 
 `MixinsAddNothingPublic` only fires on a module an operation actually includes, which is the
 first fact you need: the same module with public methods is **correct** in a shape, whose whole
-job is to be read, and wrong in a command, which answers one message.
+job is to be read, and wrong in a write, which answers one message.
 
 Then list the includers by hand, because the cop does not print them:
 

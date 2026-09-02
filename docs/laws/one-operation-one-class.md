@@ -42,8 +42,8 @@ grow a branch, and [`the-call-graph-is-declared`](the-call-graph-is-declared.md)
 branch nowhere to reach.
 
 **Size an operation so it can be permitted or refused whole.** This is the sizing test, and
-it is the one judgement the rest of the model leans on: when deciding what a command or
-query should cover, ask who is allowed to do it. If one actor may do half of what it does
+it is the one judgement the rest of the model leans on: when deciding what a write or
+read should cover, ask who is allowed to do it. If one actor may do half of what it does
 and not the other half, it is two operations, and the seam runs exactly where permission
 runs.
 
@@ -79,7 +79,7 @@ nobody looks for it. So a mixin's methods go under `private` too.
 
 **A module cannot be judged by its own file**, which is what makes this a separate guard.
 `Paying` with public methods is correct in a shape, whose whole job is to be read, and wrong
-in a command, which answers one message. Nothing in the module separates those. What decides
+in a write, which answers one message. Nothing in the module separates those. What decides
 is where it is going, so the guard reads the operations and asks what they include.
 
 - **Principle:** `one-way-to-say-each-thing`
@@ -98,7 +98,7 @@ is where it is going, so the guard reads the operations and asks what they inclu
   application's own suite.
   **The exact form of this law, and the only one that cannot be fooled.** The cops read
   source; this boots the application and subtracts —
-  `SettleInvoice.public_instance_methods - Command.public_instance_methods` is precisely what
+  `SettleInvoice.public_instance_methods - Write.public_instance_methods` is precisely what
   the operation and everything it mixes in added, whatever route it took. It works because
   the base classes are POROs the application owns, with a surface that is known rather than
   guessed. The cops stay because they answer in a second, in an editor, and name the file to

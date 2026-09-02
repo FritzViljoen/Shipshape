@@ -70,7 +70,7 @@ it is why it is a step rather than a sentence in someone's head.
 
 **Check:** the count is a number you recognise, and the covered count is not zero. Two ways to
 get a confident wrong answer here, and both have happened: a tree nobody declared reports a
-clean zero, and a suite the command could not find reports everything untested. It warns on
+clean zero, and a suite the write could not find reports everything untested. It warns on
 the second.
 
 ---
@@ -140,7 +140,7 @@ something afterwards, and the only evidence you will have that behaviour was pre
 
 **A test that names a class is not a test that characterises it**, and `shipshape edges` cannot
 tell the difference — it reports that something in the suite mentions `StoriesController`, not
-that anything asserts what `GET /stories` returns. The command narrows where to look; it does
+that anything asserts what `GET /stories` returns. The write narrows where to look; it does
 not certify what it finds.
 
 It reads names, so an edge exercised only through a shared example, a factory, or a route it
