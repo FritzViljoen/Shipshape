@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "active_support/time"
 
 # Watched to fail: making `typed` return its value unconditionally reddens every raising test here,
 # and making `matches?` answer true for Boolean reddens the three Boolean cases. Restoring each
@@ -92,5 +93,97 @@ class TypedArgumentsTest < Minitest::Test
   # Private, so the boundary is the constructor rather than a utility anyone may call.
   def test_the_guard_is_private
     refute_respond_to Subject.new(name: "x", count: 1, tags: [], labels: {}), :typed
+  end
+end
+
+# `a-time-names-its-zone`: `Time`/`DateTime` require a zoned value; `Date` refuses a `DateTime`.
+# Watched to fail: reverting `matches?` to plain `is_a?` reddens every refusal below.
+class TypedArgumentsTimeZoneTest < Minitest::Test
+  class Moment
+    include Shipshape::TypedArguments
+
+    attr_reader :at, :on
+
+    def initialize(at:, on:)
+      @at = typed(at, Time)
+      @on = typed(on, Date)
+    end
+  end
+
+  ZONED = ActiveSupport::TimeZone["UTC"].now
+
+  def test_a_naive_time_is_refused_where_a_moment_is_declared
+    error = assert_raises(ArgumentError) { Moment.new(at: Time.now, on: Date.today) }
+
+    assert_includes error.message, "expected Time"
+  end
+
+  def test_a_naive_datetime_is_refused_the_same_way
+    subject = Class.new do
+      include Shipshape::TypedArguments
+
+      def initialize(at:)
+        @at = typed(at, DateTime)
+      end
+    end
+
+    assert_raises(ArgumentError) { subject.new(at: DateTime.now) }
+  end
+
+  def test_a_zoned_time_is_accepted_however_it_was_declared
+    assert_equal ZONED, Moment.new(at: ZONED, on: Date.today).at
+  end
+
+  def test_a_calendar_date_is_accepted
+    assert_equal Date.today, Moment.new(at: ZONED, on: Date.today).on
+  end
+
+  def test_a_datetime_is_refused_where_a_date_is_declared
+    assert_raises(ArgumentError) { Moment.new(at: ZONED, on: DateTime.now) }
+  end
+
+  # The recommended spelling (the cop's own suggested fix): a moment is declared as the class
+  # a zoned value actually is, and the guard treats it as any other declared type.
+  def test_declaring_time_with_zone_directly_works_like_any_other_type
+    subject = Class.new do
+      include Shipshape::TypedArguments
+
+      def initialize(at:)
+        @at = typed(at, ActiveSupport::TimeWithZone)
+      end
+    end
+
+    subject.new(at: ZONED)
+    assert_raises(ArgumentError) { subject.new(at: Time.now) }
+  end
+
+  # The gem takes no runtime ActiveSupport dependency, so this spawns a bare subprocess: must
+  # refuse the value rather than raise `NameError` on the bare constant reference.
+  def test_without_activesupport_loaded_a_moment_never_matches_rather_than_raising
+    script = <<~RUBY
+      $LOAD_PATH.unshift(#{File.expand_path("../../lib", __dir__).inspect})
+      require "shipshape/typed_arguments"
+
+      class Probe
+        include Shipshape::TypedArguments
+
+        def initialize(at:)
+          @at = typed(at, Time)
+        end
+      end
+
+      begin
+        Probe.new(at: Time.now)
+        puts "PASSED-WRONGLY"
+      rescue ArgumentError
+        puts "REFUSED"
+      rescue NameError => e
+        puts "NAMEERROR: \#{e.message}"
+      end
+    RUBY
+
+    output = IO.popen(["ruby", "-e", script], err: [:child, :out], &:read)
+
+    assert_equal "REFUSED", output.strip
   end
 end
