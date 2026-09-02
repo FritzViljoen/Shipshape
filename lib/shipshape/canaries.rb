@@ -241,20 +241,18 @@ module Shipshape
           end
         end
       RUBY
-      # Not kind-scoped: the test tree has none. A bare-word `include`, exactly as it appears
-      # opening a class, needs no companion to resolve.
+      # `extend self` is refused on its own say-so, with no constant to resolve — the
+      # canary that needs no companion.
       "Shipshape/NoTestMixins" => { path: "test/canary_mixin_test.rb", raw: <<~RUBY },
         module CanaryMixin
-        end
-
-        class CanaryMixinTest
-          include CanaryMixin
+          extend self
         end
       RUBY
       # Named so it is never mistaken for a leaf test: `Shipshape/BaseTestClassGrowth`
-      # excludes `_test.rb`, so a canary ending in it would prove nothing.
+      # excludes `_test.rb`, so a canary ending in it would prove nothing. The superclass has
+      # to look like a test's own, or the cop reads this as an unrelated class under `test/`.
       "Shipshape/BaseTestClassGrowth" => { path: "test/canary_base_test_class.rb", raw: <<~RUBY },
-        class CanaryBaseTestClass
+        class CanaryBaseTestClass < ActiveSupport::TestCase
           def canary_definition
             1
           end
