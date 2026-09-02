@@ -13,7 +13,7 @@ module RuboCop
 
         ONE_LEVEL = <<~RUBY
           # one level from the base class, always
-          class AdminUpload < Command
+          class AdminUpload < Write
             def call
               # what was shared is a collaborator, not an ancestor
               Upload.call(file: @file)
@@ -23,7 +23,7 @@ module RuboCop
 
         INSTANCE = <<~RUBY
           # define the instance method; the base class calls it
-          class SettleInvoice < Command
+          class SettleInvoice < Write
             def call
               success(...)
             end
@@ -45,10 +45,10 @@ module RuboCop
 
           name = parent.source.sub(/\A::/, "")
           # A base class filed with its operations is still a base class: stratum keeps
-          # `Command` in `app/commands/`, so every correct operation looked like a second level.
+          # `Write` in `app/writes/`, so every correct operation looked like a second level.
           return if base_class?(name)
 
-          # Only our own hierarchy has a depth rule: a plain class in `app/queries/` resolves
+          # Only our own hierarchy has a depth rule: a plain class in `app/reads/` resolves
           # to an operation kind by path alone, and is not this canon's business.
           return unless rooted_in_a_base_class?(name)
 
@@ -136,7 +136,7 @@ module RuboCop
         def governed_kinds
           cop_config.fetch(
             "Kinds",
-            %w[workflow command query io_command io_query legacy_command legacy_query],
+            %w[workflow write read io_write io_read legacy_write legacy_read],
           )
         end
       end

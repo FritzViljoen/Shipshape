@@ -15,9 +15,9 @@ class AssociationsSurviveErasureTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "record" => ["app/models/**/*.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
       },
-      "Matrix" => { "record" => [], "command" => [] },
+      "Matrix" => { "record" => [], "write" => [] },
     },
   }.freeze
 
@@ -57,7 +57,7 @@ class AssociationsSurviveErasureTest < Minitest::Test
   end
 
   def test_an_association_outside_a_record_is_left_alone
-    assert_empty check("has_many :comments", "app/commands/settle.rb")
+    assert_empty check("has_many :comments", "app/writes/settle.rb")
   end
 
   def test_other_options_are_not_a_decision_about_children
@@ -67,7 +67,7 @@ class AssociationsSurviveErasureTest < Minitest::Test
   private
 
   def check(body, path = RECORD)
-    declaration = path == RECORD ? "class User < ApplicationRecord" : "class Settle < Command"
+    declaration = path == RECORD ? "class User < ApplicationRecord" : "class Settle < Write"
 
     offences("#{declaration}\n  #{body}\nend\n", cop_class: COP, path: path, other_cops: LAYOUT)
   end

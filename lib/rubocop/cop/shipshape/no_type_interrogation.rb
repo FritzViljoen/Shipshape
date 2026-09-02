@@ -99,7 +99,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])
+          cop_config.fetch("Kinds", %w[workflow write read io_write io_read shape])
         end
 
         # Inside the guard, `value.is_a?(Date)` is the assertion's own implementation.

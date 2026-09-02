@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CommandsProveIdempotence < Command
+class WritesProveIdempotence < Write
 def call
   success(1)
 end

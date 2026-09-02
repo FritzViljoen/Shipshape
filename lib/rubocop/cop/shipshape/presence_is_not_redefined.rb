@@ -40,7 +40,7 @@ module RuboCop
           explain(
             "`#{name}` decides what `present?` answers about this shape.",
             because: "Request handling may test `present?` and nothing else, and it means one " \
-                     "thing: did the query find anything. A shape that answers it for itself " \
+                     "thing: did the read find anything. A shape that answers it for itself " \
                      "makes that question a rule — the action then takes an arm chosen by the " \
                      "shape rather than by whether there was an answer, and the branch reads " \
                      "the same either way. `nil` and `[]` are absent; a shape is present. That " \

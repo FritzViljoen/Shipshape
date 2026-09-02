@@ -30,7 +30,7 @@ class PresentationHoldsNoRecordsTest < Minitest::Test
   def test_the_offence_carries_the_reason_and_an_example
     message = check("class Basket\nend\n").first.message
 
-    assert_includes message, "WHY: A record is only allowed in a command or a query"
+    assert_includes message, "WHY: A record is only allowed in a write or a read"
     assert_includes message, "INSTEAD:"
     assert_includes message, "extend HoldsNoRecords"
   end

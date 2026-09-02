@@ -14,9 +14,9 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "request_handling" => ["app/controllers/**/*_controller.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
       },
-      "Matrix" => { "request_handling" => ["command"], "command" => [] },
+      "Matrix" => { "request_handling" => ["write"], "write" => [] },
     },
   }.freeze
 
@@ -136,8 +136,8 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
   end
 
   # The rule is about the file that handles the request, not about branching everywhere.
-  def test_a_command_may_branch_all_it_likes
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/cancel_booking.rb", other_cops: LAYOUT)
+  def test_a_write_may_branch_all_it_likes
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/writes/cancel_booking.rb", other_cops: LAYOUT)
       class CancelBooking
         def call
           return failure(:already_cancelled) if @booking.cancelled?
@@ -167,9 +167,9 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
     refute_includes message, "asking it `save`"
   end
 
-  # `present?` is correct across all three answers a query may give: `nil` and `[]` are absent,
+  # `present?` is correct across all three answers a read may give: `nil` and `[]` are absent,
   # a shape and an array of shapes are present.
-  def test_present_asks_whether_a_query_found_anything
+  def test_present_asks_whether_a_read_found_anything
     assert_empty check(<<~RUBY)
       class BookingsController
         def show
@@ -183,9 +183,9 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
     RUBY
   end
 
-  # A query may answer nothing, so the caller has to ask whether it found any — and `present?`
+  # A read may answer nothing, so the caller has to ask whether it found any — and `present?`
   # is the one spelling. Bare truthiness and its cousins say the same thing in other words.
-  def test_only_present_asks_whether_a_query_found_anything
+  def test_only_present_asks_whether_a_read_found_anything
     %w[booking booking.nil? booking.any?].each do |condition|
       found = check(<<~RUBY)
         class BookingsController
@@ -208,7 +208,7 @@ class NoDecisionsInRequestHandlingTest < Minitest::Test
 
   # The receiver is not the test. Walking every node made this an offence, and it is the shape
   # the whole rule exists to permit.
-  def test_a_command_result_is_still_the_shape
+  def test_a_write_result_is_still_the_shape
     assert_empty check(<<~RUBY)
       class BookingsController
         def update

@@ -141,8 +141,8 @@ module RuboCop
             because: "A null is not \"off\", not \"inherit\", not \"not applicable\", not " \
                      "\"we lost it\" — it is all of them at once, and no reader can tell " \
                      "which. Every meaning given to it is a fact nobody declared, so the " \
-                     "meaning lives in whichever query happens to be reading, and two " \
-                     "queries disagree.",
+                     "meaning lives in whichever read happens to be reading, and two " \
+                     "reads disagree.",
             instead: NOT_NULL,
           )
         end

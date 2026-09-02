@@ -52,7 +52,7 @@ module RuboCop
         def message_for(name)
           explain(
             "Nothing sweeps `#{name}`, so a record handed to it stays.",
-            because: "A record is only allowed in a command or a query, and the matrix holds " \
+            because: "A record is only allowed in a write or a read, and the matrix holds " \
                      "that where the record is NAMED. It can say nothing about one arriving " \
                      "as an argument — `#{name}.new(person: person)` names no record at all — " \
                      "so the object is asked instead. The sweep is inherited, which is why a " \

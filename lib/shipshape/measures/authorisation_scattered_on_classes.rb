@@ -42,7 +42,7 @@ module Shipshape
         end
       end
 
-      OPERATION_TREES = %w[app/commands/ app/queries/ app/workflows/ app/operations/].freeze
+      OPERATION_TREES = %w[app/writes/ app/reads/ app/workflows/ app/operations/].freeze
 
       def governed(sources)
         sources.select do |source|

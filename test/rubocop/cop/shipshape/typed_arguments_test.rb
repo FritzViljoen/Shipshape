@@ -15,14 +15,14 @@ class TypedArgumentsTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "write" => ["app/writes/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      "Matrix" => { "command" => ["shape"], "shape" => [] },
+      "Matrix" => { "write" => ["shape"], "shape" => [] },
     },
   }.freeze
 
-  COMMAND = "app/commands/settle_invoice.rb"
+  WRITE = "app/writes/settle_invoice.rb"
 
   def test_an_unasserted_keyword_is_an_offence
     found = check(<<~RUBY)
@@ -212,7 +212,7 @@ class TypedArgumentsTest < Minitest::Test
   # job is to be a validated value.
   SHAPE = "app/shapes/place.rb"
 
-  SHAPE_KINDS = { "Kinds" => %w[command shape] }.freeze
+  SHAPE_KINDS = { "Kinds" => %w[write shape] }.freeze
 
   def test_a_shape_asserts_its_keywords_too
     found = check(shape("def initialize(code:)\n    @code = code\n  end"), SHAPE, SHAPE_KINDS)
@@ -244,7 +244,7 @@ class TypedArgumentsTest < Minitest::Test
     "class Place < Shape\n  #{body}\nend\n"
   end
 
-  def check(source, path = COMMAND, config = {})
+  def check(source, path = WRITE, config = {})
     offences(source, cop_class: COP, cop_config: config, path: path, other_cops: LAYOUT)
   end
 end

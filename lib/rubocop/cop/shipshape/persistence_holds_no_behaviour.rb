@@ -17,8 +17,8 @@ module RuboCop
             belongs_to :supplier_record
           end
 
-          # the query composes: a Booking holds a Supplier, and never copies its columns
-          class ShowBooking < Query
+          # the read composes: a Booking holds a Supplier, and never copies its columns
+          class ShowBooking < Read
             def call
               row = BookingRecord.find(@id)
               success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
@@ -35,7 +35,7 @@ module RuboCop
           end
 
           # the filter is named, and it is read where it is used
-          class ListLiveBookings < Query
+          class ListLiveBookings < Read
             def call
               success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
             end
@@ -49,7 +49,7 @@ module RuboCop
             has_many :line_records
           end
 
-          # the domain object is detached, so nobody can query through it by accident
+          # the domain object is detached, so nobody can read through it by accident
           class Booking < Shape
             def initialize(reference:, lines:)
               @reference = typed(reference, String)
@@ -58,7 +58,7 @@ module RuboCop
           end
 
           # and the operation is where deriving happens
-          class TotalBooking < Query
+          class TotalBooking < Read
             def call
               success(@booking.lines.sum(&:amount) * (1 + @tax_rate))
             end
@@ -148,8 +148,8 @@ module RuboCop
             "`default_scope` is implicit behaviour: global state on every read, and a distant write on `create`.",
             because: "A named scope is a rule you can see in the chain that used it. This " \
                      "one is not written anywhere it acts. Every association, every `find`, " \
-                     "every count silently receives a filter nobody asked for, so a query's " \
-                     "result cannot be predicted from the query — the definition of action " \
+                     "every count silently receives a filter nobody asked for, so a read's " \
+                     "result cannot be predicted from the read — the definition of action " \
                      "at a distance. It also sets attributes on `create`, so a record is " \
                      "born carrying a filter's opinion its caller never handed in. Both " \
                      "halves are `nothing-travels-off-the-call-path`, and the escape hatch " \

@@ -11,7 +11,7 @@ module RuboCop
 
         RETURNED = <<~RUBY
           # the change comes back as a value, so the call site can see it
-          class SwitchTenant < Command
+          class SwitchTenant < Write
             def call
               success(Session.new(tenant: @tenant))
             end
@@ -62,7 +62,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])
+          cop_config.fetch("Kinds", %w[workflow write read io_write io_read shape])
         end
       end
     end

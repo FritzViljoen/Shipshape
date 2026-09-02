@@ -10,15 +10,15 @@ require "shipshape/coverage"
 class CoverageTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
-      "Kinds" => { "command" => ["app/commands/**/*.rb"], "record" => ["app/records/**/*_record.rb"] },
-      "BaseClasses" => { "command" => ["Command"], "record" => ["ApplicationRecord"] },
-      "Matrix" => { "command" => ["record"], "record" => [] },
+      "Kinds" => { "write" => ["app/writes/**/*.rb"], "record" => ["app/records/**/*_record.rb"] },
+      "BaseClasses" => { "write" => ["Write"], "record" => ["ApplicationRecord"] },
+      "Matrix" => { "write" => ["record"], "record" => [] },
     },
   }.freeze
 
   def test_it_counts_what_resolves_to_a_kind
     result = measure(
-      "app/commands/settle.rb" => "class Settle < Command\nend\n",
+      "app/writes/settle.rb" => "class Settle < Write\nend\n",
       "app/records/thing_record.rb" => "class ThingRecord < ApplicationRecord\nend\n",
     )
 
@@ -42,7 +42,7 @@ class CoverageTest < Minitest::Test
 
   def test_it_names_what_no_cop_can_reach
     result = measure(
-      "app/commands/settle.rb" => "class Settle < Command\nend\n",
+      "app/writes/settle.rb" => "class Settle < Write\nend\n",
       "app/services/legacy_thing.rb" => "class LegacyThing\nend\n",
     )
 
@@ -51,9 +51,9 @@ class CoverageTest < Minitest::Test
 
   def test_vendored_and_generated_trees_are_not_the_denominator
     result = measure(
-      "app/commands/settle.rb" => "class Settle < Command\nend\n",
+      "app/writes/settle.rb" => "class Settle < Write\nend\n",
       "vendor/bundle/gem.rb" => "class Vendored\nend\n",
-      "test/commands/settle_test.rb" => "class SettleTest\nend\n",
+      "test/writes/settle_test.rb" => "class SettleTest\nend\n",
       "config/routes.rb" => "Rails.application.routes.draw {}\n",
     )
 

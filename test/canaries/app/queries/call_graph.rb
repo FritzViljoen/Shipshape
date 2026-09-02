@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-class CallGraph < Query
+class CallGraph < Read
 def call
-  OtherQuery.call
+  OtherRead.call
 end
 end

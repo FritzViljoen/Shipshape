@@ -19,9 +19,9 @@ module RuboCop
           has_many :%<name>s, dependent: :restrict_with_error  # deletion is refused
 
           # they stay and are anonymised? that is not a `dependent:` option at all. The
-          # anonymising is a command, called before the delete, and the column it
+          # anonymising is a write, called before the delete, and the column it
           # overwrites is what app/shipshape/personal_data.rb marks :anonymise. Pick the
-          # option that says what happens to the rows, then write that command.
+          # option that says what happens to the rows, then write that write.
         RUBY
 
         def on_send(node)

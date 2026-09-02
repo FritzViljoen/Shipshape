@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-# A write to something outside this process. A sister of Command, because an external
+# A write to something outside this process. A sister of Write, because an external
 # call inside a transaction holds it open over the wire. Assume it will be retried.
 # No `test_call`: it touches no record, so a test doubles the wire rather than building state.
-class IoCommand
+class IoWrite
   include TypedArguments
 
 <%- if auth -%>
