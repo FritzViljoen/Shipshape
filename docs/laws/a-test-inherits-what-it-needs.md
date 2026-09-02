@@ -134,26 +134,36 @@ a guard set is only tested by something actively trying to get work done through
   ending in `Test` or `TestCase` — so an `ActionMailer::Preview` or an `ApplicationRecord`
   living under a `test/` tree, an engine's dummy app being the usual place to find one, is not
   mistaken for a base test class; a `module` always qualifies, because a module has no
-  superclass to read and is exactly where the `extend self` back door lives. Qualifying nodes
-  are a ratchet on two counts, both only falling, per file: every definition held regardless of
-  visibility — every `def`, `define_method`, `alias_method` and `delegate`, every constant,
-  every `attr_*`, every `setup` and `teardown` block, wherever it sits behind an `if` or a
-  block — and the body size in lines, measured as the qualifying node's own span rather than
-  the file's, so a comment above `class TestCase` cannot trip it. Two numbers rather than one
-  because either alone is gamed by the other's slack: a definition count is gamed by inlining —
-  fold five helpers into one two-hundred-line `setup` and the count falls while the base class
-  gets worse — and a size count is gamed by golf. [The same principle already governs a cop's
-  clause count](../rails-failure-patterns.md): it measures how many ways the code can say one
-  thing, and a ratchet gamed by trading one number against the other is that failure wearing
-  this law's clothes. The line count is read from every file the cop watches, not only the ones
-  currently holding an offence — zeroing every definition must not be a way to drop a file out
-  of the count meant to catch exactly that trade.
+  superclass to read and is exactly where the `extend self` back door lives. A `module` has no
+  superclass-based escape, so the dummy app is excluded by path instead: `test/dummy` and
+  `spec/dummy` are that app's own root, generated once by `rails plugin new` and never hand
+  edited, and this cop's own `Exclude` names both, at either nesting. Qualifying nodes are a
+  ratchet on the count of definitions they hold, only falling, per file: every `def`,
+  `define_method`, `alias_method` and `delegate`, every constant, every `attr_*`, every `setup`
+  and `teardown` block, wherever it sits behind an `if` or a block.
 - **Guard's limit:** it identifies a base class by where its file lives, how it is named, and
   what it inherits, never by whether another test actually inherits from it. A helper file that
   happens to be named as though it were a leaf test, or a base class whose superclass does not
   read as a test's own, is invisible to it either way — the same convention that makes the
   ratchet derivable without a checked-in list is what a determined rename or an unconventional
-  superclass defeats. Neither number, once built, can tell whether a given growth in the base
+  superclass defeats. This number, once built, cannot tell whether a given growth in the base
   class was the reviewed kind or the pressured kind — it can only make growth visible and
   falling, never judge it. Nor can it see a private module defined and included from inside a
   base class it does watch, which would move the mixin one level down rather than remove it.
+  Nor is the dummy-app exclusion itself immune to the same rename: it is a path match on
+  `dummy`, so an engine built with `rails plugin new --dummy-path=spec/internal` gets none of
+  it, and a module or wrapping config class living there is mistaken for a base test class
+  exactly as it would have been with no exclusion at all.
+
+  **And a definition count alone is gamed by inlining:** fold five helpers into one
+  two-hundred-line `setup` and the count *falls* while the base class gets worse underneath it.
+  [The same principle already governs a cop's clause count](../rails-failure-patterns.md): a
+  ratchet gamed by trading one number for another is that failure wearing this law's clothes.
+  The second number that closes this hole — the qualifying node's own size in lines, watched to
+  only fall beside the definition count — is **not built yet**. A working version existed on
+  this branch and is being pulled into its own: it reimplemented this cop's classification
+  (`qualifying_superclass?`, the module rule, the dummy-app exclusion) a second time, in a
+  separate subprocess, and that duplication — not the law, not the offence-count half — was
+  where three straight review cycles kept finding new bugs. Until the size ratchet lands built
+  against this cop's own classification rather than a second copy of it, a definition count
+  golfed into one giant `setup` is this guard's known, open door.
