@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rubocop"
+require "shipshape/guards"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
 
@@ -107,11 +108,21 @@ module Shipshape
       TEXT
     end
 
+    # A cop that is not running holds nothing, so it is not one of the guards this file claims.
+    # Its own disclosure is `shipshape check`'s job — see docs/decomposing/an-adoption-order.md.
     def cops
       @cops ||= RuboCop::Cop::Registry.global.cops
                                       .map(&:cop_name)
                                       .grep(%r{\AShipshape/})
+                                      .reject { |name| disabled?(name) }
                                       .sort
+    end
+
+    # The same question `Guards` asks of a subprocess, asked here of the `RuboCop::Config`
+    # already in hand: `Config#enabled_new_cop?` is RuboCop's own resolution of whether a
+    # `pending` cop runs, department overrides and version-pinned `NewCops` included.
+    def disabled?(name)
+      Guards.disabled?(config.for_cop(name)["Enabled"], new_cop_enabled: config.enabled_new_cop?(name))
     end
 
     # Squeezed because YAML folds the Description and a rules file wants it on one line.
