@@ -7,7 +7,6 @@ require "shipshape/git"
 require "shipshape/coverage"
 require "shipshape/guards"
 require "shipshape/offences"
-require "shipshape/base_test_class_lines"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
 
@@ -38,15 +37,13 @@ module Shipshape
       head_offences = Offences.new(directory: root, config: resolved)
       head = head_offences.call
       off = Guards.new(directory: root, config: resolved).call
-      head_lines = BaseTestClassLines.new(directory: root, config: resolved).call
 
-      base, lived, base_lines = git.at(sha) do |path|
+      base, lived = git.at(sha) do |path|
         base_offences, base_config = measure_base(path)
-        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call]
+        [base_offences.call, population(path)]
       end
 
-      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
-             lines_before: base_lines, lines_after: head_lines)
+      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root))
     end
 
     private
@@ -108,7 +105,7 @@ module Shipshape
     end
 
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
-    def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {})
+    def report(base:, head:, off:, sha:, before: {}, after: {})
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -124,7 +121,7 @@ module Shipshape
       end
 
       { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
-        retiring: arrived_in(before, after), growth: arrived_in(lines_before, lines_after) }
+        retiring: arrived_in(before, after) }
     end
   end
 end
