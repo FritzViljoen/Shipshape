@@ -114,6 +114,63 @@ class BaseTestClassGrowthTest < Minitest::Test
     assert_equal 1, found.length
   end
 
+  # `BaseTestClassLines` reads sizes back from this same investigation - a qualifying class
+  # records its own span, not a second reader's re-walk of the file.
+  def test_a_qualifying_class_records_its_own_span
+    COP.reset_spans!
+    check(<<~RUBY)
+      class TestCase < ActiveSupport::TestCase
+        def sign_in_as(actor)
+          @actor = actor
+        end
+      end
+    RUBY
+
+    assert_equal [5], COP.merged_sizes.values
+  end
+
+  def test_a_qualifying_module_records_its_own_span
+    COP.reset_spans!
+    check(<<~RUBY, path: "test/support/shared_setup.rb")
+      module SharedSetup
+        extend self
+
+        def a_confirmed_booking(**args)
+          BookingRecord.create!(**args, state: "confirmed")
+        end
+      end
+    RUBY
+
+    assert_equal [7], COP.merged_sizes.values
+  end
+
+  def test_a_non_qualifying_class_records_no_span
+    COP.reset_spans!
+    check(<<~RUBY, path: "test/mailers/previews/user_mailer_preview.rb")
+      class UserMailerPreview < ActionMailer::Preview
+        def welcome
+          UserMailer.welcome
+        end
+      end
+    RUBY
+
+    assert_empty COP.spans
+  end
+
+  # A module wrapping the class it declares would otherwise count the same lines twice.
+  def test_a_module_wrapping_a_qualifying_class_merges_into_one_span
+    COP.reset_spans!
+    check(<<~RUBY, path: "test/support/wrapped_test_case.rb")
+      module Support
+        class WrappedTestCase < ActiveSupport::TestCase
+          def sign_in_as_admin; end
+        end
+      end
+    RUBY
+
+    assert_equal [5], COP.merged_sizes.values
+  end
+
   private
 
   def check(source, path: "test/support/admin_test_case.rb")

@@ -280,18 +280,77 @@ class CheckTest < Minitest::Test
     end
   RUBY
 
+  # None of this is a definition `BaseTestClassGrowth` counts, so the offence count *falls*.
+  GOLFED_BASE_TEST_CASE = <<~RUBY
+    class AdminTestCase < ActiveSupport::TestCase
+      logger.info("line one")
+      logger.info("line two")
+      logger.info("line three")
+      logger.info("line four")
+      logger.info("line five")
+    end
+  RUBY
+
+  DISABLED_GROWTH_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+
+    Shipshape/BaseTestClassGrowth:
+      Enabled: false
+  YAML
+
+  # The repro a reviewer ran: the two numbers used to share a gate.
+  def test_a_golfed_base_test_class_still_grows_by_line_count
+    in_growth_repo(baseline: BASE_TEST_CASE) do |root|
+      write(root, "test/support/admin_test_case.rb", GOLFED_BASE_TEST_CASE)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 1, now: 0 }, report[:fallen]["Shipshape/BaseTestClassGrowth"],
+        "the definition count on its own reads this as an improvement")
+      assert_equal({ was: 3, now: 7 }, report[:growth]["test/support/admin_test_case.rb"],
+        "the line count catches what the definition count's fall hid")
+    end
+  end
+
+  # `shipshape install` writes the base class `check` has never seen before; a file the merge
+  # base does not have is not growth on that file, because there is nothing to compare against.
+  def test_a_new_base_test_class_file_is_not_growth
+    in_growth_repo(baseline: nil) do |root|
+      write(root, "test/support/admin_test_case.rb", BASE_TEST_CASE)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_empty report[:growth]
+    end
+  end
+
+  def test_a_disabled_base_test_class_growth_measures_no_growth
+    in_growth_repo(baseline: BASE_TEST_CASE, config: DISABLED_GROWTH_YML) do |root|
+      write(root, "test/support/admin_test_case.rb", GROWN_BASE_TEST_CASE)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_empty report[:growth]
+    end
+  end
+
   # A repository with no operations at all — `Shipshape/BaseTestClassGrowth` needs none, and
   # this proves it: `Shipshape/CallGraph`'s Kinds fall back to the gem's own defaults, which
   # name paths nothing here uses, so the retiring machinery stays empty and silent.
-  def in_growth_repo(path: "test/support/admin_test_case.rb", baseline:)
+  def in_growth_repo(path: "test/support/admin_test_case.rb", baseline:, config: GROWTH_YML)
     with_gem_on_the_load_path do
       Dir.mktmpdir("shipshape-repo") do |root|
         git!(root, "init", "--quiet", "-b", "trunk")
         git!(root, "config", "user.email", "test@example.com")
         git!(root, "config", "user.name", "test")
 
-        write(root, ".rubocop.yml", GROWTH_YML)
-        write(root, path, baseline)
+        write(root, ".rubocop.yml", config)
+        write(root, path, baseline) if baseline
 
         git!(root, "add", "-A")
         git!(root, "commit", "--quiet", "-m", "baseline")
