@@ -6,7 +6,7 @@ require "shipshape/table_shapes"
 # Watched to fail: dropping the single-column guard in `add_unique`/`add_top_level_unique`
 # makes the composite-index test's key read as unique; skipping the `column:` fallback reddens
 # the default-inference test; treating `nullable` columns as blank-sentinel-capable reddens
-# that test too; loosening either count in `shape_of` blurs the three-shape tests together.
+# that test too; blurring any of the four `shape_of` counts collapses two of its tests together.
 class TableShapesTest < Minitest::Test
   def test_no_schema_reports_no_tables
     Dir.mktmpdir("table-shapes") do |root|
@@ -174,9 +174,9 @@ class TableShapesTest < Minitest::Test
     assert_equal :unlocked_composite_fact, orders.neighbours.first.shape
   end
 
-  # One required column beside the key is neither pattern: not nullable, so not "nothing";
-  # only one, so not the "several facts arrive together" of a composite fact either.
-  def test_exactly_one_not_null_column_beside_the_key_is_left_unlabelled
+  # Exactly one required column beside the key, no null anywhere: the shape
+  # `a-nullable-column.md` calls the fix, distinct from "unlocked nothing" by one `null: false`.
+  def test_exactly_one_not_null_column_beside_the_key_unlocks_absence
     orders = table(<<~RUBY).fetch("orders")
       create_table "orders", force: :cascade do |t|
         t.string "state", null: false
@@ -189,7 +189,24 @@ class TableShapesTest < Minitest::Test
       add_foreign_key "order_confirmations", "orders"
     RUBY
 
-    assert_nil orders.neighbours.first.shape
+    assert_equal :unlocked_absence, orders.neighbours.first.shape
+  end
+
+  def test_two_or_more_not_null_columns_still_beats_the_single_column_absence_check
+    orders = table(<<~RUBY).fetch("orders")
+      create_table "orders", force: :cascade do |t|
+        t.string "state", null: false
+      end
+
+      create_table "order_confirmations", primary_key: "order_id", force: :cascade do |t|
+        t.bigint "confirmed_by_id", null: false
+        t.datetime "confirmed_at", null: false
+      end
+
+      add_foreign_key "order_confirmations", "orders"
+    RUBY
+
+    assert_equal :unlocked_composite_fact, orders.neighbours.first.shape
   end
 
   # Neither named pattern: two nullable columns beside the key, none of them required. Left
