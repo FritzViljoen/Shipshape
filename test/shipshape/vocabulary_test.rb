@@ -8,7 +8,19 @@ require "shipshape/rules"
 # Watched to fail: add a `def` to any template `Install::FILES` names, and this reddens,
 # naming it, until Rules::VOCABULARY_DESCRIPTIONS or VOCABULARY_EXCLUSIONS says why.
 class VocabularyTest < Minitest::Test
-  DEF_PATTERN = /^\s*def\s+(?:self\.)?([a-zA-Z_][a-zA-Z0-9_]*[?!]?)/.freeze
+  IDENTIFIER = /[a-zA-Z_][a-zA-Z0-9_]*[?!]?/.source
+
+  # Longest first: `==` must not shadow `<=>` in the alternation.
+  OPERATORS = %w([]= [] <=> === == != <= >= << >> =~ ** + - * / % ^ & | ~ !)
+              .sort_by { |op| -op.length }.freeze
+  OPERATOR = Regexp.union(OPERATORS).source
+  NAME = "(?:#{OPERATOR}|#{IDENTIFIER})"
+
+  DEF_PATTERN = /^\s*def\s+(?:self\.)?(#{NAME})/.freeze
+
+  # `define_method` is not covered here: `Shipshape/NoGeneratedInterfaces` makes it unlikely.
+  ALIAS_PATTERN = /^\s*alias\s+:?(#{NAME})\s+:?#{NAME}/.freeze
+  ALIAS_METHOD_PATTERN = /^\s*alias_method[\s(]+:?["']?(#{NAME})["']?/.freeze
 
   def test_every_method_the_templates_define_is_named_or_excused
     classified = Shipshape::Rules::VOCABULARY_DESCRIPTIONS.keys + Shipshape::Rules::VOCABULARY_EXCLUSIONS.keys
@@ -43,10 +55,12 @@ class VocabularyTest < Minitest::Test
       refute_nil line, "test_call has a description but no longer renders at all"
       assert_includes line, "command", "test_call is defined on Command; the line should say so"
       assert_includes line, "query", "test_call is defined on Query; the line should say so"
+      assert_includes line, "legacy_command", "LegacyCommand has test_call too"
+      assert_includes line, "legacy_query", "LegacyQuery has test_call too"
       refute_includes line, "io_command",
         "IoCommand has no test_call — asserting an actor and skipping the permission check " \
         "would be a silent behaviour change on a door that opens a real transaction"
-      refute_includes line, "legacy_command", "LegacyCommand has no test_call either"
+      refute_includes line, "io_query", "IoQuery has no test_call for the same reason"
     end
   end
 
@@ -57,6 +71,34 @@ class VocabularyTest < Minitest::Test
       "test_call only exists inside the `if auth` branch of its templates; with no " \
       "app/shipshape/permission.rb the method is not defined anywhere, so the glossary " \
       "must not claim it either"
+  end
+
+  # docs/decomposing/an-adoption-order.md step 0 then step 9: install never overwrites.
+  def test_a_stale_pre_auth_kind_keeps_no_auth_methods_out_of_the_glossary
+    Dir.mktmpdir("vocabulary-adoption-order") do |root|
+      Shipshape::Install.new(root: root, auth: false).call
+      Shipshape::Install.new(root: root, auth: true).call
+      rules = generate(root: root)
+
+      refute_includes rules, "`test_call`",
+        "command.rb was written before auth and install never overwrites it"
+      refute_includes rules, "`permission`",
+        "permission/anonymous? are mixed into command.rb via `extend Permission`, which the " \
+        "stale command.rb never received"
+      refute_includes rules, "`anonymous?`", "same mixin, same reason as `permission`"
+    end
+  end
+
+  def test_a_view_component_template_is_not_counted_installed_without_view_components
+    Dir.mktmpdir("vocabulary-no-view-components") do |root|
+      Shipshape::Install.new(root: root, auth: true).call
+      rules = Shipshape::Rules.new(config: RuboCop::ConfigStore.new.for_pwd, root: root)
+
+      refute_includes rules.send(:installed_templates), "application_view_component",
+        "view components are opt-in and off by default; auth alone must not count " \
+        "application_view_component as installed, or the first method it gains gets a " \
+        "glossary row no application asked for"
+    end
   end
 
   private
@@ -74,6 +116,8 @@ class VocabularyTest < Minitest::Test
     auth = true
     source = ERB.new(File.read(path), trim_mode: "-").result(binding)
 
-    source.scan(DEF_PATTERN).flatten
+    source.scan(DEF_PATTERN).flatten +
+      source.scan(ALIAS_PATTERN).flatten +
+      source.scan(ALIAS_METHOD_PATTERN).flatten
   end
 end

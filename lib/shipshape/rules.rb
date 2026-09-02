@@ -34,6 +34,7 @@ module Shipshape
       "anonymous?" => "true for an operation that implements `anonymous_call` instead of `call`.",
       "to_h" => "a `Shape`'s round trip: instance variables out as a Hash, `new(**shape.to_h)` " \
                 "back in — only when the keywords match the fields.",
+      "==" => "a `Shape`'s own equality: two are equal when their fields are.",
       "integer_param" => "parses `params[key]` as an Integer.",
       "integer_param!" => "same, bouncing (`TypedParams::BadParam`) instead of falling back.",
       "decimal_param" => "parses `params[key]` as a `BigDecimal`.",
@@ -60,6 +61,7 @@ module Shipshape
       "inspect" => "Ruby's own inspection protocol; read by `p`, never called by name.",
       "refuse_record" => "the guard `typed` runs before it looks at the type at all.",
       "matches?" => "the type check behind `typed`.",
+      "mismatch_message" => "the error text `typed` raises when the check fails.",
       "catalogue" => "reads every operation's permission at once for a capability screen — not " \
                       "written inside an operation.",
       "permissions" => "the aggregate a workflow or a capability screen reads; an operation's " \
@@ -98,6 +100,7 @@ module Shipshape
       "refuse_records" => "the private half of that guard.",
       "hash" => "Ruby's own object protocol (`Array#uniq`, `Hash` keys); overridden for value " \
                 "semantics, not called by name.",
+      "eql?" => "Ruby's own Hash-key contract, aliased to `==`; not a second equality to write.",
       "state" => "the protected fields `==` and `hash` compare.",
       "record" => "written automatically by every writing door's `call`; an application never " \
                   "calls it.",
@@ -274,24 +277,47 @@ module Shipshape
       rendered_template(file).match?(/^\s*def\s+(?:self\.)?#{Regexp.escape(name)}(?![a-zA-Z0-9_?!])/)
     end
 
-    # What this application actually received, mirroring `Install#files`.
+    # `Install`'s own selection, not a second copy of its AUTH_ONLY/VIEW_COMPONENT_ONLY subtraction.
     def installed_templates
-      installed_auth? ? Install::FILES : Install::FILES - Install::AUTH_ONLY
+      Install.new(root: root, auth: installed_auth?, view_components: installed_view_components?).files
     end
 
+    # The disk file this application actually has, read as-is; the template only for a kind
+    # nothing has written yet — `install` never overwrites, so the two can disagree.
     def rendered_template(name)
       @rendered_templates ||= {}
-      @rendered_templates[name] ||= begin
-        auth = installed_auth?
-        path = File.join(Install::TEMPLATES, "#{name}.rb.tt")
-
-        ERB.new(File.read(path), trim_mode: "-").result(binding)
-      end
+      @rendered_templates[name] ||= installed_source(name) || render_current_template(name)
     end
 
+    def installed_source(name)
+      path = installed_path(name)
+      File.read(path) if File.file?(path)
+    end
+
+    def installed_path(name)
+      File.join(root, Install::DIRECTORY, "#{name}.rb")
+    end
+
+    def render_current_template(name)
+      auth = installed_auth?
+      path = File.join(Install::TEMPLATES, "#{name}.rb.tt")
+
+      ERB.new(File.read(path), trim_mode: "-").result(binding)
+    end
+
+    # `permission`/`anonymous?` are mixed into `command.rb` (`extend Permission`), never defined
+    # in `permission.rb` itself, so a stale, never-overwritten `command.rb` leaves them exactly
+    # as unreachable as a missing `test_call` even once `permission.rb` exists on disk.
     def installed_auth?
-      @installed_auth = File.exist?(File.join(root, "app/shipshape/permission.rb")) if @installed_auth.nil?
+      @installed_auth = (installed_source("command") || "").include?("extend Permission") if
+        @installed_auth.nil?
       @installed_auth
+    end
+
+    def installed_view_components?
+      @installed_view_components = File.file?(installed_path("application_view_component")) if
+        @installed_view_components.nil?
+      @installed_view_components
     end
 
     # A cop that is not running holds nothing, so it is not one of the guards this file claims.

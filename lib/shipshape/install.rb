@@ -75,6 +75,13 @@ module Shipshape
       report
     end
 
+    def files
+      chosen = FILES
+      chosen -= AUTH_ONLY unless auth
+      chosen -= VIEW_COMPONENT_ONLY unless view_components
+      chosen
+    end
+
     private
 
     attr_reader :root, :directory, :test_directory, :auth, :view_components, :rspec
@@ -124,13 +131,6 @@ module Shipshape
       return if report[:diverged].include?(relative)
 
       report[:stale] << relative if File.exist?("#{target}.new")
-    end
-
-    def files
-      chosen = FILES
-      chosen -= AUTH_ONLY unless auth
-      chosen -= VIEW_COMPONENT_ONLY unless view_components
-      chosen
     end
 
     def template(name, extension = "rb")
