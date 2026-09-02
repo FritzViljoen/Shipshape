@@ -236,7 +236,10 @@ holds the line from that moment. Only `Shipshape/*` cops are counted.
 **Stated limits.** It compares counts, not identities, so fixing one offence and adding another
 in the same cop nets to green. A moved file counts as new offences in head and removed ones in
 base. Only the root config is copied to the base tree. The merge-base is used rather than the
-trunk's tip, so an offence somebody else pushed after you branched is not billed to you.
+trunk's tip, so an offence somebody else pushed after you branched is not billed to you. `OFF`
+is read from the root config alone — a cop a subdirectory `.rubocop.yml` disables is invisible
+to it, so it reports nothing off while `rubocop` itself, resolving per file, silences that cop
+there.
 
 ## Tests
 
