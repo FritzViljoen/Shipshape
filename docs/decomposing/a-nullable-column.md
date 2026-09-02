@@ -35,7 +35,35 @@ two readers inventing differently is a bug nothing can catch.
 
 ---
 
-## 0. Look where the other procedures do not
+## 0. Model the table before you fix the column
+
+```sh
+shipshape tables --table bookings
+```
+
+`NoNullableColumns` reports one column at a time. Ten small fixes on one table read as ten
+small problems, and each gets its own join table keyed back to the same parent — zero nulls,
+ten satellites, and the table underneath is the same size, now harder to see. Read every
+signal on the whole table before deciding what one column needs.
+
+**If the table shows a flag cluster, a status pair, several nullable columns, and a
+satellite-shaped neighbour or two, stop here** — [a god record](a-god-record.md) is what the
+columns are showing, at their own scale, and fixing one column first only buries it deeper.
+
+**An extraction earns its place by unlocking a sentence the old shape could not say.**
+Splitting off channels unlocked *two phone numbers*; an `engagement_closure` table unlocked
+"closed, with a reason, at a time, by someone." A `tenant_branding` satellite shipped with one
+still-nullable `logo_url` unlocked nothing — the null just moved house, and `shipshape tables`
+names exactly this shape: a unique key back plus a single nullable column. That is the same
+god-record question as above, arriving one column at a time — if it recurs across a table's
+satellites, [go there](a-god-record.md) instead of writing a fix for each.
+
+**Check:** before writing the migration, you can say in one sentence what the new shape lets
+you say that the old one could not — and the sentence names more than "not null now".
+
+---
+
+## 1. Look where the other procedures do not
 
 ```sh
 shipshape report
@@ -49,7 +77,7 @@ not inspected**, which reads identically.
 
 ---
 
-## 1. Sort the nullable columns — four shapes, four answers
+## 2. Sort the nullable columns — four shapes, four answers
 
 | What the NULL means | What it becomes |
 |---|---|
@@ -67,7 +95,7 @@ writing a migration.
 
 ---
 
-## 2. A nullable foreign key is almost always a join
+## 3. A nullable foreign key is almost always a join
 
 This is the near-universal answer for a foreign key, and it does two things at once:
 
@@ -93,11 +121,17 @@ absence of a row, which is a fact the schema states rather than a value somebody
 **A nullable foreign key also tends to hide the third shape above** — two kinds of thing
 sharing a table. Check for that before reaching for the join.
 
+**Before creating it, ask what [modelling the table first](#0-model-the-table-before-you-fix-the-column)
+already asked:** does the join let you say something the old column could not? `booking_suppliers`
+above says "linked, to exactly one supplier, or not at all" — that is new. A join that ends up
+with one unique key back and one nullable column beside it has said nothing new; [a god
+record](a-god-record.md) is the same question, arriving one column at a time.
+
 **Check:** the index is in `db/schema.rb`, and `NoNullableColumns` no longer names the column.
 
 ---
 
-## 3. A column default is a second declaration of the same fact
+## 4. A column default is a second declaration of the same fact
 
 ```ruby
 t.string "tier", default: "standard"
@@ -123,7 +157,7 @@ is the point: it was a migration disguised as a schema line, and it ran once, in
 
 ---
 
-## 4. Migrate in the order that stays green
+## 5. Migrate in the order that stays green
 
 For each column, four deploys, and they are separate on purpose:
 
@@ -141,7 +175,7 @@ the test, and it is worth writing before the backfill.
 
 ---
 
-## 5. Do not batch this
+## 6. Do not batch this
 
 One column per change. The temptation is a single migration that fixes forty columns, and it
 is wrong for a reason specific to this work: **each column is a different one of the four

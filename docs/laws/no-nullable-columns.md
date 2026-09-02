@@ -26,4 +26,6 @@ that outlives its migration is what this law forbids.
   anything else — a hand-run statement, a tool, a vendored migration — is invisible, and a
   passing run therefore proves what this repo's migrations did, not what the database holds.
   Migrations vendored from an engine are excluded, because holding someone else's file to a
-  house rule only ever means a red build.
+  house rule only ever means a red build. `shipshape tables` reads `db/schema.rb` itself and
+  names every nullable column no migration in the repository declares — the set this guard
+  cannot see, clean run or not.
