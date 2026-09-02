@@ -53,20 +53,52 @@ ActiveSupport::TestCase` holding shared helpers is fully legal under "no `includ
 outside a ratchet that watches only one named file — an agent asked to remove an `include`
 this law forbids can satisfy it by moving the same methods onto a new intermediate class
 instead of onto the one the application already installed, and nothing above has moved. So the
-ratchet below does not watch a single named class: it watches every class in a test tree that
-is not itself a leaf test — see its own Guard line for exactly what that means and what it
-still misses.
+ratchet below does not watch a single named class: it watches every class or module in a test
+tree that is not itself a leaf test — see its own Guard line for exactly what that means and
+what it still misses.
+
+## On RSpec, this is a convention with no guard
+
+Neither cop is written against RSpec's own sharing surface. `config.include`, `config.extend`
+and `RSpec.shared_context` do exactly what `include SignsInAsAdmin` does in a Minitest test —
+put behaviour on a spec from a file the spec itself does not mention — and neither
+`Shipshape/NoTestMixins` nor `Shipshape/BaseTestClassGrowth` fires on any of them. `shipshape
+install` does not write a base class for RSpec either, for the reason `Install#call`'s own
+comment gives: RSpec's sharing is itself a mixin, so there is no honest RSpec form of the one
+class this law allows. [`a-guard-states-its-limit`](a-guard-states-its-limit.md) requires this
+said plainly rather than discovered: on an RSpec suite, `a-test-inherits-what-it-needs` is a
+convention with no guard behind it, and `shipshape check` reporting clean over one proves
+nothing.
+
+## Why this is a ban, not a private-methods rule
+
+[`one-operation-one-class`](one-operation-one-class.md) does not forbid `include Paying` in a
+command — it forces the mixin's methods private with `Shipshape/MixinsAddNothingPublic`, so the
+module's behaviour is still there but nothing outside the command can reach it through the seam
+the mixin opened. This law goes further and forbids the `include` outright. The difference is
+what the two surfaces cost when they are wrong.
+
+A command with a private mixin still answers through one public method; the class's own
+contract is intact even while its internals arrived from elsewhere, and that containment is
+what the private-methods remedy is trading on. A test class has no such contract — nothing
+calls a test's methods from outside it, so "private" buys a test nothing, and the entire reason
+`include SignsInAsAdmin` is worth reaching for is that its methods stay callable exactly the
+way a public mixin's would. Forcing test-mixin methods private would not close the door the
+operation's rule closes; it would just describe a shape nobody would write. The remedy that
+survives for a test is the one that survives for a command with no public surface to protect
+by other means: move the behaviour onto the one class already in the inheritance chain.
 
 ## Two rejected shapes
 
-**Generated, regenerate-not-edit.** The base test class could have been installed the way
-`Command` is: owned by the gem, redistributed on update, any local edit read as drift. Rejected
-— a real suite's base test legitimately needs setup specific to the application, how *this* app
-signs in an actor, what *this* app's time zone is, and a base class that refuses local edits
-pushes that need straight back into a module, which is the thing this law exists to close.
-Nothing about installation changes for this file: like every other base class `shipshape
-install` writes, it is written once and never touched again — `Install#call` skips a target
-that already exists, for this file exactly as for every other.
+**Generated, regenerate-not-edit.** A stricter shape was considered: install rewrites the base
+test class every run and treats a local edit as drift to warn about. Rejected — a real suite's
+base test legitimately needs setup specific to the application, how *this* app signs in an
+actor, what *this* app's time zone is, and a base class that refuses local edits pushes that
+need straight back into a module, which is the thing this law exists to close. Nothing about
+installation singles this file out: like every other base class `shipshape install` writes,
+`Command` included, it is written once and never touched again — `Install#call` skips a target
+that already exists, for this file exactly as for every other, and the gem has no drift check
+at all.
 
 **A public-method-count ratchet, alone.** Counting only the base class's public methods was
 considered and rejected. Private is exactly where an agent under this law puts
@@ -84,32 +116,44 @@ a guard set is only tested by something actively trying to get work done through
   mentions, which is the same defect named above from an operation's side.
 - **Guard:** `Shipshape/NoTestMixins`, over the test trees — fails `include`, `extend` and
   `prepend` naming anything but the language's own modules.
-- **Guard's limit:** it sees only the bare directive that opens a class or module. It does not
-  see `def self.` on a module called directly — `BookingHelper.a_booking(**args)` needs no
-  `include` and travels through neither this guard nor, today, `Shipshape/NoTestFactories`.
-  Closing that door is that cop's future work, not this one's: construction is
-  `no-test-factories`'s territory, and a module-function helper that builds state is a second
-  way to construct it, obeying none of the rules `test_call` already enforces. This guard
-  only ever held sharing behaviour and assertions between test classes; it was never asked to
-  hold construction.
-- **Guard:** `Shipshape/BaseTestClassGrowth`, over every base test class in the suite — every
-  file under a `test/` or `spec/` tree, starting with the one `shipshape install` writes,
-  `test_case.rb`, that is not itself a leaf test (its name does not end in "_test.rb" or
-  "_spec.rb") — a ratchet on two counts, both only falling, per file: every definition the
-  class holds regardless of visibility — every `def`, every constant, every `attr_*`, every
-  `setup` and `teardown` block — and the body size of the class in lines. Two numbers rather
-  than one because either alone is gamed by the other's slack: a definition count is gamed by
-  inlining — fold five helpers into one two-hundred-line `setup` and the count falls while the
-  base class gets worse — and a size count is gamed by golf. [The same principle already
-  governs a cop's clause count](../rails-failure-patterns.md): it measures how many ways the
-  code can say one thing, and a ratchet gamed by trading one number against the other is that
-  failure wearing this law's clothes.
-- **Guard's limit:** it identifies a base class by where its file lives and how it is named,
-  never by whether another test actually inherits from it. A helper file that happens to be
-  named as though it were a leaf test, or a base class defined inside a file this heuristic
-  does not reach, is invisible to it either way — the same naming convention that makes the
-  ratchet derivable without a checked-in list is what a determined rename defeats. Neither number,
-  once built, can tell whether a given growth in the base class was the reviewed kind or the
-  pressured kind — it can only make growth visible and falling, never judge it. Nor can it see
-  a private module defined and included from inside a base class it does watch, which would
-  move the mixin one level down rather than remove it.
+- **Guard's limit:** it sees only the bare directive that opens a class or module — `include`,
+  `extend`, `prepend` — and the `extend self` back door onto that same directive. It does not
+  see the call site of a module function called directly: `BookingHelper.a_booking(**args)`
+  needs no `include` and travels through neither this guard nor, today,
+  `Shipshape/NoTestFactories`. `Shipshape/BaseTestClassGrowth` still sees the definition itself
+  — `def self.a_booking` inside `BookingHelper` ratchets exactly as a mixin's method would —
+  so the growth is visible even where the call site is invisible. Closing the call site is
+  that cop's future work, not this one's: construction is `no-test-factories`'s territory, and
+  a module-function helper that builds state is a second way to construct it, obeying none of
+  the rules `test_call` already enforces. This guard only ever held sharing behaviour and
+  assertions between test classes; it was never asked to hold construction.
+- **Guard:** `Shipshape/BaseTestClassGrowth`, over every base test class or support module in
+  the suite — every file under a `test/` or `spec/` tree, starting with the one `shipshape
+  install` writes, `test_case.rb`, that is not itself a leaf test (its name does not end in
+  "_test.rb" or "_spec.rb"). A `class` qualifies by its superclass looking like a test's own —
+  ending in `Test` or `TestCase` — so an `ActionMailer::Preview` or an `ApplicationRecord`
+  living under a `test/` tree, an engine's dummy app being the usual place to find one, is not
+  mistaken for a base test class; a `module` always qualifies, because a module has no
+  superclass to read and is exactly where the `extend self` back door lives. Qualifying nodes
+  are a ratchet on two counts, both only falling, per file: every definition held regardless of
+  visibility — every `def`, `define_method`, `alias_method` and `delegate`, every constant,
+  every `attr_*`, every `setup` and `teardown` block, wherever it sits behind an `if` or a
+  block — and the body size in lines, measured as the qualifying node's own span rather than
+  the file's, so a comment above `class TestCase` cannot trip it. Two numbers rather than one
+  because either alone is gamed by the other's slack: a definition count is gamed by inlining —
+  fold five helpers into one two-hundred-line `setup` and the count falls while the base class
+  gets worse — and a size count is gamed by golf. [The same principle already governs a cop's
+  clause count](../rails-failure-patterns.md): it measures how many ways the code can say one
+  thing, and a ratchet gamed by trading one number against the other is that failure wearing
+  this law's clothes. The line count is read from every file the cop watches, not only the ones
+  currently holding an offence — zeroing every definition must not be a way to drop a file out
+  of the count meant to catch exactly that trade.
+- **Guard's limit:** it identifies a base class by where its file lives, how it is named, and
+  what it inherits, never by whether another test actually inherits from it. A helper file that
+  happens to be named as though it were a leaf test, or a base class whose superclass does not
+  read as a test's own, is invisible to it either way — the same convention that makes the
+  ratchet derivable without a checked-in list is what a determined rename or an unconventional
+  superclass defeats. Neither number, once built, can tell whether a given growth in the base
+  class was the reviewed kind or the pressured kind — it can only make growth visible and
+  falling, never judge it. Nor can it see a private module defined and included from inside a
+  base class it does watch, which would move the mixin one level down rather than remove it.
