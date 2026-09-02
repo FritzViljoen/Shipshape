@@ -7,6 +7,7 @@ require "shipshape/git"
 require "shipshape/coverage"
 require "shipshape/guards"
 require "shipshape/offences"
+require "shipshape/base_test_class_lines"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
 
@@ -37,11 +38,11 @@ module Shipshape
       head_offences = Offences.new(directory: root, config: resolved)
       head = head_offences.call
       off = Guards.new(directory: root, config: resolved).call
-      head_lines = lines_of(root, head_offences)
+      head_lines = BaseTestClassLines.new(directory: root, config: resolved).call
 
       base, lived, base_lines = git.at(sha) do |path|
-        base_offences = measure_base(path)
-        [base_offences.call, population(path), lines_of(path, base_offences)]
+        base_offences, base_config = measure_base(path)
+        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call]
       end
 
       report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
@@ -51,16 +52,6 @@ module Shipshape
     private
 
     attr_reader :root, :trunk, :git, :config
-
-    GROWTH_COP = "Shipshape/BaseTestClassGrowth"
-
-    # A file's line count, read once from exactly the files that cop already found — not a
-    # second count of what a base class is.
-    def lines_of(directory, offences)
-      offences.paths_for(GROWTH_COP).each_with_object({}) do |relative, rows|
-        rows[relative] = File.readlines(File.join(directory, relative)).length
-      end
-    end
 
     def trunk_name
       @trunk_name ||= trunk || git.default_trunk
@@ -84,7 +75,7 @@ module Shipshape
         FileUtils.cp(source, target)
       end
 
-      Offences.new(directory: path, config: config && target)
+      [Offences.new(directory: path, config: config && target), config && target]
     end
 
     def relative(path)
