@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+# Holds `a-test-inherits-what-it-needs`: everything a test needs is a method here, not a mixin.
+class TestCase < ActiveSupport::TestCase
+end

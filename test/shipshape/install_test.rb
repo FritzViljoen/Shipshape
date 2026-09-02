@@ -11,7 +11,8 @@ class InstallTest < Minitest::Test
   include CopRunner
 
   def everything
-    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
+    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS +
+      Shipshape::Install::BASE_TESTS
   end
 
   def read_installed(root, relative)
@@ -83,6 +84,28 @@ class InstallTest < Minitest::Test
       assert_includes report[:written], "test/shipshape/personal_data_is_erasable_test.rb"
       assert_includes read_installed(root, "test/shipshape/operations_expose_nothing_test.rb"),
                       "ActiveSupport::TestCase"
+    end
+  end
+
+  # RSpec's own sharing is a mixin (`shared_context`, `config.include`) — the shape
+  # `a-test-inherits-what-it-needs` closes — so there is no honest RSpec form of this class.
+  def test_the_base_test_class_is_written_for_minitest_only
+    in_app do |root|
+      report = Shipshape::Install.new(root: root).call
+
+      assert_includes report[:written], "test/shipshape/test_case.rb"
+      assert_includes read_installed(root, "test/shipshape/test_case.rb"), "ActiveSupport::TestCase"
+    end
+  end
+
+  def test_the_base_test_class_is_not_written_for_rspec
+    in_app do |root|
+      FileUtils.mkdir_p(File.join(root, "spec"))
+
+      report = Shipshape::Install.new(root: root).call
+
+      refute_includes report[:written], "spec/shipshape/test_case.rb"
+      refute_path_exists File.join(root, "spec/shipshape/test_case.rb")
     end
   end
 

@@ -227,7 +227,8 @@ class CanonTest < Minitest::Test
   end
 
   def installed
-    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS
+    Shipshape::Install::FILES + Shipshape::Install::TESTS + Shipshape::Install::TASKS +
+      Shipshape::Install::BASE_TESTS
   end
 
   def laws
