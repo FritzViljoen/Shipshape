@@ -24,6 +24,22 @@ module RuboCop
         # A bucket name for `Kinds` to search, over this cop's own `Include` globs.
         OWNED_KIND = "test_owned"
 
+        INSTEAD = <<~RUBY
+          # the base class gains the method, in the open, reviewed once
+          class TestCase < ActiveSupport::TestCase
+            def sign_in_as(actor)
+              ...
+            end
+          end
+
+          class ConfirmBookingTest < TestCase
+            def test_it_confirms
+              sign_in_as(admin)
+              ...
+            end
+          end
+        RUBY
+
         def on_send(node)
           return unless MIXERS.include?(node.method_name)
           return if node.receiver
@@ -81,21 +97,7 @@ module RuboCop
                      "test needs — an assertion helper, a way to sign in an actor, a way to " \
                      "travel time — is a method on the one base class every test in the " \
                      "suite already inherits, added once and reviewed once.",
-            instead: <<~RUBY,
-              # the base class gains the method, in the open, reviewed once
-              class TestCase < ActiveSupport::TestCase
-                def sign_in_as(actor)
-                  ...
-                end
-              end
-
-              class ConfirmBookingTest < TestCase
-                def test_it_confirms
-                  sign_in_as(admin)
-                  ...
-                end
-              end
-            RUBY
+            instead: INSTEAD,
           )
         end
       end
