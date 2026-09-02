@@ -3,8 +3,9 @@
 require "test_helper"
 require "shipshape/base_test_class_lines"
 
-# A real directory and a real `rubocop` subprocess, run through the same cop that counts
-# `Shipshape/BaseTestClassGrowth`'s offences - classification happens once, not twice here.
+# Every repository below carries a second Ruby file (turns `--parallel` on) and every
+# measurement below runs twice over it (a warm cache on the second) - a lone file in a fresh
+# `Dir.mktmpdir` is the one shape blind to either way this class used to measure `{}`.
 class BaseTestClassLinesTest < Minitest::Test
   RUBOCOP_YML = <<~YAML
     require:
@@ -27,8 +28,7 @@ class BaseTestClassLinesTest < Minitest::Test
       Enabled: false
   YAML
 
-  # No `require:` at all - a `--format` naming an unresolved class crashes rubocop outright,
-  # unlike `Offences`, which just finds nothing.
+  # No `require:` at all - `BaseTestClassLines` supplies `--require shipshape` regardless.
   NO_REQUIRE_YML = <<~YAML
     AllCops:
       NewCops: disable
@@ -49,8 +49,7 @@ class BaseTestClassLinesTest < Minitest::Test
     end
   end
 
-  # `handle_body` recurses into an `if`, a block or `class << self` to find definitions, but
-  # the class's own span - not the definitions inside it - is what is measured.
+  # The class's own span is measured, not the definitions `handle_body` recurses into.
   def test_a_comment_above_the_class_does_not_inflate_its_size
     in_repo(RUBOCOP_YML) do |root|
       write(root, "test/support/admin_test_case.rb", <<~RUBY)
@@ -85,8 +84,7 @@ class BaseTestClassLinesTest < Minitest::Test
     end
   end
 
-  # A base class holding zero definitions still has a span - all the lines the ratchet must
-  # watch for a class golfed down to nothing but plain, unclassified statements.
+  # A base class holding zero definitions still has a span - what a golfed class must ratchet.
   def test_an_undersized_offence_count_still_reports_every_line
     in_repo(RUBOCOP_YML) do |root|
       write(root, "test/support/admin_test_case.rb", <<~RUBY)
@@ -130,8 +128,7 @@ class BaseTestClassLinesTest < Minitest::Test
     end
   end
 
-  # `Guards` already reads `Enabled` from the resolved config; this asks RuboCop's own team to
-  # skip the cop's investigation entirely rather than building a second way to ask.
+  # RuboCop's own team skips the cop's investigation entirely; nothing here reads `Enabled`.
   def test_a_disabled_cop_measures_nothing
     in_repo(DISABLED_YML) do |root|
       write(root, "test/support/admin_test_case.rb", <<~RUBY)
@@ -159,7 +156,14 @@ class BaseTestClassLinesTest < Minitest::Test
   private
 
   def call(root)
-    Shipshape::BaseTestClassLines.new(directory: root, config: File.join(root, ".rubocop.yml")).call
+    lines = Shipshape::BaseTestClassLines.new(directory: root, config: File.join(root, ".rubocop.yml"))
+
+    cold = lines.call
+    warm = lines.call
+
+    assert_equal cold, warm, "a second, warm-cache run over the same directory must agree with the first"
+
+    warm
   end
 
   def write(root, path, contents)
@@ -172,15 +176,15 @@ class BaseTestClassLinesTest < Minitest::Test
     File.expand_path("../..", __dir__)
   end
 
-  # RuboCop runs as a subprocess, so it needs the gem on its load path the way a real
-  # consumer would have it from the Gemfile - RUBYOPT says that to the child without teaching
-  # BaseTestClassLines a test-only argument.
+  # RUBYOPT puts the gem on the subprocess's load path; `companion.rb` is the second
+  # inspectable file that turns `--parallel` on.
   def in_repo(config)
     was = ENV["RUBYOPT"]
     ENV["RUBYOPT"] = "-I#{gem_root}/lib #{was}".strip
 
     Dir.mktmpdir("shipshape-lines") do |root|
       File.write(File.join(root, ".rubocop.yml"), config)
+      write(root, "companion.rb", "class Companion\nend\n")
       yield(root)
     end
   ensure
