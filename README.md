@@ -42,9 +42,14 @@ bundle exec shipshape install --auth   # every door checks a permission
 
 Writes the base classes into `app/shipshape/` and includes `TypedParams` into your
 `ApplicationController`. **They are generated, not inherited from this gem** — a base class you
-can open in your own repository beats one buried in a dependency. Nothing is ever overwritten,
-so you get a diff to apply. They sit outside the governed trees because a base class is not an
-instance of the thing it defines: `Command` is not a command.
+can open in your own repository beats one buried in a dependency. Nothing is ever overwritten:
+a file already on disk that still matches what the gem would write is left alone and reported as
+kept; one that has drifted — because the gem's template moved on, not because you necessarily
+edited it — gets the new version written beside it as `<file>.new`, reported as `DIFFERS`, and
+left for you to diff against your own copy. `install` never diffs it for you, because that diff
+would mix your edits into the gem's changes with no way to tell which is which. They sit outside
+the governed trees because a base class is not an instance of the thing it defines: `Command` is
+not a command.
 
 **Authorisation is opt-in and off by default.** Base classes demanding an `actor:` on day one
 would stop every call site at once — an outage, not a migration. See
