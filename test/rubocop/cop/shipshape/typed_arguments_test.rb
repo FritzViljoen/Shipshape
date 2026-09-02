@@ -4,7 +4,8 @@ require "test_helper"
 
 # Watched to fail: making `guarded?` answer true reddens the unguarded-keyword test; making
 # `check_argument` return early on `:arg` reddens the positional test; emptying `UNNAMED` reddens
-# the splat tests; making `on_def` skip the `initialize` check reddens nothing on its own, which is
+# the splat tests; emptying `NAIVE_MOMENTS` reddens the bare-`Time` and bare-`DateTime` tests;
+# making `on_def` skip the `initialize` check reddens nothing on its own, which is
 # why there is a test that a guard-free `call` is not this cop's business.
 class TypedArgumentsTest < Minitest::Test
   include CopRunner
@@ -115,6 +116,71 @@ class TypedArgumentsTest < Minitest::Test
         def initialize(invoice_id:, &block)
           @invoice_id = typed(invoice_id, Integer)
           @block = block
+        end
+      end
+    RUBY
+  end
+
+  # The runtime guard cannot hold this: `TimeWithZone` answers `is_a?(Time)` with true, so a
+  # naive value declared `Time` passes the assertion. The declared type is the only place the
+  # difference is visible, and the law claimed this was already refused when it was not.
+  def test_a_keyword_declared_as_a_bare_time_names_no_zone
+    found = check(<<~RUBY)
+      class SettleInvoice
+        def initialize(settled_at:)
+          @settled_at = typed(settled_at, Time)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`Time` names no zone"
+    assert_includes found.first.message, "WHY: A bare `Time` carries whatever offset"
+    assert_includes found.first.message, "typed(now, ActiveSupport::TimeWithZone)"
+  end
+
+  def test_datetime_is_the_same_offence
+    found = check(<<~RUBY)
+      class SettleInvoice
+        def initialize(settled_at:)
+          @settled_at = typed(settled_at, DateTime)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`DateTime` names no zone"
+  end
+
+  def test_a_zoned_moment_and_a_calendar_date_are_the_shape
+    assert_empty check(<<~RUBY)
+      class SettleInvoice
+        def initialize(settled_at:, departs_on:, at:)
+          @settled_at = typed(settled_at, ActiveSupport::TimeWithZone)
+          @departs_on = typed(departs_on, Date)
+          @at = typed(at, ::ActiveSupport::TimeWithZone)
+        end
+      end
+    RUBY
+  end
+
+  # The keyword is guarded, so the unguarded-keyword rule has nothing to say — and the type it
+  # names is still wrong. Both had to be reported from one walk.
+  def test_a_naive_moment_inside_a_collection_guard_is_caught
+    assert_equal 1, check(<<~RUBY).length
+      class SettleInvoice
+        def initialize(stamps:)
+          @stamps = typed_array(stamps, Time)
+        end
+      end
+    RUBY
+  end
+
+  def test_a_cbase_time_is_the_same_offence
+    assert_equal 1, check(<<~RUBY).length
+      class SettleInvoice
+        def initialize(settled_at:)
+          @settled_at = typed(settled_at, ::Time)
         end
       end
     RUBY

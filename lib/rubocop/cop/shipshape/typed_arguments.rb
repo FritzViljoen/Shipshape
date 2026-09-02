@@ -5,11 +5,16 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `arguments-are-typed-at-construction`.
+      # Holds `arguments-are-typed-at-construction`, and the declared-type half of
+      # `a-time-names-its-zone`.
       class TypedArguments < Base
         include ReadsKinds
 
         GUARDS = %i[typed typed_array typed_hash].freeze
+
+        # The declared spelling is the only place this rule can be held: `TimeWithZone`
+        # answers `is_a?(Time)` with true, so the runtime guard cannot tell a naive value apart.
+        NAIVE_MOMENTS = %w[Time DateTime].freeze
 
         UNNAMED = {
           restarg: "a positional splat",
@@ -33,6 +38,7 @@ module RuboCop
           return unless one_of?(governed_kinds)
 
           node.arguments.each { |argument| check_argument(argument, node) }
+          guards(node).each { |guard| check_declared_type(guard) }
         end
 
         private
@@ -53,11 +59,26 @@ module RuboCop
         # `@on = typed(on, Date)` — the guard is reached somewhere in the body with this
         # keyword as an argument. Which line it sits on is not the cop's business.
         def guarded?(definition, name)
-          return false unless definition.body
+          guards(definition).any? do |send|
+            send.arguments.any? { |argument| argument.lvar_type? && argument.children.first == name }
+          end
+        end
 
-          definition.body.each_node(:send).any? do |send|
-            GUARDS.include?(send.method_name) &&
-              send.arguments.any? { |argument| argument.lvar_type? && argument.children.first == name }
+        def guards(definition)
+          return [] unless definition.body
+
+          definition.body.each_node(:send).select { |send| GUARDS.include?(send.method_name) }
+        end
+
+        # Walked per guard call rather than per keyword: one `typed` names one type, and a
+        # keyword-by-keyword walk reports the same constant twice where two keywords share a
+        # `typed_hash`.
+        def check_declared_type(guard)
+          guard.arguments.each do |argument|
+            next unless argument.const_type?
+            next unless NAIVE_MOMENTS.include?(argument.source.sub(/\A::/, ""))
+
+            add_offense(argument, message: naive_moment(argument.source))
           end
         end
 
@@ -72,6 +93,29 @@ module RuboCop
             instead: SHAPE,
           )
         end
+
+        def naive_moment(source)
+          explain(
+            "`#{source}` names no zone, so this keyword accepts a moment nobody placed.",
+            because: "A bare `#{source}` carries whatever offset the process happened to " \
+                     "have, chosen by nobody, so the same instant renders as a different " \
+                     "wall clock on a differently configured machine. The runtime guard " \
+                     "cannot catch this one: `ActiveSupport::TimeWithZone` answers " \
+                     "`is_a?(Time)` with true, so a naive value declared `#{source}` passes " \
+                     "the assertion. The declared type is the only place the difference is " \
+                     "visible, and this is that place.",
+            instead: MOMENT,
+          )
+        end
+
+        MOMENT = <<~RUBY
+          class ExpireHolds < Command
+            def initialize(now:, departs_on:)
+              @now = typed(now, ActiveSupport::TimeWithZone)  # a point in time, placed
+              @departs_on = typed(departs_on, Date)           # a calendar date, no zone by design
+            end
+          end
+        RUBY
 
         def not_a_keyword(source, what)
           explain(
