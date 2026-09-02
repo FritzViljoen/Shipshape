@@ -13,8 +13,9 @@ is a paraphrase of a law, which has a home already.
 over 1,087 of code — 66%, and four of them were false. `io_command` described what happened
 "after the transaction" it opens none of. `workflow` told views to call `permissions`, which
 had been made private. `query` documented an audit entry a query has never written. `command`
-named a `test_call` a non-auth install never defines. Each was true when written and none was
-reviewed, because the review was on the law.
+named a `test_call` a non-auth install never defines. The first three were true when
+written and drifted false as the code moved past them; the fourth was false on arrival, in a
+branch nothing had exercised. None was reviewed, because the review was on the law.
 
 **The budget is per file, and it is a ceiling on prose, not on thought.** A file that needs
 more explanation than a tenth is usually a file whose reasoning belongs in the law it
