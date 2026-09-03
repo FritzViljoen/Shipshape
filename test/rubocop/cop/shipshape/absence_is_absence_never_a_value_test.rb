@@ -258,6 +258,134 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     RUBY
   end
 
+  # `Gateway` used to pluralise to `gatewaies`; a vowel before the `y` just takes an `s`.
+  def test_a_vowel_y_class_name_claims_its_regular_plural
+    files = RECORDS.merge("app/records/gateway_record.rb" => "class Gateway < ApplicationRecord\nend\n")
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToGateways < ActiveRecord::Migration[7.0]
+        def change
+          create_table :gateways do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`gateways.nickname` is nullable"
+  end
+
+  # `BillingSettings` used to pluralise to `billing_settingses`; a class name already plural
+  # is left alone, the same as Rails' own fallback for a bare trailing `s`.
+  def test_an_already_plural_class_name_claims_its_own_table
+    files = RECORDS.merge(
+      "app/records/billing_settings_record.rb" => "class BillingSettings < ApplicationRecord\nend\n",
+    )
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToBillingSettings < ActiveRecord::Migration[7.0]
+        def change
+          create_table :billing_settings do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`billing_settings.nickname` is nullable"
+  end
+
+  # A namespaced record written the compact way claims its module's own prefix, wherever
+  # under `app/` or `lib/` that module happens to declare it.
+  def test_a_namespaced_record_claims_its_module_table_name_prefix
+    files = RECORDS.merge(
+      "app/records/reseller_record.rb" =>
+        "class ChannelManagement::Reseller < ApplicationRecord\nend\n",
+      "app/channel_management.rb" =>
+        "module ChannelManagement\n  def self.table_name_prefix\n    \"channel_management_\"\n  end\nend\n",
+    )
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToChannelManagementResellers < ActiveRecord::Migration[7.0]
+        def change
+          create_table :channel_management_resellers do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`channel_management_resellers.nickname` is nullable"
+  end
+
+  # Without the prefix, the demodulised guess would claim the wrong table (`resellers`), so
+  # the real table stays silent — this is the defect being fixed, pinned as a regression test.
+  def test_a_namespaced_record_does_not_claim_the_demodulised_table
+    files = RECORDS.merge(
+      "app/records/reseller_record.rb" =>
+        "class ChannelManagement::Reseller < ApplicationRecord\nend\n",
+      "app/channel_management.rb" =>
+        "module ChannelManagement\n  def self.table_name_prefix\n    \"channel_management_\"\n  end\nend\n",
+    )
+
+    assert_empty offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToResellers < ActiveRecord::Migration[7.0]
+        def change
+          create_table :resellers do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+  end
+
+  # Disclosed, not guessed at: a file with two top-level modules leaves no static way to say
+  # which one owns the prefix, so neither is claimed and the table stays silent.
+  def test_a_prefix_file_declaring_two_modules_is_not_trusted
+    files = RECORDS.merge(
+      "app/records/reseller_record.rb" =>
+        "class ChannelManagement::Reseller < ApplicationRecord\nend\n",
+      "app/channel_management.rb" =>
+        "module ChannelManagement\n  def self.table_name_prefix\n    \"channel_management_\"\n  end\nend\n\n" \
+        "module SomethingElse\nend\n",
+    )
+
+    assert_empty offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToChannelManagementResellers < ActiveRecord::Migration[7.0]
+        def change
+          create_table :channel_management_resellers do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+  end
+
+  # `self.table_name = :services_suburbs` is a bare symbol, not a quoted string, and it is
+  # exactly as literal — regression for a real table this missed until measured.
+  def test_a_symbol_table_name_assignment_claims_its_table
+    files = RECORDS.merge(
+      "app/records/service_suburb_record.rb" =>
+        "class ServiceSuburb < ApplicationRecord\n  self.table_name = :services_suburbs\nend\n",
+    )
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToServicesSuburbs < ActiveRecord::Migration[7.0]
+        def change
+          create_table :services_suburbs do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`services_suburbs.nickname` is nullable"
+  end
+
   private
 
   def check(source)
