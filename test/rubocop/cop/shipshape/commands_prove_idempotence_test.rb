@@ -52,6 +52,28 @@ class CommandsProveIdempotenceTest < Minitest::Test
                        "# Idempotent: settled_at guards the second call.\nclass X; end\n")
   end
 
+  # A bare marker settled nothing about how the operation is safe to repeat.
+  def test_the_marker_alone_does_not_settle_it
+    found = check("test/commands/settle_invoice_test.rb" => "# Idempotent:\nclass X; end\n")
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "its test does not say"
+  end
+
+  def test_the_marker_must_lead_a_comment_not_sit_inside_one
+    found = check("test/commands/settle_invoice_test.rb" =>
+                  "# See Idempotent: settled_at guards the second call.\nclass X; end\n")
+
+    assert_equal 1, found.length
+  end
+
+  def test_the_marker_must_be_a_comment_not_a_string
+    found = check("test/commands/settle_invoice_test.rb" =>
+                  %(X = "Idempotent: settled_at guards the second call."\n))
+
+    assert_equal 1, found.length
+  end
+
   def test_the_test_may_live_anywhere_under_a_declared_root
     %w[test/settle_invoice_test.rb spec/commands/settle_invoice_spec.rb
        test/app/commands/settle_invoice_test.rb].each do |path|
