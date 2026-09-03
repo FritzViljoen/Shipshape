@@ -3,7 +3,7 @@
 require "test_helper"
 
 # Watched to fail: emptying `HOOKS` reddens every offence test; making `one_of?` answer true
-# unconditionally reddens the write test; dropping the `node.receiver.nil?` check reddens the
+# unconditionally reddens the command test; dropping the `node.receiver.nil?` check reddens the
 # explicit-receiver test.
 class NoCallbacksTest < Minitest::Test
   include CopRunner
@@ -14,9 +14,9 @@ class NoCallbacksTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "record" => ["app/records/**/*_record.rb"],
-        "write" => ["app/writes/**/*.rb"],
+        "command" => ["app/commands/**/*.rb"],
       },
-      "Matrix" => { "record" => [], "write" => ["record"] },
+      "Matrix" => { "record" => [], "command" => ["record"] },
     },
   }.freeze
 
@@ -42,7 +42,7 @@ class NoCallbacksTest < Minitest::Test
 
     assert_includes message, "WHY: The caller reads one method and gets several"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "class ConfirmBooking < Write"
+    assert_includes message, "class ConfirmBooking < Command"
   end
 
   def test_every_hook_in_the_family_is_caught
@@ -77,9 +77,9 @@ class NoCallbacksTest < Minitest::Test
     RUBY
   end
 
-  # The rule is about records. A write naming one of these words is its own method.
-  def test_a_write_is_not_a_record
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/writes/confirm_booking.rb", other_cops: LAYOUT)
+  # The rule is about records. A command naming one of these words is its own method.
+  def test_a_command_is_not_a_record
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/confirm_booking.rb", other_cops: LAYOUT)
       class ConfirmBooking
         def call
           after_save

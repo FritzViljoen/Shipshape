@@ -24,9 +24,9 @@ module RuboCop
 
         REACH = <<~RUBY
           # the caller reaches down a level, never sideways or up
-          class SettleInvoice < Write
+          class SettleInvoice < Command
             def call
-              invoice = FindInvoice.call(id: @id).value   # a read, one level down
+              invoice = FindInvoice.call(id: @id).value   # a query, one level down
               InvoiceRecord.find(invoice.id).update!(...) # a record, the level below that
             end
           end
@@ -72,8 +72,8 @@ module RuboCop
             return explain(
               "#{caller_phrase} may not call #{callee_phrase}. They are sisters.",
               because: "A sister call is how a class quietly becomes the kind above it. " \
-                       "A write sequencing writes is a workflow that never said so, " \
-                       "and a read composing reads is the read that turns into an N+1. " \
+                       "A command sequencing commands is a workflow that never said so, " \
+                       "and a query composing queries is the read that turns into an N+1. " \
                        "The sequence belongs one level up, where it can be read at once.",
               instead: SISTERS,
             )

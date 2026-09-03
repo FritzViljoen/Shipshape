@@ -21,25 +21,25 @@ class CheckTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        write: ['app/writes/**/*.rb']
-        read: ['app/reads/**/*.rb']
+        command: ['app/commands/**/*.rb']
+        query: ['app/queries/**/*.rb']
       BaseClasses:
-        write: [Write]
-        read: [Read]
+        command: [Command]
+        query: [Query]
       Sisters:
-        - [write]
-        - [read]
+        - [command]
+        - [query]
       Matrix:
-        write: [read]
-        read: []
+        command: [query]
+        query: []
 
     Shipshape/OneOperationOneClass:
       Enabled: false
   YAML
 
-  CLEAN_WRITE = "class CreatePerson < Write\n  def call\n    ListPeople.call\n  end\nend\n"
-  DIRTY_READ = "class ListPeople < Read\n  def call\n    Other.call\n  end\nend\n"
-  OTHER_READ = "class Other < Read\n  def call\n    []\n  end\nend\n"
+  CLEAN_COMMAND = "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n"
+  DIRTY_QUERY = "class ListPeople < Query\n  def call\n    Other.call\n  end\nend\n"
+  OTHER_QUERY = "class Other < Query\n  def call\n    []\n  end\nend\n"
 
   def test_nothing_rose_when_nothing_changed
     in_repo do |root|
@@ -54,7 +54,7 @@ class CheckTest < Minitest::Test
   # its bill.
   def test_a_new_violation_is_refused
     in_repo do |root|
-      write(root, "app/reads/list_people.rb", DIRTY_READ)
+      write(root, "app/queries/list_people.rb", DIRTY_QUERY)
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -63,7 +63,7 @@ class CheckTest < Minitest::Test
   end
 
   def test_an_inherited_pile_is_not_the_branch_s_bill
-    in_repo(baseline: DIRTY_READ) do |root|
+    in_repo(baseline: DIRTY_QUERY) do |root|
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
       assert_empty report[:risen]
@@ -73,8 +73,8 @@ class CheckTest < Minitest::Test
   end
 
   def test_a_count_that_fell_is_reported_and_becomes_the_floor
-    in_repo(baseline: DIRTY_READ) do |root|
-      write(root, "app/reads/list_people.rb", "class ListPeople < Read\n  def call\n    []\n  end\nend\n")
+    in_repo(baseline: DIRTY_QUERY) do |root|
+      write(root, "app/queries/list_people.rb", "class ListPeople < Query\n  def call\n    []\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -84,7 +84,7 @@ class CheckTest < Minitest::Test
   end
 
   def test_enabling_a_cop_on_the_branch_is_free
-    in_repo(baseline: DIRTY_READ, config: RUBOCOP_YML.sub("Shipshape/CallGraph:", "Shipshape/CallGraph:\n  Enabled: false\n")) do |root|
+    in_repo(baseline: DIRTY_QUERY, config: RUBOCOP_YML.sub("Shipshape/CallGraph:", "Shipshape/CallGraph:\n  Enabled: false\n")) do |root|
       write(root, ".rubocop.yml", format(RUBOCOP_YML, gem: gem_root))
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
@@ -101,17 +101,17 @@ class CheckTest < Minitest::Test
 
   def test_it_leaves_the_working_copy_alone
     in_repo do |root|
-      write(root, "app/reads/list_people.rb", DIRTY_READ)
+      write(root, "app/queries/list_people.rb", DIRTY_QUERY)
       Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_equal DIRTY_READ, File.read(File.join(root, "app/reads/list_people.rb"))
+      assert_equal DIRTY_QUERY, File.read(File.join(root, "app/queries/list_people.rb"))
       assert_empty capture(root, "worktree", "list", "--porcelain").scan(/^worktree/).drop(1),
         "The working copy is never checked out, moved or stashed. A tool that disturbs the tree to measure it is one nobody runs twice."
     end
   end
 
   def test_an_explicit_config_is_used_for_both_trees
-    in_repo(baseline: DIRTY_READ) do |root|
+    in_repo(baseline: DIRTY_QUERY) do |root|
       write(root, ".rubocop-shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
       # The repository's own config is removed, so anything found came from the given one.
       FileUtils.rm(File.join(root, ".rubocop.yml"))
@@ -171,17 +171,17 @@ class CheckTest < Minitest::Test
     in_repo(config: RETIRING_YML) do |root|
       FileUtils.mkdir_p(File.join(root, "app/legacy"))
       write(root, "app/legacy/find_person_legacy.rb",
-            "class FindPersonLegacy < LegacyRead\n  def call\n    []\n  end\nend\n")
+            "class FindPersonLegacy < LegacyQuery\n  def call\n    []\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_equal({ "legacy_read" => { was: 0, now: 1 } }, report[:retiring])
+      assert_equal({ "legacy_query" => { was: 0, now: 1 } }, report[:retiring])
     end
   end
 
   def test_a_kind_that_is_not_retiring_is_not_counted
     in_repo(config: RETIRING_YML) do |root|
-      write(root, "app/reads/another.rb", OTHER_READ.sub("Other", "Another"))
+      write(root, "app/queries/another.rb", OTHER_QUERY.sub("Other", "Another"))
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -275,22 +275,22 @@ class CheckTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        write: ['app/writes/**/*.rb']
-        read: ['app/reads/**/*.rb']
-        legacy_read: ['app/legacy/**/*_legacy.rb']
+        command: ['app/commands/**/*.rb']
+        query: ['app/queries/**/*.rb']
+        legacy_query: ['app/legacy/**/*_legacy.rb']
       Retiring:
-        - legacy_read
+        - legacy_query
       BaseClasses:
-        write: [Write]
-        read: [Read]
-        legacy_read: [LegacyRead]
+        command: [Command]
+        query: [Query]
+        legacy_query: [LegacyQuery]
       Sisters:
-        - [write]
-        - [read, legacy_read]
+        - [command]
+        - [query, legacy_query]
       Matrix:
-        write: [read, legacy_read]
-        read: []
-        legacy_read: []
+        command: [query, legacy_query]
+        query: []
+        legacy_query: []
   YAML
 
   GROWTH_YML = <<~YAML
@@ -364,7 +364,7 @@ class CheckTest < Minitest::Test
     end
   end
 
-  def in_repo(baseline: OTHER_READ, config: nil)
+  def in_repo(baseline: OTHER_QUERY, config: nil)
     with_gem_on_the_load_path do
       in_repo_without_load_path(baseline: baseline, config: config) { |root| yield(root) }
     end
@@ -385,9 +385,9 @@ class CheckTest < Minitest::Test
       git!(root, "config", "user.name", "test")
 
       write(root, ".rubocop.yml", format(config || RUBOCOP_YML, gem: gem_root))
-      write(root, "app/writes/create_person.rb", CLEAN_WRITE)
-      write(root, "app/reads/other.rb", OTHER_READ)
-      write(root, "app/reads/list_people.rb", baseline)
+      write(root, "app/commands/create_person.rb", CLEAN_COMMAND)
+      write(root, "app/queries/other.rb", OTHER_QUERY)
+      write(root, "app/queries/list_people.rb", baseline)
 
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "baseline")

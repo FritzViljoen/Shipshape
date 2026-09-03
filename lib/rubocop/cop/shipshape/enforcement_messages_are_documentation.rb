@@ -18,7 +18,7 @@ module RuboCop
                      "nothing states, and a failure in any of them is attributed " \\
                      "to the save.",
             instead: <<~EXAMPLE,
-              class ConfirmBooking < Write
+              class ConfirmBooking < Command
                 def call
                   RecalculateTotals.call(booking: @booking)
                   success(@booking)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-class AnonymityIsClosedDownward < Write
+class AnonymityIsClosedDownward < Command
 def anonymous_call
-  OtherRead.call
+  OtherQuery.call
 end
 end

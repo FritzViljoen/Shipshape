@@ -14,20 +14,20 @@ class MixinsAddNothingPublicTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "write" => ["app/writes/**/*.rb"],
+        "command" => ["app/commands/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      "BaseClasses" => { "write" => ["Write"], "shape" => ["Shape"] },
-      "Matrix" => { "write" => ["shape"], "shape" => [] },
+      "BaseClasses" => { "command" => ["Command"], "shape" => ["Shape"] },
+      "Matrix" => { "command" => ["shape"], "shape" => [] },
     },
   }.freeze
 
-  CONFIG = { "OperationKinds" => ["write"] }.freeze
+  CONFIG = { "OperationKinds" => ["command"] }.freeze
 
   PATH = "app/models/concerns/paying.rb"
 
-  MIXED_INTO_A_WRITE = {
-    "app/writes/settle_invoice.rb" => "class SettleInvoice < Write\n  include Paying\n\n  def call; end\nend\n",
+  MIXED_INTO_A_COMMAND = {
+    "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\n  include Paying\n\n  def call; end\nend\n",
   }.freeze
 
   MIXED_INTO_A_SHAPE = {
@@ -89,14 +89,14 @@ class MixinsAddNothingPublicTest < Minitest::Test
   end
 
   def test_prepend_counts_as_mixing_in
-    files = { "app/writes/settle_invoice.rb" => "class SettleInvoice < Write\n  prepend Paying\nend\n" }
+    files = { "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\n  prepend Paying\nend\n" }
 
     assert_equal 1, check("module Paying\n  def total; end\nend\n", files: files).length
   end
 
   private
 
-  def check(source, path: PATH, files: MIXED_INTO_A_WRITE)
+  def check(source, path: PATH, files: MIXED_INTO_A_COMMAND)
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: files,
                      other_cops: LAYOUT)
   end

@@ -100,7 +100,7 @@ module RuboCop
         def governed_kinds
           cop_config.fetch(
             "Kinds",
-            %w[workflow write read io_write io_read legacy_write legacy_read shape record],
+            %w[workflow command query io_command io_query legacy_command legacy_query shape record],
           )
         end
       end

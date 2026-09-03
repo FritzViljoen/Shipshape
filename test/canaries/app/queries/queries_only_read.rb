@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class ReadsWriteNothing < Read
+class QueriesOnlyRead < Query
 def call
   CanaryRecord.create!(name: "x")
 end

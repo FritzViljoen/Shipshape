@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# One read, answering shapes: finding nothing is an answer. A read never calls a read.
-class Read
+# One read, answering shapes: finding nothing is an answer. A query never calls a query.
+class Query
   include TypedArguments
 
 <%- if auth -%>

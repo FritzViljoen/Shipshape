@@ -22,8 +22,8 @@ module RuboCop
           # The reasoning lives in the law, where it is reviewed when the law changes.
           # What stays here is the clause that names it.
 
-          # Holds `a-write-is-one-transaction`, opened here rather than in each subclass.
-          class Write
+          # Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
+          class Command
           end
         RUBY
 

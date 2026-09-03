@@ -11,7 +11,7 @@ module RuboCop
         include ReadsKinds
 
         SHAPE = <<~RUBY
-          class SettleInvoice < Write
+          class SettleInvoice < Command
             def initialize(invoice_id:, settled_on:)   # named keywords, asserted here
               @invoice_id = invoice_id
               @settled_on = settled_on
@@ -35,7 +35,7 @@ module RuboCop
 
         SPLIT = <<~RUBY
           # nearly always: it is a helper, and it goes under `private`
-          class SettleInvoice < Write
+          class SettleInvoice < Command
             def call
               success(total)
             end
@@ -48,7 +48,7 @@ module RuboCop
           end
 
           # occasionally: it is a second operation, and it gets its own class
-          class TotalInvoice < Read
+          class TotalInvoice < Query
             def call
               success(@lines.sum(&:amount))
             end
@@ -60,7 +60,7 @@ module RuboCop
           SettleInvoice.call(invoice_id: invoice.id, settled_on: today)
 
           # a constant belongs on the class; a computation belongs in `call`
-          class SettleInvoice < Write
+          class SettleInvoice < Command
             TERMS = 30
 
             def call

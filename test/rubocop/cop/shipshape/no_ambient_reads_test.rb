@@ -13,14 +13,14 @@ class NoAmbientReadsTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "write" => ["app/writes/**/*.rb"],
+        "command" => ["app/commands/**/*.rb"],
         "request_handling" => ["app/controllers/**/*_controller.rb"],
       },
-      "Matrix" => { "write" => [], "request_handling" => ["write"] },
+      "Matrix" => { "command" => [], "request_handling" => ["command"] },
     },
   }.freeze
 
-  WRITE = "app/writes/expire_holds.rb"
+  COMMAND = "app/commands/expire_holds.rb"
 
   def test_reading_the_clock_is_an_ambient_read
     found = check(<<~RUBY)
@@ -138,6 +138,6 @@ class NoAmbientReadsTest < Minitest::Test
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: WRITE, other_cops: LAYOUT)
+    offences(source, cop_class: COP, path: COMMAND, other_cops: LAYOUT)
   end
 end

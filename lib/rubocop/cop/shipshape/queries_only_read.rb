@@ -5,8 +5,8 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-read-writes-nothing`.
-      class ReadsWriteNothing < Base
+      # Holds `a-query-only-reads`.
+      class QueriesOnlyRead < Base
         include ReadsKinds
 
         # Every one of these writes. Deliberately a closed list rather than a pattern: `save`
@@ -19,9 +19,9 @@ module RuboCop
           first_or_create first_or_create! find_or_create_by find_or_create_by!
         ].freeze
 
-        WRITE = <<~RUBY
-          # the write is a write, with its own name and its own permission
-          class CreatePerson < Write
+        COMMAND = <<~RUBY
+          # the write is a command, with its own name and its own permission
+          class CreatePerson < Command
             def call
               success(PersonRecord.create!(name: @name))
             end
@@ -56,14 +56,14 @@ module RuboCop
 
         def message_for(name, writer)
           explain(
-            "`#{name}.#{writer}` is a write, and a read is one read.",
-            because: "A read opens no transaction, because a read needs none — so this " \
+            "`#{name}.#{writer}` is a write, and a query is one read.",
+            because: "A query opens no transaction, because a read needs none — so this " \
                      "write runs outside any transaction, and a caller sequencing two " \
-                     "reads has no rollback for the second. Every name on the path says " \
-                     "nothing happened. The call graph cannot catch it: a read reaching a " \
-                     "record is exactly what a read is for, so the matrix allows the call " \
+                     "queries has no rollback for the second. Every name on the path says " \
+                     "nothing happened. The call graph cannot catch it: a query reaching a " \
+                     "record is exactly what a query is for, so the matrix allows the call " \
                      "and only the message it sends is wrong.",
-            instead: WRITE,
+            instead: COMMAND,
           )
         end
 
@@ -72,7 +72,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[read io_read legacy_read])
+          cop_config.fetch("Kinds", %w[query io_query legacy_query])
         end
       end
     end

@@ -132,13 +132,13 @@ module RuboCop
         end
 
         def step_kinds
-          cop_config.fetch("StepKinds", %w[write read io_write io_read legacy_write legacy_read])
+          cop_config.fetch("StepKinds", %w[command query io_command io_query legacy_command legacy_query])
         end
 
         # Every operation aggregates, so every operation is read: scoping this to workflows left
-        # a write reaching a read through a helper unreported.
+        # a command reaching a query through a helper unreported.
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow write read io_write io_read legacy_write legacy_read])
+          cop_config.fetch("Kinds", %w[workflow command query io_command io_query legacy_command legacy_query])
         end
 
         def sequencing_kinds
