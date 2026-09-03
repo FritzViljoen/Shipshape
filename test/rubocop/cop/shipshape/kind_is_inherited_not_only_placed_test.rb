@@ -2,9 +2,8 @@
 
 require "test_helper"
 
-# Watched to fail: skipping the nil-parent branch in `check_inheritance` reddens the bare-class
-# test; `rooted_in_a_base?` returning `true` unconditionally reddens the unrelated-parent test;
-# `declares_this_file?` returning `true` unconditionally reddens both the sibling and nested test.
+# Watched to fail: skipping the nil-parent branch reddens the bare-class test; `false`
+# instead of `nil` for an unresolved name reddens every "left alone" test.
 class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   include CopRunner
 
@@ -53,12 +52,47 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
     assert_empty found
   end
 
-  def test_inheriting_something_unrelated_is_an_offence
-    found = check("class SettleInvoice < StandardError\nend\n")
+  # A chain fully traced to a real file, proven never to reach `Command`.
+  def test_inheriting_a_fully_resolved_chain_that_never_reaches_the_base_is_an_offence
+    found = offences(
+      "class SettleInvoice < AdminCommand\n  def call; end\nend\n",
+      cop_class: COP, path: COMMAND, other_cops: LAYOUT,
+      files: { "app/commands/admin_command.rb" => "class AdminCommand\nend\n" },
+    )
 
     assert_equal 1, found.length
     assert_includes found.first.message,
-                    "neither `StandardError` nor anything it inherits is `Command`"
+                    "neither `AdminCommand` nor anything it inherits is `Command`"
+  end
+
+  # A gem base this canon never installed and cannot find on disk.
+  def test_a_superclass_this_canon_cannot_resolve_is_left_alone
+    found = check("class SettleInvoice < Devise::SessionsController\n  def call; end\nend\n")
+
+    assert_empty found
+  end
+
+  # `app/shipshape/` sits outside every `Kinds` glob, so a base filed there is unresolvable.
+  def test_a_base_installed_outside_every_kind_is_left_alone
+    found = offences(
+      "class SettleInvoice < AuthenticatedCommand\n  def call; end\nend\n",
+      cop_class: COP, path: COMMAND, other_cops: LAYOUT,
+      files: { "app/shipshape/authenticated_command.rb" => "class AuthenticatedCommand < Command\nend\n" },
+    )
+
+    assert_empty found
+  end
+
+  # A superclass assigned through a constant is invisible to a static resolver by construction.
+  def test_a_superclass_assigned_through_a_constant_is_left_alone
+    found = check(<<~RUBY)
+      BASE = Command
+      class SettleInvoice < BASE
+        def call; end
+      end
+    RUBY
+
+    assert_empty found
   end
 
   # `shape` names no BaseClasses entry in this layout: left alone rather than guessed at.
@@ -102,6 +136,52 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
     RUBY
 
     assert_empty found
+  end
+
+  # A `workflow` firing must show `Workflow`, never the old fixed `Command` example.
+  def test_the_example_names_the_firing_kind_own_declared_base
+    layout = {
+      "Shipshape/CallGraph" => {
+        "Kinds" => { "workflow" => ["app/workflows/**/*.rb"] },
+        "BaseClasses" => { "workflow" => ["Workflow"] },
+        "Matrix" => { "workflow" => [] },
+      },
+    }
+    found = offences("class SettleOrder\nend\n", cop_class: COP,
+                                                  path: "app/workflows/settle_order.rb", other_cops: layout)
+
+    assert_includes found.first.message, "class SettleOrder < Workflow"
+    refute_includes found.first.message, "class SettleInvoice < Command"
+  end
+
+  # A kind this cop's own example hash never anticipated: bare `fetch` would raise `KeyError`.
+  def test_a_kind_this_cop_does_not_recognise_falls_back_to_the_generic_example
+    layout = {
+      "Shipshape/CallGraph" => {
+        "Kinds" => { "legacy_door" => ["app/doors/**/*.rb"] },
+        "BaseClasses" => { "legacy_door" => ["LegacyDoor"] },
+        "Matrix" => { "legacy_door" => [] },
+      },
+    }
+    found = offences("class OldReport\nend\n", cop_class: COP,
+                                               path: "app/doors/old_report.rb", other_cops: layout)
+
+    assert_includes found.first.message, "class Example < LegacyDoor"
+  end
+
+  # No declared base resolves a real gap; a subscriber naming none stays a true positive.
+  def test_a_subscriber_inheriting_nothing_is_still_an_offence
+    layout = {
+      "Shipshape/CallGraph" => {
+        "Kinds" => { "entry_point" => ["app/subscribers/**/*.rb"] },
+        "BaseClasses" => { "entry_point" => ["ApplicationJob"] },
+        "Matrix" => { "entry_point" => [] },
+      },
+    }
+    found = offences("class BookingCreatedSubscriber\nend\n", cop_class: COP,
+                      path: "app/subscribers/booking_created_subscriber.rb", other_cops: layout)
+
+    assert_equal 1, found.length
   end
 
   private

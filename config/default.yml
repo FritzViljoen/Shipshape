@@ -163,6 +163,11 @@ Shipshape/CallGraph:
     view_component: [ApplicationViewComponent, ViewComponent::Base]
     shape: [Shape]
     record: [ApplicationRecord, ActiveRecord::Base]
+    # No subscriber base is listed: `shipshape install` writes none, because Rails ships no
+    # convention for one the way it does `ApplicationJob`. A subscriber correctly inheriting
+    # its own base still fires `KindIsInheritedNotOnlyPlaced` until that base is added here —
+    # over-firing on correct code is how a cop gets switched off. See `an-adoption-order.md`,
+    # step 1.
     entry_point: [ApplicationJob, ActiveJob::Base, ApplicationCable::Channel, ActionCable::Channel::Base]
     request_handling: [ApplicationController, ActionController::Base, ActionController::API]
   # Kinds that are the same thing wearing different clothes. NO KIND CALLS A SISTER, and
