@@ -40,14 +40,23 @@ UTC rather than asking the process for one.
 - **Guard's boundary:** a parse inside `request_handling` or `entry_point` is
   `input-is-parsed-at-the-seam`'s business, held by `Shipshape/NoInlineParamParse`, not this
   one — `NoAmbientReads` is not scoped to those kinds, so the two never report the same call.
-  The seam's own answer is `time_param!(key, time_zone:)`, which is what `NoAmbientReads`
-  names as the fix.
+  A cast inside an operation has no such counterpart to defer to: there is no seam left to
+  reach once code is inside `call`, so the fix is never a different cast — it is the value
+  arriving already typed. The seam's own answer is `time_param!(key, time_zone:)` and
+  `date_param!(key, time_zone:)`, which is what `NoAmbientReads` names as the fix for both
+  the naive parse and the naive cast.
 
 - **Guard's limit:** nothing stops an ambient zone being read outside the trees
   `NoAmbientReads` covers. Within its trees the read list is closed. Neither guard can tell
   whether a `Date` should have been a moment. The naive-parse and naive-cast lists are closed
-  too, and check the spelling at the call site: `Time.new` with an explicit `utc_offset` as a
-  7th positional argument, rather than `in:`, is not recognised as naming its own zone.
+  too, and check the call site by shape, not by value: a 7th positional argument to
+  `Time.new` is read as naming an offset whether or not it actually names one, so
+  `Time.new(2026, 1, 1, 9, 0, 0, "+02:00")` is correctly left alone and a 7th argument that
+  is not a real offset is left alone just as readily. Nor can the cast check see the
+  receiver's type: `to_time` and `to_datetime` fire the same message on a `String`, a
+  `Date`, a real moment, or a value already carrying the exact zone being asked for — the
+  same syntax reaches a parse hiding behind a cast and a cast that changes nothing, and the
+  guard cannot tell which one is in front of it.
 
   `Shipshape/TypedArguments` only reads inside `initialize` of a governed kind: a bare
   `typed(at, Time)` in `call`, or in a private assert helper reached from `initialize`,
