@@ -155,6 +155,24 @@ class CouplingTest < Minitest::Test
     end
   end
 
+  # A nested `.rubocop.yml` shifts the base dir for its own subtree, as `test/canaries/` does.
+  def test_a_nested_config_does_not_lose_its_own_governed_files
+    in_repo(RUBOCOP_YML) do |root|
+      write(root, "sandbox/.rubocop.yml", "inherit_from:\n  - ../.rubocop.yml\n")
+      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
+      write(root, "sandbox/app/queries/list_people.rb", QUERY)
+
+      found = Shipshape::Coupling.new(directory: root, config: nil).call
+
+      assert_includes found.governed, "sandbox/app/commands/create_person.rb"
+      assert_includes found.governed, "sandbox/app/queries/list_people.rb"
+
+      edge = found.edges.find { |e| e.caller == "sandbox/app/commands/create_person.rb" }
+      refute_nil edge, "the caller under the nested config must still be a recorded edge"
+      assert_equal "sandbox/app/queries/list_people.rb", edge.callee
+    end
+  end
+
   # A cache bucket of its own: a file `BaseTestClassLines` already cached, marker-free, must
   # still show its coupling here - the shared-bucket bug this reddens if reverted.
   def test_a_file_the_line_ratchet_already_cached_still_reports_its_coupling

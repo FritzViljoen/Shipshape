@@ -222,6 +222,20 @@ reach becomes the place unrelated things are put.
   on every run. One resolver closes that: a file `Kinds` would classify is governed whether or
   not RuboCop was ever pointed at it.
 
+  **One resolver is not one base dir.** A nested `.rubocop.yml` shifts `Shipshape/CallGraph`'s
+  own `base_dir_for_path_parameters` for the subtree beneath it — `test/canaries/.rubocop.yml`,
+  in this gem's own repo, is exactly that shape, inheriting the root `Kinds` but resolving its
+  globs against `test/canaries/` instead. Governance and a callee's own path both used to be
+  computed against whichever base dir happened to apply to the file being asked about, while
+  a caller's own path always comes back from RuboCop relative to the run's own root. A callee
+  under a shifted subtree therefore never matched anything, in either tree, on every run — the
+  same failure the paragraph above closes, surviving one level down. Both are now resolved
+  against the config that actually governs the file in question, then reported relative to the
+  run's own root throughout, the one frame RuboCop's own paths already use. An explicit
+  `--config` pins one file for the whole run by RuboCop's own design, so it flattens this the
+  same way it flattens RuboCop's own resolution — nesting only diverges from the top level
+  when nothing pins it.
+
   The number is a call graph, not a count: every edge `Shipshape/CallGraph` resolves, legal or
   not, is split three ways between the merge base and HEAD, **after both sides' paths are
   canonicalised through git's own rename detection** (`Shipshape::RenamedPaths`, reading
