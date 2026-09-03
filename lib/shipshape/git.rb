@@ -6,7 +6,7 @@ require "shipshape/typed_arguments"
 
 module Shipshape
   # The only place that shells out to git, always through an argument array and never a shell
-  # string: a branch name holding a semicolon or a backtick is an argument, not a command.
+  # string: a branch name holding a semicolon or a backtick is an argument, not a write.
   class Git
     include TypedArguments
 
