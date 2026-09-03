@@ -243,6 +243,14 @@ is derived from git every run, through a detached worktree in a temporary direct
 **Both trees are measured with the head tree's configuration**, so enabling a cop is free and
 holds the line from that moment. Only `Shipshape/*` cops are counted.
 
+**Coupling** is printed on every run, flat or not: the count of calls `Shipshape/CallGraph`
+resolves to two governed kinds, legal or not — the graph itself, not the violations found on
+it. Only edges among files governed at **both** trees ratchet; an edge touching a file that
+arrived under governance, or left it, is reported beside the number but never fails the
+build — bringing code under governance is not a call anybody added. See
+[`the-call-graph-is-declared`](docs/laws/the-call-graph-is-declared.md) for what the split
+still cannot see.
+
 **Stated limits.** It compares counts, not identities, so fixing one offence and adding another
 in the same cop nets to green. A moved file counts as new offences in head and removed ones in
 base. Only the root config is copied to the base tree. The merge-base is used rather than the

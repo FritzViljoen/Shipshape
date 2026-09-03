@@ -370,8 +370,9 @@ def check(trunk)
   report[:growth].each do |file, row|
     puts "  GREW     #{file}  #{row[:was]} -> #{row[:now]} lines"
   end
+  puts coupling_line(report[:coupling])
 
-  clean = report[:risen].empty? && report[:retiring].empty? && report[:growth].empty?
+  clean = report[:risen].empty? && report[:retiring].empty? && report[:growth].empty? && !coupling_risen?(report[:coupling])
   return report_clean(report) if clean
 
   puts
@@ -384,7 +385,39 @@ def check(trunk)
   if report[:growth].any?
     puts "A base test class holds more lines than its merge base. The size may fall, never rise."
   end
+  if coupling_risen?(report[:coupling])
+    puts "Coupling rose: a call was added between two governed kinds. The count may fall, never rise."
+  end
   1
+end
+
+# A call between two governed kinds, legal or not — the graph a file move must not change.
+# Printed every run, flat or not: a slice that moves files without cutting a call reads as
+# "flat", not as the silence a slice that actually cut coupling would leave behind it.
+def coupling_risen?(coupling)
+  coupling[:now] > coupling[:was]
+end
+
+def coupling_line(coupling)
+  was = coupling[:was]
+  now = coupling[:now]
+  tag = if now > was
+          "ROSE"
+        elsif now < was
+          "fell"
+        else
+          "flat"
+        end
+
+  line = "  #{tag.ljust(9)}coupling  #{was} -> #{now} calls among files governed at both trees " \
+    "— a move that keeps every call leaves this flat; only adding or cutting one moves it"
+
+  line += "; #{coupling[:arrived_edges]} edge(s) arrived with #{coupling[:arrived_files]} newly " \
+    "governed file(s) — reported, never failed" if coupling[:arrived_edges].positive?
+  line += "; #{coupling[:left_edges]} edge(s) left with #{coupling[:left_files]} file(s) that " \
+    "left governance" if coupling[:left_edges].positive?
+
+  line
 end
 
 def report_clean(report)

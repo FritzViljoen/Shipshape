@@ -5,6 +5,8 @@ require "tmpdir"
 require "shipshape/error"
 require "shipshape/git"
 require "shipshape/base_test_class_lines"
+require "shipshape/coupling"
+require "shipshape/coupling_delta"
 require "shipshape/coverage"
 require "shipshape/guards"
 require "shipshape/offences"
@@ -39,14 +41,18 @@ module Shipshape
       head = head_offences.call
       off = Guards.new(directory: root, config: resolved).call
       lines_after = BaseTestClassLines.new(directory: root, config: resolved).call
+      coupling_after = Coupling.new(directory: root, config: resolved).call
 
-      base, lived, lines_before = git.at(sha) do |path|
+      base, lived, lines_before, coupling_before = git.at(sha) do |path|
         base_offences, base_config = measure_base(path)
-        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call]
+        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call,
+         Coupling.new(directory: path, config: base_config).call]
       end
 
+      coupling = CouplingDelta.new(base: coupling_before, head: coupling_after).call
+
       report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
-             lines_before: lines_before, lines_after: lines_after)
+             lines_before: lines_before, lines_after: lines_after, coupling: coupling)
     end
 
     private
@@ -118,8 +124,12 @@ module Shipshape
       store.for_dir(path)
     end
 
+    ZERO_COUPLING = CouplingDelta::Totals.new(was: 0, now: 0, arrived_edges: 0, arrived_files: 0,
+                                              left_edges: 0, left_files: 0).freeze
+
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
-    def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {})
+    def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {},
+               coupling: ZERO_COUPLING)
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -135,7 +145,10 @@ module Shipshape
       end
 
       { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
-        retiring: arrived_in(before, after), growth: grown_files(lines_before, lines_after) }
+        retiring: arrived_in(before, after), growth: grown_files(lines_before, lines_after),
+        coupling: { was: coupling.was, now: coupling.now,
+                    arrived_edges: coupling.arrived_edges, arrived_files: coupling.arrived_files,
+                    left_edges: coupling.left_edges, left_files: coupling.left_files } }
     end
   end
 end
