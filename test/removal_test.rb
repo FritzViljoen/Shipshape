@@ -52,7 +52,7 @@ class RemovalTest < Minitest::Test
   end
 
   def test_for(cop)
-    snake = cop.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+    snake = cop.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
 
     File.join(ROOT, "test/rubocop/cop/shipshape/#{snake}_test.rb")
   end

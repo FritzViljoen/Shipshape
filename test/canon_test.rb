@@ -273,7 +273,7 @@ class CanonTest < Minitest::Test
   end
 
   def test_path_for(cop)
-    snake = cop.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+    snake = cop.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
 
     File.expand_path("rubocop/cop/shipshape/#{snake}_test.rb", __dir__)
   end
