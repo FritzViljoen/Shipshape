@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "set"
 require "shipshape/source_text"
 require "shipshape/typed_arguments"
 
@@ -52,6 +53,16 @@ module Shipshape
     def relative_file_for_constant(name)
       found = file_for_constant(name)
       found && relative_to_base(found)
+    end
+
+    # Every file `Kinds` would classify, found on disk — what `Coupling` calls "governed."
+    def governed_files
+      settings.kinds.values.flatten(1)
+              .flat_map { |glob| Dir.glob(File.join(base_dir, glob)) }
+              .uniq
+              .select { |path| File.file?(path) && for_path(path) }
+              .map { |path| relative_to_base(path) }
+              .to_set
     end
 
     private
