@@ -53,22 +53,22 @@ shape you cannot express is not a guard at all.
 
 | Failure | Verdict | How |
 |---|---|---|
-| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/NoNullableColumns`, over `db/migrate/**` — **the migrations, not the live schema**, and with an exemption for the `*_from_*` renames. A column that was nullable before this gem arrived is not caught; a new one is |
+| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/AbsenceIsAbsenceNeverAValue`, over `db/migrate/**` — **the migrations, not the live schema**, and with an exemption for the `*_from_*` renames. A column that was nullable before this gem arrived is not caught; a new one is |
 | `where.not` with NULLs behaving unexpectedly | **Unsayable** | There are no NULLs to behave unexpectedly |
 | Soft deletes without scoping every query | **Unsayable** | `deleted_at` is a nullable column and fails the build; [a nullable column](decomposing/a-nullable-column.md) models it as a row |
 | Callbacks with side effects inside transactions | **Unsayable** | `no-lifecycle-callbacks` — there is no callback |
 | Adding a column with a default, table lock | **Unsayable** | `Shipshape/NoColumnDefaults` — no column carries one |
-| Validations without matching DB constraints | **Partly guarded** | Presence is forced into the schema by `NoNullableColumns`; **uniqueness races are uncovered** |
+| Validations without matching DB constraints | **Partly guarded** | Presence is forced into the schema by `AbsenceIsAbsenceNeverAValue`; **uniqueness races are uncovered** |
 | Timezone columns stored inconsistently | **Guarded** | [`a-time-names-its-zone`](laws/a-time-names-its-zone.md), `Shipshape/NoAmbientReads` |
 | Raw SQL string interpolation, SQL injection | **Partly guarded** | `NoUnparsedLookup` stops a raw param reaching a finder; raw SQL itself is **uncovered** → brakeman |
-| Serialized columns that later need querying | **Procedure** | [a serialized column](decomposing/a-serialized-column.md) — a blob is an undeclared schema, and `NoNullableColumns` cannot see inside one |
+| Serialized columns that later need querying | **Procedure** | [a serialized column](decomposing/a-serialized-column.md) — a blob is an undeclared schema, and `AbsenceIsAbsenceNeverAValue` cannot see inside one |
 | `default_scope` leaking into every query, and into `create` | **Guarded** | `Shipshape/PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. It is implicit behaviour: global state in, distant write out |
 | `unscoped` used to escape a bad `default_scope` | **Unsayable** | There is no `default_scope` left to escape |
 | N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
 | Missing indexes on foreign keys | **Procedure** | [an unindexed foreign key](decomposing/an-unindexed-foreign-key.md) — a runtime failure with a structural cause: both facts are in `db/schema.rb`, which this canon already reads |
 | Missing indexes on sort and uniqueness columns | **Uncovered** | `lol_dba`. Which column a query sorts on is not in the schema |
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
-| Enum as array, reordering silently remaps rows | **Procedure** | [an enum as an array](decomposing/an-enum-as-an-array.md). `no-nullable-columns` misses it: `0` is the first value *and* the empty integer, so the column need not be nullable to lose the distinction |
+| Enum as array, reordering silently remaps rows | **Procedure** | [an enum as an array](decomposing/an-enum-as-an-array.md). `absence-is-absence-never-a-value` misses it: `0` is the first value *and* the empty integer, so the column need not be nullable to lose the distinction |
 | `find_each` ignored, `.all.each` loads the world | **Procedure** | [an unbounded read](decomposing/an-unbounded-read.md) |
 | Counter drift: manual counters fighting `counter_cache` | **Procedure** | [a stored derivation](decomposing/a-stored-derivation.md). A counter is a cache; it is sanctioned as a last resort, named `*_cache_record`, and only where its invalidation is written down |
 | `pluck` vs `select` | **Uncovered** | Runtime and volume, not shape |

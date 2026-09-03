@@ -45,7 +45,7 @@ it — and it is what somebody will be asked for.
 
 ## A nullable foreign key is an erasure bug
 
-This law and [`no-nullable-columns`](no-nullable-columns.md) meet here. A nullable
+This law and [`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md) meet here. A nullable
 `user_id` says "sometimes nobody", which means erasure has to *find and clear* it, in code
 somebody remembers to write. The join-table shape that law prescribes turns the same fact into
 a row you delete — and a row that is gone cannot be forgotten about, whereas a column somebody

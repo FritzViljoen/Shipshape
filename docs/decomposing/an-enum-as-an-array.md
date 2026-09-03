@@ -61,7 +61,7 @@ every analyst sees integers.
 
 **And `0` is both the first value and the default of an empty integer column.** So "nobody has
 said" and "web" are the same byte. That is
-[`no-nullable-columns`](../laws/no-nullable-columns.md) arriving through a door it does not
+[`absence-is-absence-never-a-value`](../laws/absence-is-absence-never-a-value.md) arriving through a door it does not
 cover: the column need not be nullable at all to lose the distinction, because the zero is
 doing two jobs and the law only reads whether NULL is admitted.
 

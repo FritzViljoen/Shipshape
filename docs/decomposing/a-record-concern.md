@@ -92,7 +92,7 @@ includes it tomorrow has no value for them yet. So they ship nullable, twenty-tw
 **One include is one nullable column per table**, which makes this shape a large and
 self-renewing source of the category [a nullable column](a-nullable-column.md) describes, and
 it renews faster than that procedure can drain it —
-[`no-nullable-columns`](../laws/no-nullable-columns.md) is fighting the symptom while the
+[`absence-is-absence-never-a-value`](../laws/absence-is-absence-never-a-value.md) is fighting the symptom while the
 concern keeps producing them.
 
 **Check:** count the nullable columns the concern is responsible for. That number is the cost

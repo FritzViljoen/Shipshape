@@ -22,7 +22,7 @@ places read. It was one column when it was written, which was the appeal.
 
 **A blob is a schema with no declaration and no constraints.** Not a missing schema — an
 undeclared one. The keys exist, they have types, some are required; none of it is written
-anywhere, so every reader guesses and the guesses drift. `Shipshape/NoNullableColumns` refuses
+anywhere, so every reader guesses and the guesses drift. `Shipshape/AbsenceIsAbsenceNeverAValue` refuses
 a gap in a column and cannot see inside one, so a blob is where absence goes to stop being
 checkable: a key that is missing, present-and-null, and present-as-`""` are three states the
 column cannot tell apart and every reader handles differently.

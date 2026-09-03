@@ -163,7 +163,7 @@ a different question with a different tool.
 — indexes nothing queries, a real cost on write-heavy tables — and no static reading can,
 because that needs the query log.
 
-**This is a cop that could exist.** `Shipshape/NoNullableColumns` already reads `db/schema.rb`,
+**This is a cop that could exist.** `Shipshape/AbsenceIsAbsenceNeverAValue` already reads `db/schema.rb`,
 so a guard over unindexed keys would run on the same tree with the same instruments. It has not
 been written, because whether a given key deserves an index is step 1, and a guard that cannot
 do step 1 would fail correct schemas.

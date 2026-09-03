@@ -115,7 +115,7 @@ types, Swift's optionals, C#'s nullable references, and NullAway at Uber and Nul
 Parnas's cohesion argument applied to data, not a measured result. It has predicted well in
 practice, which is a weaker warrant than the paragraph above.
 
-*Produces* `no-nullable-columns`, `no-database-defaults`.
+*Produces* `absence-is-absence-never-a-value`, `no-database-defaults`.
 
 ### `model-concerns-not-groups` — A shared noun is not a shared concern
 

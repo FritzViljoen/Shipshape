@@ -41,7 +41,7 @@ two readers inventing differently is a bug nothing can catch.
 shipshape tables --table bookings
 ```
 
-`NoNullableColumns` reports one column at a time. Ten small fixes on one table read as ten
+`AbsenceIsAbsenceNeverAValue` reports one column at a time. Ten small fixes on one table read as ten
 small problems, and each gets its own join table keyed back to the same parent — zero nulls,
 ten satellites, and the table underneath is the same size, now harder to see. Read every
 signal on the whole table before deciding what one column needs.
@@ -75,7 +75,7 @@ you say that the old one could not — and the sentence names more than "not nul
 shipshape report
 ```
 
-`NoNullableColumns` and `NoColumnDefaults` read `db/schema.rb`. A `shipshape next` run scoped
+`AbsenceIsAbsenceNeverAValue` and `NoColumnDefaults` read `db/schema.rb`. A `shipshape next` run scoped
 to `app/` reports nothing about either — **not because the schema is clean, but because it was
 not inspected**, which reads identically.
 
@@ -133,7 +133,7 @@ above says "linked, to exactly one supplier, or not at all" — that is new. A j
 with one unique key back and one nullable column beside it has said nothing new; [a god
 record](a-god-record.md) is the same question, arriving one column at a time.
 
-**Check:** the index is in `db/schema.rb`, and `NoNullableColumns` no longer names the column.
+**Check:** the index is in `db/schema.rb`, and `AbsenceIsAbsenceNeverAValue` no longer names the column.
 
 ---
 

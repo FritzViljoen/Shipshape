@@ -7,7 +7,7 @@ first. The column refuses the gap; the domain names the fallback. Two declaratio
 fact leave a reader unable to say what the system holds — not because nothing states it,
 but because two things do and they disagree.
 
-This is the mirror of [`no-nullable-columns`](no-nullable-columns.md). One forbids a gap
+This is the mirror of [`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md). One forbids a gap
 being given a meaning; this forbids a fact being stated twice. Both defects end in the same
 place: a value nobody can point at the source of.
 
@@ -17,11 +17,11 @@ place: a value nobody can point at the source of.
 - **Guard:** `Shipshape/NoColumnDefaults`, over migrations.
 
 - **Guard's limit:** migrations only, with the same consequence as
-  [`no-nullable-columns`](no-nullable-columns.md) — a default applied outside them, by a
+  [`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md) — a default applied outside them, by a
   database-side trigger or by hand, is invisible. It also cannot see a default expressed as
   a column's generated-value clause rather than as a default.
 
 **A note on the framework fighting this.** A general-purpose cop that wants a default
 alongside NOT NULL so a migration survives a populated table conflicts with both laws
 directly. Turn that cop off; the promotion rule in
-[`no-nullable-columns`](no-nullable-columns.md) is the answer it was reaching for.
+[`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md) is the answer it was reaching for.
