@@ -168,7 +168,7 @@ is the point: it was a migration disguised as a schema line, and it ran once, in
 For each column, four deploys, and they are separate on purpose:
 
 1. **add** the new structure — the join table, or the companion column, nullable for now
-2. **backfill** — a forever-write, idempotent, run repeatedly until it finds nothing
+2. **backfill** — a forever-command, idempotent, run repeatedly until it finds nothing
 3. **switch reads** to the new structure, writes to both
 4. **drop** the old column and add `null: false`
 

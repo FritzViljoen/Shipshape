@@ -8,15 +8,15 @@ test in the suite inherits.
 ## This is the base-class argument again
 
 [`one-operation-one-class`](one-operation-one-class.md) already holds this for operations: a
-module included into a write puts that module's public methods onto the write from a file
-the write's own definition never mentions, so `Shipshape/MixinsAddNothingPublic` forces a
+module included into a command puts that module's public methods onto the command from a file
+the command's own definition never mentions, so `Shipshape/MixinsAddNothingPublic` forces a
 mixin's methods private rather than let an operation's behaviour arrive from somewhere its own
 file does not say. [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) names the same shape
-from the other side: a concern defining `anonymous_call` and included into forty writes makes
+from the other side: a concern defining `anonymous_call` and included into forty commands makes
 forty public operations, none of which says so at its own definition.
 
 **A test is no different.** `include SignsInAsAdmin` in a test class does exactly what
-`include Paying` does in a write: it puts behaviour on the class from a file nobody reading
+`include Paying` does in a command: it puts behaviour on the class from a file nobody reading
 the test opens. An operation gets its behaviour from the one class it inherits, never from
 something mixed in — this is that rule, applied to the suite that tests it.
 
@@ -31,7 +31,7 @@ where it is needed.
 **Construction is not this law's business, and the base class holds none of it.**
 [`no-test-factories`](no-test-factories.md) already says how a test builds the state it needs:
 by calling the application's own operations, through `test_call`, which every generated
-`Write` and `Read` carries already. `ConfirmBooking.test_call(booking_id: booking.id)` is
+`Command` and `Query` carries already. `ConfirmBooking.test_call(booking_id: booking.id)` is
 the shared, named, tested way to reach a confirmed booking, and it lives on the operation's own
 base class, not on the test's. So the base test class this law describes holds suite plumbing —
 what the framework itself asks for — and nothing that constructs domain state. A test needing a
@@ -73,19 +73,19 @@ nothing.
 ## Why this is a ban, not a private-methods rule
 
 [`one-operation-one-class`](one-operation-one-class.md) does not forbid `include Paying` in a
-write — it forces the mixin's methods private with `Shipshape/MixinsAddNothingPublic`, so the
-module's behaviour is still there but nothing outside the write can reach it through the seam
+command — it forces the mixin's methods private with `Shipshape/MixinsAddNothingPublic`, so the
+module's behaviour is still there but nothing outside the command can reach it through the seam
 the mixin opened. This law goes further and forbids the `include` outright. The difference is
 what the two surfaces cost when they are wrong.
 
-A write with a private mixin still answers through one public method; the class's own
+A command with a private mixin still answers through one public method; the class's own
 contract is intact even while its internals arrived from elsewhere, and that containment is
 what the private-methods remedy is trading on. A test class has no such contract — nothing
 calls a test's methods from outside it, so "private" buys a test nothing, and the entire reason
 `include SignsInAsAdmin` is worth reaching for is that its methods stay callable exactly the
 way a public mixin's would. Forcing test-mixin methods private would not close the door the
 operation's rule closes; it would just describe a shape nobody would write. The remedy that
-survives for a test is the one that survives for a write with no public surface to protect
+survives for a test is the one that survives for a command with no public surface to protect
 by other means: move the behaviour onto the one class already in the inheritance chain.
 
 ## Two rejected shapes
@@ -96,7 +96,7 @@ base test legitimately needs setup specific to the application, how *this* app s
 actor, what *this* app's time zone is, and a base class that refuses local edits pushes that
 need straight back into a module, which is the thing this law exists to close. Nothing about
 installation singles this file out: like every other base class `shipshape install` writes,
-`Write` included, it is written once and never touched again — `Install#call` skips a target
+`Command` included, it is written once and never touched again — `Install#call` skips a target
 that already exists, for this file exactly as for every other, and the gem has no drift check
 at all.
 

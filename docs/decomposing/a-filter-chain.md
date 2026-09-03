@@ -59,9 +59,9 @@ and say which file each entry came from. If that takes more than a minute, that 
 | Kind | Example | Where it ends up |
 |---|---|---|
 | **Authenticate** | `require_login` | stays — it produces the actor, which every operation takes |
-| **Find** | `@story = Story.find(params[:id])` | into a read, or into the operation, which takes the id |
+| **Find** | `@story = Story.find(params[:id])` | into a query, or into the operation, which takes the id |
 | **Authorise** | `redirect_to root unless @story.editable_by?(current_user)` | disappears — the operation's base class checks |
-| **Decide** | `redirect_to onboarding_path unless current_user.onboarded?` | into a write; comes back as a failure code |
+| **Decide** | `redirect_to onboarding_path unless current_user.onboarded?` | into a command; comes back as a failure code |
 
 **Only the first survives.** Authentication is the seam's job: identify the caller, hand the
 actor onward. Everything else is the action's work, and the action's work belongs in an
@@ -106,13 +106,13 @@ find has to move for the file to go green. `NoUnparsedLookup` refuses the raw pa
 
 **The `@story` that survives is a smell of its own** — several actions reading one ivar set
 somewhere else is [a fat controller](a-fat-controller.md)'s step 5, and the answer there is a
-shape built by a read.
+shape built by a query.
 
 **Check:** `CallGraph` and `NoUnparsedLookup` are silent on the controller.
 
 ---
 
-## 4. The deciding filter is a write, and the redirect is its failure code
+## 4. The deciding filter is a command, and the redirect is its failure code
 
 ```ruby
 # before — a rule about onboarding, enforced from a controller filter
@@ -127,7 +127,7 @@ def create
 end
 ```
 
-**Moving it up into a filter and moving it into a write are not the same move**, and the
+**Moving it up into a filter and moving it into a command are not the same move**, and the
 filter version is the one that scales badly: the rule is now enforced for the actions somebody
 remembered to list, and the list is in a macro argument. Adding an action is how the rule stops
 applying, silently.

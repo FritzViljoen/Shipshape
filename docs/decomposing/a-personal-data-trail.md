@@ -112,7 +112,7 @@ correct shape is **the row survives and the personal columns are anonymised** �
 has_many :comments, dependent: :restrict_with_error
 ```
 
-and the anonymisation is a write, called before the delete, named for what it does.
+and the anonymisation is a command, called before the delete, named for what it does.
 
 **Check:** the cop is silent, and for each `:destroy` you can say why the child should not
 outlive the parent.
@@ -136,7 +136,7 @@ run it here. A join row is deleted and *gone*; a nullable column is a thing to r
 ## 5. Write the erasure as operations, not as a script
 
 The inventory is now a work list. Each table with `:delete_row` or `:anonymise` gets its part
-in a write, and a workflow sequences them:
+in a command, and a workflow sequences them:
 
 ```ruby
 class ForgetPerson < Workflow
@@ -151,7 +151,7 @@ end
 **Every step must be idempotent**, and here that is not a nicety: an erasure that half-ran and
 cannot be re-run safely is the worst state available — the request is recorded as handled and
 the data is still there. A workflow spans transactions, so this is the same obligation
-[a read that writes](a-read-that-writes.md) and [inline IO](inline-io.md) describe, with a
+[a query that writes](a-query-that-writes.md) and [inline IO](inline-io.md) describe, with a
 worse failure.
 
 **Check:** run the workflow twice against a fixture. The second run changes nothing and
@@ -170,7 +170,7 @@ question "who did we send this to" has an answer that is a list of classes rathe
 — which is the erasure request you cannot answer from the database at all, because the data is
 not in it.
 
-**Check:** for each `io_write`, you can say whether personal data is in the payload, and if
+**Check:** for each `io_command`, you can say whether personal data is in the payload, and if
 it is, what that vendor's deletion route is.
 
 ---

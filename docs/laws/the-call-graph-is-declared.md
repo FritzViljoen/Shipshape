@@ -9,37 +9,37 @@ The default kinds, and an application may name its own:
 
 | Kind | May call |
 |---|---|
-| request handling | workflow, write, read, io_write, io_read, legacy_write, legacy_read |
-| workflow | write, read, io_write, io_read, legacy_write, legacy_read, shape |
-| write | read, legacy_read, shape, record |
-| read | shape, record |
-| io_write | io_read, shape |
-| io_read | shape |
-| legacy_write | read, legacy_read, shape, record |
-| legacy_read | shape, record |
+| request handling | workflow, command, query, io_command, io_query, legacy_command, legacy_query |
+| workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
+| command | query, legacy_query, shape, record |
+| query | shape, record |
+| io_command | io_query, shape |
+| io_query | shape |
+| legacy_command | query, legacy_query, shape, record |
+| legacy_query | shape, record |
 | shape | nothing |
 | record | nothing |
 
 **The `io_` pair reads and changes state outside this process**, and the prefix means the
 crossing is visible at every call site. They are **sisters** of the internal pair — an
-`io_write` is a write whose store belongs to somebody else — so a write may not call
+`io_command` is a command whose store belongs to somebody else — so a command may not call
 one.
 
-**The reason is the transaction, and it is the only one that matters.** A write is exactly
+**The reason is the transaction, and it is the only one that matters.** A command is exactly
 one transaction. An external call inside one holds a database transaction open across a
 network round trip, which is how a slow third party takes a database down, and the remote
 write cannot be rolled back by it in any case. **A read is no better:** it holds the
-transaction open just as long. So neither a write nor a read does IO — the external call
+transaction open just as long. So neither a command nor a query does IO — the external call
 and the local write that records its result are two steps, sequenced by a workflow, which is
 the only kind that has accepted the bill for spanning them.
 
-**An `io_write` touches no record**, for the same reason: a failed remote call then leaves
+**An `io_command` touches no record**, for the same reason: a failed remote call then leaves
 no half-written row behind, and the pair is retryable. Assume retries — a workflow's only
 recovery is to run the sequence again.
 
-**And it reads in its own world, not in ours.** `io_write → io_read` mirrors
-`write → read` — a write may read first, and fetching a token before posting is that
-shape. What it may not do is reach a `read`: an external write pulling from the local store
+**And it reads in its own world, not in ours.** `io_command → io_query` mirrors
+`command → query` — a write may read first, and fetching a token before posting is that
+shape. What it may not do is reach a `query`: an external write pulling from the local store
 is reaching back across the boundary it just crossed, and anything it needs from here should
 have been handed to it like every other input.
 
@@ -48,21 +48,21 @@ speak to it.** A governed class never reaches legacy code directly; it goes thro
 and the `*_legacy.rb` suffix means that dependency is visible at the call site without
 opening anything.
 
-There are two rather than one so the return shape survives the crossing: a legacy read
-answers with shapes, a legacy write answers with a Result. A single door would have to
+There are two rather than one so the return shape survives the crossing: a legacy query
+answers with shapes, a legacy command answers with a Result. A single door would have to
 answer both ways, and a flag deciding which is the shape this canon refuses.
 
 **A door mirrors the row of the kind it is a sister to, because it *is* that kind** — it
-only happens to wrap something old. A write may read through the reading door exactly as
-it reads through a read, and may not call the writing door at all, exactly as it may not
-call a write.
+only happens to wrap something old. A command may read through the reading door exactly as
+it reads through a query, and may not call the writing door at all, exactly as it may not
+call a command.
 
 **They share one suffix, and the base class tells them apart.** The path says "this is a
 door"; inheritance carries the return shape, so putting that fact in the filename too would
 be a second copy of it — and the copy is the one that goes stale.
 
 **Why they are marked, rather than just wrapped:** the new shape only admits its own kinds.
-A workflow may sequence writes and reads and nothing else, so an unwrapped legacy
+A workflow may sequence commands and queries and nothing else, so an unwrapped legacy
 service cannot be called from one at all — the graph has no row for it. Wrapping is how old
 code gets in, and the mark is what keeps the crossing visible at the call site instead of
 dissolving into the new code as though it had always belonged.
@@ -91,7 +91,7 @@ exactly when it stops violating, and nobody maintains a list.
 A door's own calls into the old world are invisible to the guard,
 because unclassified constants are skipped — which is exactly what a door is for.
 
-**Workflow, write and read are all *operations*** — a class with one public method, as
+**Workflow, command and query are all *operations*** — a class with one public method, as
 [`one-operation-one-class`](one-operation-one-class.md) requires. The kinds differ in what
 they may reach, which is the only thing a kind is for.
 
@@ -102,7 +102,7 @@ a kind.
 
 **Two kinds carry a filename suffix — `*_controller.rb` and `*_record.rb` — and it is the
 same reason both times: they are the two that are infrastructure rather than domain.**
-Everything the MVC model used to hold has been split into workflows, writes, reads and
+Everything the MVC model used to hold has been split into workflows, commands, queries and
 shapes. What is still called a record is only the table, and the suffix says so out loud,
 so that nobody mistakes it for the thing it used to be. A class named `Person` that is
 really a table is the beginning of the god object;
@@ -112,26 +112,26 @@ the file name already admits what it is.
 **No kind calls a sister, and every kind is its own sister.** One rule, and it is the whole
 of what people mean by a sister call. It lives in the guard rather than in the matrix: a
 matrix row naming a sister is refused as a contradiction, not honoured as a permission, so
-no configuration can allow one. `Sisters` declares the groups — a legacy write is a
-write that wraps something old, so the two are one kind for this purpose.
+no configuration can allow one. `Sisters` declares the groups — a legacy command is a
+command that wraps something old, so the two are one kind for this purpose.
 
 A sister call is how a class quietly becomes the kind above it. Everything below is a
 consequence of that one rule, not a separate rule:
 
-- **A write is exactly one transaction. A workflow is several.** That is the sharpest
-  form of the rule and the reason for it. A write that calls a write has either nested
+- **A command is exactly one transaction. A workflow is several.** That is the sharpest
+  form of the rule and the reason for it. A command that calls a command has either nested
   a transaction or silently widened one, and nobody decided which — whereas a workflow
   crossing transactions is *obliged* to make each step idempotent and each intermediate
   state legal. Sequencing writes is the workflow's job because a workflow is the thing that
   has accepted that bill.
-- **A read is one read**, and it owns that read entirely: it reads every table it needs
-  and builds every part it returns. A read that calls a read is two reads wearing one
+- **A query is one read**, and it owns that read entirely: it reads every table it needs
+  and builds every part it returns. A query that calls a query is two reads wearing one
   name, the second invisible to whoever asked, and it is the shape an N+1 arrives in —
   whether the second read fetches a list or fetches one customer.
 
-  **Where two reads want the same sub-shape, that is the signal it is not a part but a
-  peer.** Promote it, give it its own read, and let whoever wanted both do the combining —
-  a workflow or a write may call two reads, and deciding to combine two reads is a
+  **Where two queries want the same sub-shape, that is the signal it is not a part but a
+  peer.** Promote it, give it its own query, and let whoever wanted both do the combining —
+  a workflow or a command may call two queries, and deciding to combine two reads is a
   decision, which belongs with a caller rather than inside a read.
 - **A workflow's whole content is its sequence.** Nesting one inside another hides the
   sequence, which was the only thing it had to offer.
@@ -145,7 +145,7 @@ consequence of that one rule, not a separate rule:
 tell the difference.
 
 **The rule has a price, and it is worth naming.** A change spanning records can no longer
-be one write wrapping a second in a transaction. It becomes a workflow, and a workflow
+be one command wrapping a second in a transaction. It becomes a workflow, and a workflow
 spans transactions — so each step has to be idempotent and each intermediate state has to
 be legal. That is more work, and it is work the transaction was hiding rather than doing.
 

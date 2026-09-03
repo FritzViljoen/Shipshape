@@ -24,7 +24,7 @@ ConfirmBooking.test_call(booking_id: booking.id)
 the transaction and the rules all still run. That is the whole point: the row it leaves behind
 is one an operator could have produced.
 
-**A factory sets columns; a write enforces which combinations of them are legal.** So a
+**A factory sets columns; a command enforces which combinations of them are legal.** So a
 factory can build a state the application cannot, and a test asserting behaviour on that state
 asserts behaviour on fiction. [`no-test-factories`](../laws/no-test-factories.md) is the law,
 and `Shipshape/NoTestFactories` fails the call.
@@ -65,7 +65,7 @@ is why the suite is slow, and it is also why nobody can say what a test's state 
 |---|---|
 | **domain state** — a booking, an order, a payment | the operations that create it, called in the test |
 | **reference data** — a currency, a country, a tenant | a seed, loaded once; nothing in the application creates it |
-| **a state no write can reach** | **stop.** Either the write is missing, or the test is asserting fiction |
+| **a state no command can reach** | **stop.** Either the command is missing, or the test is asserting fiction |
 
 **The third row is the point of the whole exercise.** It will not be empty, and each entry is
 one of two bugs: an operation nobody wrote, or a test that has been green for years describing
