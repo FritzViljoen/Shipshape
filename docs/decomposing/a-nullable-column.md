@@ -75,11 +75,11 @@ you say that the old one could not — and the sentence names more than "not nul
 shipshape report
 ```
 
-`AbsenceIsAbsenceNeverAValue` and `NoColumnDefaults` read `db/schema.rb`. A `shipshape next` run scoped
-to `app/` reports nothing about either — **not because the schema is clean, but because it was
-not inspected**, which reads identically.
+`AbsenceIsAbsenceNeverAValue` and `NoColumnDefaults` read `db/migrate/**`, not `db/schema.rb`. A
+`shipshape next` run scoped to `app/` reports nothing about either — **not because the
+migrations are clean, but because they were not inspected**, which reads identically.
 
-**Check:** the report names a count for both, and the count is not "no schema found".
+**Check:** the report names a count for both, and the count is not "no migrations found".
 
 ---
 
