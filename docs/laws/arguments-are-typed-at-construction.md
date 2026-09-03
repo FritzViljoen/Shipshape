@@ -56,6 +56,14 @@ guard knows the name by identity instead and includes it nowhere. `nil` is not f
 truthy value is not true: absence says so with `allow_nil:`, and anything else would be a
 coercion.
 
+**A closed set of literal values is not a class either.** `typed(status, Symbol)` accepts any
+Symbol, which is weaker than the fact being asserted: a status, a kind, a currency code is a
+fixed vocabulary, not a Ruby type. `typed_enum(status, %i[held sold voided])` asserts
+membership in the given Array instead, and raises the same way — the caller's defect, not a
+value to fall back from. This is the argument-boundary half of the same fact
+[`an-enum-as-an-array`](../decomposing/an-enum-as-an-array.md) decomposes on the column side:
+the database keeps the set closed at rest, `typed_enum` keeps it closed on the way in.
+
 - **Guard's limit:** `Shipshape/PresentationHoldsNoRecords` reads the superclass as written, so
   a base reached through an alias or built by a factory is invisible, and it asks only that the
   module is extended — not that its sweep is reached, which a class overriding `new` could
@@ -64,7 +72,10 @@ coercion.
 
   `Shipshape/TypedArguments` checks that a keyword **is** guarded, never that the type named is
   the right one. `typed(person, Date)` passes. It also cannot see a guard called through a
-  helper it does not know by name.
+  helper it does not know by name. The same is true of the Array `typed_enum` is handed:
+  nothing checks that it agrees with the database's `CHECK` constraint or `enum` mapping, so
+  the two can drift apart the way any two copies of one fact do — name the Array once, as a
+  constant, and pass it to both.
 
   **An operation with no initializer at all is invisible**, because the cop hangs off
   `def initialize` and there is nothing to hang off. Found by running this over a repository

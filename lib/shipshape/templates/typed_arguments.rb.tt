@@ -37,6 +37,15 @@ module TypedArguments
     values
   end
 
+  # `typed(value, Symbol)` accepts any Symbol — weaker than the closed vocabulary a status,
+  # kind or currency code actually is. `allowed` is a plain Array, checked by membership.
+  def typed_enum(value, allowed)
+    typed(allowed, Array)
+    return value if allowed.include?(value)
+
+    raise ArgumentError, "expected one of #{allowed.inspect}, got #{value.inspect}"
+  end
+
   def typed_hash(value, key_type, value_type)
     typed(value, Hash)
     value.each do |key, entry|

@@ -68,4 +68,27 @@ class GeneratedTypedArgumentsTest < Minitest::Test
     subject.new(at: ZONED)
     assert_raises(ArgumentError) { subject.new(at: Time.now) }
   end
+
+  ALLOWED_STATES = %i[held sold voided].freeze
+
+  class Booking
+    include TypedArguments
+
+    attr_reader :state
+
+    def initialize(state:)
+      @state = typed_enum(state, GeneratedTypedArgumentsTest::ALLOWED_STATES)
+    end
+  end
+
+  def test_a_member_of_the_set_passes_through
+    assert_equal :held, Booking.new(state: :held).state
+  end
+
+  def test_a_value_outside_the_set_is_refused
+    error = assert_raises(ArgumentError) { Booking.new(state: :cancelled) }
+
+    assert_includes error.message, "expected one of #{ALLOWED_STATES.inspect}"
+    assert_includes error.message, "got :cancelled"
+  end
 end

@@ -30,6 +30,7 @@ module Shipshape
       "typed" => "asserts an argument's class at construction; raises rather than coercing.",
       "typed_array" => "the same assertion over every element of an Array.",
       "typed_hash" => "the same assertion over every key and value of a Hash.",
+      "typed_enum" => "asserts a value is one of a closed Array of literals, by membership.",
       "permission" => "the operation's own grantable name — always its class name, never chosen.",
       "anonymous?" => "true for an operation that implements `anonymous_call` instead of `call`.",
       "to_h" => "a `Shape`'s round trip: instance variables out as a Hash, `new(**shape.to_h)` " \

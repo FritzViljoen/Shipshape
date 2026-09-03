@@ -30,6 +30,15 @@ module Shipshape
       values
     end
 
+    # `typed(value, Symbol)` accepts any Symbol — weaker than the closed vocabulary a status,
+    # kind or currency code actually is. `allowed` is a plain Array, checked by membership.
+    def typed_enum(value, allowed)
+      typed(allowed, Array)
+      return value if allowed.include?(value)
+
+      raise ArgumentError, "expected one of #{allowed.inspect}, got #{value.inspect}"
+    end
+
     def matches?(value, type)
       return value == true || value == false if type.equal?(Boolean)
       return value.is_a?(Date) && !value.is_a?(DateTime) if type == Date

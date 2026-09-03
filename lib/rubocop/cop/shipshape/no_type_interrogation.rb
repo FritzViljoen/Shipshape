@@ -9,7 +9,7 @@ module RuboCop
         include ReadsKinds
 
         ASKS = %i[is_a? kind_of? instance_of? respond_to?].freeze
-        ASSERTS = %i[typed typed_array typed_hash].freeze
+        ASSERTS = %i[typed typed_array typed_hash typed_enum].freeze
 
         SHAPE = <<~RUBY
           # each variant answers for itself; adding one adds a class and edits nothing
