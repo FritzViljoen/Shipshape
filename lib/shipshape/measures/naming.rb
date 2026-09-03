@@ -87,10 +87,14 @@ module Shipshape
         name.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
       end
 
-      # Crude on purpose: an irregular plural gets a wrong name in a sketch meant to be edited.
+      VOWELS = %w[a e i o u].freeze
+
+      # Rails' own regular rule: consonant-`y` -> `ies`, vowel-`y` -> plain `s`, a bare
+      # trailing `s` left alone. A genuine irregular still guesses wrong — see the law.
       def plural(word)
-        return "#{word[0..-2]}ies" if word.end_with?("y")
-        return "#{word}es" if word.end_with?("s", "x", "ch", "sh")
+        return "#{word}es" if word.end_with?("x", "ch", "ss", "sh")
+        return word if word.end_with?("s")
+        return "#{word[0..-2]}ies" if word.end_with?("y") && !VOWELS.include?(word[-2]&.downcase)
 
         "#{word}s"
       end
