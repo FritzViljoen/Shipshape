@@ -25,7 +25,7 @@ module RuboCop
         }.freeze
 
         SHAPE = <<~RUBY
-          class SettleInvoice < Write
+          class SettleInvoice < Command
             def initialize(invoice_id:, settled_on:, note: nil)
               @invoice_id = typed(invoice_id, Integer)
               @settled_on = typed(settled_on, Date)
@@ -35,7 +35,7 @@ module RuboCop
         RUBY
 
         MOMENT = <<~RUBY
-          class ExpireHolds < Write
+          class ExpireHolds < Command
             def initialize(now:, departs_on:)
               @now = typed(now, ActiveSupport::TimeWithZone)  # a point in time, placed
               @departs_on = typed(departs_on, Date)           # a calendar date, no zone by design
@@ -129,7 +129,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow write read io_write io_read legacy_write legacy_read])
+          cop_config.fetch("Kinds", %w[workflow command query io_command io_query legacy_command legacy_query])
         end
       end
     end

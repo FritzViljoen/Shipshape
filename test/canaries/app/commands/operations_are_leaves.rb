@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class OperationsAreLeaves < Write
+class OperationsAreLeaves < Command
 def self.call(**arguments)
   new(**arguments).call
 end

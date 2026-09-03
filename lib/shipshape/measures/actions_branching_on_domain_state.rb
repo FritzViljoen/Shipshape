@@ -57,7 +57,7 @@ module Shipshape
           Whatever produced that object already knew the answer. Have it say so:
 
           ```ruby
-          result = SomeWrite.call(...)          # answers success(...) or failure(:code)
+          result = SomeCommand.call(...)          # answers success(...) or failure(:code)
 
           if result.success?                      # placement: which response to send
             redirect_to somewhere_path

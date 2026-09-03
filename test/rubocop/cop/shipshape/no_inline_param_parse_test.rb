@@ -14,9 +14,9 @@ class NoInlineParamParseTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "request_handling" => ["app/controllers/**/*_controller.rb"],
-        "write" => ["app/writes/**/*.rb"],
+        "command" => ["app/commands/**/*.rb"],
       },
-      "Matrix" => { "request_handling" => ["write"], "write" => [] },
+      "Matrix" => { "request_handling" => ["command"], "command" => [] },
     },
   }.freeze
 
@@ -116,8 +116,8 @@ class NoInlineParamParseTest < Minitest::Test
     RUBY
   end
 
-  def test_a_write_is_outside_the_seam
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/writes/create_booking.rb", other_cops: LAYOUT)
+  def test_a_command_is_outside_the_seam
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/create_booking.rb", other_cops: LAYOUT)
       class CreateBooking
         def call
           Date.parse(params[:on])

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class OneOperationOneClass < Write
+class OneOperationOneClass < Command
 def call; end
 
 def second_operation; end

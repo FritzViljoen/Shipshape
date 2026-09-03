@@ -11,35 +11,35 @@ require "shipshape/mixins"
 # the file being inspected, so one bad byte anywhere in a governed tree took every kind-scoped cop
 class SourceTextTest < Minitest::Test
   # `File.read` returns it happily and the first regular expression to touch it raises.
-  LATIN = "class Latin < Write\n  def call; \"caf\xE9\"; end\nend\n"
+  LATIN = "class Latin < Command\n  def call; \"caf\xE9\"; end\nend\n"
 
   def test_a_regular_expression_survives_an_invalid_byte
-    in_tree("app/writes/latin.rb" => LATIN) do |root|
-      text = Shipshape::SourceText.read(File.join(root, "app/writes/latin.rb"))
+    in_tree("app/commands/latin.rb" => LATIN) do |root|
+      text = Shipshape::SourceText.read(File.join(root, "app/commands/latin.rb"))
 
-      assert_match(/class Latin < Write/, text)
+      assert_match(/class Latin < Command/, text)
     end
   end
 
   def test_plain_file_read_is_what_this_exists_to_avoid
-    in_tree("app/writes/latin.rb" => LATIN) do |root|
-      raw = File.read(File.join(root, "app/writes/latin.rb"))
+    in_tree("app/commands/latin.rb" => LATIN) do |root|
+      raw = File.read(File.join(root, "app/commands/latin.rb"))
 
-      assert_raises(ArgumentError) { raw =~ /Write/ }
+      assert_raises(ArgumentError) { raw =~ /Command/ }
     end
   end
 
   def test_lines_survives_it_too
-    in_tree("app/writes/latin.rb" => LATIN) do |root|
-      lines = Shipshape::SourceText.lines(File.join(root, "app/writes/latin.rb"))
+    in_tree("app/commands/latin.rb" => LATIN) do |root|
+      lines = Shipshape::SourceText.lines(File.join(root, "app/commands/latin.rb"))
 
       assert_equal 3, lines.length
     end
   end
 
   def test_kinds_still_classifies_a_file_holding_an_invalid_byte
-    in_tree("app/writes/latin.rb" => LATIN) do |root|
-      assert_equal "write", kinds(root).for_path(File.join(root, "app/writes/latin.rb")),
+    in_tree("app/commands/latin.rb" => LATIN) do |root|
+      assert_equal "command", kinds(root).for_path(File.join(root, "app/commands/latin.rb")),
         "`Kinds` reads a file to find its superclass, so the bad file broke classification."
     end
   end
@@ -47,8 +47,8 @@ class SourceTextTest < Minitest::Test
   # `Mixins` reads every operation to judge one module, so the bad file decided its answer.
   def test_one_unreadable_file_does_not_blind_the_mixin_scan_to_the_rest
     tree = {
-      "app/writes/latin.rb" => LATIN,
-      "app/writes/settle_invoice.rb" => "class SettleInvoice < Write\n  include Paying\nend\n",
+      "app/commands/latin.rb" => LATIN,
+      "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\n  include Paying\nend\n",
     }
 
     in_tree(tree) do |root|
@@ -72,9 +72,9 @@ class SourceTextTest < Minitest::Test
   end
 
   def settings
-    Shipshape::Settings.new(kinds: { "write" => ["app/writes/**/*.rb"] },
-                            matrix: { "write" => [] },
-                            base_classes: { "write" => ["Write"] })
+    Shipshape::Settings.new(kinds: { "command" => ["app/commands/**/*.rb"] },
+                            matrix: { "command" => [] },
+                            base_classes: { "command" => ["Command"] })
   end
 
   def kinds(root)
@@ -82,6 +82,6 @@ class SourceTextTest < Minitest::Test
   end
 
   def mixins(root)
-    Shipshape::Mixins.new(settings: settings, base_dir: root, operation_kinds: ["write"])
+    Shipshape::Mixins.new(settings: settings, base_dir: root, operation_kinds: ["command"])
   end
 end

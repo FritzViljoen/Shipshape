@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# A door to the old world that reads, answering shapes. A sister of Read, not a subclass.
-class LegacyRead
+# A door to the old world that reads, answering shapes. A sister of Query, not a subclass.
+class LegacyQuery
   include TypedArguments
 
 <%- if auth -%>

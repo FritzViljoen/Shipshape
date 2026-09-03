@@ -24,13 +24,13 @@ module Shipshape
       result
       audit_log
       operation_job
-      read
-      write
+      query
+      command
       workflow
-      io_read
-      io_write
-      legacy_read
-      legacy_write
+      io_query
+      io_command
+      legacy_query
+      legacy_command
       typed_params
       personal_data
       application_view_component

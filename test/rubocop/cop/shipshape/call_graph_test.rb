@@ -4,7 +4,7 @@ require "test_helper"
 
 # Watched to fail: neutering the matrix check in CallGraph#allowed? reddens four — the record, the
 # controller, the leading-`::` and the safe-navigation cases; making the same-kind check permit
-# instead of refuse reddens four others — read, write, workflow and shape calling their own
+# instead of refuse reddens four others — query, command, workflow and shape calling their own
 # kind. Restoring each returns them to green. A guard nobody has seen fail reads as coverage.
 class CallGraphTest < Minitest::Test
   include CopRunner
@@ -15,16 +15,16 @@ class CallGraphTest < Minitest::Test
     "Kinds" => {
       "request_handling" => ["app/controllers/**/*_controller.rb"],
       "workflow" => ["app/workflows/**/*.rb"],
-      "read" => ["app/reads/**/*.rb"],
-      "write" => ["app/writes/**/*.rb"],
+      "query" => ["app/queries/**/*.rb"],
+      "command" => ["app/commands/**/*.rb"],
       "shape" => ["app/shapes/**/*.rb"],
       "record" => ["app/records/**/*_record.rb"],
     },
     "Matrix" => {
-      "request_handling" => %w[workflow write read],
-      "workflow" => %w[write read],
-      "write" => %w[read shape record],
-      "read" => %w[shape record],
+      "request_handling" => %w[workflow command query],
+      "workflow" => %w[command query],
+      "command" => %w[query shape record],
+      "query" => %w[shape record],
       "shape" => [],
       "record" => [],
     },
@@ -33,12 +33,12 @@ class CallGraphTest < Minitest::Test
   TREE = [
     "app/workflows/settle_month.rb",
     "app/workflows/close_books.rb",
-    "app/writes/create_person.rb",
-    "app/writes/geography/create_place.rb",
-    "app/reads/list_people.rb",
-    "app/reads/geography/list_places.rb",
-    "app/reads/stripe/fetch_rates.rb",
-    "app/writes/stripe/send_invoice.rb",
+    "app/commands/create_person.rb",
+    "app/commands/geography/create_place.rb",
+    "app/queries/list_people.rb",
+    "app/queries/geography/list_places.rb",
+    "app/queries/stripe/fetch_rates.rb",
+    "app/commands/stripe/send_invoice.rb",
     "app/shapes/place.rb",
     "app/shapes/money.rb",
     "app/records/person_record.rb",
@@ -65,7 +65,7 @@ class CallGraphTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "A request_handling may not call a record"
-    assert_includes found.first.message, "Declared: workflow, write, read."
+    assert_includes found.first.message, "Declared: workflow, command, query."
     assert_equal "PersonRecord", found.first.location.source
   end
 
@@ -83,7 +83,7 @@ class CallGraphTest < Minitest::Test
   end
 
   def test_a_namespaced_constant_resolves_through_its_path
-    assert_empty check(<<~RUBY, "app/writes/create_person.rb")
+    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
           Geography::ListPlaces.call
@@ -143,8 +143,8 @@ class CallGraphTest < Minitest::Test
     assert_equal 1, found.length
   end
 
-  def test_a_read_may_not_call_a_read
-    found = check(<<~RUBY, "app/reads/list_people.rb")
+  def test_a_query_may_not_call_a_query
+    found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
         def call
           Geography::ListPlaces.call
@@ -153,13 +153,13 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A read may not call a read"
+    assert_includes found.first.message, "A query may not call a query"
     assert_includes found.first.message, "They are sisters.",
       "One rule, applied to every kind: no kind calls its own kind. The per-kind reasons below are consequences of it, not separate rules."
   end
 
-  def test_a_write_may_not_call_a_write
-    found = check(<<~RUBY, "app/writes/create_person.rb")
+  def test_a_command_may_not_call_a_command
+    found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
           Geography::CreatePlace.call
@@ -168,11 +168,11 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A write may not call a write"
+    assert_includes found.first.message, "A command may not call a command"
   end
 
-  def test_a_write_may_read_through_a_read
-    assert_empty check(<<~RUBY, "app/writes/create_person.rb")
+  def test_a_command_may_read_through_a_query
+    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
           ListPeople.call
@@ -181,7 +181,7 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  def test_a_workflow_sequences_writes_and_reads
+  def test_a_workflow_sequences_commands_and_queries
     assert_empty check(<<~RUBY, "app/workflows/settle_month.rb")
       class SettleMonth
         def call
@@ -205,8 +205,8 @@ class CallGraphTest < Minitest::Test
     assert_includes found.first.message, "A workflow may not call a workflow"
   end
 
-  def test_a_read_may_read_a_record
-    assert_empty check(<<~RUBY, "app/reads/list_people.rb")
+  def test_a_query_may_read_a_record
+    assert_empty check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
         def call
           PersonRecord.all
@@ -215,8 +215,8 @@ class CallGraphTest < Minitest::Test
     RUBY
   end
 
-  def test_a_remote_read_is_a_read
-    found = check(<<~RUBY, "app/reads/list_people.rb")
+  def test_a_remote_read_is_a_query
+    found = check(<<~RUBY, "app/queries/list_people.rb")
       class ListPeople
         def call
           Stripe::FetchRates.call
@@ -225,12 +225,12 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A read may not call a read",
-      "Whose store it is changes nothing. A read of somebody else's is a read, so a read reaching one is the same sister call as a read reaching a local read."
+    assert_includes found.first.message, "A query may not call a query",
+      "Whose store it is changes nothing. A read of somebody else's is a query, so a query reaching one is the same sister call as a query reaching a local query."
   end
 
-  def test_a_remote_write_is_a_write
-    found = check(<<~RUBY, "app/writes/create_person.rb")
+  def test_a_remote_write_is_a_command
+    found = check(<<~RUBY, "app/commands/create_person.rb")
       class CreatePerson
         def call
           Stripe::SendInvoice.call
@@ -239,7 +239,7 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A write may not call a write"
+    assert_includes found.first.message, "A command may not call a command"
   end
 
   def test_a_workflow_sequences_a_local_write_and_a_remote_one
@@ -267,10 +267,10 @@ class CallGraphTest < Minitest::Test
   end
 
   def test_a_matrix_row_naming_itself_is_refused
-    permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("read" => %w[read shape record]))
+    permissive = CONFIG.merge("Matrix" => CONFIG["Matrix"].merge("query" => %w[query shape record]))
 
     error = assert_raises(Shipshape::Error) do
-      offences(<<~RUBY, cop_class: COP, cop_config: permissive, path: "app/reads/list_people.rb", files: TREE)
+      offences(<<~RUBY, cop_class: COP, cop_config: permissive, path: "app/queries/list_people.rb", files: TREE)
         class ListPeople
           def call
             PersonRecord.all
@@ -279,26 +279,26 @@ class CallGraphTest < Minitest::Test
       RUBY
     end
 
-    assert_includes error.message, "lists read, which is a sister of it",
+    assert_includes error.message, "lists query, which is a sister of it",
       "The rule lives in the cop, not in the matrix — so no configuration can permit a sister call, and a row that tries is a contradiction rather than a permission."
   end
 
   def test_a_packwerk_layout_resolves_per_pack
     packs = {
       "Kinds" => {
-        "write" => ["packs/*/writes/**/*.rb"],
-        "read" => ["packs/*/reads/**/*.rb"],
+        "command" => ["packs/*/commands/**/*.rb"],
+        "query" => ["packs/*/queries/**/*.rb"],
         "record" => ["packs/*/records/**/*_record.rb"],
       },
-      "Matrix" => { "write" => %w[read record], "read" => ["record"], "record" => [] },
+      "Matrix" => { "command" => %w[query record], "query" => ["record"], "record" => [] },
     }
     tree = %w[
-      packs/billing/writes/charge.rb
-      packs/catalogue/reads/list_items.rb
+      packs/billing/commands/charge.rb
+      packs/catalogue/queries/list_items.rb
       packs/catalogue/records/item_record.rb
     ]
 
-    found = offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/reads/list_items.rb", files: tree)
+    found = offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/queries/list_items.rb", files: tree)
       class ListItems
         def call
           Charge.call
@@ -307,7 +307,7 @@ class CallGraphTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A read may not call a write"
+    assert_includes found.first.message, "A query may not call a command"
     assert_includes found.first.message, "Declared: record.",
       "A Packwerk layout has no top-level app/. The glob's trailing wildcards are dropped and what remains is expanded on disk, giving one autoload root per pack."
   end
@@ -317,14 +317,14 @@ class CallGraphTest < Minitest::Test
   def test_a_record_in_another_pack_is_still_a_record
     packs = {
       "Kinds" => {
-        "read" => ["packs/*/reads/**/*.rb"],
+        "query" => ["packs/*/queries/**/*.rb"],
         "record" => ["packs/*/records/**/*_record.rb"],
       },
-      "Matrix" => { "read" => ["record"], "record" => [] },
+      "Matrix" => { "query" => ["record"], "record" => [] },
     }
-    tree = %w[packs/catalogue/reads/list_items.rb packs/billing/records/invoice_record.rb]
+    tree = %w[packs/catalogue/queries/list_items.rb packs/billing/records/invoice_record.rb]
 
-    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/reads/list_items.rb", files: tree)
+    assert_empty offences(<<~RUBY, cop_class: COP, cop_config: packs, path: "packs/catalogue/queries/list_items.rb", files: tree)
       class ListItems
         def call
           InvoiceRecord.all

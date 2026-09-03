@@ -2,6 +2,6 @@
 
 class OnlyTheDoorIsCalled < ApplicationController
 def show
-  OtherRead.build_from(params)
+  OtherQuery.build_from(params)
 end
 end
