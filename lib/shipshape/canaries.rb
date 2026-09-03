@@ -434,8 +434,10 @@ module Shipshape
       "# frozen_string_literal: true\n\n#{declaration}\n#{body}end\n"
     end
 
+    # Two passes, as in kinds.rb: one pass alone collapses a leading article or doubled
+    # capital, the bug already fixed in canon_test.rb and removal_test.rb.
     def slug(cop)
-      cop.split("/").last.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+      cop.split("/").last.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
     end
 
     # Never overwrites: `--plant --dir .` replaced `.rubocop.yml` and `command.rb` with stubs.
