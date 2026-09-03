@@ -96,6 +96,66 @@ class TypedArgumentsTest < Minitest::Test
   end
 end
 
+# Watched to fail: making `typed_enum` return its value unconditionally reddens the refusal
+# test below; deleting the `typed(allowed, Array)` sanity check reddens the malformed-set test.
+class TypedEnumTest < Minitest::Test
+  ALLOWED = %i[held sold voided].freeze
+
+  class Booking
+    include Shipshape::TypedArguments
+
+    attr_reader :state
+
+    def initialize(state:)
+      @state = typed_enum(state, TypedEnumTest::ALLOWED)
+    end
+  end
+
+  def test_a_member_of_the_set_passes_through
+    assert_equal :held, Booking.new(state: :held).state
+  end
+
+  def test_a_value_outside_the_set_is_refused
+    error = assert_raises(ArgumentError) { Booking.new(state: :cancelled) }
+
+    assert_includes error.message, "expected one of #{ALLOWED.inspect}"
+    assert_includes error.message, "got :cancelled"
+  end
+
+  # Weaker than the fact being asserted: any Symbol at all, not this closed set.
+  def test_a_bare_symbol_type_would_have_accepted_it
+    subject = Class.new do
+      include Shipshape::TypedArguments
+
+      attr_reader :state
+
+      def initialize(state:)
+        @state = typed(state, Symbol)
+      end
+    end
+
+    assert_equal :cancelled, subject.new(state: :cancelled).state
+  end
+
+  def test_the_allowed_set_itself_must_be_an_array
+    error = assert_raises(ArgumentError) do
+      Class.new do
+        include Shipshape::TypedArguments
+
+        def initialize(state:)
+          @state = typed_enum(state, state)
+        end
+      end.new(state: :held)
+    end
+
+    assert_includes error.message, "expected Array"
+  end
+
+  def test_the_guard_is_private
+    refute_respond_to Booking.new(state: :held), :typed_enum
+  end
+end
+
 # `a-time-names-its-zone`: `Time`/`DateTime` require a zoned value; `Date` refuses a `DateTime`.
 # Watched to fail: reverting `matches?` to plain `is_a?` reddens every refusal below.
 class TypedArgumentsTimeZoneTest < Minitest::Test

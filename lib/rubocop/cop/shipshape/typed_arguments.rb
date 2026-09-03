@@ -10,7 +10,7 @@ module RuboCop
       class TypedArguments < Base
         include ReadsKinds
 
-        GUARDS = %i[typed typed_array typed_hash].freeze
+        GUARDS = %i[typed typed_array typed_hash typed_enum].freeze
 
         # The declared type is caught here, at lint time, from the constant written at the
         # call site. `typed` catches the value itself at runtime — but only on the line

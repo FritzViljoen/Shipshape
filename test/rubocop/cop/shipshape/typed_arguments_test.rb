@@ -6,7 +6,8 @@ require "test_helper"
 # `check_argument` return early on `:arg` reddens the positional test; emptying `UNNAMED` reddens
 # the splat tests; emptying `NAIVE_MOMENTS` reddens the bare-`Time` and bare-`DateTime` tests;
 # making `on_def` skip the `initialize` check reddens nothing on its own, which is
-# why there is a test that a guard-free `call` is not this cop's business.
+# why there is a test that a guard-free `call` is not this cop's business; dropping
+# `typed_enum` from `GUARDS` reddens the closed-set test.
 class TypedArgumentsTest < Minitest::Test
   include CopRunner
 
@@ -69,6 +70,16 @@ class TypedArgumentsTest < Minitest::Test
         def initialize(lines:, rates:)
           @lines = typed_array(lines, Line)
           @rates = typed_hash(rates, Symbol, BigDecimal)
+        end
+      end
+    RUBY
+  end
+
+  def test_a_closed_set_guarded_by_typed_enum_counts
+    assert_empty check(<<~RUBY)
+      class SettleInvoice
+        def initialize(state:)
+          @state = typed_enum(state, %i[held sold voided])
         end
       end
     RUBY

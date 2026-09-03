@@ -118,6 +118,30 @@ class NoTypeInterrogationTest < Minitest::Test
     RUBY
   end
 
+  # A closed-set assertion at construction is not interrogation — it is the door typing its
+  # input, the same as `typed` itself.
+  def test_asserting_a_closed_set_is_allowed
+    assert_empty check(<<~RUBY)
+      class PriceParty
+        def initialize(state:)
+          @state = typed_enum(state, %i[held sold voided])
+        end
+      end
+    RUBY
+  end
+
+  def test_the_enum_guard_helper_is_exempt_by_name
+    assert_empty check(<<~RUBY)
+      class PriceParty
+        def typed_enum(value, allowed)
+          return value if allowed.is_a?(Array) && allowed.include?(value)
+
+          raise ArgumentError
+        end
+      end
+    RUBY
+  end
+
   # The trees the cop does not cover are where a real edge lives.
   def test_a_record_is_outside_the_cops_scope
     assert_empty offences(<<~RUBY, cop_class: COP, path: "app/records/party_record.rb", other_cops: LAYOUT)
