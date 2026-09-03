@@ -47,7 +47,10 @@ module RuboCop
 
         # `[\w:]+` so a namespaced superclass, e.g. `Billing::Record`, is read whole.
         CLASS_DECLARATION = /^\s*class\s+([\w:]+)\s*<\s*([\w:]+)/.freeze
-        TABLE_NAME_ASSIGNMENT = /^\s*self\.table_name\s*=\s*["']([^"']+)["']/.freeze
+        TABLE_NAME_ASSIGNMENT = /^\s*self\.table_name\s*=\s*(?:["']([^"']+)["']|:([a-zA-Z_]\w*))/.freeze
+
+        MODULE_DECLARATION = /^\s*module\s+([\w:]+)\s*$/.freeze
+        TABLE_NAME_PREFIX = /def\s+(?:self\.)?table_name_prefix\b.*?["']([^"']*)["'].*?\bend\b/m.freeze
 
         def on_new_investigation
           @promoted = []
@@ -171,7 +174,8 @@ module RuboCop
 
         def table_claimed_by(path)
           text = ::Shipshape::SourceText.read(path)
-          explicit = text[TABLE_NAME_ASSIGNMENT, 1]
+          match = text.match(TABLE_NAME_ASSIGNMENT)
+          explicit = match && (match[1] || match[2])
           return explicit if explicit
 
           name, superclass = text.match(CLASS_DECLARATION)&.captures
@@ -180,11 +184,38 @@ module RuboCop
           default_table_name(name)
         end
 
-        # Rails' own rule, crude on purpose like `Measures::Naming`: an irregular plural guesses wrong.
+        # Crude on purpose like `Measures::Naming` — see the law for what it still misses.
         def default_table_name(class_name)
-          simple = class_name.split("::").last
+          segments = class_name.split("::")
+          simple = segments.pop
+          undecorated = ::Shipshape::Measures::Naming.plural(::Shipshape::Measures::Naming.snake(simple))
 
-          ::Shipshape::Measures::Naming.plural(::Shipshape::Measures::Naming.snake(simple))
+          "#{owning_prefix(segments)}#{undecorated}"
+        end
+
+        def owning_prefix(segments)
+          segments.length.downto(1) do |depth|
+            prefix = table_name_prefixes[segments.first(depth).join("::")]
+            return prefix if prefix
+          end
+          nil
+        end
+
+        # A file's prefix counts only if it is the file's one module and a literal — see the law.
+        def table_name_prefixes
+          @table_name_prefixes ||= prefix_source_files.each_with_object({}) do |path, prefixes|
+            text = ::Shipshape::SourceText.read(path)
+            modules = text.scan(MODULE_DECLARATION).flatten.uniq
+            next unless modules.one?
+
+            literal = text[TABLE_NAME_PREFIX, 1]
+            prefixes[modules.first] = literal if literal
+          end
+        end
+
+        # `app` and `lib`: a prefix module is not always under the `record` kind's own paths.
+        def prefix_source_files
+          %w[app lib].flat_map { |root| Dir.glob(File.join(base_dir, root, "**", "*.rb")) }.uniq
         end
 
         def record_files
