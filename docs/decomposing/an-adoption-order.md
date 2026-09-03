@@ -185,7 +185,7 @@ These read `db/` and no operation cop reads what they write, so they can be done
 They are here because they are slow, and because a migration that fails is easier to reason
 about when the application above it has stopped moving.
 
-**Check:** `NoNullableColumns` and `NoColumnDefaults` fall; nothing in `app/` moves.
+**Check:** `AbsenceIsAbsenceNeverAValue` and `NoColumnDefaults` fall; nothing in `app/` moves.
 
 ---
 

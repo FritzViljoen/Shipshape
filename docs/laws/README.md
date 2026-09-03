@@ -41,7 +41,7 @@ not make it hold.
 | [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) | `nothing-crosses-unasserted` |
 | [`input-is-parsed-at-the-seam`](input-is-parsed-at-the-seam.md) | `nothing-crosses-unasserted` |
 | [`a-time-names-its-zone`](a-time-names-its-zone.md) | `nothing-crosses-unasserted` |
-| [`no-nullable-columns`](no-nullable-columns.md) | `absence-is-absence` |
+| [`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md) | `absence-is-absence` |
 | [`no-database-defaults`](no-database-defaults.md) | `absence-is-absence` |
 | [`persistence-holds-no-behaviour`](persistence-holds-no-behaviour.md) | `model-concerns-not-groups` |
 | [`a-shape-is-composed-not-flattened`](a-shape-is-composed-not-flattened.md) | `model-concerns-not-groups` |

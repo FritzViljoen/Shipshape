@@ -128,7 +128,7 @@ never cleared looks exactly like one that was always empty.
 [a nullable column](a-nullable-column.md) is the procedure; the erasure angle is the reason to
 run it here. A join row is deleted and *gone*; a nullable column is a thing to remember.
 
-**Check:** `NoNullableColumns` names no foreign key on a table in
+**Check:** `AbsenceIsAbsenceNeverAValue` names no foreign key on a table in
 `PersonalData.tables_needing_erasure`.
 
 ---

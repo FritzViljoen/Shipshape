@@ -40,7 +40,7 @@ hop is one that already exists and is already governed.
 
 ## The actor is a column, so there is no system account
 
-`actor_id` is `NOT NULL`, which by [`no-nullable-columns`](no-nullable-columns.md) means an
+`actor_id` is `NOT NULL`, which by [`absence-is-absence-never-a-value`](absence-is-absence-never-a-value.md) means an
 unattributed schedule cannot be stored. If nobody will own it, it does not get created.
 
 **This is the whole answer to "who is the actor for scheduled work", and it needs no new idea.**

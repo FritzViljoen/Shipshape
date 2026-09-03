@@ -94,7 +94,7 @@ state and a photo comment does not, they were never one thing and the shared tab
 polymorphic association hiding it.
 
 **Check:** every new join column is `NOT NULL` with a foreign key —
-[`no-nullable-columns`](../laws/no-nullable-columns.md) applies here and is the point.
+[`absence-is-absence-never-a-value`](../laws/absence-is-absence-never-a-value.md) applies here and is the point.
 
 ---
 

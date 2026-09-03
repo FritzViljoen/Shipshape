@@ -12,7 +12,7 @@ You need this file to answer one question: which law came from where. That is th
 |---|---|---|
 | `good-boundaries-make-good-neighbours` | one home per rule. Which homes reach which is declared | `the-call-graph-is-declared`, `nothing-travels-off-the-call-path` |
 | `nothing-crosses-unasserted` | what crosses a boundary is stated there and checked there | `arguments-are-typed-at-construction`, `input-is-parsed-at-the-seam`, `no-silent-coercion` |
-| `absence-is-absence` | a gap is not a value. NULL means "nobody said" | `no-nullable-columns`, `no-database-defaults` |
+| `absence-is-absence` | a gap is not a value. NULL means "nobody said" | `absence-is-absence-never-a-value`, `no-database-defaults` |
 | `model-concerns-not-groups` | a shared noun is not a shared concern | `persistence-holds-no-behaviour`, `a-shape-is-composed-not-flattened` |
 | `no-industry-terms-in-code` | a word the business owns is a row, not a branch | the "Rules that are really data" measure |
 | `tell-dont-ask` | send the message. Do not pull the state out and decide for it | `no-lifecycle-callbacks`, `no-decisions-in-request-handling` |
