@@ -50,6 +50,12 @@ signal on the whole table before deciding what one column needs.
 satellite-shaped neighbour or two, stop here** — [a god record](a-god-record.md) is what the
 columns are showing, at their own scale, and fixing one column first only buries it deeper.
 
+**If it is only a handful of nullable columns that move together, and nothing else on that
+list joins them, that is smaller than a god record** —
+[a concern nobody modelled](a-concern-nobody-modelled.md) is the procedure for one cluster
+wearing several columns; come back here if the column you are looking at turns out to stand
+alone.
+
 **An extraction earns its place by unlocking a sentence the old shape could not say.**
 Splitting off channels unlocked *two phone numbers*; an `engagement_closure` table unlocked
 "closed, with a reason, at a time, by someone." A `tenant_branding` satellite shipped with one

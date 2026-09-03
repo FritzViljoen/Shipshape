@@ -31,6 +31,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a generated interface](a-generated-interface.md) | a method a reader greps for and never finds |
 | [a swallowed error](a-swallowed-error.md) | `rescue StandardError; nil` — a decision nobody wrote down |
 | [a nullable column](a-nullable-column.md) | a gap in `db/schema.rb` that four readers read four ways |
+| [a concern nobody modelled](a-concern-nobody-modelled.md) | `cancelled_at`, `cancellation_reason`, `cancelled_by_id` — one event, wearing three nullable columns |
 | [an unindexed foreign key](an-unindexed-foreign-key.md) | `t.bigint "order_id"` with no index — the join the database has to scan |
 | [a serialized column](a-serialized-column.md) | a JSON or YAML blob holding eleven keys nothing declares |
 | [a polymorphic association](a-polymorphic-association.md) | `commentable_type` — a class name in a data column, with no foreign key |

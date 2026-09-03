@@ -56,6 +56,11 @@ Group by **what changes together**, not by prefix and not by type. Prefix is a h
 `Shipshape/ShapeIsComposed` reports it, but the question is which columns are always edited
 in the same change.
 
+**A group that is only a few nullable columns, with nothing else on the table joining them —
+no flag cluster, no status pair, no satellite neighbour — is not this whole table's problem.**
+[A concern nobody modelled](a-concern-nobody-modelled.md) is the narrower procedure for that
+one cluster; extract it and re-check whether the rest of the table still needs this one.
+
 **Check:** every column belongs to exactly one group, or you have found a column that is two
 things.
 
