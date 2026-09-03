@@ -10,8 +10,11 @@ module RuboCop
       class CommandsProveIdempotence < Base
         include ReadsKinds
 
-        # A phrase, not a heuristic: writing it is the act being required.
+        # Bare, this cost one word; `claimed?` also requires it lead a comment and carry a reason.
         CLAIM = "Idempotent:"
+
+        # Still no proof past this: a false reason this long passes, and that is deliberate.
+        MIN_REASON_WORDS = 3
 
         IDEMPOTENT = <<~RUBY
           # in the command's test, naming what makes the second run safe
@@ -33,7 +36,7 @@ module RuboCop
           return unless one_of?(governed_kinds)
 
           tests = tests_for(processed_source.file_path)
-          return if tests.any? { |path| ::Shipshape::SourceText.read(path).include?(claim) }
+          return if tests.any? { |path| claimed?(::Shipshape::SourceText.read(path)) }
 
           add_offense(node.identifier, message: message_for(node.identifier.source, tests))
         end
@@ -76,6 +79,18 @@ module RuboCop
                      "how; it cannot check that they were right.",
             instead: IDEMPOTENT,
           )
+        end
+
+        # Must lead a comment line and carry words after it — not sit anywhere in the file.
+        def claimed?(text)
+          text.each_line.any? { |line| reasoned?(line) }
+        end
+
+        def reasoned?(line)
+          comment = line.chomp[/\A\s*#\s*(.*)\z/, 1]
+          return false unless comment&.start_with?(claim)
+
+          comment[claim.length..].split.length >= MIN_REASON_WORDS
         end
 
         def claim
