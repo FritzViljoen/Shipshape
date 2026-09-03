@@ -6,11 +6,13 @@ require "open3"
 require "rubocop"
 require "rubocop/cop/shipshape/call_graph"
 require "shipshape/error"
+require "shipshape/kinds"
+require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # Every call `Shipshape/CallGraph` resolves to two governed kinds, legal or not, plus which
-  # files were governed at all - read back as offences over the channel `BaseTestClassLines` uses.
+  # Every call `Shipshape/CallGraph` resolves to two governed kinds, legal or not. "Governed"
+  # comes from `Kinds` itself, never from which files RuboCop inspected — see the coupling law.
   class Coupling
     include TypedArguments
 
@@ -28,7 +30,7 @@ module Shipshape
     def call
       files = JSON.parse(json).fetch("files", [])
 
-      Report.new(edges: edges_in(files), governed: governed_files(files))
+      Report.new(edges: edges_in(files), governed: kinds.governed_files)
     end
 
     private
@@ -37,7 +39,7 @@ module Shipshape
 
     def edges_in(files)
       files.each_with_object([]) do |file, found|
-        path = file.fetch("path")
+        path = file.fetch("path").sub(%r{\A\./}, "")
 
         file.fetch("offenses", []).each do |offence|
           next unless coupling?(offence)
@@ -48,19 +50,24 @@ module Shipshape
       end
     end
 
-    def governed_files(files)
-      files.each_with_object([]) do |file, found|
-        found << file.fetch("path") if file.fetch("offenses", []).any? { |o| message?(o, CALL_GRAPH_COP::GOVERNED_MESSAGE) }
-      end.to_set
-    end
-
     def coupling?(offence)
       offence.fetch("cop_name") == CALL_GRAPH_COP.cop_name &&
         offence.fetch("message").start_with?(CALL_GRAPH_COP::COUPLING_MESSAGE)
     end
 
-    def message?(offence, text)
-      offence.fetch("cop_name") == CALL_GRAPH_COP.cop_name && offence.fetch("message") == text
+    def kinds
+      @kinds ||= Kinds.new(settings: settings, base_dir: directory)
+    end
+
+    def settings
+      @settings ||= Settings.layout(rubocop_config)
+    end
+
+    # Same lookup as `Check#config_at`: nil `config` falls back to the normal upward search.
+    def rubocop_config
+      store = RuboCop::ConfigStore.new
+      store.options_config = config if config && File.file?(config)
+      store.for_dir(directory)
     end
 
     def json
