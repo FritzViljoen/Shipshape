@@ -10,6 +10,7 @@ require "shipshape/coupling_delta"
 require "shipshape/coverage"
 require "shipshape/guards"
 require "shipshape/offences"
+require "shipshape/renamed_paths"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
 
@@ -49,7 +50,7 @@ module Shipshape
          Coupling.new(directory: path, config: base_config).call]
       end
 
-      coupling = CouplingDelta.new(base: coupling_before, head: coupling_after).call
+      coupling = CouplingDelta.new(base: coupling_before, head: coupling_after, renames: renames).call
 
       report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
              lines_before: lines_before, lines_after: lines_after, coupling: coupling)
@@ -61,6 +62,11 @@ module Shipshape
 
     def trunk_name
       @trunk_name ||= trunk || git.default_trunk
+    end
+
+    # Base path => its name at HEAD, so a moved file canonicalises onto one name before use.
+    def renames
+      @renames ||= RenamedPaths.new(root: root).call
     end
 
     def arrived_in(was, now)

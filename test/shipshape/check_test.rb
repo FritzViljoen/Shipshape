@@ -37,6 +37,32 @@ class CheckTest < Minitest::Test
       Enabled: false
   YAML
 
+  # A callee `Kinds` claims but `AllCops` excludes from inspection - the permanent hole.
+  EXCLUDED_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+      Exclude:
+        - 'app/queries/legacy/**/*'
+
+    Shipshape/CallGraph:
+      Kinds:
+        command: ['app/commands/**/*.rb']
+        query: ['app/queries/**/*.rb']
+      BaseClasses:
+        command: [Command]
+        query: [Query]
+      Sisters:
+        - [command]
+        - [query]
+      Matrix:
+        command: [query]
+        query: []
+  YAML
+
   CLEAN_COMMAND = "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n"
   DIRTY_QUERY = "class ListPeople < Query\n  def call\n    Other.call\n  end\nend\n"
   OTHER_QUERY = "class Other < Query\n  def call\n    []\n  end\nend\n"
@@ -120,8 +146,7 @@ class CheckTest < Minitest::Test
     end
   end
 
-  # It reads `0 -> 0`: identity is a path, so the old caller leaves governance and the new
-  # path arrives - two edges cancelling, the guard's own stated limit, not one holding still.
+  # Canonicalised through git's own rename detection first, so nothing arrives or leaves.
   def test_a_pure_file_move_leaves_coupling_flat
     in_repo do |root|
       moved = File.join(root, "app/commands/people/create_person.rb")
@@ -133,10 +158,95 @@ class CheckTest < Minitest::Test
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
       assert_equal report[:coupling][:was], report[:coupling][:now]
-      assert_equal 1, report[:coupling][:arrived_edges]
+      assert_equal 0, report[:coupling][:arrived_edges]
+      assert_equal 0, report[:coupling][:arrived_files]
+      assert_equal 0, report[:coupling][:left_edges]
+      assert_equal 0, report[:coupling][:left_files]
+    end
+  end
+
+  # S1: the caller moves *and* gains a call to an already-governed, unmoved callee.
+  def test_a_moved_caller_that_also_gains_an_edge_rises
+    custom_repo({
+      "app/commands/create_person.rb" => CLEAN_COMMAND,
+      "app/queries/list_people.rb" => OTHER_QUERY,
+      "app/queries/list_pets.rb" => OTHER_QUERY.sub("Other", "ListPets"),
+    }) do |root|
+      moved = File.join(root, "app/commands/people/create_person.rb")
+      FileUtils.mkdir_p(File.dirname(moved))
+      FileUtils.mv(File.join(root, "app/commands/create_person.rb"), moved)
+      File.write(moved, "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPets.call\n  end\nend\n")
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "move create_person.rb and add a call")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 1, now: 2 }, report[:coupling].slice(:was, :now))
+      assert_equal 0, report[:coupling][:arrived_edges]
+      assert_equal 0, report[:coupling][:left_edges]
+    end
+  end
+
+  # S3: the callee moves; its unmoved caller triples its calls to it. True coupling is 1 -> 3.
+  def test_a_moved_callee_whose_unmoved_caller_triples_its_calls_rises
+    custom_repo({
+      "app/commands/create_person.rb" => CLEAN_COMMAND,
+      "app/queries/list_people.rb" => OTHER_QUERY,
+    }) do |root|
+      moved = File.join(root, "app/queries/people/list_people.rb")
+      FileUtils.mkdir_p(File.dirname(moved))
+      FileUtils.mv(File.join(root, "app/queries/list_people.rb"), moved)
+      write(root, "app/commands/create_person.rb",
+            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPeople.call\n  end\nend\n")
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "move list_people.rb, triple the calls to it")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 1, now: 3 }, report[:coupling].slice(:was, :now))
+      assert_equal 0, report[:coupling][:arrived_edges]
+      assert_equal 0, report[:coupling][:left_edges]
+    end
+  end
+
+  # S4: a delete and an unrelated add, carrying more edges - content, not governance, decides
+  # a rename, so git never pairs these; both sides are disclosed, not laundered into stable.
+  def test_a_delete_and_an_unrelated_add_are_reported_not_paired
+    custom_repo({
+      "app/commands/old_thing.rb" => "class OldThing < Command\n  def call\n    ListPeople.call\n  end\nend\n",
+      "app/queries/list_people.rb" => OTHER_QUERY,
+      "app/queries/list_pets.rb" => OTHER_QUERY.sub("Other", "ListPets"),
+    }) do |root|
+      FileUtils.rm(File.join(root, "app/commands/old_thing.rb"))
+      write(root, "app/commands/new_thing.rb",
+            "class NewThing < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPets.call\n    ListPets.call\n  end\nend\n")
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "delete old_thing.rb, add new_thing.rb")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal 4, report[:coupling][:arrived_edges]
       assert_equal 1, report[:coupling][:arrived_files]
       assert_equal 1, report[:coupling][:left_edges]
       assert_equal 1, report[:coupling][:left_files]
+    end
+  end
+
+  # `ListPeople` sits where `AllCops::Exclude` keeps RuboCop away - only `Kinds` ever saw it.
+  def test_a_callee_excluded_from_inspection_still_ratchets
+    custom_repo({
+      "app/commands/create_person.rb" => CLEAN_COMMAND,
+      "app/queries/legacy/list_people.rb" => OTHER_QUERY,
+    }, config: EXCLUDED_YML) do |root|
+      write(root, "app/commands/create_person.rb",
+            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    " \
+            "ListPeople.call\n    ListPeople.call\n  end\nend\n")
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "quadruple the calls to an excluded callee")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 1, now: 4 }, report[:coupling].slice(:was, :now))
     end
   end
 
