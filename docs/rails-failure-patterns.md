@@ -53,7 +53,7 @@ shape you cannot express is not a guard at all.
 
 | Failure | Verdict | How |
 |---|---|---|
-| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/AbsenceIsAbsenceNeverAValue`, over `db/migrate/**` — **the migrations, not the live schema**, and with an exemption for the `*_from_*` renames. A column that was nullable before this gem arrived is not caught; a new one is |
+| Missing `NOT NULL` on columns that require a value | **Guarded** | `Shipshape/AbsenceIsAbsenceNeverAValue`, over `db/migrate/**` — **the migrations, not the live schema**, and with an exemption for the `*_from_*` renames. A column that was nullable before this gem arrived is not caught; a new one is, but only on a table some Record in the repository claims — see the law's own limit for what that misses |
 | `where.not` with NULLs behaving unexpectedly | **Unsayable** | There are no NULLs to behave unexpectedly |
 | Soft deletes without scoping every query | **Unsayable** | `deleted_at` is a nullable column and fails the build; [a nullable column](decomposing/a-nullable-column.md) models it as a row |
 | Callbacks with side effects inside transactions | **Unsayable** | `no-lifecycle-callbacks` — there is no callback |
