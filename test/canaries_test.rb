@@ -74,6 +74,17 @@ class CanariesTest < Minitest::Test
                  "Re-plant with `shipshape canaries --plant`, or regenerate this file."
   end
 
+  # A single-pass camelCase split collapsed a doubled capital and a leading article into the
+  # word before it — the same bug fixed in canon_test.rb and removal_test.rb, dormant here only
+  # because no registered cop's name currently exercises it.
+  def test_slug_splits_a_doubled_capital_and_a_leading_article
+    assert_equal "absence_is_absence_never_a_value",
+                 canaries.send(:slug, "Shipshape/AbsenceIsAbsenceNeverAValue"),
+                 "A single-pass conversion collapses a doubled capital or a leading article, " \
+                 "so a cop whose name carries one is silently orphaned from its own test " \
+                 "file — this has already bitten canon_test.rb and removal_test.rb."
+  end
+
   private
 
   CRASHING_COP_NAME = "CanarySignal/Crashes"
