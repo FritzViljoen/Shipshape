@@ -209,3 +209,33 @@ reach becomes the place unrelated things are put.
   `*_record.rb` matches no kind, so it is skipped rather than failed — the file has quietly
   left coverage. That is why the count of unclassified files is reported rather than
   assumed to be zero.
+
+- **Guard:** `shipshape check`'s coupling ratchet — `Shipshape::Coupling`,
+  `Shipshape::CouplingDelta`, both reading `Shipshape/CallGraph`'s own offences back over the
+  `RECORD_COUPLING_ENV` channel `BaseTestClassLines` already uses. The number is a call graph,
+  not a count: every edge `Shipshape/CallGraph` resolves, legal or not, is split three ways
+  between the merge base and HEAD. **Among files governed at both trees** — the same path,
+  governed both times — is what fails the build if it rises; a genuinely new call on an
+  already-governed file has nowhere to hide inside it. **Arriving with a newly governed
+  file** and **leaving with a file that lost governance or was deleted** are reported beside
+  it and never fail: bringing code under governance, or losing it, is not a call anybody
+  added or cut, and a ratchet that billed a detangling slice for the coupling already sitting
+  in the file it moved would make detangling the expensive path. An edge resolved through
+  `BaseClasses` alone has a kind and no file, so it can never arrive or leave — it is stable
+  by construction on both sides.
+- **Guard's limit:** it identifies a file by its path, never by content or by git's own
+  rename detection, so a file that itself moves — governed before, governed after, different
+  path — is invisible to the stable bucket in *either* direction. It shows up as one edge
+  leaving with the old path and one arriving with the new one, which is why a pure move
+  reads `flat` (both are zero) rather than as the unchanged number it actually is. The
+  arriving and leaving counts are informational only and never fail the build, on purpose —
+  which also means there is no ceiling on how much coupling a newly governed file may carry
+  in on its first day; the ratchet cannot object to any of it, by design, so a large legacy
+  file walked into governance still needs a human to have looked at what it brought. And a
+  repository whose config declares no `Kinds` at all — or none this cop's own `Enabled`
+  reaches — governs no files in either tree, so every edge is invisible to it and the number
+  reads `0 -> 0` on every run: `flat` looks identical to "measuring nothing" and this guard
+  cannot tell the two apart. It inherits every blind spot the guard above states for
+  `Shipshape/CallGraph` itself — a receiver resolved through a local, a method call, `send`,
+  or any dispatch this cop does not resolve syntactically forms no edge here either, coupled
+  or not.
