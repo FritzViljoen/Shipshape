@@ -141,7 +141,11 @@ module RuboCop
                      "any process zone, is the same moment. What changes is the offset " \
                      "now stamped on the value: whatever the process had, not whichever " \
                      "zone the original carried. A caller reading the hour or the day " \
-                     "off the result reads the wrong wall clock for anyone elsewhere.",
+                     "off the result reads the wrong wall clock for anyone elsewhere. " \
+                     "And the cast is not this operation's to make: a moment is parsed " \
+                     "and given its zone once, at the seam, and travels from there as a " \
+                     "value — a cast in here is that same step, arriving late and with " \
+                     "the wrong zone in hand.",
             instead: MOMENT,
           )
         end
