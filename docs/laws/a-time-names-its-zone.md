@@ -58,6 +58,19 @@ UTC rather than asking the process for one.
   same syntax reaches a parse hiding behind a cast and a cast that changes nothing, and the
   guard cannot tell which one is in front of it.
 
+  **Measured, not estimated:** twelve call sites across seven files in one production Rails
+  application, and roughly half of them lossless — a moment cast back to itself without
+  moving anything. `ActiveSupport::TimeWithZone#to_time` under `to_time_preserves_timezone`
+  (the Rails 5.0+ default) is the case worth naming: it returns the receiver's own offset
+  unchanged, so the cast reports nothing a caller could act on. In this sample the lossless
+  half was mostly `.to_datetime` on a value that was already a real `Time` or
+  `TimeWithZone` — lossless for the same reason, the offset it stamps on is the one the
+  receiver already carried. The other half are the defect the tier exists for: one site was
+  `.to_datetime` called on a `Date`, which invents a time-of-day out of the ambient zone and
+  is invisible without this check. **The ratchet holds this rate as a floor, not a
+  failure** — the six lossless hits already in that codebase cost nothing sitting still;
+  the tier only asks something of whoever adds a thirteenth.
+
   `Shipshape/TypedArguments` only reads inside `initialize` of a governed kind: a bare
   `typed(at, Time)` in `call`, or in a private assert helper reached from `initialize`,
   reports nothing. It also matches the spelling written at the call site, not the type it
