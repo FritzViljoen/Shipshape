@@ -257,6 +257,19 @@ Shipshape/CallGraph:
     shape: []
     record: []
 
+Shipshape/KindIsInheritedNotOnlyPlaced:
+  Description: >-
+    A kind is decided by inheritance, not by placement alone. A class filed on a governed
+    path that names no declared base — or names one that resolves to nothing this canon
+    installed — is that kind to every cop here and inherits none of what the kind means.
+  Enabled: true
+  VersionAdded: '0.0.1'
+  Include:
+    - '**/*.rb'
+  # Which kinds this covers is never declared here: it is exactly the kinds BaseClasses
+  # names on Shipshape/CallGraph, so a kind added there without a base is skipped rather
+  # than guessed at, and a kind given one is covered from the next run with nothing to edit.
+
 Shipshape/OneOperationOneClass:
   Description: >-
     An operation is a class with one public method, taking keyword arguments. A second

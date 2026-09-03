@@ -32,6 +32,13 @@ module Shipshape
           OtherQuery.call
         end
       RUBY
+      "Shipshape/KindIsInheritedNotOnlyPlaced" => { path: "app/commands/canary_unrooted.rb", raw: <<~RUBY },
+        class CanaryUnrooted
+          def call
+            1
+          end
+        end
+      RUBY
       "Shipshape/NoAmbientReads" => { kind: "command", body: <<~RUBY },
         def call
           Time.now
