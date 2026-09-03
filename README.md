@@ -63,8 +63,8 @@ would stop every call site at once — an outage, not a migration. See
 | Written | What it is |
 |---|---|
 | `Workflow` | sequences operations across several transactions; answers with a `Result` |
-| `Command` | one write, in exactly one transaction; answers with a `Result` |
-| `Query` | one read; answers with a shape or an array of them, no envelope |
+| `Command` | one transaction, however many writes it holds; answers with a `Result` |
+| `Query` | never writes; answers with a shape or an array of them, no envelope |
 | `IoCommand` / `IoQuery` | changing and reading state outside this process |
 | `LegacyCommand` / `LegacyQuery` | the two doors to the old world |
 | `Shape` | a domain object, detached from the database, with value semantics |
