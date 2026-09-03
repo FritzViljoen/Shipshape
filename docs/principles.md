@@ -128,7 +128,7 @@ time.
 
 **Persistence is separated from the thing.** A record maps rows and holds no rules. The
 domain object is built by an operation, composed, and detached from the database — so a
-reader holding one cannot accidentally read or write through it, and the thing's shape
+reader holding one cannot accidentally query or write through it, and the thing's shape
 stops being whatever the table happens to have.
 
 **Objects compose rather than flatten.** A domain object holds another domain object as a

@@ -27,7 +27,7 @@ So the generated `Shape` refuses it on construction, where the object is in hand
 simply be asked what it is — reaching a record smuggled in under any name, in an array, in a
 hash. The generated `ApplicationViewComponent` refuses it the same way, through the same
 module: a component is the other presentation kind, and a component holding a record renders
-a template that reads — the N+1 nobody can find, because the call causing it is in an
+a template that queries — the N+1 nobody can find, because the call causing it is in an
 `.erb` file and names nothing.
 
 This is the same instrument as [`one-operation-one-class`](one-operation-one-class.md)'s

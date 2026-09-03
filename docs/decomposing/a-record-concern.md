@@ -163,7 +163,7 @@ remembering which four migrations a module implies.
 
 ## What none of this proves
 
-**Nothing here shows the includers still work.** The reliable failure is a scope or a read
+**Nothing here shows the includers still work.** The reliable failure is a scope or a query
 elsewhere that read the column directly — `Story.where.not(slug: nil)` — which compiles fine
 against the old schema and returns the wrong rows against the new one. Those are found by
 [a call-site sweep](a-call-site-sweep.md), and the cop cannot see them because they name a

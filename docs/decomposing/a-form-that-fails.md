@@ -7,7 +7,7 @@ confidence.
 **What you are aiming at:**
 
 ```ruby
-# the write answers the same shape the form was built from, so the page can redraw itself
+# the command answers the same shape the form was built from, so the page can redraw itself
 result = SendMessage.call(actor: current_user, to: recipient, body: body)
 return redirect_to messages_path if result.success?
 
@@ -21,7 +21,7 @@ the page to render.
 
 **This one exists because a real refactor hit a wall three times and every wall had the same
 cause.** Extracting `MessagesController#create` in lobsters ran into: a failure that could not
-carry the invalid record, a `Read` that must answer shapes, and a view calling `form_with
+carry the invalid record, a `Query` that must answer shapes, and a view calling `form_with
 model: new_message`. One cause, stated plainly:
 
 > **Adopting this canon means the view layer stops holding ActiveRecord objects.** Rails' view
@@ -44,7 +44,7 @@ Three symptoms, one cause:
 | What you see | What it means |
 |---|---|
 | `failure(:invalid)` and nothing to render | a `Result` is a `Shape`, and a shape refuses to hold a record |
-| `Read#call must answer with shapes` | the list the template iterates cannot be records |
+| `Query#call must answer with shapes` | the list the template iterates cannot be records |
 | `CallGraph`: request handling may not reach a record | `@story = Story.find(...)` for the view |
 
 **Check:** you can say which of the three you are at, and that you know they are the same
@@ -54,7 +54,7 @@ thing.
 
 ## 1. The happy path first, and stop there if you like
 
-The success path almost never needs the record: it redirects, or it renders something a read
+The success path almost never needs the record: it redirects, or it renders something a query
 already shaped. Extract that, leave the failure path as it was, and the count falls.
 
 ```ruby
@@ -94,7 +94,7 @@ return failure(:invalid, Draft.new(subject: @subject, body: @body,
                                    errors: message.errors.to_hash)) unless message.save
 ```
 
-**Check:** the write's tests assert on `result.value.errors`, and `Result.failure` does not
+**Check:** the command's tests assert on `result.value.errors`, and `Result.failure` does not
 raise — which it does if you try to hand it the record.
 
 **No `ActiveModel` anywhere.** An earlier draft of this procedure reached for
@@ -104,7 +104,7 @@ remove. The next section replaces the idiom instead.
 
 ---
 
-## 3. The form is fed by a read, like everything else on the page
+## 3. The form is fed by a query, like everything else on the page
 
 `form_with model:` is the line to stop writing. It takes the **route**, the **field names** and
 the **errors** from a record, which is three reasons the view needs one — and it is the only
@@ -128,10 +128,10 @@ Replace it with the two things it was deriving, stated:
 so the submitted parameters are byte-identical, the route is unchanged, and the controller and
 `message_params` do not move. The migration is confined to the template.
 
-And `form` is what a read answered:
+And `form` is what a query answered:
 
 ```ruby
-class NewMessageForm < Read
+class NewMessageForm < Query
   def call
     MessageForm.new(recipient_username: "", subject: "", body: "", errors: {})
   end
@@ -139,13 +139,13 @@ end
 ```
 
 **A form is a read.** It was never anything else — the page is showing you fields — so it comes
-from a read returning a shape, like every other read on the page. The record was only ever
+from a query returning a shape, like every other read on the page. The record was only ever
 standing in for a view model nobody had written.
 
-**A list on the same page is the same rule**, and a read answers an array of shapes for it:
+**A list on the same page is the same rule**, and a query answers an array of shapes for it:
 
 ```ruby
-class Inbox < Read
+class Inbox < Query
   def call
     MessageRecord.inbox(@reader_id).map { |row| MessageSummary.new(subject: row.subject, ...) }
   end
@@ -155,7 +155,7 @@ end
 **The failure path now converges with the new-form path**, which is the part worth having.
 Before, `new` built a record and `create`'s failure branch built another one and re-validated
 it; two constructions of the same page, and only one of them was ever exercised by a test. Now
-both render one shape — the read supplies it empty, the failed write supplies it filled:
+both render one shape — the query supplies it empty, the failed command supplies it filled:
 
 ```ruby
 result = SendMessage.call(...)
@@ -170,10 +170,10 @@ That is the property the whole step turns on, and it is checkable by diffing the
 
 ## 4. The lists the template iterates
 
-`Read#call` refuses anything that is not a shape, so `@messages = Message.inbox(user)` cannot
+`Query#call` refuses anything that is not a shape, so `@messages = Message.inbox(user)` cannot
 be extracted until the template stops calling record methods on each row.
 
-Do this **per template, not per read.** A read returning shapes whose template still expects
+Do this **per template, not per query.** A query returning shapes whose template still expects
 records fails at render, in the browser, at whatever moment somebody looks — and the failure is
 a `NoMethodError` on a shape, which reads like a bug in the shape rather than a migration
 half-done.

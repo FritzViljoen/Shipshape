@@ -2,7 +2,7 @@
 
 **MVC, taken apart.**
 
-The M is not one thing. It is workflows, writes, reads, shapes and records, and a codebase
+The M is not one thing. It is workflows, commands, queries, shapes and records, and a codebase
 that calls all five "model" cannot tell you where a rule lives. shipshape gives each a place,
 keeps it with cops that can only ratchet, and ships the canon to agents as well as to CI.
 
@@ -54,7 +54,7 @@ which. A `.new` is never deleted either, even after it stops differing — once 
 matches this run again, `install` reports it `STALE` and leaves removing it to you. Neither kind
 of leftover is gitignored: a `.new` marks something still to review, and a `git status` that
 hides it is the wrong default. They sit outside the governed trees because a base class is not an
-instance of the thing it defines: `Write` is not a write.
+instance of the thing it defines: `Command` is not a command.
 
 **Authorisation is opt-in and off by default.** Base classes demanding an `actor:` on day one
 would stop every call site at once — an outage, not a migration. See
@@ -63,10 +63,10 @@ would stop every call site at once — an outage, not a migration. See
 | Written | What it is |
 |---|---|
 | `Workflow` | sequences operations across several transactions; answers with a `Result` |
-| `Write` | one write, in exactly one transaction; answers with a `Result` |
-| `Read` | one read; answers with a shape or an array of them, no envelope |
-| `IoWrite` / `IoRead` | changing and reading state outside this process |
-| `LegacyWrite` / `LegacyRead` | the two doors to the old world |
+| `Command` | one write, in exactly one transaction; answers with a `Result` |
+| `Query` | one read; answers with a shape or an array of them, no envelope |
+| `IoCommand` / `IoQuery` | changing and reading state outside this process |
+| `LegacyCommand` / `LegacyQuery` | the two doors to the old world |
 | `Shape` | a domain object, detached from the database, with value semantics |
 | `Result` | `success(value)` / `failure(:code, value)` — an expected failure, never a bug |
 | `TypedArguments` | asserts every keyword where it arrives |
@@ -84,7 +84,7 @@ require:                          # .rubocop.yml
   - shipshape
 ```
 
-The defaults assume `app/writes`, `app/reads`, `app/workflows`, `app/shapes`, `app/records`,
+The defaults assume `app/commands`, `app/queries`, `app/workflows`, `app/shapes`, `app/records`,
 `app/legacy` and their `packs/*/` equivalents. Override `Kinds` to match what your application
 already calls things.
 
@@ -94,20 +94,20 @@ at all, which is why two kinds can share one glob.
 | Kind | May call |
 |---|---|
 | request_handling / entry_point | every operation kind, view_component, shape |
-| workflow | write, read, io_write, io_read, legacy_write, legacy_read, shape |
-| write | read, legacy_read, shape, record |
-| read | shape, record |
-| io_write | io_read, shape |
-| io_read | shape |
-| legacy_write | read, legacy_read, shape, record |
-| legacy_read | shape, record |
+| workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
+| command | query, legacy_query, shape, record |
+| query | shape, record |
+| io_command | io_query, shape |
+| io_query | shape |
+| legacy_command | query, legacy_query, shape, record |
+| legacy_query | shape, record |
 | view_component | shape |
 | shape / record | nothing |
 
 **No kind calls a sister, and every kind is its own sister** — a rule in the cop, not the matrix,
 so a row naming one stops the run. A sister call is how a class quietly becomes the kind above
-it: a write sequencing writes is a workflow that never said so, and a read composing
-reads is the read that becomes an N+1.
+it: a command sequencing commands is a workflow that never said so, and a query composing
+queries is the read that becomes an N+1.
 [`the-call-graph-is-declared`](docs/laws/the-call-graph-is-declared.md) carries the rest.
 
 On a real application most existing controllers violate the matrix on day one. That is correct

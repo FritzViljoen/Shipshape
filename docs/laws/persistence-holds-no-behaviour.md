@@ -4,7 +4,7 @@ A record class declares its columns and its associations. Nothing else: no busin
 no calculation, no lifecycle callback, no scope that encodes a rule rather than a filter.
 
 **The domain object is a different class.** It is built by an operation, composed from
-values, and **detached from the database** — so a reader holding one cannot read or write
+values, and **detached from the database** — so a reader holding one cannot query or write
 through it by accident, and the thing's shape stops being whatever the table happens to
 have.
 
@@ -31,7 +31,7 @@ one without the other just moves the pile.
 - **Guard's limit:** it cannot tell a filtering scope from a rule-bearing one beyond a
   syntactic check on the block, so a scope that reaches another class inside a lambda passes.
   It sees the record tree only — behaviour moved into a helper, a module included from
-  outside that tree, or a read object filed elsewhere is not covered. `delegate` is caught
+  outside that tree, or a query object filed elsewhere is not covered. `delegate` is caught
   **here and only here** — [`code-is-written-not-generated`](code-is-written-not-generated.md)
   exempts the framework's public macros on purpose and uses this one to draw that line, so a
   delegating shape or component is not covered by either law. And it says nothing about whether the

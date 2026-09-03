@@ -15,9 +15,9 @@ Date)` would stop being greppable — see
 
 - **Principle:** `nothing-crosses-unasserted`. `nothing-is-hidden` produces the
   written-not-generated half; on conflict `nothing-crosses-unasserted` governs.
-**A record is never an argument.** Not into a write, not into a shape, not into anything.
+**A record is never an argument.** Not into a command, not into a shape, not into anything.
 A record that travels carries the database with it, and whatever receives it can walk an
-association, write through it, and reopen a read where nobody is looking for one — with
+association, write through it, and reopen a query where nobody is looking for one — with
 `@person.orders` and no constant for the call graph to see. What a receiver needs is the
 fields, a shape built from them, or the id to load for itself.
 
@@ -34,7 +34,7 @@ other in place, which is what says they are not one guard written twice.
 - **Guard:** the generated `typed_arguments.rb` — architecture. `typed` asserts and never
   coerces, and refuses a record before it matches the type.
 - **Guard:** `Shipshape/PresentationHoldsNoRecords`, over the `shape` and `view_component`
-  trees. **A record is only allowed in a write or a read**, and the matrix holds that
+  trees. **A record is only allowed in a command or a query**, and the matrix holds that
   wherever the record is *named*; this holds the case it cannot see, where one arrives as an
   argument. A class below a swept base needs nothing — the sweep is inherited — so what it
   reports is a base, or a class standing on its own outside one.

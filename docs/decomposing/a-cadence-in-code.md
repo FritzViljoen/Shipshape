@@ -12,7 +12,7 @@ every 1.day, at: "3:00 am" do
   runner "SettleOverdueInvoices.call"
 end
 
-# after — a row, created by a write like any other, running as somebody
+# after — a row, created by a command like any other, running as somebody
 Scheduling::CreateSchedule.call(
   actor:      actor,
   method:     "POST",
@@ -30,7 +30,7 @@ entries. Nobody can say what they all do, whose authority they run under, or whi
 still matter.
 
 **A schedule is a controller action called at a set frequency** — something outside arrives, an
-actor is established, one write runs. The caller being a clock rather than a browser earns no
+actor is established, one command runs. The caller being a clock rather than a browser earns no
 second mechanism, so the schedule is a **row**: a stored request, with the actor a `NOT NULL`
 column. [`a-schedule-is-a-row`](../laws/a-schedule-is-a-row.md) is the law, and
 `Shipshape/NothingSchedulesWork` fails the code version.
@@ -95,7 +95,7 @@ but no-ops for a year is a candidate; one nobody can name an owner for is a stro
 
 ## 3. Point each surviving entry at a route
 
-The row names a **route**, not a write class.
+The row names a **route**, not a command class.
 
 ```ruby
 # before — config/schedule.rb
@@ -103,7 +103,7 @@ every 1.day, at: "3:00 am" do
   runner "SettleOverdueInvoices.call"
 end
 
-# after — a row, created by a write like any other
+# after — a row, created by a command like any other
 Scheduling::CreateSchedule.call(
   actor:      actor,
   method:     "POST",
@@ -132,27 +132,27 @@ does what the cron entry did.
 
 Nightly work that takes twenty minutes is not a twenty-minute request. The controller enqueues
 with `call_later` exactly as it would for a browser
-([`deferral-is-one-write`](../laws/deferral-is-one-write.md)), so the chain is
-schedule → request → controller → write and every hop already exists.
+([`deferral-is-one-command`](../laws/deferral-is-one-command.md)), so the chain is
+schedule → request → controller → command and every hop already exists.
 
 **Check:** the scheduled request returns in the time an ordinary request takes.
 
 ---
 
-## 5. Two firings are a double-post, so prove the write survives it
+## 5. Two firings are a double-post, so prove the command survives it
 
 Two servers reaching one row in the same minute is the same event as two browsers reaching one
-form, and [`a-write-runs-twice`](../laws/a-write-runs-twice.md) already obliges every
-write to survive it.
+form, and [`a-command-runs-twice`](../laws/a-command-runs-twice.md) already obliges every
+command to survive it.
 
 ```sh
-bundle exec rubocop --only Shipshape/WritesProveIdempotence
+bundle exec rubocop --only Shipshape/CommandsProveIdempotence
 ```
 
 **A lock is an optimisation here, not a correctness requirement** — which is exactly the
 difference from the file you are deleting, where nothing ever obliged the work to be repeatable.
 
-**Check:** the write's test runs it twice and asserts the second run's effect.
+**Check:** the command's test runs it twice and asserts the second run's effect.
 
 ---
 
@@ -168,7 +168,7 @@ The cop is silent when the last cadence has left the code.
 
 ## What this leaves you
 
-**A list you can read.** What runs automatically, on what cadence, as whom, and what it did
+**A list you can query.** What runs automatically, on what cadence, as whom, and what it did
 last night — four questions that had no answer while the schedule was a file, and that are a
 `SELECT` once it is a row. Adding a schedule stops being a deploy.
 
