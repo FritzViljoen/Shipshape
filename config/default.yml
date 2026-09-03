@@ -521,12 +521,15 @@ Shipshape/NoUnparsedLookup:
 
 # The two migration cops. Scoped by path, not by kind — a migration is not a class, so the
 # kind registry has nothing to say about it.
-Shipshape/NoNullableColumns:
+Shipshape/AbsenceIsAbsenceNeverAValue:
   Description: >-
-    Every column is NOT NULL. A null is "off", "inherit", "not applicable" and "we lost it"
-    at once, and no reader can tell which.
+    A concern nobody modelled shows up as a nullable column. Fires only on a table some
+    Record in this repository claims, so an adopter is not penalised for a table it has not
+    reached yet.
   Enabled: true
   VersionAdded: '0.0.1'
+  Kinds:
+    - record
   Include:
     - 'db/migrate/**/*.rb'
     - 'db/*/migrate/**/*.rb'
