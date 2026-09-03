@@ -124,7 +124,7 @@ consequence of that one rule, not a separate rule:
   crossing transactions is *obliged* to make each step idempotent and each intermediate
   state legal. Sequencing writes is the workflow's job because a workflow is the thing that
   has accepted that bill.
-- **A query is one read**, and it owns that read entirely: it reads every table it needs
+- **A query owns its read entirely**: it reads every table it needs
   and builds every part it returns. A query that calls a query is two reads wearing one
   name, the second invisible to whoever asked, and it is the shape an N+1 arrives in —
   whether the second read fetches a list or fetches one customer.

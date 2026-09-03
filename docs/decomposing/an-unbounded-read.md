@@ -106,7 +106,7 @@ def call
 end
 ```
 
-**And the loop belongs to a workflow, not to the query.** A query is one read
+**And the loop belongs to a workflow, not to the query.** A query answers once
 ([`a-query-only-reads`](../laws/a-query-only-reads.md)); the thing that calls it until it is
 empty is a sequence, which is what a workflow is for.
 

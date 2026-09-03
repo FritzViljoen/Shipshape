@@ -216,8 +216,8 @@ Shipshape/CallGraph:
       - legacy_query
       - shape
     # NO IO IN A COMMAND OR A QUERY. A command is one transaction, and an external call
-    # inside one holds it open across a network round trip; a query is one read, and an
-    # external read is a second one nobody can see. Both are sisters besides.
+    # inside one holds it open across a network round trip; a query reads what it names, and
+    # an external call is a read nobody can see. Both are sisters besides.
     command:
       - query
       - legacy_query
@@ -786,7 +786,7 @@ Shipshape/MixinsAddNothingPublic:
 
 Shipshape/QueriesOnlyRead:
   Description: >-
-    A query is one read. It may reach a record, so the call graph allows the call and cannot
+    A query never writes. It may reach a record, so the call graph allows the call and cannot
     see that the message sent is a write - and a query opens no transaction, so the write
     runs outside one.
   Enabled: true

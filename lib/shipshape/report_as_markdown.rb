@@ -198,7 +198,7 @@ module Shipshape
           end
         end
 
-        # A QUERY is one read, and answers with shapes. No envelope: finding nothing is an
+        # A QUERY never writes, and answers with shapes. No envelope: finding nothing is an
         # answer, not a failure.
         class FindInvoice < Query
           def initialize(id:)
@@ -207,8 +207,8 @@ module Shipshape
 
           def call
             # A QUERY OWNS ITS ENTIRE READ. It reads every table it needs and builds every
-            # part it returns — which is what "one read" means, rather than a restriction
-            # on top of it. Calling FindCustomer here would be two reads wearing one name.
+            # part it returns, rather than delegate part of the read to another query.
+            # Calling FindCustomer here would be two reads wearing one name.
             record = InvoiceRecord.includes(:invoice_line_records, :customer_record).find(@id)
 
             Invoice.new(
@@ -220,7 +220,7 @@ module Shipshape
           end
         end
 
-        # A COMMAND is one write, in one transaction, and answers with a Result.
+        # A COMMAND is one transaction, however many writes it holds, and answers with a Result.
         class SettleInvoice < Command
           def initialize(invoice:, paid_on:)
             @invoice = typed(invoice, Invoice)     # asserted here, and nowhere after
@@ -362,8 +362,8 @@ module Shipshape
         - Request handling **decides nothing**. One operation is the common case; several
           are allowed as long as no result is examined, and a workflow is reached for when a
           sequence has obligations worth naming rather than because there are two calls.
-        - A command is one write and one transaction; sequencing writes is a workflow's job.
-        - A query is one read; a query calling a query is the shape an N+1 arrives in.
+        - A command is one transaction, however many writes it holds; sequencing writes is a workflow's job.
+        - A query never writes; a query calling a query is the shape an N+1 arrives in.
         - Nothing reaches the outside from inside a transaction.
         - A record holds no rules, so no concern can settle on it, and it never leaves the
           operation that read it.

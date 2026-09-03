@@ -156,8 +156,8 @@ knows the cache is now wrong, and it says so in the same transaction as the writ
 ([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md)). There is no window
 in which the rows have moved and the cache has not.
 
-**This is only enumerable because the query is a class.** A query is one read in one file, so
-its source tables can be listed; from those, the commands that write them can be listed; and
+**This is only enumerable because the query is a class.** A query declares its reads in one
+file, so its source tables can be listed; from those, the commands that write them can be listed; and
 that set is exactly the set that must invalidate. In a codebase where reads are scope chains
 scattered across models, nobody can produce that list, which is why cache invalidation is hard
 there and merely tedious here.
