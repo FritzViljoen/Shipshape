@@ -53,6 +53,9 @@ class CanonTest < Minitest::Test
       "the fix is a one-word decision — this operation is anonymous or it is not — and " \
       "nothing moves either way. It also reports zero until authorisation is installed, " \
       "because without it no operation is anonymous.",
+    "KindIsInheritedNotOnlyPlaced" =>
+      "the fix is naming the base class its own kind already declares. Nothing is moved, " \
+      "and there is no decomposition to walk — the class was always meant to inherit it.",
   }.freeze
 
   ARCHITECTURE_WITHOUT_A_LAW = {

@@ -36,6 +36,7 @@ not make it hold.
 | [`no-test-factories`](no-test-factories.md) | `one-way-to-say-each-thing` |
 | [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |
 | [`the-call-graph-is-declared`](the-call-graph-is-declared.md) | `good-boundaries-make-good-neighbours` |
+| [`a-kind-is-inherited-not-only-placed`](a-kind-is-inherited-not-only-placed.md) | `make-the-wrong-thing-impossible` |
 | [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md) | `good-boundaries-make-good-neighbours` |
 | [`arguments-are-typed-at-construction`](arguments-are-typed-at-construction.md) | `nothing-crosses-unasserted` |
 | [`input-is-parsed-at-the-seam`](input-is-parsed-at-the-seam.md) | `nothing-crosses-unasserted` |

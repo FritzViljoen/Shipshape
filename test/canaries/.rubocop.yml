@@ -31,6 +31,8 @@ Shipshape/EveryDoorChecksPermission:
   Enabled: true
 Shipshape/IoIsItsOwnKind:
   Enabled: true
+Shipshape/KindIsInheritedNotOnlyPlaced:
+  Enabled: true
 Shipshape/MixinsAddNothingPublic:
   Enabled: true
   AutoCorrect: false
