@@ -5,13 +5,31 @@ require "test_helper"
 # Watched to fail: making `null_option` answer nil reddens every offence test; making
 # `promotions_in` answer `[]` reddens the promotion test, which is the clause that makes the rule
 # workable on a populated table; making `reversing?` answer false reddens the `down` and
-# `remove_column` tests.
-class NoNullableColumnsTest < Minitest::Test
+# `remove_column` tests; making `owned?` answer true unconditionally reddens the unowned-table
+# test, which is the clause that keeps this off tables nobody has modelled.
+class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
   include CopRunner
 
-  COP = RuboCop::Cop::Shipshape::NoNullableColumns
+  COP = RuboCop::Cop::Shipshape::AbsenceIsAbsenceNeverAValue
 
   PATH = "db/migrate/20260101000000_add_nickname_to_people.rb"
+
+  LAYOUT = {
+    "Shipshape/CallGraph" => {
+      "Kinds" => { "record" => ["app/records/**/*_record.rb"] },
+      "Matrix" => { "record" => [] },
+      "BaseClasses" => { "record" => ["ApplicationRecord", "ActiveRecord::Base"] },
+    },
+  }.freeze
+
+  # `people` and `bookings` are claimed explicitly, which is the common case and the one every
+  # pre-existing offence test below relies on.
+  RECORDS = {
+    "app/records/person_record.rb" =>
+      "class PersonRecord < ApplicationRecord\n  self.table_name = \"people\"\nend\n",
+    "app/records/booking_record.rb" =>
+      "class BookingRecord < ApplicationRecord\n  self.table_name = \"bookings\"\nend\n",
+  }.freeze
 
   def test_a_nullable_column_in_a_table_body_is_an_offence
     found = check(<<~RUBY)
@@ -25,7 +43,7 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`nickname` is nullable"
+    assert_includes found.first.message, "`people.nickname` is nullable"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
@@ -98,7 +116,7 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`supplier` is nullable"
+    assert_includes found.first.message, "`bookings.supplier` is nullable"
   end
 
   def test_a_column_that_says_nothing_is_nullable
@@ -142,7 +160,7 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`state` is nullable"
+    assert_includes found.first.message, "`people.state` is nullable"
   end
 
   def test_change_column_is_promoted_by_the_same_method
@@ -187,9 +205,62 @@ class NoNullableColumnsTest < Minitest::Test
     RUBY
   end
 
+  # The clause this rename added: a table nobody has modelled yet does not fire, so an
+  # adopter with hundreds of legacy tables is not pushed to bury the null in a satellite join
+  # just to quiet a table it has not reached.
+  def test_a_table_with_no_owning_record_is_silent
+    assert_empty offences(<<~RUBY, cop_class: COP, path: PATH, files: RECORDS, other_cops: LAYOUT)
+      class AddNicknameToWidgets < ActiveRecord::Migration[7.0]
+        def change
+          create_table :widgets do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+  end
+
+  # Rails' own default: no `self.table_name` at all still claims the table its class name
+  # pluralises to.
+  def test_a_record_with_no_explicit_table_name_still_claims_its_default
+    files = RECORDS.merge("app/records/widget_record.rb" => "class Widget < ApplicationRecord\nend\n")
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToWidgets < ActiveRecord::Migration[7.0]
+        def change
+          create_table :widgets do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`widgets.nickname` is nullable"
+  end
+
+  # A subclass of an application record is not itself the base Rails would derive a table
+  # name from, so it claims nothing on its own — the guard's disclosed blind spot, not a crash.
+  def test_an_sti_subclass_does_not_claim_a_table_of_its_own
+    files = RECORDS.merge(
+      "app/records/user_record.rb" => "class User < ApplicationRecord\n  self.table_name = \"users\"\nend\n",
+      "app/records/admin_user_record.rb" => "class AdminUser < User\nend\n",
+    )
+
+    assert_empty offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToAdminUsers < ActiveRecord::Migration[7.0]
+        def change
+          create_table :admin_users do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+  end
+
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: PATH)
+    offences(source, cop_class: COP, path: PATH, files: RECORDS, other_cops: LAYOUT)
   end
 end
