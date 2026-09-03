@@ -12,6 +12,7 @@ require "shipshape/wire_typed_params"
 require "shipshape/check"
 require "shipshape/report"
 require "shipshape/report_as_markdown"
+require "shipshape/co_change"
 
 WIRING = {
   wired: "  wired    %<path>s — includes TypedParams",
@@ -404,6 +405,43 @@ def report
   0
 end
 
+# The empirical half of coupling: how often two files land in the same commit, regardless of
+# what either one imports. Evidence only, same as `tables` — no threshold, no verdict.
+def cochange
+  cap = (option("cap") || Shipshape::CoChange::DEFAULT_CAP.to_s).to_i
+  limit = (option("limit") || "25").to_i
+  only = option("file")
+
+  report = Shipshape::CoChange.new(root: Dir.pwd, cap: cap).call
+  pairs = only ? report.pairs.select { |pair| pair.a == only || pair.b == only } : report.pairs
+  churn = report.churn.sort_by { |_, count| -count }
+
+  if ARGV.include?("--json")
+    rows = { pairs: pairs.first(limit).map { |pair| pair.to_h.merge(ratio: pair.ratio.round(2)) },
+             churn: churn.first(limit).map { |file, count| { file: file, commits: count } } }
+    return puts(JSON.pretty_generate(rows)) || 0
+  end
+
+  puts "#{report.commits} commit(s) scanned, cap #{report.cap} files/commit, #{pairs.length} pair(s)."
+  puts
+  puts "PAIRS (co-change):"
+  pairs.first(limit).each do |pair|
+    puts format("  %-56s %-56s %5d shared, %d / %d revs (%.2f)",
+                pair.a, pair.b, pair.shared, pair.a_commits, pair.b_commits, pair.ratio)
+  end
+
+  unless only
+    puts
+    puts "CHURN (each file's own commit count, top #{[limit, churn.length].min}):"
+    churn.first(limit).each { |file, count| puts format("  %-70s %5d commits", file, count) }
+  end
+
+  puts
+  puts "A shared count and a commit total are both facts about history, not a verdict — the" \
+       " reader decides what they mean. `--file <path>` narrows to one file, `--json` for the rest."
+  0
+end
+
 command = ARGV.shift
 
 begin
@@ -414,6 +452,7 @@ when "canaries" then exit canaries
 when "coverage" then exit coverage
 when "edges" then exit edges
 when "tables" then exit tables
+when "cochange" then exit cochange
 when "next" then exit next_work
 when "report" then exit report
 when "check" then exit check(option("trunk"))
@@ -422,6 +461,7 @@ else
   warn "usage: shipshape install [--auth] [--view-components] | rules | canaries [--plant]"
   warn "       shipshape coverage [--config <path>] | edges [--config <path>] | next | report"
   warn "       shipshape tables [--table <name>] | check [--trunk <ref>] [--config <path>]"
+  warn "       shipshape cochange [--cap <n>] [--limit <n>] [--file <path>] [--json]"
   warn "       shipshape version"
   exit 1
 end
