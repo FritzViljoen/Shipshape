@@ -56,7 +56,7 @@ module RuboCop
 
         def message_for(name, writer)
           explain(
-            "`#{name}.#{writer}` is a write, and a query is one read.",
+            "`#{name}.#{writer}` is a write, and a query never writes.",
             because: "A query opens no transaction, because a read needs none — so this " \
                      "write runs outside any transaction, and a caller sequencing two " \
                      "queries has no rollback for the second. Every name on the path says " \
