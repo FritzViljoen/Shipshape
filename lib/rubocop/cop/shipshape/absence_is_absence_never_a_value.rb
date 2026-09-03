@@ -45,8 +45,6 @@ module RuboCop
           change_column_null :people, :nickname, false
         RUBY
 
-        # `[\w:]+` so a namespaced superclass, e.g. `Billing::Record`, is read whole.
-        CLASS_DECLARATION = /^\s*class\s+([\w:]+)\s*<\s*([\w:]+)/.freeze
         TABLE_NAME_ASSIGNMENT = /^\s*self\.table_name\s*=\s*(?:["']([^"']+)["']|:([a-zA-Z_]\w*))/.freeze
 
         MODULE_DECLARATION = /^\s*module\s+([\w:]+)\s*$/.freeze
@@ -178,10 +176,30 @@ module RuboCop
           explicit = match && (match[1] || match[2])
           return explicit if explicit
 
-          name, superclass = text.match(CLASS_DECLARATION)&.captures
-          return nil if name.nil? || !record_base_classes.include?(superclass)
+          record = record_class_in(text, path)
+          return nil if record.nil?
 
-          default_table_name(name)
+          default_table_name(qualified_name_of(record))
+        end
+
+        # Parsed, not read line by line: the nested form's `class` line names no module.
+        def record_class_in(text, path)
+          source = ::RuboCop::ProcessedSource.new(text, RUBY_VERSION.to_f, path)
+          return nil unless source.valid_syntax? && source.ast
+
+          candidate = [source.ast, *source.ast.each_descendant].find(&:class_type?)
+          return nil if candidate.nil?
+
+          superclass = candidate.children[1]&.source
+          return nil unless record_base_classes.include?(superclass)
+
+          candidate
+        end
+
+        # Compact carries its module in the class node's own name; nested, in its ancestors.
+        def qualified_name_of(class_node)
+          enclosing = class_node.each_ancestor(:module, :class).map { |node| node.children.first.source }
+          (enclosing.reverse + [class_node.children.first.source]).join("::")
         end
 
         # Crude on purpose like `Measures::Naming` — see the law for what it still misses.

@@ -321,6 +321,30 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     assert_includes found.first.message, "`channel_management_resellers.nickname` is nullable"
   end
 
+  # Nested — `module Foo; class Bar < ApplicationRecord; end; end` — claims its module's
+  # prefix too: the class line alone never names `GetYourGuide`.
+  def test_a_namespaced_record_written_the_nested_way_claims_its_module_table_name_prefix
+    files = RECORDS.merge(
+      "app/records/notification_record.rb" =>
+        "module GetYourGuide\n  class Notification < ApplicationRecord\n  end\nend\n",
+      "app/get_your_guide.rb" =>
+        "module GetYourGuide\n  def self.table_name_prefix\n    \"get_your_guide_\"\n  end\nend\n",
+    )
+
+    found = offences(<<~RUBY, cop_class: COP, path: PATH, files: files, other_cops: LAYOUT)
+      class AddNicknameToGetYourGuideNotifications < ActiveRecord::Migration[7.0]
+        def change
+          create_table :get_your_guide_notifications do |t|
+            t.string :nickname, null: true
+          end
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`get_your_guide_notifications.nickname` is nullable"
+  end
+
   # Without the prefix, the demodulised guess would claim the wrong table (`resellers`), so
   # the real table stays silent — this is the defect being fixed, pinned as a regression test.
   def test_a_namespaced_record_does_not_claim_the_demodulised_table
