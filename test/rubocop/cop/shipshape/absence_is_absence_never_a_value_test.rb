@@ -12,7 +12,7 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   COP = RuboCop::Cop::Shipshape::AbsenceIsAbsenceNeverAValue
 
-  PATH = "db/migrate/20260101000000_add_nickname_to_people.rb"
+  PATH = "db/migrate/20260101000000_add_nickname_to_guests.rb"
 
   LAYOUT = {
     "Shipshape/CallGraph" => {
@@ -22,20 +22,20 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     },
   }.freeze
 
-  # `people` and `bookings` are claimed explicitly, which is the common case and the one every
+  # `guests` and `bookings` are claimed explicitly, which is the common case and the one every
   # pre-existing offence test below relies on.
   RECORDS = {
-    "app/records/person_record.rb" =>
-      "class PersonRecord < ApplicationRecord\n  self.table_name = \"people\"\nend\n",
+    "app/records/guest_record.rb" =>
+      "class GuestRecord < ApplicationRecord\n  self.table_name = \"guests\"\nend\n",
     "app/records/booking_record.rb" =>
       "class BookingRecord < ApplicationRecord\n  self.table_name = \"bookings\"\nend\n",
   }.freeze
 
   def test_a_nullable_column_in_a_table_body_is_an_offence
     found = check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          create_table :people do |t|
+          create_table :guests do |t|
             t.string :nickname, null: true
           end
         end
@@ -43,14 +43,14 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`people.nickname` is nullable"
+    assert_includes found.first.message, "`guests.nickname` is nullable"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
     message = check(<<~RUBY).first.message
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          add_column :people, :nickname, :string, null: true
+          add_column :guests, :nickname, :string, null: true
         end
       end
     RUBY
@@ -62,9 +62,9 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_a_not_null_column_is_the_shape
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          create_table :people do |t|
+          create_table :guests do |t|
             t.string :nickname, null: false
           end
         end
@@ -75,11 +75,11 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
   # The clause that makes the law workable on a populated table.
   def test_a_column_promoted_in_the_same_method_passes
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def up
-          add_column :people, :nickname, :string, null: true
-          PersonRecord.update_all(nickname: "")
-          change_column_null :people, :nickname, false
+          add_column :guests, :nickname, :string, null: true
+          GuestRecord.update_all(nickname: "")
+          change_column_null :guests, :nickname, false
         end
       end
     RUBY
@@ -87,10 +87,10 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_a_different_column_promoted_does_not_excuse_this_one
     assert_equal 1, check(<<~RUBY).length
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def up
-          add_column :people, :nickname, :string, null: true
-          change_column_null :people, :other, false
+          add_column :guests, :nickname, :string, null: true
+          change_column_null :guests, :other, false
         end
       end
     RUBY
@@ -98,9 +98,9 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_the_reverse_direction_is_exempt
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def down
-          change_column_null :people, :nickname, true
+          change_column_null :guests, :nickname, true
         end
       end
     RUBY
@@ -108,7 +108,7 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_a_reference_is_resolved_to_the_column_it_creates
     found = check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
           add_reference :bookings, :supplier, null: true
         end
@@ -121,13 +121,13 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_a_column_that_says_nothing_is_nullable
     found = check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          create_table :people do |t|
+          create_table :guests do |t|
             t.string :nickname
             t.integer :age
           end
-          add_column :people, :note, :string
+          add_column :guests, :note, :string
         end
       end
     RUBY
@@ -139,9 +139,9 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_declarations_that_are_not_columns_are_left_alone
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          create_table :people do |t|
+          create_table :guests do |t|
             t.timestamps
             t.index :reference
           end
@@ -152,23 +152,23 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
 
   def test_change_column_names_the_column_not_the_table
     found = check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          change_column :people, :state, :string, null: true
+          change_column :guests, :state, :string, null: true
         end
       end
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`people.state` is nullable"
+    assert_includes found.first.message, "`guests.state` is nullable"
   end
 
   def test_change_column_is_promoted_by_the_same_method
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def up
-          change_column :people, :state, :string, null: true
-          change_column_null :people, :state, false
+          change_column :guests, :state, :string, null: true
+          change_column_null :guests, :state, false
         end
       end
     RUBY
@@ -178,14 +178,14 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
   # either. A guard that cannot see the promotion must not fail the addition.
   def test_a_non_literal_column_is_skipped_rather_than_crashed_on
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         COLUMNS = %i[nickname alias_name].freeze
 
         def up
           COLUMNS.each do |column|
-            add_column :people, column, :string, null: true
-            PersonRecord.update_all(column => "")
-            change_column_null :people, column, false
+            add_column :guests, column, :string, null: true
+            GuestRecord.update_all(column => "")
+            change_column_null :guests, column, false
           end
         end
       end
@@ -197,9 +197,9 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
   # is not absent.
   def test_a_non_literal_hash_key_does_not_crash_the_cop
     assert_empty check(<<~RUBY)
-      class AddNicknameToPeople < ActiveRecord::Migration[7.0]
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
         def change
-          add_column :people, :nickname, :string, NULL => false
+          add_column :guests, :nickname, :string, NULL => false
         end
       end
     RUBY
