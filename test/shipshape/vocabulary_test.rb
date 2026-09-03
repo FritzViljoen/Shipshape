@@ -73,7 +73,8 @@ class VocabularyTest < Minitest::Test
       "must not claim it either"
   end
 
-  # docs/decomposing/an-adoption-order.md step 0 then step 9: install never overwrites.
+  # docs/decomposing/an-adoption-order.md: install with authorisation off, then authorisation
+  # last of all — install never overwrites.
   def test_a_stale_pre_auth_kind_keeps_no_auth_methods_out_of_the_glossary
     Dir.mktmpdir("vocabulary-adoption-order") do |root|
       Shipshape::Install.new(root: root, auth: false).call

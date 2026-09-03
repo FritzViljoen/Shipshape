@@ -10,6 +10,7 @@ nobody can verify is a rewrite with extra confidence.
 | [a god record](a-god-record.md) | 113 columns, 251 methods, every rule about the thing lives on it |
 | [a scope chain](a-scope-chain.md) | `Story.where(...).joins(...).order(...)` — a query nobody named |
 | [an adoption order](an-adoption-order.md) | **start here** — getting the guards onto a repository that already runs |
+| [an authorisation audit](an-authorisation-audit.md) | CanCan, Pundit and ad-hoc role checks, read before a single operation is built |
 | [characterise the edges](characterise-the-edges.md) | the tests that survive every procedure above, written before anything moves |
 | [a factory graph](a-factory-graph.md) | `create(:booking)` pulling in four rows nobody asked for |
 | [a type hierarchy](a-type-hierarchy.md) | a `type` column, or a class per variant, or both |
