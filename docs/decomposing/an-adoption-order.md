@@ -98,9 +98,9 @@ Shipshape/NoDecisionsInRequestHandling:
 
 | cop | off until | because |
 |---|---|---|
-| `Shipshape/NoTestFactories` | step 8 | a test builds state by calling operations, and until step 6 there are none to call |
-| `Shipshape/NoTestMixins` | step 8 | a legacy suite shares setup through ad hoc modules the same way it shares state through factories, and turning this on before those are swept onto the base class makes every characterisation test's first touch a two-law fix |
-| `Shipshape/NoDecisionsInRequestHandling` | step 6 | an action places what an operation answered, and until then there is nothing answering |
+| `Shipshape/NoTestFactories` | the tests step | a test builds state by calling operations, and until the operations step there are none to call |
+| `Shipshape/NoTestMixins` | the tests step | a legacy suite shares setup through ad hoc modules the same way it shares state through factories, and turning this on before those are swept onto the base class makes every characterisation test's first touch a two-law fix |
+| `Shipshape/NoDecisionsInRequestHandling` | the operations step | an action places what an operation answered, and until then there is nothing answering |
 
 **`Shipshape/BaseTestClassGrowth` is not on this list, on purpose.** It fires only when a base
 or support class is itself edited — never on an ordinary leaf test — and the one thing it
@@ -163,19 +163,43 @@ finds you moved. Parsed first, the same move is silent.
 
 ---
 
-## 6. Then the operations
+## 6. Audit the permissions that already exist
+
+[An authorisation audit](an-authorisation-audit.md), in full.
+
+**Knowing the authorisation model and enforcing it are different acts.** The operations step
+that follows sizes each new class by
+[`a-permission-is-the-class-name`](../laws/a-permission-is-the-class-name.md) — one grant, one
+act, one class — and that fact already exists in the application today, in whatever CanCan,
+Pundit or ad-hoc role check enforces it now. Reading it changes nothing, so it can happen here,
+before a single operation is written. Enforcing it stays last, for the reason given there: a
+base class demanding an actor on day one stops every call site at once.
+
+Skip this step and the operations step has only the schema for a signal — which is how a real
+migration produced hundreds of small CRUD-shaped commands, one per table, with authorisation
+not even considered until three steps later.
+
+**Check:** every controller action in `bin/rails routes` has a row in the audit's table — gated
+by a named permission, or marked ungated for a person to answer.
+
+---
+
+## 7. Then the operations, sized by the audit
 
 [A fat controller](a-fat-controller.md), [a service](a-service.md), [a scope
 chain](a-scope-chain.md), [a filter chain](a-filter-chain.md).
 
 This is where the count falls fastest, and it is safe now: the rules are off the records, the
-seam parses, and the edges are recorded.
+seam parses, and the edges are recorded. **The operations to build are the permissions the
+previous step found, minimised — not the tables that exist.** A controller sitting on four
+tables and one permission is one command; a table reached by three permissions is three.
 
-**Check:** `shipshape next` offers files with tests first, and `check` shows the fall.
+**Check:** `shipshape next` offers files with tests first, and `check` shows the fall. Every new
+command or query's class name is a permission from the audit's table, not a table name.
 
 ---
 
-## 7. The schema, which trades with nothing
+## 8. The schema, which trades with nothing
 
 [A nullable column](a-nullable-column.md), [an unindexed foreign
 key](an-unindexed-foreign-key.md), [an enum as an array](an-enum-as-an-array.md), [a serialized
@@ -189,12 +213,12 @@ about when the application above it has stopped moving.
 
 ---
 
-## 8. Tests, once there is something to build state with
+## 9. Tests, once there is something to build state with
 
 [A factory graph](a-factory-graph.md).
 
 **Last, necessarily.** `no-test-factories` asks a test to build state by calling operations, and
-until step 6 there are no operations to call. Attempting it earlier is how a suite ends up with
+until the operations step there are none to call. Attempting it earlier is how a suite ends up with
 a helper wrapping `create!`, which the cop cannot see and which restores exactly what was
 removed.
 
@@ -214,7 +238,7 @@ this law's target exactly as a helper wrapping `create!` is `no-test-factories`'
 
 ---
 
-## 9. Authorisation, last of all
+## 10. Authorisation, last of all
 
 ```sh
 bundle exec shipshape install --auth
@@ -249,7 +273,7 @@ the one in which each step's output is the next step's input.
 start is a judgement about the code's remaining life, and a codebase being replaced next year
 should be left alone.
 
-**And the order is a default, not a dependency graph.** Steps 4 through 8 genuinely constrain
-each other; step 7 constrains nothing and is placed by taste. If a particular repository's worst
-pain is in step 6, the honest answer is often to do one file of it early, prove the shape to the
-team, and come back to the order afterwards.
+**And the order is a default, not a dependency graph.** Steps 4 through 9 genuinely constrain
+each other; the schema step constrains nothing and is placed by taste. If a particular
+repository's worst pain is in the operations step, the honest answer is often to do one file of
+it early, prove the shape to the team, and come back to the order afterwards.
