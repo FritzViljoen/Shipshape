@@ -60,6 +60,15 @@ number is one you recognise.**
 **Check:** `coverage` reports a percentage you can explain, and the kinds you expect appear in
 the breakdown. A kind missing from the list matched nothing, whatever its globs say.
 
+**`Kinds` is not the only thing to declare here — `BaseClasses` is.** The shipped
+`entry_point` row covers `app/jobs/`, `app/subscribers/` and `app/channels/` together, but
+its `BaseClasses` entry ships only a job base and a channel base — no subscriber base, because
+`shipshape install` writes none. A subscriber inheriting nothing is a real gap
+`Shipshape/KindIsInheritedNotOnlyPlaced` correctly reports; a subscriber inheriting its own
+`ApplicationSubscriber` reports one too until that class is added to `entry_point`'s
+`BaseClasses`. Add it — or any other kind's own base an application rolls itself and does not
+find here — in this same step, before believing that cop's number either.
+
 ---
 
 ## 2. Turn the ratchet on, and stop reading the absolute count

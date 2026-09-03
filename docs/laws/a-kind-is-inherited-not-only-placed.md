@@ -58,16 +58,39 @@ is the base, not a subject of this law.
   `command` off a path alone and trusts the rest is the "write it down and hope" this
   principle exists to replace.
 - **Guard:** `Shipshape/KindIsInheritedNotOnlyPlaced`. For the one class a file's path
-  resolves to, fails a superclass that is missing entirely, and fails one that is present but
-  does not resolve — directly, or through a statically resolvable chain of superclasses — to
-  a name `BaseClasses` declares for that kind.
+  resolves to, fails a superclass that is missing entirely, and fails one that resolves all
+  the way to a real file — directly, or through a chain of superclasses this canon can trace
+  on disk — whose own chain never reaches a name `BaseClasses` declares for that kind. A
+  superclass this canon cannot resolve at all is left alone, not failed: unresolvable is not
+  evidence of anything, and guessing from it would fail the gem's own installed base classes
+  along with every gem base an application legitimately inherits.
 - **Guard's limit:** it resolves a superclass exactly as `Shipshape/CallGraph` and
   `Shipshape/OperationsAreLeaves` do — a constant name turned into the path a loader would
   expect and looked up on disk — so everything their own guard's limits already name applies
   here too: `Class.new(Command)`, a superclass assigned through a constant or produced by a
-  generating call, and any base outside a tree this canon's `Kinds` declares, are invisible
-  and left alone rather than failed. A class reopened later in the same file without repeating
-  its superclass is judged again on that later statement, which names none — the guard has no
-  memory of the earlier one. This law does not reach the inverse hole: a file no `Kinds` glob
-  matches gets no kind and is invisible to every cop here, this one included; `shipshape
-  coverage` is what counts that gap today.
+  generating call, and any base whose file sits outside a tree this canon's `Kinds` declares —
+  `app/shipshape/`, where this gem's own installed base classes are generated, is exactly such
+  a tree — are invisible and left alone rather than failed. A class reopened later in the same
+  file without repeating its superclass is judged again on that later statement, which names
+  none — the guard has no memory of the earlier one.
+
+  Base matching, on both sides, compares only the last `::` segment — the same convention
+  `an-operation-is-a-leaf`'s guard uses — so `Vendor::Gubbins::Command` passes as `Command`,
+  and a local `module Reports; class Command; end` buys itself the exemption `Command` itself
+  gets, over-firing silently wherever two modules share a last segment.
+  `ApplicationCable::Connection < ActionCable::Connection::Base` is accepted today only
+  because both names end in `Base`.
+
+  Resolving a superclass from source also reads the **first** `class NAME < SUPER` line in
+  the target file, not the one naming the constant actually being resolved: a file that opens
+  with an unrelated exception ahead of the class the loader would really resolve —
+  `class UserError < StandardError` before `class User < ApplicationRecord` — hands back
+  `StandardError` as `User`'s superclass. Left as the existing convention rather than fixed
+  here: correcting it needs its own name-aware match across every class in a file, which is a
+  second way to ask a question `Kinds#for_path`'s own ambiguity check and
+  `Shipshape/OperationsAreLeaves`'s depth check still ask the first way — fixing it for this
+  guard alone would make one file's superclass depend on which cop asked.
+
+  This law does not reach the inverse hole: a file no `Kinds` glob matches gets no kind and
+  is invisible to every cop here, this one included; `shipshape coverage` is what counts that
+  gap today.
