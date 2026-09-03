@@ -211,28 +211,54 @@ reach becomes the place unrelated things are put.
   assumed to be zero.
 
 - **Guard:** `shipshape check`'s coupling ratchet — `Shipshape::Coupling`,
-  `Shipshape::CouplingDelta`, both reading `Shipshape/CallGraph`'s own offences back over the
-  `RECORD_COUPLING_ENV` channel `BaseTestClassLines` already uses. The number is a call graph,
-  not a count: every edge `Shipshape/CallGraph` resolves, legal or not, is split three ways
-  between the merge base and HEAD. **Among files governed at both trees** — the same path,
-  governed both times — is what fails the build if it rises; a genuinely new call on an
-  already-governed file has nowhere to hide inside it. **Arriving with a newly governed
-  file** and **leaving with a file that lost governance or was deleted** are reported beside
-  it and never fail: bringing code under governance, or losing it, is not a call anybody
-  added or cut, and a ratchet that billed a detangling slice for the coupling already sitting
-  in the file it moved would make detangling the expensive path. An edge resolved through
-  `BaseClasses` alone has a kind and no file, so it can never arrive or leave — it is stable
-  by construction on both sides.
-- **Guard's limit:** it identifies a file by its path, never by content or by git's own
-  rename detection, so a file that itself moves — governed before, governed after, different
-  path — is invisible to the stable bucket in *either* direction. It shows up as one edge
-  leaving with the old path and one arriving with the new one, which is why a pure move
-  reads `flat` (both are zero) rather than as the unchanged number it actually is. The
-  arriving and leaving counts are informational only and never fail the build, on purpose —
-  which also means there is no ceiling on how much coupling a newly governed file may carry
-  in on its first day; the ratchet cannot object to any of it, by design, so a large legacy
-  file walked into governance still needs a human to have looked at what it brought. And a
-  repository whose config declares no `Kinds` at all — or none this cop's own `Enabled`
+  `Shipshape::CouplingDelta`. Edges come from `Shipshape/CallGraph`'s own offences, read back
+  over the `RECORD_COUPLING_ENV` channel `BaseTestClassLines` already uses. **"Governed" does
+  not** — it comes from `Shipshape::Kinds` directly, the same resolver a callee's kind already
+  goes through, walked over the filesystem rather than asked which files RuboCop happened to
+  inspect. Those two used to be different derivations that disagreed: a file a `Kinds` glob
+  claims but `AllCops`, or the cop itself, excludes — or an `Include` misses, or that is blank
+  enough for RuboCop to skip its own investigation of it — matched a callee's name fine while
+  never once appearing "governed," so it sat outside the stable bucket forever, in both trees,
+  on every run. One resolver closes that: a file `Kinds` would classify is governed whether or
+  not RuboCop was ever pointed at it.
+
+  The number is a call graph, not a count: every edge `Shipshape/CallGraph` resolves, legal or
+  not, is split three ways between the merge base and HEAD, **after both sides' paths are
+  canonicalised through git's own rename detection** (`Shipshape::RenamedPaths`, reading
+  `git log --name-status -M`) onto their name at HEAD. **Among files governed at both trees**
+  — the same name, governed both times, moves notwithstanding — is what fails the build if it
+  rises; a genuinely new call on an already-governed file has nowhere to hide inside it, and
+  neither does one riding along with a file that moved in the same commit. **Arriving with a
+  newly governed file** and **leaving with a file that lost governance or was deleted** are
+  reported beside it and never fail: bringing code under governance, or losing it, is not a
+  call anybody added or cut, and a ratchet that billed a detangling slice for the coupling
+  already sitting in the file it moved would make detangling the expensive path. A delete paired
+  with an unrelated add is not a move — git's own content-based rename detection is what decides
+  that, the same test a human reviewing the diff would apply — so it is disclosed as one
+  departure and one arrival, honestly, rather than guessed at.
+
+  An edge resolved through `BaseClasses` has no file only when the base class itself resolves
+  to none — a gem constant such as `ActiveRecord::Base`, or a name matching no file under any
+  glob — and only then is it stable by construction on both sides, because there is no path for
+  either tree to disagree about. **A declared base class that also has a file inside a governed
+  glob is not that case.** `Command` declared at `app/commands/command.rb` resolves to that
+  path exactly like any other callee: it is governed, it can arrive or leave, and every edge
+  naming it moves with it — canonicalised the same as any other rename, `application_record.rb`
+  included, rather than exempted from the count that governs everything else reaching it.
+- **Guard's limit:** canonicalisation is only as good as git's own rename detection, which
+  reasons about content similarity, not identity — a move heavy enough with edits that git
+  itself would show it as a delete and an add is invisible to `RenamedPaths` exactly as it
+  would be to a person reading the diff, and that file's edges fall back to the pre-canonical
+  behaviour: one leaving with the old path, one arriving with the new one. The same is true of
+  a shallow clone whose history does not reach back to where the rename happened. **A path
+  vacated by a rename and later reused for a different file** is also outside what path-based
+  identity can tell apart — `RenamedPaths` would alias the new file to the old one's name — a
+  pre-existing limit of resolving identity by path at all, not one this fix introduces or
+  closes. The arriving and leaving counts are informational only and never fail the build, on
+  purpose — which also means there is no ceiling on how much coupling a newly governed file may
+  carry in on its first day; the ratchet cannot object to any of it, by design, so a large
+  legacy file walked into governance still needs a human to have looked at what it brought. And
+  a repository whose config declares no `Kinds` at all — or none this cop's own `Enabled`
   reaches — governs no files in either tree, so every edge is invisible to it and the number
   reads `0 -> 0` on every run: `flat` looks identical to "measuring nothing" and this guard
   cannot tell the two apart. It inherits every blind spot the guard above states for
