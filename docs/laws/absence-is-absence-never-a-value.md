@@ -50,6 +50,9 @@ that outlives its migration is what this law forbids.
   `module Foo; class Bar < ApplicationRecord; end; end` — this guard reads the `class` line
   without ever seeing the enclosing `module` line above it, so a `table_name_prefix` has
   nothing to attach to even when `Foo` declares one, and the real table it owns stays silent.
+  That count is a property of the measured schema, not of the guard: it is one table here
+  because one table here is declared the nested way, and a repository that writes its
+  namespaced records that way throughout loses all of them, not one.
 
   It cannot see a table that no Record file mentions at all — hundreds of them in an
   adopting repository — and it never claims to have modelled what such a table means; it
