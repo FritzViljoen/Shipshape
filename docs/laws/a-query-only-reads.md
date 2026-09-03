@@ -1,4 +1,4 @@
-# `a-query-only-reads` — A query is one read, and the call graph cannot tell you otherwise
+# `a-query-only-reads` — A query never writes, and the call graph cannot tell you otherwise
 
 A query reaches a record, shapes what it found, and answers. It never writes. A write is a
 command, with its own name, its own permission and its own transaction.

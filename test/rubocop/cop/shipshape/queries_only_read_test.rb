@@ -36,7 +36,7 @@ class QueriesOnlyReadTest < Minitest::Test
     found = check("PersonRecord.create!(name: \"x\")")
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`PersonRecord.create!` is a write, and a query is one read"
+    assert_includes found.first.message, "`PersonRecord.create!` is a write, and a query never writes"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
