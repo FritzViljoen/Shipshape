@@ -281,7 +281,7 @@ def next_work
   0
 end
 
-# One row per table, evidence only: `NoNullableColumns` reads a migration and cannot see what
+# One row per table, evidence only: `AbsenceIsAbsenceNeverAValue` reads a migration and cannot see what
 # a finished table's columns add up to. No verdict here either — the reader models the table.
 def tables
   name = option("table")
@@ -309,7 +309,7 @@ def tables
        " is invisible to it the same way. And a table naming none of these signals can still be" \
        " two concepts that both happen to be fully populated — this finds a symptom, never the disease."
   puts
-  puts "#{finder.migrations_scanned} file(s) under db/migrate/ scanned. `NoNullableColumns` reads" \
+  puts "#{finder.migrations_scanned} file(s) under db/migrate/ scanned. `AbsenceIsAbsenceNeverAValue` reads" \
        " only those, so a nullable column none of them declares — predating adoption, or left" \
        " behind by a squash — is one it can never see, clean report or not. \"migration-blind\"" \
        " below names that set."

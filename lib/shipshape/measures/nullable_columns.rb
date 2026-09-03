@@ -8,7 +8,7 @@ module Shipshape
     # Nullable columns and database defaults, read from `db/schema.rb`.
     class NullableColumns
       TITLE = "Nullable columns and database defaults"
-      LAW = "no-nullable-columns"
+      LAW = "absence-is-absence-never-a-value"
       WHY = "A nullable column is a gap given a meaning nobody declared; a default is a " \
             "second place deciding a value."
 

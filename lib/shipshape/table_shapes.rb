@@ -28,7 +28,7 @@ module Shipshape
         columns.select(&:nullable).map(&:name)
       end
 
-      # `NoNullableColumns` reads migrations, not this schema — a column none of them declares
+      # `AbsenceIsAbsenceNeverAValue` reads migrations, not this schema — a column none of them declares
       # (predating adoption, or left by a squash) is invisible to it, clean report or not.
       def migration_blind
         nullable - declared

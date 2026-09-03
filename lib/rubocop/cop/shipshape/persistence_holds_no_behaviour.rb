@@ -26,7 +26,7 @@ module RuboCop
           end
         RUBY
 
-        # A row's absence, not a column's NULL: `no-nullable-columns` refuses `cancelled_at`.
+        # A row's absence, not a column's NULL: `absence-is-absence-never-a-value` refuses `cancelled_at`.
         FILTERED = <<~RUBY
           # the record maps rows, and says nothing about which of them anyone wants
           class BookingRecord < ApplicationRecord

@@ -11,6 +11,8 @@ inherit_from:
 # is a deliberate violation, so the correcting cops must not correct them — `rubocop
 # -A` over this tree would rewrite the canaries, and the next run would blame the kind
 # globs for a hole the correction made.
+Shipshape/AbsenceIsAbsenceNeverAValue:
+  Enabled: true
 Shipshape/AggregationIsReadable:
   Enabled: true
 Shipshape/AnonymityIsClosedDownward:
@@ -55,8 +57,6 @@ Shipshape/NoGeneratedInterfaces:
 Shipshape/NoInlineParamParse:
   Enabled: true
   AutoCorrect: false
-Shipshape/NoNullableColumns:
-  Enabled: true
 Shipshape/NoSilentCoercion:
   Enabled: true
   AutoCorrect: false

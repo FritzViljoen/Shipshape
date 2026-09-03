@@ -260,7 +260,7 @@ class TableShapesTest < Minitest::Test
     RUBY
 
     assert_equal ["supplier_note"], orders.migration_blind,
-      "No db/migrate directory at all: nothing declares this column, so NoNullableColumns never saw it."
+      "No db/migrate directory at all: nothing declares this column, so AbsenceIsAbsenceNeverAValue never saw it."
   end
 
   def test_a_column_added_by_add_column_is_not_migration_blind

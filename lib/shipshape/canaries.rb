@@ -156,10 +156,10 @@ module Shipshape
           runner "CanarySettle.call"
         end
       RUBY
-      "Shipshape/NoNullableColumns" => { path: "db/migrate/20200101000000_canary.rb", raw: <<~RUBY },
+      "Shipshape/AbsenceIsAbsenceNeverAValue" => { path: "db/migrate/20200101000000_canary.rb", raw: <<~RUBY },
         class Canary < ActiveRecord::Migration[7.0]
           def change
-            add_column :canaries, :thing, :string, null: true
+            add_column :canary_records, :thing, :string, null: true
           end
         end
       RUBY
