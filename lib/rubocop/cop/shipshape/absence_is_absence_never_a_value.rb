@@ -1,17 +1,24 @@
 # frozen_string_literal: true
 
+require "set"
+require "shipshape/settings"
+require "shipshape/source_text"
+require "shipshape/measures/naming"
 require "rubocop/cop/shipshape/explains"
 
 module RuboCop
   module Cop
     module Shipshape
-      class NoNullableColumns < Base
+      # Holds `absence-is-absence-never-a-value`.
+      class AbsenceIsAbsenceNeverAValue < Base
         include Explains
 
         TABLE_FIRST = %i[
           add_column add_reference add_belongs_to
           change_column change_column_null change_column_default
         ].freeze
+
+        TABLE_BLOCKS = %i[create_table change_table].freeze
 
         # `timestamps` and `primary_key` are NOT NULL untold; `index` declares no column.
         COLUMN_TYPES = %i[
@@ -38,12 +45,23 @@ module RuboCop
           change_column_null :people, :nickname, false
         RUBY
 
+        # `[\w:]+` so a namespaced superclass, e.g. `Billing::Record`, is read whole.
+        CLASS_DECLARATION = /^\s*class\s+([\w:]+)\s*<\s*([\w:]+)/.freeze
+        TABLE_NAME_ASSIGNMENT = /^\s*self\.table_name\s*=\s*["']([^"']+)["']/.freeze
+
         def on_new_investigation
           @promoted = []
+          @table = nil
         end
 
         def on_def(node)
           @promoted = promotions_in(node)
+        end
+
+        def on_block(node)
+          return unless TABLE_BLOCKS.include?(node.send_node.method_name)
+
+          @table = name_of(node.send_node.first_argument)
         end
 
         def on_send(node)
@@ -53,12 +71,15 @@ module RuboCop
           column = column_of(node)
           return if column.nil? || promoted?(column)
 
+          table = table_of(node)
+          return unless owned?(table)
+
           return if options_cannot_be_read?(node)
 
           nullable = null_option(node)
           return if nullable == false
 
-          add_offense(nullable || node, message: message_for(column, nullable.nil?))
+          add_offense(nullable || node, message: message_for(table, column, nullable.nil?))
         end
 
         private
@@ -89,7 +110,6 @@ module RuboCop
           pair.value.true_type? ? pair : false
         end
 
-
         # `NULL => false` is legal Ruby, and a cop that raises leaves the file reported clean.
         def named?(pair, key)
           pair.key.respond_to?(:value) && pair.key.value == key
@@ -118,6 +138,11 @@ module RuboCop
           name_of(argument)
         end
 
+        # A nested column has no table of its own; the enclosing block tracked it above.
+        def table_of(node)
+          TABLE_FIRST.include?(node.method_name) ? name_of(node.arguments.first) : @table
+        end
+
         # Only a literal names a column; the caller drops the check rather than guessing.
         def name_of(argument)
           return unless argument.respond_to?(:type)
@@ -132,11 +157,65 @@ module RuboCop
             node.each_ancestor(:def).any? { |definition| definition.method?(:down) }
         end
 
-        def message_for(column, silent)
+        # A table nothing claims has not been reached by this canon yet; see the law's limit.
+        def owned?(table)
+          !table.nil? && owned_tables.include?(table)
+        end
+
+        def owned_tables
+          @owned_tables ||= record_files.each_with_object(Set.new) do |path, tables|
+            claimed = table_claimed_by(path)
+            tables << claimed unless claimed.nil?
+          end
+        end
+
+        def table_claimed_by(path)
+          text = ::Shipshape::SourceText.read(path)
+          explicit = text[TABLE_NAME_ASSIGNMENT, 1]
+          return explicit if explicit
+
+          name, superclass = text.match(CLASS_DECLARATION)&.captures
+          return nil if name.nil? || !record_base_classes.include?(superclass)
+
+          default_table_name(name)
+        end
+
+        # Rails' own rule, crude on purpose like `Measures::Naming`: an irregular plural guesses wrong.
+        def default_table_name(class_name)
+          simple = class_name.split("::").last
+
+          ::Shipshape::Measures::Naming.plural(::Shipshape::Measures::Naming.snake(simple))
+        end
+
+        def record_files
+          owner_kinds.flat_map { |kind| settings.kinds.fetch(kind, []) }
+                     .flat_map { |glob| Dir.glob(File.join(base_dir, glob)) }
+                     .uniq
+        end
+
+        def record_base_classes
+          @record_base_classes ||= owner_kinds.flat_map { |kind| settings.base_classes.fetch(kind, []) }
+        end
+
+        def owner_kinds
+          cop_config.fetch("Kinds", %w[record])
+        end
+
+        def settings
+          @settings ||= ::Shipshape::Settings.layout(config)
+        end
+
+        # From the configuration that loaded this cop, never `Dir.pwd`: resolving from the
+        # working directory silently matches nothing when RuboCop runs in a subdirectory.
+        def base_dir
+          config.base_dir_for_path_parameters
+        end
+
+        def message_for(table, column, silent)
           said = silent ? "says nothing about `null:`, which means nullable" : "is nullable"
 
           explain(
-            "`#{column}` #{said}, so every row that holds no value holds the same " \
+            "`#{table}.#{column}` #{said}, so every row that holds no value holds the same " \
             "unreadable one.",
             because: "A null is not \"off\", not \"inherit\", not \"not applicable\", not " \
                      "\"we lost it\" — it is all of them at once, and no reader can tell " \
