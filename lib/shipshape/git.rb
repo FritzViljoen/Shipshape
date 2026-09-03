@@ -45,6 +45,10 @@ module Shipshape
       false
     end
 
+    def name_status_log(ref: "HEAD") # newest first; -M reports a move as one rename line
+      run("log", typed(ref, String), "--name-status", "-M", "--pretty=format:COMMIT")
+    end
+
     private
 
     attr_reader :root
