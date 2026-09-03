@@ -402,8 +402,9 @@ Shipshape/NoTypeInterrogation:
 
 Shipshape/NoAmbientReads:
   Description: >-
-    An operation reads what it was given. The clock, the zone, a global, a thread local
-    and the environment are dependencies that do not appear in the signature.
+    An operation reads what it was given. The clock, the zone, a global, a thread local,
+    the environment, and a moment parsed or cast with no zone named, are dependencies that
+    do not appear in the signature.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:

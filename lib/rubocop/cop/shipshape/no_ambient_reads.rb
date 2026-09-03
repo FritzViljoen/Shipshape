@@ -5,8 +5,8 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds the entering half of `nothing-travels-off-the-call-path`, and the ambient-zone
-      # half of `a-time-names-its-zone`.
+      # Holds the entering half of `nothing-travels-off-the-call-path`, and the ambient-zone,
+      # naive-parse and naive-cast halves of `a-time-names-its-zone`.
       class NoAmbientReads < Base
         include ReadsKinds
 
@@ -18,6 +18,15 @@ module RuboCop
           "DateTime" => %i[now current],
           "Time.zone" => %i[now today],
         }.freeze
+
+        # `Date.parse` and `DateTime.new` are absent — each already names its own zone.
+        NAIVE_PARSERS = {
+          "Time" => %i[parse strptime iso8601],
+          "DateTime" => %i[parse strptime iso8601],
+        }.freeze
+
+        # These keep the instant they are given; `cast` reports them for a different fact.
+        NAIVE_CASTS = %i[to_time to_datetime].freeze
 
         AMBIENT_CONSTANTS = %w[ENV Thread Current RequestStore].freeze
 
@@ -47,7 +56,8 @@ module RuboCop
         def on_send(node)
           return unless one_of?(governed_kinds)
 
-          reason = clock(node) || ambient(node) || zone(node)
+          reason = clock(node) || naive_new(node) || naive_parse(node) || naive_cast(node) ||
+                   ambient(node) || zone(node)
           return unless reason
 
           add_offense(node, message: reason)
@@ -66,8 +76,12 @@ module RuboCop
           receiver = node.receiver&.source
           return unless CLOCKS.fetch(receiver, []).include?(node.method_name)
 
+          clock_message(node.source)
+        end
+
+        def clock_message(source)
           explain(
-            "`#{node.source}` reads the clock, and nothing at the call site chose it.",
+            "`#{source}` reads the clock, and nothing at the call site chose it.",
             because: "The current time is a dependency that is not on the call path: the " \
                      "caller cannot see it, a test cannot set it without reaching around " \
                      "the object, and the value differs on every run. The caller knows " \
@@ -76,6 +90,68 @@ module RuboCop
                      "chosen by nobody.",
             instead: MOMENT,
           )
+        end
+
+        # Zero args is `Time.now` restated; with date parts and no offset it is a naive parse.
+        def naive_new(node)
+          return unless node.receiver&.source == "Time" && node.method_name == :new
+
+          return clock_message(node.source) if node.arguments.empty?
+          return if offset_given?(node)
+
+          naive_parse_message(node.source)
+        end
+
+        def offset_given?(node)
+          node.arguments.length > 6 || zone_named?(node)
+        end
+
+        def zone_named?(node)
+          node.arguments.any? do |argument|
+            argument.hash_type? && argument.pairs.any? { |pair| pair.key.sym_type? && pair.key.value == :in }
+          end
+        end
+
+        # `request_handling`/`entry_point` are ungoverned; a request parse is NoInlineParamParse's.
+        def naive_parse(node)
+          receiver = node.receiver&.source
+          return unless NAIVE_PARSERS.fetch(receiver, []).include?(node.method_name)
+
+          naive_parse_message(node.source)
+        end
+
+        def naive_parse_message(source)
+          explain(
+            "`#{source}` parses a moment against no stated zone.",
+            because: "The string names no offset, so the process supplies one — and the " \
+                     "same string lands on a different instant on a differently " \
+                     "configured machine. A moment is parsed once, at the seam, against " \
+                     "a zone the request stated, and travels from there as a value.",
+            instead: MOMENT,
+          )
+        end
+
+        # `Time.zone.at` does not match: its receiver is `Time.zone`, not the `Time` constant.
+        def naive_cast(node)
+          return unless bare_cast?(node) || epoch_at?(node)
+
+          explain(
+            "`#{node.source}` casts to a bare moment with no zone attached.",
+            because: "The instant it names is unchanged — the same epoch, read back in " \
+                     "any process zone, is the same moment. What changes is the offset " \
+                     "now stamped on the value: whatever the process had, not whichever " \
+                     "zone the original carried. A caller reading the hour or the day " \
+                     "off the result reads the wrong wall clock for anyone elsewhere.",
+            instead: MOMENT,
+          )
+        end
+
+        def bare_cast?(node)
+          node.receiver && NAIVE_CASTS.include?(node.method_name) && node.arguments.empty?
+        end
+
+        def epoch_at?(node)
+          node.receiver&.source == "Time" && node.method_name == :at && !zone_named?(node)
         end
 
         def ambient(node)

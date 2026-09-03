@@ -4,7 +4,8 @@ require "test_helper"
 
 # Watched to fail: emptying `CLOCKS` reddens the clock tests; emptying `AMBIENT_CONSTANTS` reddens
 # the environment and thread-local tests; making `on_gvar` return early reddens the global test;
-# emptying `ZONE_READS` reddens the zone test.
+# emptying `ZONE_READS` reddens the zone test; emptying `NAIVE_PARSERS` reddens the naive-parse
+# tests; emptying `NAIVE_CASTS` reddens the cast tests.
 class NoAmbientReadsTest < Minitest::Test
   include CopRunner
 
@@ -108,6 +109,168 @@ class NoAmbientReadsTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "reads the ambient zone"
+  end
+
+  def test_a_naive_parse_is_a_wrong_instant
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.parse(@raw)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "parses a moment against no stated zone"
+    assert_includes found.first.message, "lands on a different instant"
+  end
+
+  def test_every_naive_parser_in_the_family_is_caught
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          [Time.parse(@raw), Time.strptime(@raw, "%F"), Time.iso8601(@raw),
+           DateTime.parse(@raw), DateTime.strptime(@raw, "%F"), DateTime.iso8601(@raw)]
+        end
+      end
+    RUBY
+
+    assert_equal 6, found.length
+  end
+
+  def test_date_parse_is_not_governed
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Date.parse(@raw)
+        end
+      end
+    RUBY
+  end
+
+  def test_time_zone_parse_is_the_sanctioned_form
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.zone.parse(@raw)
+        end
+      end
+    RUBY
+  end
+
+  def test_time_new_with_no_arguments_is_the_clock
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.new
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "reads the clock"
+  end
+
+  def test_time_new_with_naive_arguments_is_a_wrong_instant
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.new(2026, 1, 1, 9, 0, 0)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "parses a moment against no stated zone"
+  end
+
+  def test_time_new_naming_its_own_offset_is_not_naive
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.new(2026, 1, 1, 9, 0, 0, in: "+09:00")
+        end
+      end
+    RUBY
+  end
+
+  def test_date_time_new_is_not_governed
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          DateTime.new(2026, 1, 1)
+        end
+      end
+    RUBY
+  end
+
+  def test_a_bare_cast_preserves_the_instant_but_loses_the_zone
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          @moment.to_time
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "casts to a bare moment with no zone attached"
+    assert_includes found.first.message, "instant it names is unchanged"
+  end
+
+  def test_to_datetime_is_the_same_cast
+    assert_equal 1, check(<<~RUBY).length
+      class ExpireHolds
+        def call
+          @moment.to_datetime
+        end
+      end
+    RUBY
+  end
+
+  def test_time_at_is_a_cast_not_a_wrong_instant
+    found = check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.at(@epoch)
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "casts to a bare moment with no zone attached"
+  end
+
+  def test_time_zone_at_is_the_sanctioned_form
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.zone.at(@epoch)
+        end
+      end
+    RUBY
+  end
+
+  def test_time_at_naming_its_own_offset_is_not_naive
+    assert_empty check(<<~RUBY)
+      class ExpireHolds
+        def call
+          Time.at(@epoch, in: "+09:00")
+        end
+      end
+    RUBY
+  end
+
+  # The edge is where parsing belongs, and `NoInlineParamParse` already covers it there — this
+  # cop is not scoped to `request_handling`, so the two never report the same call twice.
+  def test_request_handling_may_parse_the_zone_it_asked_for
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/controllers/holds_controller.rb", other_cops: LAYOUT)
+      class HoldsController
+        def show
+          Time.parse(params[:at])
+        end
+      end
+    RUBY
   end
 
   def test_a_moment_handed_in_is_the_shape
