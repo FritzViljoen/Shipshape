@@ -48,6 +48,12 @@ module Shipshape
       resolved && resolved.last
     end
 
+    # nil for a name resolved only through `BaseClasses`, which has a kind and no file.
+    def relative_file_for_constant(name)
+      found = file_for_constant(name)
+      found && relative_to_base(found)
+    end
+
     private
 
     attr_reader :settings, :base_dir, :constant_cache, :root_cache, :superclass_cache

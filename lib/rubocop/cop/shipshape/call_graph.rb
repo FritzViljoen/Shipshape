@@ -32,6 +32,20 @@ module RuboCop
           end
         RUBY
 
+        RECORD_COUPLING_ENV = "SHIPSHAPE_RECORD_COUPLING"
+        COUPLING_MESSAGE = "(internal, read by Shipshape::Coupling - not a real offence) " \
+                           "a call between two governed kinds -> "
+        GOVERNED_MESSAGE = "(internal, read by Shipshape::Coupling - not a real offence) " \
+                           "this file is a governed caller."
+
+        # Arriving under governance is a change in the map, never a call - `Coupling` reads this.
+        def on_new_investigation
+          return unless ENV[RECORD_COUPLING_ENV]
+          return if processed_source.blank? || kind_of_inspected_file.nil?
+
+          add_offense(marker_range, message: GOVERNED_MESSAGE, severity: :info)
+        end
+
         def on_send(node)
           receiver = node.receiver
           return unless receiver && receiver.const_type?
@@ -44,6 +58,9 @@ module RuboCop
 
           callee_kind = kinds.for_constant(name)
           return if callee_kind.nil?
+
+          record_coupling(node, name)
+
           return if allowed?(caller_kind, callee_kind)
 
           add_offense(receiver, message: message_for(caller_kind, callee_kind))
@@ -52,6 +69,18 @@ module RuboCop
         alias on_csend on_send
 
         private
+
+        def record_coupling(node, name)
+          return unless ENV[RECORD_COUPLING_ENV]
+
+          add_offense(node, message: "#{COUPLING_MESSAGE}#{kinds.relative_file_for_constant(name)}", severity: :info)
+        end
+
+        # Zero-length, at EOF: `add_offense` dedupes by range, and a first-byte `C.call` used to claim (0, 1) and swallow the real offence.
+        def marker_range
+          length = processed_source.buffer.source.length
+          Parser::Source::Range.new(processed_source.buffer, length, length)
+        end
 
         # Refused before the matrix is consulted, so no configuration can permit one.
         def allowed?(caller_kind, callee_kind)

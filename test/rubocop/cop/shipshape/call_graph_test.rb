@@ -464,7 +464,134 @@ class CallGraphTest < Minitest::Test
       "The exemption is the *own* superclass, not any base class."
   end
 
+  # The coupling record travels as an offence, exactly as `BaseTestClassGrowth`'s span does -
+  # read back by `Coupling` from RuboCop's own JSON, never from state held on this class.
+  # `record_coupling` is a no-op unless the reader asks for it, so a plain `rubocop` run -
+  # this test's default, `RECORD_COUPLING_ENV` unset - emits none of it.
+  def test_a_coupling_record_is_not_emitted_unless_asked_for
+    found = check(<<~RUBY, "app/controllers/people_controller.rb")
+      class PeopleController
+        def create
+          CreatePerson.call(name: "x")
+        end
+      end
+    RUBY
+
+    assert_empty found, "neither the edge record nor the governed-caller marker fires unasked"
+  end
+
+  # `Coupling` tells a tree arriving under governance apart from a call arriving on it by
+  # reading this back: every governed caller gets one, edges or not.
+  def test_a_governed_caller_is_marked_even_with_no_outgoing_call
+    found = with_coupling_recording do
+      check(<<~RUBY, "app/records/person_record.rb")
+        class PersonRecord
+        end
+      RUBY
+    end
+
+    assert_equal 1, found.length
+    assert_equal COP::GOVERNED_MESSAGE, found.first.message
+  end
+
+  def test_an_ungoverned_file_is_not_marked
+    found = with_coupling_recording do
+      check(<<~RUBY, "app/lib/unclaimed.rb")
+        class Unclaimed
+        end
+      RUBY
+    end
+
+    assert_empty found
+  end
+
+  # An allowed edge produces no violation at all, yet it is still coupling - the graph, not
+  # the offences found on it.
+  def test_an_allowed_edge_still_records_coupling
+    found = with_coupling_recording do
+      check(<<~RUBY, "app/controllers/people_controller.rb")
+        class PeopleController
+          def create
+            CreatePerson.call(name: "x")
+          end
+        end
+      RUBY
+    end
+
+    assert_equal 1, couplings(found).length
+    assert_empty real_offences(found)
+  end
+
+  # A disallowed edge is both: a violation, and one more edge in the graph the violation was
+  # found on. Neither reader steps on the other's count.
+  def test_a_disallowed_edge_records_coupling_alongside_its_own_violation
+    found = with_coupling_recording do
+      check(<<~RUBY, "app/controllers/people_controller.rb")
+        class PeopleController
+          def index
+            PersonRecord.all
+          end
+        end
+      RUBY
+    end
+
+    assert_equal 1, couplings(found).length
+    assert_equal 1, real_offences(found).length
+  end
+
+  # `Coupling` tells an edge whose endpoint changed which tree governs it apart from one that
+  # did not by comparing files, so the record has to carry the callee's file, not just the fact
+  # that some governed kind was called.
+  def test_a_coupling_record_names_the_callee_s_file
+    found = with_coupling_recording do
+      check(<<~RUBY, "app/controllers/people_controller.rb")
+        class PeopleController
+          def create
+            CreatePerson.call(name: "x")
+          end
+        end
+      RUBY
+    end
+
+    assert_equal "#{COP::COUPLING_MESSAGE}app/commands/create_person.rb", couplings(found).first.message
+  end
+
+  # A name resolved only through `BaseClasses` has a kind and no file - governance can never
+  # arrive at it or leave it, so there is nothing to name after the arrow.
+  def test_a_coupling_record_to_a_base_class_names_no_file
+    found = with_coupling_recording do
+      offences(<<~RUBY, cop_class: COP, cop_config: WITH_BASES, path: "app/controllers/things_controller.rb", files: TREE)
+        class ThingsController < ApplicationController
+          def create
+            ActiveRecord::Base.transaction { 1 }
+          end
+        end
+      RUBY
+    end
+
+    assert_equal COP::COUPLING_MESSAGE, couplings(found).first.message
+  end
+
+  # `on_new_investigation` claims a range before `on_send` ever runs, and
+  # `RuboCop::Cop::Base#add_offense` silently drops a second offence that lands on a range
+  # already claimed - not a merge, nothing. A one-character `BaseClasses` name at the very top
+  # of a file makes the real violation's receiver exactly the file's first byte, which is what
+  # `marker_range` used to be. Watched to fail: reverting `marker_range` to `(0, 1)` reddens
+  # this by dropping the real offence to zero.
+  def test_a_marker_at_the_file_s_first_byte_would_swallow_a_real_violation_there
+    found = with_coupling_recording do
+      offences("C.call\n", cop_class: COP, cop_config: SHAPES_CALL_A_BASE_CLASS, path: "app/shapes/x.rb", files: TREE)
+    end
+
+    assert_equal 1, found.select { |offence| offence.message == COP::GOVERNED_MESSAGE }.length
+    assert_equal 1, couplings(found).length
+    assert_equal 1, real_offences(found).length, "the receiver's own range is the file's first byte - " \
+                                                 "the marker must not claim it, or the real violation vanishes"
+  end
+
   private
+
+  SHAPES_CALL_A_BASE_CLASS = CONFIG.merge("BaseClasses" => { "command" => ["C"] }).freeze
 
   WITH_BASES = CONFIG.merge(
     "BaseClasses" => {
@@ -476,5 +603,25 @@ class CallGraphTest < Minitest::Test
 
   def check(source, path)
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: TREE)
+  end
+
+  # `RECORD_COUPLING_ENV` is `Coupling`'s own signal to its subprocess - set and torn down
+  # around one call here, never left on for a test that runs after this one.
+  def with_coupling_recording
+    was = ENV[COP::RECORD_COUPLING_ENV]
+    ENV[COP::RECORD_COUPLING_ENV] = "1"
+    yield
+  ensure
+    ENV[COP::RECORD_COUPLING_ENV] = was
+  end
+
+  def couplings(found)
+    found.select { |offence| offence.message.start_with?(COP::COUPLING_MESSAGE) }
+  end
+
+  # Neither internal marker is a real offence: the edge record, and the once-per-file "this
+  # caller is governed" marker `on_new_investigation` adds alongside it.
+  def real_offences(found)
+    found.reject { |offence| offence.message.start_with?(COP::COUPLING_MESSAGE) || offence.message == COP::GOVERNED_MESSAGE }
   end
 end

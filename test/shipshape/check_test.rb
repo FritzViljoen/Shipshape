@@ -99,6 +99,103 @@ class CheckTest < Minitest::Test
     end
   end
 
+  # The baseline already has CreatePerson calling ListPeople; the branch inherits it untouched.
+  def test_coupling_is_flat_when_nothing_changed
+    in_repo do |root|
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal report[:coupling][:was], report[:coupling][:now]
+    end
+  end
+
+  # A brand new file is a new floor, not a rise - `CreatePerson` already exists.
+  def test_coupling_rises_with_a_new_call
+    in_repo do |root|
+      write(root, "app/commands/create_person.rb",
+            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_operator report[:coupling][:now], :>, report[:coupling][:was]
+    end
+  end
+
+  # It reads `0 -> 0`: identity is a path, so the old caller leaves governance and the new
+  # path arrives - two edges cancelling, the guard's own stated limit, not one holding still.
+  def test_a_pure_file_move_leaves_coupling_flat
+    in_repo do |root|
+      moved = File.join(root, "app/commands/people/create_person.rb")
+      FileUtils.mkdir_p(File.dirname(moved))
+      FileUtils.mv(File.join(root, "app/commands/create_person.rb"), moved)
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "move create_person.rb, touch no call")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal report[:coupling][:was], report[:coupling][:now]
+      assert_equal 1, report[:coupling][:arrived_edges]
+      assert_equal 1, report[:coupling][:arrived_files]
+      assert_equal 1, report[:coupling][:left_edges]
+      assert_equal 1, report[:coupling][:left_files]
+    end
+  end
+
+  # A legacy caller brought under governance reports as an arrival, never a rise.
+  def test_moving_a_file_into_governance_does_not_rise
+    in_repo do |root|
+      write(root, "app/legacy/old_query.rb",
+            "class OldQuery < Command\n  def call\n    CreatePerson.call(name: \"x\")\n  end\nend\n")
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "add an ungoverned legacy caller")
+
+      moved = File.join(root, "app/commands/old_query.rb")
+      FileUtils.mv(File.join(root, "app/legacy/old_query.rb"), moved)
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "move old_query.rb under governance, touch no call")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal report[:coupling][:was], report[:coupling][:now]
+      assert_equal 1, report[:coupling][:arrived_edges]
+      assert_equal 1, report[:coupling][:arrived_files]
+      assert_equal 0, report[:coupling][:left_edges]
+    end
+  end
+
+  # The reviewer's case B: a cut alongside an ungoverned file arriving with real calls.
+  # The old intersection reported `{was: 2, now: 1}` and said nothing about the 3 that arrived.
+  def test_a_cut_and_an_arriving_file_are_never_reported_as_one_number
+    custom_repo({
+      "app/commands/create_person.rb" =>
+        "class CreatePerson < Command\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n",
+      "app/queries/list_people.rb" => OTHER_QUERY,
+      "app/queries/other.rb" => OTHER_QUERY,
+      "app/legacy/big.rb" =>
+        "class Big\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPeople.call\n  end\nend\n",
+    }) do |root|
+      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n")
+      FileUtils.mv(File.join(root, "app/legacy/big.rb"), File.join(root, "app/commands/big.rb"))
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal 2, report[:coupling][:was]
+      assert_equal 1, report[:coupling][:now], "the real cut is not hidden by the file that arrived"
+      assert_equal 3, report[:coupling][:arrived_edges]
+      assert_equal 1, report[:coupling][:arrived_files]
+      assert_equal 0, report[:coupling][:left_edges]
+    end
+  end
+
+  def test_a_cut_call_makes_coupling_fall
+    in_repo do |root|
+      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n  end\nend\n")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_operator report[:coupling][:now], :<, report[:coupling][:was]
+    end
+  end
+
   def test_it_leaves_the_working_copy_alone
     in_repo do |root|
       write(root, "app/queries/list_people.rb", DIRTY_QUERY)
@@ -394,6 +491,26 @@ class CheckTest < Minitest::Test
       git!(root, "checkout", "--quiet", "-b", "branch")
 
       yield(root)
+    end
+  end
+
+  # A base commit made of exactly the files given, not `in_repo`'s fixed three.
+  def custom_repo(files, config: nil)
+    with_gem_on_the_load_path do
+      Dir.mktmpdir("shipshape-repo") do |root|
+        git!(root, "init", "--quiet", "-b", "trunk")
+        git!(root, "config", "user.email", "test@example.com")
+        git!(root, "config", "user.name", "test")
+
+        write(root, ".rubocop.yml", format(config || RUBOCOP_YML, gem: gem_root))
+        files.each { |path, contents| write(root, path, contents) }
+
+        git!(root, "add", "-A")
+        git!(root, "commit", "--quiet", "-m", "baseline")
+        git!(root, "checkout", "--quiet", "-b", "branch")
+
+        yield(root)
+      end
     end
   end
 
