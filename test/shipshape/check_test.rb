@@ -418,9 +418,9 @@ class CheckTest < Minitest::Test
   end
 
   # A legacy door is correct code and raises nothing, so the offence counts cannot see one
-  # filling up. What ratchets is the population: a file arriving there is a refactor moving code
-  # into a kind already on its way out, which is how a migration stops half way.
-  def test_a_file_arriving_in_a_retiring_kind_is_refused
+  # filling up. The population is reported here, but never fails the build on its own - see
+  # `Check`'s header for why a rise here is a curve, not a ratchet.
+  def test_a_file_arriving_in_a_retiring_kind_is_reported
     in_repo(config: RETIRING_YML) do |root|
       FileUtils.mkdir_p(File.join(root, "app/legacy"))
       write(root, "app/legacy/find_person_legacy.rb",
