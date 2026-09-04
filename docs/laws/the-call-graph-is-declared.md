@@ -279,3 +279,20 @@ reach becomes the place unrelated things are put.
   `Shipshape/CallGraph` itself — a receiver resolved through a local, a method call, `send`,
   or any dispatch this cop does not resolve syntactically forms no edge here either, coupled
   or not.
+- **Guard:** `Shipshape::ConfigAt`, read by `Coupling#config_at` and by `Check#population` for
+  the base tree. The base tree in a `check` comparison is by definition older than the process
+  reading it, so its config can legitimately name a cop this version renamed or removed —
+  RuboCop's own loader raises `RuboCop::ValidationError` on that unconditionally. `ConfigAt`
+  asks it to warn instead, through `RuboCop::ConfigLoader.ignore_unrecognized_cops` (the same
+  switch `--ignore-unrecognized-cops` sets for the CLI, so `Offences`, `Guards` and
+  `BaseTestClassLines` use it too for their own subprocess reads of the base tree), and turns
+  the warning back into the cop names it named. `check` reports every one it had to skip.
+  Nothing else RuboCop's loader can raise — malformed YAML, an unresolved `inherit_from`, any
+  other validation — goes through this switch, so those still fail the run exactly as before.
+- **Guard's limit:** the base tree is read with the current version's registry, so a cop the
+  base names and this version lacks is skipped, and the base's governed set is measured
+  without it. A skip is not silent — `check` names every cop it skipped — but it is also not a
+  measurement: a kind that cop alone would have scoped, or an offence count only it produced,
+  reads as absent rather than as unknown, for exactly as long as the base tree still needs
+  that name. The window closes on its own once a repository's own merge-base moves past the
+  rename, and nothing here shortens it.

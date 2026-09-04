@@ -173,6 +173,47 @@ class CouplingTest < Minitest::Test
     end
   end
 
+  # Mirrors `test/canaries/.rubocop.yml`: walked by `governed_under`, excluded from ordinary scan.
+  UNKNOWN_COP_IN_NESTED_CONFIG_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+      Exclude:
+        - 'sandbox/**/*'
+
+    Shipshape/CallGraph:
+      Kinds:
+        command: ['app/commands/**/*.rb']
+  YAML
+
+  # Watched to fail: reddened with a raw `RuboCop::ValidationError` before `ConfigAt`.
+  def test_a_nested_config_naming_an_unknown_cop_is_tolerated_and_named
+    in_repo(UNKNOWN_COP_IN_NESTED_CONFIG_YML) do |root|
+      write(root, "sandbox/.rubocop.yml", "Shipshape/RetiredCopName:\n  Enabled: true\n")
+      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
+
+      found = Shipshape::Coupling.new(directory: root, config: nil, tolerate_unknown_cops: true).call
+
+      assert_includes found.skipped_cops, "Shipshape/RetiredCopName"
+      assert_includes found.governed, "sandbox/app/commands/create_person.rb"
+    end
+  end
+
+  # Without tolerance, a real mistake in the CURRENT tree's config must not be laundered away.
+  def test_a_nested_config_naming_an_unknown_cop_still_raises_without_tolerance
+    in_repo(UNKNOWN_COP_IN_NESTED_CONFIG_YML) do |root|
+      write(root, "sandbox/.rubocop.yml", "Shipshape/RetiredCopName:\n  Enabled: true\n")
+      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
+
+      assert_raises(RuboCop::ValidationError) do
+        Shipshape::Coupling.new(directory: root, config: nil).call
+      end
+    end
+  end
+
   # A cache bucket of its own: a file `BaseTestClassLines` already cached, marker-free, must
   # still show its coupling here - the shared-bucket bug this reddens if reverted.
   def test_a_file_the_line_ratchet_already_cached_still_reports_its_coupling
