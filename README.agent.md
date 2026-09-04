@@ -13,8 +13,9 @@ bundle exec shipshape canaries   # every cop caught a planted violation
 bundle exec shipshape edges      # edges nothing in the suite names
 ```
 
-Coverage below ~90% means most of the repo was never opened. A clean report over an undeclared
-layout is meaningless. Check coverage before believing any number.
+Six public Rails codebases measured 12-44% with the default layout, one engine monorepo 0%.
+A clean report over an undeclared layout is meaningless. Check coverage before believing any
+number.
 
 ## Then
 

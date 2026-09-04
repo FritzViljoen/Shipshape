@@ -37,16 +37,16 @@ UTC rather than asking the process for one.
   at lint time; `typed`'s own `matches?`, which holds the value half at runtime; and
   `Shipshape/NoAmbientReads`, which forbids the ambient read, the naive parse and the naive
   cast that would go around all four.
-- **Guard's boundary:** a parse inside `request_handling` or `entry_point` is
+- **Guard's limit:** a parse inside `request_handling` or `entry_point` is
   `input-is-parsed-at-the-seam`'s business, held by `Shipshape/NoInlineParamParse`, not this
-  one — `NoAmbientReads` is not scoped to those kinds, so the two never report the same call.
-  A cast inside an operation has no such counterpart to defer to: there is no seam left to
-  reach once code is inside `call`, so the fix is never a different cast — it is the value
-  arriving already typed. The seam's own answer is `time_param!(key, time_zone:)` and
-  `date_param!(key, time_zone:)`, which is what `NoAmbientReads` names as the fix for both
-  the naive parse and the naive cast.
+  one — `NoAmbientReads` is not scoped to those kinds, so the two never report the same call,
+  and a passing run of one says nothing about the other. A cast inside an operation has no
+  such counterpart to defer to: there is no seam left to reach once code is inside `call`, so
+  the fix is never a different cast — it is the value arriving already typed. The seam's own
+  answer is `time_param!(key, time_zone:)` and `date_param!(key, time_zone:)`, which is what
+  `NoAmbientReads` names as the fix for both the naive parse and the naive cast.
 
-- **Guard's limit:** nothing stops an ambient zone being read outside the trees
+  Nothing stops an ambient zone being read outside the trees
   `NoAmbientReads` covers. Within its trees the read list is closed. Neither guard can tell
   whether a `Date` should have been a moment. The naive-parse and naive-cast lists are closed
   too, and check the call site by shape, not by value: a 7th positional argument to

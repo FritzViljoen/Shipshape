@@ -18,12 +18,14 @@ one without the other just moves the pile.
 
 - **Principle:** `model-concerns-not-groups` governs. `tell-dont-ask` also produces it — a
   record answering questions about itself is the record deciding on the caller's behalf.
-- **Guard:** `Shipshape/PersistenceHoldsNoBehaviour`, over the record tree. Fails any public
-  method outside a declared allowlist: association and attribute declarations, and scopes
-  whose body only filters on this table's own columns. **`default_scope` fails on neither
-  test**: it is implicit behaviour rather than a declared rule — global state entering every
-  read, and a distant write leaving with every `create`. It is caught here because a record
-  is where it is written, but the law it offends is
+- **Guard:** `Shipshape/PersistenceHoldsNoBehaviour`, over the record tree. Fails any
+  public `def` or `def self.`, plus a bare `default_scope`, `delegate`/`delegate_missing_to`,
+  or a `scope` whose block reaches another class. There is no declared allowlist: `belongs_to`,
+  `attribute`, and the rest of the association and attribute macros are never named by any of
+  these checks, so they pass by not matching, not because something admits them. **`default_scope`
+  fails on neither test**: it is implicit behaviour rather than a declared rule — global state
+  entering every read, and a distant write leaving with every `create`. It is caught here
+  because a record is where it is written, but the law it offends is
   [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md), in both
   directions at once. **`delegate` and `delegate_missing_to` fail too**: they write the methods
   `def` would have written, so they were the one way left to put behaviour on a record.

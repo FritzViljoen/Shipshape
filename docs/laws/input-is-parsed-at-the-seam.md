@@ -29,8 +29,10 @@ only one of them is absence.
   implementation is private is a law nobody can keep.
 - **Guard:** the generated `typed_params.rb` — architecture. The parsers raise on input
   they cannot read, so a seam has no way to coerce silently.
-- **Guard:** `Shipshape/NoInlineParamParse` flags parse, strptime, iso8601 on any receiver,
-  the raising conversions, and the casts, whenever the value came from request parameters.
+- **Guard:** `Shipshape/NoInlineParamParse` flags `parse`, `strptime`, `iso8601` and their
+  siblings on a closed list of receivers — `Date`, `Time`, `DateTime`, `BigDecimal`,
+  `ActiveSupport::TimeZone` — and the bare raising conversions (`Integer(...)`, `Float(...)`),
+  whenever the value came from request parameters.
   `Shipshape/NoUnparsedLookup` flags a request value reaching a finder or a writer — as an
   argument, in a hash, or nested any depth down.
 

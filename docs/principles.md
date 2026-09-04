@@ -59,7 +59,8 @@ nominated the non-local variable for abolition as a major contributor to program
 to understand (SIGPLAN Notices, 1973). Meyer's command-query separation is the same boundary
 again (Meyer 1988).
 
-*Produces* `the-call-graph-is-declared`, `nothing-travels-off-the-call-path`.
+*Produces* `a-question-never-writes`, `io-is-its-own-kind`, `deferral-is-one-deed`,
+`the-call-graph-is-declared`, `nothing-travels-off-the-call-path`.
 
 ### `nothing-crosses-unasserted` — What crosses a boundary is stated there, and checked there
 
@@ -230,7 +231,8 @@ form is the Law of Demeter, whose whole content is that reaching through an obje
 its behalf couples you to its internals (Lieberherr and Holland 1989). It is also the diagnosis
 behind *feature envy* and *anemic domain model* (Fowler).
 
-*Produces* `no-lifecycle-callbacks`, `no-decisions-in-request-handling`.
+*Produces* `a-deed-runs-twice`, `no-lifecycle-callbacks`,
+`no-decisions-in-request-handling`.
 
 ### `one-way-to-say-each-thing` — One operation, one class, one way to call it
 
@@ -272,7 +274,9 @@ has nowhere to live but its own class, and a thousand-line file cannot form. **U
 telemetry measures codebases with no such constraint, so it can neither confirm nor refute it.
 What would falsify it: near-identical bodies across sibling operation classes.
 
-*Produces* `one-operation-one-class`, `no-type-interrogation`.
+*Produces* `one-operation-one-class`, `no-test-factories`,
+`a-comment-is-a-second-copy`, `no-type-interrogation`,
+`one-mechanism-guards-everything`, `a-permission-is-the-class-name`.
 
 ### `nothing-is-hidden` — Every rule is written where a reader greps for it
 
@@ -298,8 +302,11 @@ good design. The distinction: hiding an implementation is Parnas's point and is 
 *where the rule is written* defeats the reader looking for it. A deep module whose interface is
 greppable satisfies both. A macro that generates the interface satisfies neither.
 
-*Produces* `code-is-written-not-generated`, `no-lifecycle-callbacks`, and the delivered
-rule files.
+*Produces* `personal-data-is-declared-and-erasable`, `a-schedule-is-a-row`,
+`an-operation-is-a-leaf`, `code-is-written-not-generated`,
+`enforcement-messages-are-documentation`, `a-test-inherits-what-it-needs`,
+`co-change-is-a-fact-not-a-verdict`, `a-method-carries-its-own-weight`, and the
+delivered rule files.
 
 ### `make-the-wrong-thing-impossible` — Encode the rule; do not write it down and hope
 
@@ -352,7 +359,8 @@ prescription. The compensation half — where one transaction is impossible, eve
 idempotent and every intermediate state legal — is the saga, from Garcia-Molina and Salem
 (SIGMOD 1987).
 
-*Produces* `a-guard-states-its-limit`, `no-silent-coercion`.
+*Produces* `an-operation-answers-a-result`, `every-operation-reports-what-it-did`,
+`no-silent-coercion`, `a-guard-states-its-limit`.
 
 ---
 
