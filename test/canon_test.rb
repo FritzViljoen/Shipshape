@@ -24,7 +24,9 @@ class CanonTest < Minitest::Test
   # Being on this list is what makes a non-cop guard legitimate; nothing else grants it.
   SUITE_GUARDS = ["CanonTest", "CanariesTest", "generated_base_classes_test.rb",
                   "SanctionedWayComesFirstTest", "MarkdownLinksResolveTest",
-                  "RuleCitationsResolveTest", "ConfigKindsAreSoundTest"].freeze
+                  "RuleCitationsResolveTest", "ConfigKindsAreSoundTest",
+                  "GuardNamesRealCodeTest", "CountClaimsMatchCodeTest",
+                  "PermittedPredicatesAgreeTest"].freeze
 
 
   # Being on this list is what grants the exemption; an app-facing cop comes off it.
