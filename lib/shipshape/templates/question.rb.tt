@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# One read, answering shapes: finding nothing is an answer. A question never calls a question.
+# Owns its entire read, answering shapes: finding nothing is an answer. A question never calls a question.
 class Question
   include TypedArguments
 

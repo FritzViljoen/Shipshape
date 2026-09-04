@@ -19,4 +19,8 @@ class Result < Shape
   def success?
     error.nil?
   end
+
+  def failure?
+    !success?
+  end
 end

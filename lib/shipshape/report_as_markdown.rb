@@ -285,8 +285,9 @@ module Shipshape
           end
         end
 
-        # A WORKFLOW sequences deeds and questions. It never branches, and it spans several
-        # transactions — so every step is idempotent and every stop leaves a legal state.
+        # A WORKFLOW sequences deeds and questions. It branches only on a step's outcome —
+        # success?, failure?, or the error code, never the value — and it spans several
+        # transactions, so every step is idempotent and every stop leaves a legal state.
         #
         # It is OPTIONAL. Two calls from an action need none — they are visibly two
         # transactions. This one earns its place: it is run from a scheduler as well as a
