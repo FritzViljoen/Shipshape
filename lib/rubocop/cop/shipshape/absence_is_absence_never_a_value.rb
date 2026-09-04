@@ -9,7 +9,8 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `absence-is-absence-never-a-value`. A polymorphic reference's `_type` is unchecked.
+      # Holds `absence-is-absence-never-a-value`. `column_of` names both of a polymorphic
+      # reference's columns, so a fix cannot stop at `_id` alone.
       class AbsenceIsAbsenceNeverAValue < Base
         include Explains
 
@@ -72,8 +73,8 @@ module RuboCop
           return if reversing?(node)
           return unless declares_a_column?(node)
 
-          column = column_of(node)
-          return if column.nil? || promoted?(column)
+          columns = column_of(node).reject { |column| promoted?(column) }
+          return if columns.empty?
 
           table = table_of(node)
           return unless owned?(table)
@@ -83,7 +84,7 @@ module RuboCop
           nullable = null_option(node)
           return if nullable == false
 
-          add_offense(nullable || node, message: message_for(table, column, nullable.nil?))
+          add_offense(nullable || node, message: message_for(table, columns, nullable.nil?))
         end
 
         private
@@ -139,9 +140,18 @@ module RuboCop
         def column_of(node)
           argument = TABLE_FIRST.include?(node.method_name) ? node.arguments[1] : node.arguments.first
           name = name_of(argument)
-          return name if name.nil?
+          return [] if name.nil?
+          return [name] unless REFERENCE_METHODS.include?(node.method_name)
 
-          REFERENCE_METHODS.include?(node.method_name) ? "#{name}_id" : name
+          polymorphic?(node) ? ["#{name}_id", "#{name}_type"] : ["#{name}_id"]
+        end
+
+        def polymorphic?(node)
+          options = node.arguments.last
+          return false unless options.respond_to?(:hash_type?) && options.hash_type?
+
+          pair = options.pairs.find { |candidate| named?(candidate, :polymorphic) }
+          !pair.nil? && pair.value.true_type?
         end
 
         # A nested column has no table of its own; the enclosing block tracked it above.
@@ -265,12 +275,19 @@ module RuboCop
           config.base_dir_for_path_parameters
         end
 
-        def message_for(table, column, silent)
-          said = silent ? "says nothing about `null:`, which means nullable" : "is nullable"
+        def message_for(table, columns, silent)
+          named = columns.map { |column| "`#{table}.#{column}`" }
+          plural = named.length > 1
+          subject = plural ? "#{named[0...-1].join(', ')} and #{named.last}" : named.first
+          said = if silent
+                   plural ? "say nothing about `null:`, which means nullable" : "says nothing about `null:`, which means nullable"
+                 else
+                   plural ? "are nullable" : "is nullable"
+                 end
+          holds = plural ? "holds the same unreadable one, together" : "holds the same unreadable one"
 
           explain(
-            "`#{table}.#{column}` #{said}, so every row that holds no value holds the same " \
-            "unreadable one.",
+            "#{subject} #{said}, so every row that holds no value #{holds}.",
             because: "A null is not \"off\", not \"inherit\", not \"not applicable\", not " \
                      "\"we lost it\" — it is all of them at once, and no reader can tell " \
                      "which. Every meaning given to it is a fact nobody declared, so the " \
