@@ -5,6 +5,12 @@
 #
 # The one cop that is not scoped at an application's operations. The rest read kinds —
 # deed, question, record — and this repository has none.
+#
+# The canary Exclude below is ERB, reading `Canaries::DIRECTORY` rather than a second copy of
+# the glob - `Shipshape::Offences` (the ratchet's own file reader) skips the same tree by
+# reading that same constant. RuboCop expands a config's ERB before it acts on that config's
+# own `require:`, so `Canaries` has to already be loaded when this file is parsed - the `lint`
+# task passes `--require shipshape/canaries` on the command line for exactly that.
 require:
   - ./lib/rubocop/cop/shipshape/comment_budget
 
@@ -16,13 +22,11 @@ AllCops:
     - 'test/**/*.rb'
     - 'exe/*'
   Exclude:
-    - 'test/canaries/**/*'
+    - '<%= Shipshape::Canaries::DIRECTORY %>/**/*'
     - 'tmp/**/*'
     # CI installs gems into vendor/bundle, and `Include` reached them: 7 offences in rake's own
     # source. Locally the gems live elsewhere, so nothing here ever saw it.
     - 'vendor/**/*'
-    # CI installs gems into vendor/bundle, and `Include` reached them: 7 offences in rake's own
-    # source. Locally the gems live elsewhere, so nothing here ever saw it.
 
 Shipshape/CommentBudget:
   Enabled: true

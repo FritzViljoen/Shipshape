@@ -2,18 +2,20 @@
 
 require "json"
 require "open3"
+require "shipshape/canaries"
 require "shipshape/error"
 require "shipshape/typed_arguments"
 require "shipshape/unrecognized_cops"
 
 module Shipshape
-  # How many offences each cop found, counting only Shipshape's own. A subprocess rather than
-  # in-process, because RuboCop resolves configuration relative to where it starts and the two
-  # runs happen in two directories.
+  # How many offences each cop found, counting only Shipshape's own, skipping `test/canaries/**`
+  # as `rake lint`'s dogfood config does - a planted violation is not code. A subprocess rather
+  # than in-process, because RuboCop resolves configuration relative to where it starts.
   class Offences
     include TypedArguments
 
     DEPARTMENT = "Shipshape"
+    CANARY_PREFIX = "#{Canaries::DIRECTORY}/" # dogfood's ERB Exclude reads this same constant
 
     def initialize(directory:, config: nil, tolerate_unknown_cops: false)
       @directory = typed(directory, String)
@@ -40,12 +42,17 @@ module Shipshape
     def by_cop
       @by_cop ||= JSON.parse(json).fetch("files", []).each_with_object(Hash.new { |h, k| h[k] = [] }) do |file, grouped|
         path = file.fetch("path").sub(%r{\A\./}, "")
+        next if planted?(path)
 
         file.fetch("offenses", []).each do |offence|
           name = offence.fetch("cop_name")
           grouped[name] << { path: path } if name.start_with?("#{DEPARTMENT}/")
         end
       end
+    end
+
+    def planted?(path)
+      path == Canaries::DIRECTORY || path.start_with?(CANARY_PREFIX)
     end
 
     # Exit 1 is normal, so only the parse is checked: a crash is not "none found".

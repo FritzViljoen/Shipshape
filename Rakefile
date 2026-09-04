@@ -26,7 +26,9 @@ end
 
 desc "Hold this gem to `a-comment-is-a-second-copy`, the one cop that is not kind-scoped"
 task :lint do
-  sh "rubocop --config .rubocop-dogfood.yml"
+  # `--require` runs before `.rubocop-dogfood.yml` is parsed, so its ERB canary Exclude can
+  # read `Shipshape::Canaries::DIRECTORY` - see that file's header.
+  sh "rubocop --require shipshape/canaries --config .rubocop-dogfood.yml"
 end
 
 task default: %i[test lint]
