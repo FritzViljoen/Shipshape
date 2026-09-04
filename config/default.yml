@@ -568,7 +568,8 @@ Shipshape/NoEmptyRescue:
 Shipshape/NoSilentCoercion:
   Description: >-
     A cast that cannot fail turns rubbish into a plausible value. Flags the non-raising
-    numeric casts on a value traceable to an untrusted source in the same expression.
+    casts — numeric, plus `to_s` and `to_a` — on a value traceable to an untrusted
+    source in the same expression.
   Enabled: true
   # The correction is deliberately NOT behaviour-preserving: a silent 0 becomes a bounce,
   # which is the rule. So it arrives under `-A`, never `-a` — applying it silently to a
@@ -1079,9 +1080,10 @@ Shipshape/NoTestMixins:
 
 Shipshape/BaseTestClassGrowth:
   Description: >-
-    A base test class every other test inherits from is identified by where it lives, not by
-    what it is named - every file under a test tree that is not itself a leaf test. Growth on
-    it is a ratchet: the count of definitions it holds, and its size in lines, only fall.
+    A base test class every other test inherits from is identified by name on both sides:
+    a superclass matching `Test`/`TestCase`, and not itself named a leaf test
+    (`_test.rb`/`_spec.rb`). Growth on it is a ratchet: the count of definitions it holds,
+    and its size in lines, only fall.
   Enabled: true
   VersionAdded: '0.0.1'
   # A leaf test - one whose name says a suite runs it directly - is excluded; everything else

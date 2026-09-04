@@ -14,11 +14,15 @@ module RuboCop
         SHAPE = <<~RUBY
           # each variant answers for itself; adding one adds a class and edits nothing
           class GroupParty < Shape
-            def rate = @head_count * @unit_rate * 0.9
+            def rate
+              @head_count * @unit_rate * 0.9
+            end
           end
 
           class SoloParty < Shape
-            def rate = @unit_rate
+            def rate
+              @unit_rate
+            end
           end
 
           party.rate   # the caller no longer knows there are two
