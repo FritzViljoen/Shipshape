@@ -85,7 +85,8 @@ shipshape report
 `shipshape next` run scoped to `app/` reports nothing about either — **not because the
 migrations are clean, but because they were not inspected**, which reads identically.
 
-**Check:** the report names a count for both, and the count is not "no migrations found".
+**Check:** the report names a count for both, and the section is not the zero-count
+shape — `## Nullable columns and database defaults — 0` followed by `Nothing found.`
 
 ---
 
