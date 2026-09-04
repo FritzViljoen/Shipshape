@@ -8,7 +8,12 @@ require "yaml"
 # surface, so it holds both ways. Watched to fail: rename a cop file without touching its law,
 # add a cop with no law, or delete a cop's test, and one of the three checks reddens.
 class CanonTest < Minitest::Test
-  LAWS = Dir[File.expand_path("../docs/laws/*.md", __dir__)].reject { |path| path.end_with?("README.md") }
+  # Neither is a law or a procedure: the index is for a person, CLAUDE.md is the compacted
+  # copy handed to an agent. Both live beside the documents this glob is meant to find.
+  NON_RULE_DOCUMENTS = %w[README.md CLAUDE.md].freeze
+
+  LAWS = Dir[File.expand_path("../docs/laws/*.md", __dir__)]
+         .reject { |path| NON_RULE_DOCUMENTS.include?(File.basename(path)) }
 
   # The phrase is the declaration: writing it is what makes the law a convention.
   UNBUILT = "not built yet"
@@ -168,7 +173,7 @@ class CanonTest < Minitest::Test
   # Without a procedure, an agent handed 29,644 offences has an enumeration and no method.
   def test_every_cop_has_a_procedure_that_names_it
     prose = Dir[File.expand_path("../docs/decomposing/*.md", __dir__)]
-            .reject { |path| path.end_with?("README.md") }
+            .reject { |path| NON_RULE_DOCUMENTS.include?(File.basename(path)) }
             .map { |path| File.read(path) }.join("\n")
 
     orphans = registered_cops.reject do |cop|
@@ -186,7 +191,7 @@ class CanonTest < Minitest::Test
 
     missing = Dir[File.expand_path("../docs/decomposing/*.md", __dir__)]
               .map { |path| File.basename(path) }
-              .reject { |name| name == "README.md" || index.include?("(#{name})") }
+              .reject { |name| NON_RULE_DOCUMENTS.include?(name) || index.include?("(#{name})") }
 
     assert_empty missing, "A procedure nothing links to is one nobody will find."
   end
