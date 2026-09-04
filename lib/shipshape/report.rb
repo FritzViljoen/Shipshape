@@ -13,7 +13,7 @@ module Shipshape
 
     EXAMPLES = 5
 
-    Row = Struct.new(:title, :law, :why, :caveat, :findings, :proposal, :population, :noun,
+    Row = Struct.new(:title, :citation, :why, :caveat, :findings, :proposal, :population, :noun,
                      :unit, :exemplars, :headline, :units, :source, :subject, :subjects,
                      keyword_init: true) do
       # A measure recognising none of what it reads answers about the layout, not the code: iggo
@@ -75,7 +75,7 @@ module Shipshape
 
         Row.new(
           title: measure::TITLE,
-          law: measure::LAW,
+          citation: measure::LAW,
           why: measure::WHY,
           caveat: measure.const_defined?(:CAVEAT) ? measure::CAVEAT : nil,
           findings: ranked(findings, measure),

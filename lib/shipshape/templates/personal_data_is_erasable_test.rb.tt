@@ -7,8 +7,10 @@ require "test_helper"
 require_relative "test_case"
 <%- end -%>
 
-# Read from the schema, so a new column fails this until it is classified. It proves the
-# inventory is complete, never that an erasure is correct.
+# Reads the live database connection, not db/schema.rb: a column a migration added but nobody
+# has run yet is exactly the gap this test exists to catch, and a schema-file read would miss
+# it. So a new column fails this until it is classified. It proves the inventory is complete,
+# never that an erasure is correct.
 <%- if rspec -%>
 RSpec.describe "personal data is erasable" do
 <%- else -%>

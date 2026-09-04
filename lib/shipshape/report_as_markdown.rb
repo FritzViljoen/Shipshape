@@ -33,8 +33,9 @@ module Shipshape
 
     # WHY ANY OF THIS IS BEING COUNTED.
     #
-    # Twelve lists with no argument around them is a tool showing off: without the claim first,
-    # every number reads as a complaint about a decision somebody made for a good reason.
+    # `Measures::ALL.length` lists with no argument around them is a tool showing off:
+    # without the claim first, every number reads as a complaint about a decision somebody
+    # made for a good reason.
     def situation
       <<~TEXT
 
@@ -399,10 +400,10 @@ module Shipshape
 
     def summary
       rows = report[:rows].map do |row|
-        "| #{row.title} | #{row.count} | #{ratio(row)} | `#{row.law}` |"
+        "| #{row.title} | #{row.count} | #{ratio(row)} | `#{row.citation}` |"
       end
 
-      (["| What | Found | Already right | Law |", "|---|---:|---:|---|"] + rows).join("\n") + "\n"
+      (["| What | Found | Already right | Citation |", "|---|---:|---:|---|"] + rows).join("\n") + "\n"
     end
 
     def ratio(row)
@@ -413,7 +414,8 @@ module Shipshape
     end
 
     # What a reader who knows the codebase cannot see by reading down the page: that one file
-    # appears in eight of the twelve lists, which is the answer to "what do we do first".
+    # appears in eight of `Measures::ALL.length` lists, which is the answer to "what do we do
+    # first".
     # Ranked by how many DIFFERENT measures, because a thousand similar findings is one problem
     # and eight kinds of finding is eight. Compared within its kind — half only see controllers.
     def where_to_start
