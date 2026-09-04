@@ -4,7 +4,8 @@ require "test_helper"
 
 # Watched to fail: making `on_gvasgn` return early reddens the global test; making `on_cvasgn`
 # return early reddens the class-variable test; making `on_send` return early reddens the constant-
-# mutation tests; making `one_of?` answer true unconditionally reddens the request-handling test.
+# mutation tests; making `one_of?` answer true unconditionally reddens the request-handling test;
+# emptying `subscription_call?` reddens the subscribe/instrument/attached-callback tests.
 class NoDistantWritesTest < Minitest::Test
   include CopRunner
 
@@ -73,6 +74,88 @@ class NoDistantWritesTest < Minitest::Test
     RUBY
 
     assert_equal 2, found.length
+  end
+
+  # The law's own example — held for regression, not because the shape was ever missed.
+  def test_appending_onto_a_constant_held_subscriber_list_is_a_distant_write
+    found = check(<<~RUBY)
+      class SwitchTenant
+        def call
+          Subscribers << self
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`Subscribers` is a constant"
+  end
+
+  def test_subscribing_to_notifications_is_a_distant_write
+    found = check(<<~RUBY)
+      class SwitchTenant
+        def call
+          ActiveSupport::Notifications.subscribe("tenant.switched") { |*args| log(args) }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`ActiveSupport::Notifications.subscribe` hands a handler"
+  end
+
+  def test_instrumenting_notifications_is_a_distant_write
+    found = check(<<~RUBY)
+      class SwitchTenant
+        def call
+          ActiveSupport::Notifications.instrument("tenant.switched") { @tenant }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "resolved by lookup at runtime"
+  end
+
+  # Registering an observer is `.observers=`, an assignment on a constant receiver — already
+  # the shape above catches, so no new matcher was needed for it.
+  def test_registering_an_active_record_observer_is_a_distant_write
+    found = check(<<~RUBY)
+      class SwitchTenant
+        def call
+          ActiveRecord::Base.observers = [:audit_observer]
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`ActiveRecord::Base` is a constant"
+  end
+
+  # `NoLifecycleCallbacks` catches the bare form, written inside the record. This is the
+  # form its own Guard's limit hands off: the same hook, attached from outside it.
+  def test_attaching_a_callback_from_outside_the_record_is_a_distant_write
+    found = check(<<~RUBY)
+      class SwitchTenant
+        def call
+          BookingRecord.after_commit { notify }
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`BookingRecord.after_commit` hands a handler"
+  end
+
+  # A domain method that happens to share a name with the Notifications DSL is not pub/sub,
+  # and the receiver restriction is what tells them apart.
+  def test_a_subscribe_call_on_an_unrelated_constant_is_not_flagged
+    assert_empty check(<<~RUBY)
+      class SwitchTenant
+        def call
+          Newsletter.subscribe(@tenant)
+        end
+      end
+    RUBY
   end
 
   def test_a_class_level_attribute_write_is_a_distant_write

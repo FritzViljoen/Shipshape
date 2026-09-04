@@ -35,8 +35,12 @@ cause is perfectly visible, and it is the *effect* that cannot be found by readi
   distance; that is not caught by anything. `send`-based reads and writes are invisible. A
   gem doing any of this on your behalf is invisible.
 
-  **Publishing to a subscriber list has no matcher of its own.** `NoDistantWrites` matches
-  assignment shapes — `gvasgn`, `cvasgn`, `[]=`, `<<`, and a call ending in `=` — only on a
-  constant receiver, so `Subscribers << self` is caught incidentally, as a constant mutation,
-  and a subscriber list held any other way (an instance held elsewhere, a class-level reader)
-  passes untouched. There is no pub/sub pattern here to be closed.
+  **Publishing to a subscriber list now has its own matcher.** Beyond the assignment shapes —
+  `gvasgn`, `cvasgn`, `[]=`, `<<`, and a call ending in `=`, all only on a constant receiver —
+  `NoDistantWrites` also fires on `ActiveSupport::Notifications.subscribe`/`.instrument`, and
+  on any of `NoLifecycleCallbacks`'s hook names (`after_save`, `after_commit`, …) called on a
+  named constant instead of written inside the record it will run against — the "attached
+  from outside" case that law's Guard's limit hands off here. All of it still requires a
+  **constant receiver**: a subscriber list held any other way (an instance held elsewhere, a
+  class-level reader), wired through a pub/sub gem other than `ActiveSupport::Notifications`
+  (wisper, dry-events, rails_event_store), or reached through `send`, passes untouched.
