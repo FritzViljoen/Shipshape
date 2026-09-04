@@ -84,7 +84,10 @@ same wherever a coordinator decides, and `tell-dont-ask` is the principle either
   partial.** Telling a presentation conditional from a domain one is a judgement in the
   general case, and the cop does not attempt it: it fires on **any** message sent to an
   instance variable inside a condition, so `render :empty if @report.rows.empty?` is an
-  offence and must be argued in review. In the other direction, a decision on a local, a
-  method call, or a plain value it cannot trace is invisible, and views are not covered at
-  all. `CallGraph` holds data access only for a **constant** receiver — `@person.update!`
-  inside an action is caught by nothing.
+  offence and must be argued in review. **A decision it cannot resolve is not invisible —
+  it is refused.** A condition on a local, a method call, or a plain value has no ivar for
+  the cop to name, so it falls through to the blanket offence: `if booking.nil?` and
+  `if booking.any?` are flagged the same as an untraced ivar send, with no way to spell
+  "did it find anything" except `present?`. Views are not covered at all. `CallGraph` holds
+  data access only for a **constant** receiver — `@person.update!` inside an action is
+  caught by nothing.

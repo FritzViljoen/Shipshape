@@ -40,8 +40,8 @@ not an argument anywhere; this is where the presentation layer is held to it.
   `holds_no_records.rb` — architecture. Both presentation kinds sweep what they were built
   holding and refuse a record, whatever name it arrived under.
 - **Guard:** `Shipshape/ShapeIsComposed`, over the shape tree. Fails an initializer keyword
-  whose name is prefixed with the name of another declared domain object, where that object
-  declares the suffix as one of its own.
+  whose first underscore-separated segment is shared by two or more other keywords in the
+  same initializer — a prefix count, resolving no other class.
 
 - **Guard's limit:** **the prefix rule is a heuristic and the general law is unguarded.**
   It catches the naming convention that flattening usually arrives in, and nothing else — a

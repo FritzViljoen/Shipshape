@@ -61,7 +61,7 @@ knowing an email was supplied is most of what an audit answer needs, and the val
 nobody can delete afterwards.
 
 - **Principle:** `nothing-fails-quietly`
-- **Guard:** the generated `audit_log.rb` and the four writing operations — architecture rather
+- **Guard:** the generated `audit_log.rb` and the three writing operations — architecture rather
   than a cop. `self.call` records after the transaction and before answering, and the
   permission refusal records before returning. Proven by `generated_base_classes_test.rb`,
   a listed suite guard.
@@ -70,10 +70,11 @@ nobody can delete afterwards.
   `audit_log.rb` to keep. The sibling of `Shipshape/EveryDoorChecksPermission`, and for the
   same reason: a generated file is the application's to edit, and one that quietly lost its
   audit call leaves no trace of anything its kind attempted while nothing else fails.
-- **Guard's limit:** it holds the **generated** base classes, not an application's copy of
-  them. `generated_base_classes_test.rb` calls every writing operation and asserts an entry — for
-  the success, and for the refusal — and derives the list from the templates that
-  contain an audit call, so a new one that records cannot ship unexercised. Each of the four
+- **Guard's limit:** it holds **an application's own installed copy** of the base classes —
+  scoped to `**/shipshape/*.rb` precisely so it runs after install, not the gem's template
+  source. `generated_base_classes_test.rb` calls every writing operation and asserts an
+  entry — for the success, and for the refusal — and derives the list from the templates that
+  contain an audit call, so a new one that records cannot ship unexercised. Each of the three
   was watched to fail by deleting its call.
 
   The sink is the application's, so what durability the trail has is not this canon's to

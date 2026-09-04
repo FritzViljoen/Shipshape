@@ -29,8 +29,10 @@ one without the other just moves the pile.
   `def` would have written, so they were the one way left to put behaviour on a record.
 
 - **Guard's limit:** it cannot tell a filtering scope from a rule-bearing one beyond a
-  syntactic check on the block, so a scope that reaches another class inside a lambda passes.
-  It sees the record tree only — behaviour moved into a helper, a module included from
+  syntactic check on the block: any send inside the lambda whose receiver is a constant
+  fails the scope, so `merge(SupplierRecord.active)` is caught, but a constant used only as
+  a value — `where(state: Booking::ACTIVE)`, never a receiver — is not, and passes. It sees
+  the record tree only — behaviour moved into a helper, a module included from
   outside that tree, or a query object filed elsewhere is not covered. `delegate` is caught
   **here and only here** — [`code-is-written-not-generated`](code-is-written-not-generated.md)
   exempts the framework's public macros on purpose and uses this one to draw that line, so a
