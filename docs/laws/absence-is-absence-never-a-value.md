@@ -21,8 +21,9 @@ that outlives its migration is what this law forbids.
 - **Principle:** `absence-is-absence`
 - **Guard:** `Shipshape/AbsenceIsAbsenceNeverAValue`, over migrations, and only for a table
   some Record in this repository claims. Covers creation and alteration, resolves a
-  reference to the column it really creates, exempts the reverse direction, and holds the
-  same-method promotion rule.
+  reference to the column or columns it really creates — a polymorphic reference is two,
+  `_id` and `_type`, both from the one `null:` option, and both are named when both are
+  still nullable — exempts the reverse direction, and holds the same-method promotion rule.
 
 - **Guard's limit:** it reads **migrations, not the live schema**. A column made nullable by
   anything else — a hand-run statement, a tool, a vendored migration — is invisible, and a

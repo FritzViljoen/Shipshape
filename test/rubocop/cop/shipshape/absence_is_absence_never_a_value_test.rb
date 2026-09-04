@@ -6,7 +6,7 @@ require "test_helper"
 # `promotions_in` answer `[]` reddens the promotion test, which is the clause that makes the rule
 # workable on a populated table; making `reversing?` answer false reddens the `down` and
 # `remove_column` tests; making `owned?` answer true unconditionally reddens the unowned-table
-# test, which is the clause that keeps this off tables nobody has modelled.
+# test; making `polymorphic?` answer false unconditionally reddens the polymorphic tests.
 class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
   include CopRunner
 
@@ -119,6 +119,67 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     assert_includes found.first.message, "`bookings.supplier_id` is nullable",
       "A reference creates `<name>_id`, not the association name — the message must " \
       "name the column that actually exists."
+  end
+
+  # `polymorphic: true` creates `_id` AND `_type`, both nullable from this one option — naming
+  # only `_id` would steer the fix toward half a table.
+  def test_a_polymorphic_reference_names_both_columns_it_creates
+    found = check(<<~RUBY)
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
+        def change
+          add_reference :bookings, :supplier, polymorphic: true, null: true
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`bookings.supplier_id` and `bookings.supplier_type` are nullable"
+  end
+
+  def test_a_polymorphic_reference_that_says_nothing_names_both_columns
+    found = check(<<~RUBY)
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
+        def change
+          add_reference :bookings, :supplier, polymorphic: true
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message,
+      "`bookings.supplier_id` and `bookings.supplier_type` say nothing about `null:`"
+  end
+
+  # `polymorphic: false` (the default) still creates one column, not two.
+  def test_a_non_polymorphic_reference_names_only_its_id_column
+    found = check(<<~RUBY)
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
+        def change
+          add_reference :bookings, :supplier, polymorphic: false, null: true
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`bookings.supplier_id` is nullable"
+    refute_includes found.first.message, "supplier_type"
+  end
+
+  # One column promoted and not the other is not both fixed — only the one still nullable
+  # is named, so the message never claims more than it read.
+  def test_a_polymorphic_reference_with_only_one_column_promoted_names_only_that_one
+    found = check(<<~RUBY)
+      class AddNicknameToGuests < ActiveRecord::Migration[7.0]
+        def up
+          add_reference :bookings, :supplier, polymorphic: true, null: true
+          change_column_null :bookings, :supplier_type, false
+        end
+      end
+    RUBY
+
+    assert_equal 1, found.length
+    assert_includes found.first.message, "`bookings.supplier_id` is nullable"
+    refute_includes found.first.message, "supplier_type"
   end
 
   def test_a_column_that_says_nothing_is_nullable
