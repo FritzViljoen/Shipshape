@@ -40,11 +40,28 @@ from version control on every run.
   for it — fully covered on paper, unprovable in fact. The planted tree turns every cop on for
   its own run, so a cop that is off by default is still shown firing.
 
+- **Guard:** `GuardNamesRealCodeTest`, `CountClaimsMatchCodeTest` and
+  `PermittedPredicatesAgreeTest`, also in this gem's suite. Existence is not truth: these
+  three each hold one mechanisable slice of whether a Guard paragraph's *claim* still matches
+  its cop — a backticked `SCREAMING_SNAKE_CASE` constant that the cop's own source must still
+  contain, a spoken-out-loud count next to a real countable set (`AUDITED_DOORS`, a
+  `Kinds:` list) that must still match it, and two cops' predicate lists that must still
+  agree. See each file's own header for what it catches and why.
+
 - **Guard's limit:** it checks that the limit section and the removal note **exist**, never
   that what either says is true, complete, or current. Nobody re-runs the removals, so a
   note describing a mutation that no longer reddens anything passes. A stale blind-spot paragraph passes. That judgement is the
   author's and no check will ever make it — which is the honest reason this law is written
   down rather than assumed.
+
+  **The three new guards above are a slice, not the class.** Each is anchored on a literal,
+  narrow signal — a constant's spelling, a number word beside one named set, one exact anchor
+  phrase — chosen because it needs no exemption list. What is left is everything that slips
+  between those anchors: a claim spelled a third way, a count about a set nobody gave a name
+  a script can find, a paraphrase that is simply wrong without repeating or contradicting any
+  fact a script can check. Reading a Guard paragraph against its cop and judging whether the
+  prose is still *true* — not just still spelled the same — has no substitute here. It is a
+  reader's job, every time a cop changes.
 
   The canary half has its own blind spot: it proves a cop **can** fire on one planted
   violation, never that it fires on everything it should. A cop narrowed to catch only the
