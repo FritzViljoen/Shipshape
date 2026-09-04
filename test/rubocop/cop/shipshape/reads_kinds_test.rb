@@ -3,7 +3,7 @@
 require "test_helper"
 
 # Watched to fail: change `kind_of_inspected_file` back to a plain `||=` and
-# `test_one_cop_instance_judges_each_file_on_its_own_path` reddens — the command is judged a record
+# `test_one_cop_instance_judges_each_file_on_its_own_path` reddens — the deed is judged a record
 # and reports an offence it does not have. **RuboCop builds a cop per file today, so nothing here
 # is visible through the binary.** That is exactly why it is worth a test: the correctness of every
 class ReadsKindsTest < Minitest::Test
@@ -17,25 +17,25 @@ class ReadsKindsTest < Minitest::Test
       SuggestExtensions: false
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
       BaseClasses:
-        command: ['Command']
+        deed: ['Deed']
       Matrix:
-        command: []
+        deed: []
   YAML
 
   RECORD = "class Thing < ApplicationRecord\n  def total\n    1\n  end\nend\n"
-  COMMAND = "class Settle < Command\n  def call\n    1\n  end\nend\n"
+  DEED = "class Settle < Deed\n  def call\n    1\n  end\nend\n"
 
   def test_one_cop_instance_judges_each_file_on_its_own_path
     in_tree do |root, config|
       cop = RuboCop::Cop::Shipshape::PersistenceHoldsNoBehaviour.new(config)
 
       record = investigate(cop, File.join(root, "app/models/thing.rb"))
-      command = investigate(cop, File.join(root, "app/commands/settle.rb"))
+      deed = investigate(cop, File.join(root, "app/deeds/settle.rb"))
 
       assert_equal 1, record, "a record holding a method is the offence this cop exists for"
-      assert_equal 0, command, "the command was judged by the kind of the file before it"
+      assert_equal 0, deed, "the deed was judged by the kind of the file before it"
     end
   end
 
@@ -43,10 +43,10 @@ class ReadsKindsTest < Minitest::Test
     in_tree do |root, config|
       cop = RuboCop::Cop::Shipshape::PersistenceHoldsNoBehaviour.new(config)
 
-      command = investigate(cop, File.join(root, "app/commands/settle.rb"))
+      deed = investigate(cop, File.join(root, "app/deeds/settle.rb"))
       record = investigate(cop, File.join(root, "app/models/thing.rb"))
 
-      assert_equal 0, command
+      assert_equal 0, deed
       assert_equal 1, record,
         "The reverse order too: nil is falsy, so a plain `||=` never memoised an unclassified file and this direction passed either way. It is here so the pair reads as one claim."
     end
@@ -63,7 +63,7 @@ class ReadsKindsTest < Minitest::Test
   def in_tree
     Dir.mktmpdir("reads-kinds") do |root|
       write(root, "app/models/thing.rb", RECORD)
-      write(root, "app/commands/settle.rb", COMMAND)
+      write(root, "app/deeds/settle.rb", DEED)
       write(root, ".rubocop.yml",
             CONFIG.sub("CONFIG_PATH", File.expand_path("../../../../config/default.yml", __dir__)))
 

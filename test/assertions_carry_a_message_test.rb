@@ -101,7 +101,7 @@ class AssertionsCarryAMessageTest < Minitest::Test
     return unless node.is_a?(Array)
 
     case node[0]
-    when :command
+    when :deed
       check_call(node[1], node[2], found, relative)
     when :method_add_arg
       fcall = node[1]

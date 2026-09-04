@@ -2,6 +2,6 @@
 
 class OnlyTheDoorIsCalled < ApplicationController
 def show
-  OtherQuery.build_from(params)
+  OtherQuestion.build_from(params)
 end
 end

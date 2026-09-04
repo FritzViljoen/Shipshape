@@ -1,4 +1,4 @@
-class PaysSomething < Command
+class PaysSomething < Deed
   include Paying
 
   def call; end

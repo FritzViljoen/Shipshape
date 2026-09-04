@@ -6,33 +6,33 @@ require "test_helper"
 # making the claim check pass unconditionally reddens all of them; changing `CLAIM` without
 # changing the fixtures reddens the accepted tests, which is the pair that matters: the phrase IS
 # the act being required, so the cop must key on it. **It checks that the claim was written, never
-class CommandsProveIdempotenceTest < Minitest::Test
+class DeedsProveIdempotenceTest < Minitest::Test
   include CopRunner
 
-  COP = RuboCop::Cop::Shipshape::CommandsProveIdempotence
+  COP = RuboCop::Cop::Shipshape::DeedsProveIdempotence
 
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
-        "query" => ["app/queries/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
+        "question" => ["app/questions/**/*.rb"],
       },
-      "Matrix" => { "command" => [], "query" => [] },
+      "Matrix" => { "deed" => [], "question" => [] },
     },
   }.freeze
 
-  COMMAND = "app/commands/settle_invoice.rb"
-  SOURCE = "class SettleInvoice < Command\n  def call; end\nend\n"
+  DEED = "app/deeds/settle_invoice.rb"
+  SOURCE = "class SettleInvoice < Deed\n  def call; end\nend\n"
 
-  def test_a_command_with_no_test_at_all_is_refused
+  def test_a_deed_with_no_test_at_all_is_refused
     found = check({})
 
     assert_equal 1, found.length
     assert_includes found.first.message, "no test file names it"
   end
 
-  def test_a_command_whose_test_makes_no_claim_is_refused
-    found = check("test/commands/settle_invoice_test.rb" => "class X\n  def test_it; end\nend\n")
+  def test_a_deed_whose_test_makes_no_claim_is_refused
+    found = check("test/deeds/settle_invoice_test.rb" => "class X\n  def test_it; end\nend\n")
 
     assert_equal 1, found.length
     assert_includes found.first.message, "its test does not say"
@@ -48,75 +48,75 @@ class CommandsProveIdempotenceTest < Minitest::Test
   end
 
   def test_a_written_claim_settles_it
-    assert_empty check("test/commands/settle_invoice_test.rb" =>
+    assert_empty check("test/deeds/settle_invoice_test.rb" =>
                        "# Idempotent: settled_at guards the second call.\nclass X; end\n")
   end
 
   # A bare marker settled nothing about how the operation is safe to repeat.
   def test_the_marker_alone_does_not_settle_it
-    found = check("test/commands/settle_invoice_test.rb" => "# Idempotent:\nclass X; end\n")
+    found = check("test/deeds/settle_invoice_test.rb" => "# Idempotent:\nclass X; end\n")
 
     assert_equal 1, found.length
     assert_includes found.first.message, "its test does not say"
   end
 
   def test_the_marker_must_lead_a_comment_not_sit_inside_one
-    found = check("test/commands/settle_invoice_test.rb" =>
+    found = check("test/deeds/settle_invoice_test.rb" =>
                   "# See Idempotent: settled_at guards the second call.\nclass X; end\n")
 
     assert_equal 1, found.length
   end
 
   def test_the_marker_must_be_a_comment_not_a_string
-    found = check("test/commands/settle_invoice_test.rb" =>
+    found = check("test/deeds/settle_invoice_test.rb" =>
                   %(X = "Idempotent: settled_at guards the second call."\n))
 
     assert_equal 1, found.length
   end
 
   def test_the_test_may_live_anywhere_under_a_declared_root
-    %w[test/settle_invoice_test.rb spec/commands/settle_invoice_spec.rb
-       test/app/commands/settle_invoice_test.rb].each do |path|
+    %w[test/settle_invoice_test.rb spec/deeds/settle_invoice_spec.rb
+       test/app/deeds/settle_invoice_test.rb].each do |path|
       assert_empty check(path => "# Idempotent: settled_at guards it.\n"), path
     end
   end
 
-  def test_another_commands_test_does_not_count
-    assert_equal 1, check("test/commands/other_test.rb" => "# Idempotent: whatever.\n").length
+  def test_another_deeds_test_does_not_count
+    assert_equal 1, check("test/deeds/other_test.rb" => "# Idempotent: whatever.\n").length
   end
 
-  # `each_ancestor(:class, :module)` skipped every command declared inside a module, which in
+  # `each_ancestor(:class, :module)` skipped every deed declared inside a module, which in
   # most applications is most of them.
-  def test_a_command_inside_a_module_is_not_skipped
-    found = offences("module Billing\n  class SettleInvoice < Command\n    def call; end\n  end\nend\n",
-                     cop_class: COP, path: "app/commands/billing/settle_invoice.rb",
+  def test_a_deed_inside_a_module_is_not_skipped
+    found = offences("module Billing\n  class SettleInvoice < Deed\n    def call; end\n  end\nend\n",
+                     cop_class: COP, path: "app/deeds/billing/settle_invoice.rb",
                      files: {}, other_cops: LAYOUT)
 
     assert_equal 1, found.length
   end
 
-  def test_a_namespaced_command_is_settled_by_its_own_test
-    files = { "test/commands/billing/settle_invoice_test.rb" => "# Idempotent: settled_at guards it.\n" }
+  def test_a_namespaced_deed_is_settled_by_its_own_test
+    files = { "test/deeds/billing/settle_invoice_test.rb" => "# Idempotent: settled_at guards it.\n" }
 
-    assert_empty offences("module Billing\n  class SettleInvoice < Command\n  end\nend\n",
-                          cop_class: COP, path: "app/commands/billing/settle_invoice.rb",
+    assert_empty offences("module Billing\n  class SettleInvoice < Deed\n  end\nend\n",
+                          cop_class: COP, path: "app/deeds/billing/settle_invoice.rb",
                           files: files, other_cops: LAYOUT)
   end
 
-  def test_a_query_is_not_this_cops_business
-    assert_empty offences("class ListPeople < Query\nend\n", cop_class: COP,
-                          path: "app/queries/list_people.rb", other_cops: LAYOUT)
+  def test_a_question_is_not_this_cops_business
+    assert_empty offences("class ListPeople < Question\nend\n", cop_class: COP,
+                          path: "app/questions/list_people.rb", other_cops: LAYOUT)
   end
 
   # **The stated limit, pinned.** The claim is a sentence, not a proof, and a false one passes.
   def test_a_claim_that_is_untrue_passes_and_that_is_the_limit
-    assert_empty check("test/commands/settle_invoice_test.rb" =>
+    assert_empty check("test/deeds/settle_invoice_test.rb" =>
                        "# Idempotent: nothing whatsoever makes this true.\nclass X; end\n")
   end
 
   private
 
   def check(files)
-    offences(SOURCE, cop_class: COP, path: COMMAND, files: files, other_cops: LAYOUT)
+    offences(SOURCE, cop_class: COP, path: DEED, files: files, other_cops: LAYOUT)
   end
 end

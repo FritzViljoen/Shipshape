@@ -14,9 +14,9 @@ class ShapeIsComposedTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "shape" => ["app/shapes/**/*.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
       },
-      "Matrix" => { "shape" => [], "command" => ["shape"] },
+      "Matrix" => { "shape" => [], "deed" => ["shape"] },
     },
   }.freeze
 
@@ -81,8 +81,8 @@ class ShapeIsComposedTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_is_outside_the_shape_tree
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/create_booking.rb", other_cops: LAYOUT)
+  def test_a_deed_is_outside_the_shape_tree
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/deeds/create_booking.rb", other_cops: LAYOUT)
       class CreateBooking
         def initialize(supplier_name:, supplier_email:)
           @supplier_name = supplier_name

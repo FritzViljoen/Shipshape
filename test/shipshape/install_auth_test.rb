@@ -7,7 +7,7 @@ require "shipshape/install"
 # classes demanding an actor on day one would stop every call site at once, which is an
 # outage rather than a migration.
 class InstallAuthTest < Minitest::Test
-  DOORS = %w[command io_command legacy_command query io_query legacy_query workflow].freeze
+  DOORS = %w[deed io_deed legacy_deed question io_question legacy_question workflow].freeze
 
   def test_the_default_install_writes_no_authorisation
     written = install(auth: false)

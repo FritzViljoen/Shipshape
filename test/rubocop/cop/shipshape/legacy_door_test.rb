@@ -12,41 +12,41 @@ class LegacyDoorTest < Minitest::Test
 
   CONFIG = {
     "Kinds" => {
-      "command" => ["app/commands/**/*.rb"],
-      "query" => ["app/queries/**/*.rb"],
-      "legacy_query" => ["app/legacy/**/*_legacy.rb"],
-      "legacy_command" => ["app/legacy/**/*_legacy.rb"],
+      "deed" => ["app/deeds/**/*.rb"],
+      "question" => ["app/questions/**/*.rb"],
+      "legacy_question" => ["app/legacy/**/*_legacy.rb"],
+      "legacy_deed" => ["app/legacy/**/*_legacy.rb"],
       "shape" => ["app/shapes/**/*.rb"],
     },
     "BaseClasses" => {
-      "command" => ["Command"],
-      "query" => ["Query"],
-      "legacy_query" => ["LegacyQuery"],
-      "legacy_command" => ["LegacyCommand"],
+      "deed" => ["Deed"],
+      "question" => ["Question"],
+      "legacy_question" => ["LegacyQuestion"],
+      "legacy_deed" => ["LegacyDeed"],
       "shape" => ["Shape"],
     },
-    "Sisters" => [%w[command legacy_command], %w[query legacy_query]],
+    "Sisters" => [%w[deed legacy_deed], %w[question legacy_question]],
     "Matrix" => {
-      "command" => %w[query legacy_query shape],
-      "query" => ["shape"],
-      "legacy_command" => %w[query legacy_query shape],
-      "legacy_query" => ["shape"],
+      "deed" => %w[question legacy_question shape],
+      "question" => ["shape"],
+      "legacy_deed" => %w[question legacy_question shape],
+      "legacy_question" => ["shape"],
       "shape" => [],
     },
   }.freeze
 
   TREE = {
-    "app/commands/create_person.rb" => "class CreatePerson < Command\nend\n",
-    "app/queries/list_people.rb" => "class ListPeople < Query\nend\n",
-    "app/legacy/find_booking_legacy.rb" => "class FindBookingLegacy < LegacyQuery\nend\n",
-    "app/legacy/cancel_booking_legacy.rb" => "class CancelBookingLegacy < LegacyCommand\nend\n",
+    "app/deeds/create_person.rb" => "class CreatePerson < Deed\nend\n",
+    "app/questions/list_people.rb" => "class ListPeople < Question\nend\n",
+    "app/legacy/find_booking_legacy.rb" => "class FindBookingLegacy < LegacyQuestion\nend\n",
+    "app/legacy/cancel_booking_legacy.rb" => "class CancelBookingLegacy < LegacyDeed\nend\n",
     "app/shapes/place.rb" => "class Place < Shape\nend\n",
   }.freeze
 
-  # A command may read through the reading door, exactly as it may read through a query.
-  def test_a_command_may_reach_the_reading_door
-    assert_empty check(<<~RUBY, "app/commands/create_person.rb")
-      class CreatePerson < Command
+  # A deed may read through the reading door, exactly as it may read through a question.
+  def test_a_deed_may_reach_the_reading_door
+    assert_empty check(<<~RUBY, "app/deeds/create_person.rb")
+      class CreatePerson < Deed
         def call
           FindBookingLegacy.call
         end
@@ -54,9 +54,9 @@ class LegacyDoorTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_may_not_reach_the_writing_door
-    found = check(<<~RUBY, "app/commands/create_person.rb")
-      class CreatePerson < Command
+  def test_a_deed_may_not_reach_the_writing_door
+    found = check(<<~RUBY, "app/deeds/create_person.rb")
+      class CreatePerson < Deed
         def call
           CancelBookingLegacy.call
         end
@@ -64,9 +64,9 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A command may not call a legacy_command"
+    assert_includes found.first.message, "A deed may not call a legacy_deed"
     assert_includes found.first.message, "They are sisters",
-      "A legacy command IS a command — it only wraps something old. So a command calling one is a write sequencing a write, and the reason is the transaction: a command is exactly one, and it has just nested or silently widened it without anybody deciding to."
+      "A legacy deed IS a deed — it only wraps something old. So a deed calling one is a write sequencing a write, and the reason is the transaction: a deed is exactly one, and it has just nested or silently widened it without anybody deciding to."
   end
 
   # A workflow is several transactions, which is exactly why it is the one that may
@@ -76,7 +76,7 @@ class LegacyDoorTest < Minitest::Test
       "Kinds" => CONFIG["Kinds"].merge("workflow" => ["app/workflows/**/*.rb"]),
       "BaseClasses" => CONFIG["BaseClasses"].merge("workflow" => ["Workflow"]),
       "Sisters" => CONFIG["Sisters"],
-      "Matrix" => CONFIG["Matrix"].merge("workflow" => %w[command query legacy_command legacy_query shape]),
+      "Matrix" => CONFIG["Matrix"].merge("workflow" => %w[deed question legacy_deed legacy_question shape]),
     }
     tree = TREE.merge("app/workflows/settle_month.rb" => "class SettleMonth < Workflow\nend\n")
 
@@ -90,9 +90,9 @@ class LegacyDoorTest < Minitest::Test
     RUBY
   end
 
-  def test_a_query_may_not_reach_the_reading_door_either_it_is_a_sister
-    found = check(<<~RUBY, "app/queries/list_people.rb")
-      class ListPeople < Query
+  def test_a_question_may_not_reach_the_reading_door_either_it_is_a_sister
+    found = check(<<~RUBY, "app/questions/list_people.rb")
+      class ListPeople < Question
         def call
           FindBookingLegacy.call
         end
@@ -100,14 +100,14 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A query may not call a legacy_query"
+    assert_includes found.first.message, "A question may not call a legacy_question"
     assert_includes found.first.message, "They are sisters",
       "The whole reason there are two doors: the return shape survives the crossing."
   end
 
-  def test_a_query_may_not_reach_the_writing_door
-    found = check(<<~RUBY, "app/queries/list_people.rb")
-      class ListPeople < Query
+  def test_a_question_may_not_reach_the_writing_door
+    found = check(<<~RUBY, "app/questions/list_people.rb")
+      class ListPeople < Question
         def call
           CancelBookingLegacy.call
         end
@@ -115,12 +115,12 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A query may not call a legacy_command"
+    assert_includes found.first.message, "A question may not call a legacy_deed"
   end
 
   def test_the_two_doors_are_told_apart_by_their_base_class
     found = check(<<~RUBY, "app/legacy/find_booking_legacy.rb")
-      class FindBookingLegacy < LegacyQuery
+      class FindBookingLegacy < LegacyQuestion
         def call
           CancelBookingLegacy.call
         end
@@ -128,13 +128,13 @@ class LegacyDoorTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "A legacy_query may not call a legacy_command",
+    assert_includes found.first.message, "A legacy_question may not call a legacy_deed",
       "Two files under one glob, told apart only by what they inherit."
   end
 
   def test_one_door_may_not_call_its_own_kind
     found = check(<<~RUBY, "app/legacy/find_booking_legacy.rb")
-      class FindBookingLegacy < LegacyQuery
+      class FindBookingLegacy < LegacyQuestion
         def call
           OtherLegacy.call
         end
@@ -149,7 +149,7 @@ class LegacyDoorTest < Minitest::Test
   # so it is skipped, and the door may say anything it likes to it.
   def test_a_door_may_call_the_old_world
     assert_empty check(<<~RUBY, "app/legacy/find_booking_legacy.rb")
-      class FindBookingLegacy < LegacyQuery
+      class FindBookingLegacy < LegacyQuestion
         def call
           ::BookingService.new.find(1)
         end
@@ -160,7 +160,7 @@ class LegacyDoorTest < Minitest::Test
   private
 
   def check(source, path)
-    tree = TREE.merge("app/legacy/other_legacy.rb" => "class OtherLegacy < LegacyQuery\nend\n")
+    tree = TREE.merge("app/legacy/other_legacy.rb" => "class OtherLegacy < LegacyQuestion\nend\n")
 
     offences(source, cop_class: COP, cop_config: CONFIG, path: path, files: tree)
   end

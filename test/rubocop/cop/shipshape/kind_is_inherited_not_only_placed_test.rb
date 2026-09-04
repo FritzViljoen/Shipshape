@@ -12,57 +12,57 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
-      "BaseClasses" => { "command" => %w[Command ApplicationMailer] },
-      "Matrix" => { "command" => ["shape"], "shape" => [] },
+      "BaseClasses" => { "deed" => %w[Deed ApplicationMailer] },
+      "Matrix" => { "deed" => ["shape"], "shape" => [] },
     },
   }.freeze
 
-  COMMAND = "app/commands/settle_invoice.rb"
+  DEED = "app/deeds/settle_invoice.rb"
 
   def test_a_bare_class_with_no_superclass_is_an_offence
     found = check("class SettleInvoice\n  def call; end\nend\n")
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`SettleInvoice` is a command by placement, and " \
+    assert_includes found.first.message, "`SettleInvoice` is a deed by placement, and " \
                                           "names no superclass at all"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
     message = check("class SettleInvoice\nend\n").first.message
 
-    assert_includes message, "WHY: Every cop gated on `command` assumes"
+    assert_includes message, "WHY: Every cop gated on `deed` assumes"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "class SettleInvoice < Command"
+    assert_includes message, "class SettleInvoice < Deed"
   end
 
   def test_inheriting_the_declared_base_directly_is_the_shape
-    assert_empty check("class SettleInvoice < Command\n  def call; end\nend\n")
+    assert_empty check("class SettleInvoice < Deed\n  def call; end\nend\n")
   end
 
   def test_inheriting_a_base_transitively_through_a_governed_file_is_the_shape
     found = offences(
-      "class SettleInvoice < AdminCommand\n  def call; end\nend\n",
-      cop_class: COP, path: COMMAND, other_cops: LAYOUT,
-      files: { "app/commands/admin_command.rb" => "class AdminCommand < Command\nend\n" },
+      "class SettleInvoice < AdminDeed\n  def call; end\nend\n",
+      cop_class: COP, path: DEED, other_cops: LAYOUT,
+      files: { "app/deeds/admin_deed.rb" => "class AdminDeed < Deed\nend\n" },
     )
 
     assert_empty found
   end
 
-  # A chain fully traced to a real file, proven never to reach `Command`.
+  # A chain fully traced to a real file, proven never to reach `Deed`.
   def test_inheriting_a_fully_resolved_chain_that_never_reaches_the_base_is_an_offence
     found = offences(
-      "class SettleInvoice < AdminCommand\n  def call; end\nend\n",
-      cop_class: COP, path: COMMAND, other_cops: LAYOUT,
-      files: { "app/commands/admin_command.rb" => "class AdminCommand\nend\n" },
+      "class SettleInvoice < AdminDeed\n  def call; end\nend\n",
+      cop_class: COP, path: DEED, other_cops: LAYOUT,
+      files: { "app/deeds/admin_deed.rb" => "class AdminDeed\nend\n" },
     )
 
     assert_equal 1, found.length
     assert_includes found.first.message,
-                    "neither `AdminCommand` nor anything it inherits is `Command`"
+                    "neither `AdminDeed` nor anything it inherits is `Deed`"
   end
 
   # A gem base this canon never installed and cannot find on disk.
@@ -75,9 +75,9 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   # `app/shipshape/` sits outside every `Kinds` glob, so a base filed there is unresolvable.
   def test_a_base_installed_outside_every_kind_is_left_alone
     found = offences(
-      "class SettleInvoice < AuthenticatedCommand\n  def call; end\nend\n",
-      cop_class: COP, path: COMMAND, other_cops: LAYOUT,
-      files: { "app/shipshape/authenticated_command.rb" => "class AuthenticatedCommand < Command\nend\n" },
+      "class SettleInvoice < AuthenticatedDeed\n  def call; end\nend\n",
+      cop_class: COP, path: DEED, other_cops: LAYOUT,
+      files: { "app/shipshape/authenticated_deed.rb" => "class AuthenticatedDeed < Deed\nend\n" },
     )
 
     assert_empty found
@@ -86,7 +86,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   # A superclass assigned through a constant is invisible to a static resolver by construction.
   def test_a_superclass_assigned_through_a_constant_is_left_alone
     found = check(<<~RUBY)
-      BASE = Command
+      BASE = Deed
       class SettleInvoice < BASE
         def call; end
       end
@@ -106,7 +106,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   # `an-operation-is-a-leaf` names the same shape: a base class filed beside its own kind is
   # still a base class, and it cannot inherit itself.
   def test_the_base_class_filed_beside_its_own_kind_is_exempt
-    found = offences("class Command\nend\n", cop_class: COP, path: "app/commands/command.rb",
+    found = offences("class Deed\nend\n", cop_class: COP, path: "app/deeds/deed.rb",
                                              other_cops: LAYOUT)
 
     assert_empty found
@@ -117,7 +117,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
       class SettleInvoiceError < StandardError
       end
 
-      class SettleInvoice < Command
+      class SettleInvoice < Deed
         def call; end
       end
     RUBY
@@ -127,7 +127,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
 
   def test_a_nested_helper_class_is_left_alone
     found = check(<<~RUBY)
-      class SettleInvoice < Command
+      class SettleInvoice < Deed
         class Helper
         end
 
@@ -138,7 +138,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
     assert_empty found
   end
 
-  # A `workflow` firing must show `Workflow`, never the old fixed `Command` example.
+  # A `workflow` firing must show `Workflow`, never the old fixed `Deed` example.
   def test_the_example_names_the_firing_kind_own_declared_base
     layout = {
       "Shipshape/CallGraph" => {
@@ -151,7 +151,7 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
                                                   path: "app/workflows/settle_order.rb", other_cops: layout)
 
     assert_includes found.first.message, "class SettleOrder < Workflow"
-    refute_includes found.first.message, "class SettleInvoice < Command"
+    refute_includes found.first.message, "class SettleInvoice < Deed"
   end
 
   # A kind this cop's own example hash never anticipated: bare `fetch` would raise `KeyError`.
@@ -187,6 +187,6 @@ class KindIsInheritedNotOnlyPlacedTest < Minitest::Test
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: COMMAND, other_cops: LAYOUT)
+    offences(source, cop_class: COP, path: DEED, other_cops: LAYOUT)
   end
 end

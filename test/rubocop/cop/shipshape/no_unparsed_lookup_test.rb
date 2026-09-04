@@ -15,9 +15,9 @@ class NoUnparsedLookupTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "request_handling" => ["app/controllers/**/*_controller.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
       },
-      "Matrix" => { "request_handling" => ["command"], "command" => [] },
+      "Matrix" => { "request_handling" => ["deed"], "deed" => [] },
     },
   }.freeze
 
@@ -104,8 +104,8 @@ class NoUnparsedLookupTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_is_outside_the_seam
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/find_person.rb", other_cops: LAYOUT)
+  def test_a_deed_is_outside_the_seam
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/deeds/find_person.rb", other_cops: LAYOUT)
       class FindPerson
         def call
           PersonRecord.find(params[:id])

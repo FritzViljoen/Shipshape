@@ -23,9 +23,9 @@ Shipshape/BaseTestClassGrowth:
   Enabled: true
 Shipshape/CallGraph:
   Enabled: true
-Shipshape/CommandsProveIdempotence:
-  Enabled: true
 Shipshape/CommentBudget:
+  Enabled: true
+Shipshape/DeedsProveIdempotence:
   Enabled: true
 Shipshape/EnforcementMessagesAreDocumentation:
   Enabled: true
@@ -90,7 +90,7 @@ Shipshape/PresenceIsNotRedefined:
   Enabled: true
 Shipshape/PresentationHoldsNoRecords:
   Enabled: true
-Shipshape/QueriesOnlyRead:
+Shipshape/QuestionsNeverWrite:
   Enabled: true
 Shipshape/ShapeIsComposed:
   Enabled: true

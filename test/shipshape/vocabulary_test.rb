@@ -45,7 +45,7 @@ class VocabularyTest < Minitest::Test
     end
   end
 
-  # The asymmetry that started this file: only `command` and `query` define `test_call`.
+  # The asymmetry that started this file: only `deed` and `question` define `test_call`.
   def test_call_test_is_named_only_for_the_kinds_that_define_it
     Dir.mktmpdir("vocabulary-test-call") do |root|
       Shipshape::Install.new(root: root, auth: true).call
@@ -53,14 +53,14 @@ class VocabularyTest < Minitest::Test
       line = rules.lines.find { |candidate| candidate.include?("`test_call`") }
 
       refute_nil line, "test_call has a description but no longer renders at all"
-      assert_includes line, "command", "test_call is defined on Command; the line should say so"
-      assert_includes line, "query", "test_call is defined on Query; the line should say so"
-      assert_includes line, "legacy_command", "LegacyCommand has test_call too"
-      assert_includes line, "legacy_query", "LegacyQuery has test_call too"
-      refute_includes line, "io_command",
-        "IoCommand has no test_call — asserting an actor and skipping the permission check " \
+      assert_includes line, "deed", "test_call is defined on Deed; the line should say so"
+      assert_includes line, "question", "test_call is defined on Question; the line should say so"
+      assert_includes line, "legacy_deed", "LegacyDeed has test_call too"
+      assert_includes line, "legacy_question", "LegacyQuestion has test_call too"
+      refute_includes line, "io_deed",
+        "IoDeed has no test_call — asserting an actor and skipping the permission check " \
         "would be a silent behaviour change on a door that opens a real transaction"
-      refute_includes line, "io_query", "IoQuery has no test_call for the same reason"
+      refute_includes line, "io_question", "IoQuestion has no test_call for the same reason"
     end
   end
 
@@ -82,10 +82,10 @@ class VocabularyTest < Minitest::Test
       rules = generate(root: root)
 
       refute_includes rules, "`test_call`",
-        "command.rb was written before auth and install never overwrites it"
+        "deed.rb was written before auth and install never overwrites it"
       refute_includes rules, "`permission`",
-        "permission/anonymous? are mixed into command.rb via `extend Permission`, which the " \
-        "stale command.rb never received"
+        "permission/anonymous? are mixed into deed.rb via `extend Permission`, which the " \
+        "stale deed.rb never received"
       refute_includes rules, "`anonymous?`", "same mixin, same reason as `permission`"
     end
   end

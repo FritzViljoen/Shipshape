@@ -15,7 +15,7 @@ class EveryDoorChecksPermissionTest < Minitest::Test
   WITH_AUTH = { "app/shipshape/permission.rb" => "module Permission\nend\n" }.freeze
 
   GUTTED = <<~RUBY
-    class Command
+    class Deed
       def self.call(**arguments)
         ActiveRecord::Base.transaction { new(**arguments).call }
       end
@@ -23,14 +23,14 @@ class EveryDoorChecksPermissionTest < Minitest::Test
   RUBY
 
   def test_a_door_that_lost_its_check_is_an_offence
-    found = offences(GUTTED, cop_class: COP, path: "app/shipshape/command.rb", files: WITH_AUTH)
+    found = offences(GUTTED, cop_class: COP, path: "app/shipshape/deed.rb", files: WITH_AUTH)
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`command.rb` is a door and no longer checks a permission"
+    assert_includes found.first.message, "`deed.rb` is a door and no longer checks a permission"
   end
 
   def test_the_offence_carries_the_reason_and_an_example
-    message = offences(GUTTED, cop_class: COP, path: "app/shipshape/command.rb", files: WITH_AUTH).first.message
+    message = offences(GUTTED, cop_class: COP, path: "app/shipshape/deed.rb", files: WITH_AUTH).first.message
 
     assert_includes message, "WHY: `shipshape install` never overwrites your files"
     assert_includes message, "INSTEAD:"
@@ -39,8 +39,8 @@ class EveryDoorChecksPermissionTest < Minitest::Test
   end
 
   def test_a_door_that_still_checks_is_the_shape
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/shipshape/command.rb", files: WITH_AUTH)
-      class Command
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/shipshape/deed.rb", files: WITH_AUTH)
+      class Deed
         extend Permission
 
         def self.call(actor: nil, **arguments)
@@ -53,7 +53,7 @@ class EveryDoorChecksPermissionTest < Minitest::Test
   end
 
   def test_an_application_without_authorisation_is_left_alone
-    assert_empty offences(GUTTED, cop_class: COP, path: "app/shipshape/command.rb"),
+    assert_empty offences(GUTTED, cop_class: COP, path: "app/shipshape/deed.rb"),
       "An application that never opted in is not nagged about a check it did not ask for."
   end
 

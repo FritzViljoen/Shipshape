@@ -21,17 +21,17 @@ class CheckTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
-        query: ['app/queries/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
+        question: ['app/questions/**/*.rb']
       BaseClasses:
-        command: [Command]
-        query: [Query]
+        deed: [Deed]
+        question: [Question]
       Sisters:
-        - [command]
-        - [query]
+        - [deed]
+        - [question]
       Matrix:
-        command: [query]
-        query: []
+        deed: [question]
+        question: []
 
     Shipshape/OneOperationOneClass:
       Enabled: false
@@ -46,26 +46,26 @@ class CheckTest < Minitest::Test
       NewCops: disable
       SuggestExtensions: false
       Exclude:
-        - 'app/queries/legacy/**/*'
+        - 'app/questions/legacy/**/*'
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
-        query: ['app/queries/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
+        question: ['app/questions/**/*.rb']
       BaseClasses:
-        command: [Command]
-        query: [Query]
+        deed: [Deed]
+        question: [Question]
       Sisters:
-        - [command]
-        - [query]
+        - [deed]
+        - [question]
       Matrix:
-        command: [query]
-        query: []
+        deed: [question]
+        question: []
   YAML
 
-  CLEAN_COMMAND = "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n"
-  DIRTY_QUERY = "class ListPeople < Query\n  def call\n    Other.call\n  end\nend\n"
-  OTHER_QUERY = "class Other < Query\n  def call\n    []\n  end\nend\n"
+  CLEAN_DEED = "class CreatePerson < Deed\n  def call\n    ListPeople.call\n  end\nend\n"
+  DIRTY_QUESTION = "class ListPeople < Question\n  def call\n    Other.call\n  end\nend\n"
+  OTHER_QUESTION = "class Other < Question\n  def call\n    []\n  end\nend\n"
 
   def test_nothing_rose_when_nothing_changed
     in_repo do |root|
@@ -80,7 +80,7 @@ class CheckTest < Minitest::Test
   # its bill.
   def test_a_new_violation_is_refused
     in_repo do |root|
-      write(root, "app/queries/list_people.rb", DIRTY_QUERY)
+      write(root, "app/questions/list_people.rb", DIRTY_QUESTION)
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -89,7 +89,7 @@ class CheckTest < Minitest::Test
   end
 
   def test_an_inherited_pile_is_not_the_branch_s_bill
-    in_repo(baseline: DIRTY_QUERY) do |root|
+    in_repo(baseline: DIRTY_QUESTION) do |root|
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
       assert_empty report[:risen]
@@ -99,8 +99,8 @@ class CheckTest < Minitest::Test
   end
 
   def test_a_count_that_fell_is_reported_and_becomes_the_floor
-    in_repo(baseline: DIRTY_QUERY) do |root|
-      write(root, "app/queries/list_people.rb", "class ListPeople < Query\n  def call\n    []\n  end\nend\n")
+    in_repo(baseline: DIRTY_QUESTION) do |root|
+      write(root, "app/questions/list_people.rb", "class ListPeople < Question\n  def call\n    []\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -110,7 +110,7 @@ class CheckTest < Minitest::Test
   end
 
   def test_enabling_a_cop_on_the_branch_is_free
-    in_repo(baseline: DIRTY_QUERY, config: RUBOCOP_YML.sub("Shipshape/CallGraph:", "Shipshape/CallGraph:\n  Enabled: false\n")) do |root|
+    in_repo(baseline: DIRTY_QUESTION, config: RUBOCOP_YML.sub("Shipshape/CallGraph:", "Shipshape/CallGraph:\n  Enabled: false\n")) do |root|
       write(root, ".rubocop.yml", format(RUBOCOP_YML, gem: gem_root))
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
@@ -137,8 +137,8 @@ class CheckTest < Minitest::Test
   # A brand new file is a new floor, not a rise - `CreatePerson` already exists.
   def test_coupling_rises_with_a_new_call
     in_repo do |root|
-      write(root, "app/commands/create_person.rb",
-            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb",
+            "class CreatePerson < Deed\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -149,9 +149,9 @@ class CheckTest < Minitest::Test
   # Canonicalised through git's own rename detection first, so nothing arrives or leaves.
   def test_a_pure_file_move_leaves_coupling_flat
     in_repo do |root|
-      moved = File.join(root, "app/commands/people/create_person.rb")
+      moved = File.join(root, "app/deeds/people/create_person.rb")
       FileUtils.mkdir_p(File.dirname(moved))
-      FileUtils.mv(File.join(root, "app/commands/create_person.rb"), moved)
+      FileUtils.mv(File.join(root, "app/deeds/create_person.rb"), moved)
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "move create_person.rb, touch no call")
 
@@ -168,14 +168,14 @@ class CheckTest < Minitest::Test
   # S1: the caller moves *and* gains a call to an already-governed, unmoved callee.
   def test_a_moved_caller_that_also_gains_an_edge_rises
     custom_repo({
-      "app/commands/create_person.rb" => CLEAN_COMMAND,
-      "app/queries/list_people.rb" => OTHER_QUERY,
-      "app/queries/list_pets.rb" => OTHER_QUERY.sub("Other", "ListPets"),
+      "app/deeds/create_person.rb" => CLEAN_DEED,
+      "app/questions/list_people.rb" => OTHER_QUESTION,
+      "app/questions/list_pets.rb" => OTHER_QUESTION.sub("Other", "ListPets"),
     }) do |root|
-      moved = File.join(root, "app/commands/people/create_person.rb")
+      moved = File.join(root, "app/deeds/people/create_person.rb")
       FileUtils.mkdir_p(File.dirname(moved))
-      FileUtils.mv(File.join(root, "app/commands/create_person.rb"), moved)
-      File.write(moved, "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPets.call\n  end\nend\n")
+      FileUtils.mv(File.join(root, "app/deeds/create_person.rb"), moved)
+      File.write(moved, "class CreatePerson < Deed\n  def call\n    ListPeople.call\n    ListPets.call\n  end\nend\n")
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "move create_person.rb and add a call")
 
@@ -190,14 +190,14 @@ class CheckTest < Minitest::Test
   # S3: the callee moves; its unmoved caller triples its calls to it. True coupling is 1 -> 3.
   def test_a_moved_callee_whose_unmoved_caller_triples_its_calls_rises
     custom_repo({
-      "app/commands/create_person.rb" => CLEAN_COMMAND,
-      "app/queries/list_people.rb" => OTHER_QUERY,
+      "app/deeds/create_person.rb" => CLEAN_DEED,
+      "app/questions/list_people.rb" => OTHER_QUESTION,
     }) do |root|
-      moved = File.join(root, "app/queries/people/list_people.rb")
+      moved = File.join(root, "app/questions/people/list_people.rb")
       FileUtils.mkdir_p(File.dirname(moved))
-      FileUtils.mv(File.join(root, "app/queries/list_people.rb"), moved)
-      write(root, "app/commands/create_person.rb",
-            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPeople.call\n  end\nend\n")
+      FileUtils.mv(File.join(root, "app/questions/list_people.rb"), moved)
+      write(root, "app/deeds/create_person.rb",
+            "class CreatePerson < Deed\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPeople.call\n  end\nend\n")
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "move list_people.rb, triple the calls to it")
 
@@ -213,13 +213,13 @@ class CheckTest < Minitest::Test
   # a rename, so git never pairs these; both sides are disclosed, not laundered into stable.
   def test_a_delete_and_an_unrelated_add_are_reported_not_paired
     custom_repo({
-      "app/commands/old_thing.rb" => "class OldThing < Command\n  def call\n    ListPeople.call\n  end\nend\n",
-      "app/queries/list_people.rb" => OTHER_QUERY,
-      "app/queries/list_pets.rb" => OTHER_QUERY.sub("Other", "ListPets"),
+      "app/deeds/old_thing.rb" => "class OldThing < Deed\n  def call\n    ListPeople.call\n  end\nend\n",
+      "app/questions/list_people.rb" => OTHER_QUESTION,
+      "app/questions/list_pets.rb" => OTHER_QUESTION.sub("Other", "ListPets"),
     }) do |root|
-      FileUtils.rm(File.join(root, "app/commands/old_thing.rb"))
-      write(root, "app/commands/new_thing.rb",
-            "class NewThing < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPets.call\n    ListPets.call\n  end\nend\n")
+      FileUtils.rm(File.join(root, "app/deeds/old_thing.rb"))
+      write(root, "app/deeds/new_thing.rb",
+            "class NewThing < Deed\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPets.call\n    ListPets.call\n  end\nend\n")
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "delete old_thing.rb, add new_thing.rb")
 
@@ -235,11 +235,11 @@ class CheckTest < Minitest::Test
   # `ListPeople` sits where `AllCops::Exclude` keeps RuboCop away - only `Kinds` ever saw it.
   def test_a_callee_excluded_from_inspection_still_ratchets
     custom_repo({
-      "app/commands/create_person.rb" => CLEAN_COMMAND,
-      "app/queries/legacy/list_people.rb" => OTHER_QUERY,
+      "app/deeds/create_person.rb" => CLEAN_DEED,
+      "app/questions/legacy/list_people.rb" => OTHER_QUESTION,
     }, config: EXCLUDED_YML) do |root|
-      write(root, "app/commands/create_person.rb",
-            "class CreatePerson < Command\n  def call\n    ListPeople.call\n    ListPeople.call\n    " \
+      write(root, "app/deeds/create_person.rb",
+            "class CreatePerson < Deed\n  def call\n    ListPeople.call\n    ListPeople.call\n    " \
             "ListPeople.call\n    ListPeople.call\n  end\nend\n")
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "quadruple the calls to an excluded callee")
@@ -253,15 +253,15 @@ class CheckTest < Minitest::Test
   # A legacy caller brought under governance reports as an arrival, never a rise.
   def test_moving_a_file_into_governance_does_not_rise
     in_repo do |root|
-      write(root, "app/legacy/old_query.rb",
-            "class OldQuery < Command\n  def call\n    CreatePerson.call(name: \"x\")\n  end\nend\n")
+      write(root, "app/legacy/old_question.rb",
+            "class OldQuestion < Deed\n  def call\n    CreatePerson.call(name: \"x\")\n  end\nend\n")
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "add an ungoverned legacy caller")
 
-      moved = File.join(root, "app/commands/old_query.rb")
-      FileUtils.mv(File.join(root, "app/legacy/old_query.rb"), moved)
+      moved = File.join(root, "app/deeds/old_question.rb")
+      FileUtils.mv(File.join(root, "app/legacy/old_question.rb"), moved)
       git!(root, "add", "-A")
-      git!(root, "commit", "--quiet", "-m", "move old_query.rb under governance, touch no call")
+      git!(root, "commit", "--quiet", "-m", "move old_question.rb under governance, touch no call")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -276,15 +276,15 @@ class CheckTest < Minitest::Test
   # The old intersection reported `{was: 2, now: 1}` and said nothing about the 3 that arrived.
   def test_a_cut_and_an_arriving_file_are_never_reported_as_one_number
     custom_repo({
-      "app/commands/create_person.rb" =>
-        "class CreatePerson < Command\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n",
-      "app/queries/list_people.rb" => OTHER_QUERY,
-      "app/queries/other.rb" => OTHER_QUERY,
+      "app/deeds/create_person.rb" =>
+        "class CreatePerson < Deed\n  def call\n    ListPeople.call\n    Other.call\n  end\nend\n",
+      "app/questions/list_people.rb" => OTHER_QUESTION,
+      "app/questions/other.rb" => OTHER_QUESTION,
       "app/legacy/big.rb" =>
         "class Big\n  def call\n    ListPeople.call\n    ListPeople.call\n    ListPeople.call\n  end\nend\n",
     }) do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n")
-      FileUtils.mv(File.join(root, "app/legacy/big.rb"), File.join(root, "app/commands/big.rb"))
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n    ListPeople.call\n  end\nend\n")
+      FileUtils.mv(File.join(root, "app/legacy/big.rb"), File.join(root, "app/deeds/big.rb"))
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -298,7 +298,7 @@ class CheckTest < Minitest::Test
 
   def test_a_cut_call_makes_coupling_fall
     in_repo do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -308,17 +308,17 @@ class CheckTest < Minitest::Test
 
   def test_it_leaves_the_working_copy_alone
     in_repo do |root|
-      write(root, "app/queries/list_people.rb", DIRTY_QUERY)
+      write(root, "app/questions/list_people.rb", DIRTY_QUESTION)
       Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_equal DIRTY_QUERY, File.read(File.join(root, "app/queries/list_people.rb"))
+      assert_equal DIRTY_QUESTION, File.read(File.join(root, "app/questions/list_people.rb"))
       assert_empty capture(root, "worktree", "list", "--porcelain").scan(/^worktree/).drop(1),
         "The working copy is never checked out, moved or stashed. A tool that disturbs the tree to measure it is one nobody runs twice."
     end
   end
 
   def test_an_explicit_config_is_used_for_both_trees
-    in_repo(baseline: DIRTY_QUERY) do |root|
+    in_repo(baseline: DIRTY_QUESTION) do |root|
       write(root, ".rubocop-shipshape.yml", format(RUBOCOP_YML, gem: gem_root))
       # The repository's own config is removed, so anything found came from the given one.
       FileUtils.rm(File.join(root, ".rubocop.yml"))
@@ -424,17 +424,17 @@ class CheckTest < Minitest::Test
     in_repo(config: RETIRING_YML) do |root|
       FileUtils.mkdir_p(File.join(root, "app/legacy"))
       write(root, "app/legacy/find_person_legacy.rb",
-            "class FindPersonLegacy < LegacyQuery\n  def call\n    []\n  end\nend\n")
+            "class FindPersonLegacy < LegacyQuestion\n  def call\n    []\n  end\nend\n")
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
-      assert_equal({ "legacy_query" => { was: 0, now: 1 } }, report[:retiring])
+      assert_equal({ "legacy_question" => { was: 0, now: 1 } }, report[:retiring])
     end
   end
 
   def test_a_kind_that_is_not_retiring_is_not_counted
     in_repo(config: RETIRING_YML) do |root|
-      write(root, "app/queries/another.rb", OTHER_QUERY.sub("Other", "Another"))
+      write(root, "app/questions/another.rb", OTHER_QUESTION.sub("Other", "Another"))
 
       report = Shipshape::Check.new(root: root, trunk: "trunk").call
 
@@ -528,22 +528,22 @@ class CheckTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
-        query: ['app/queries/**/*.rb']
-        legacy_query: ['app/legacy/**/*_legacy.rb']
+        deed: ['app/deeds/**/*.rb']
+        question: ['app/questions/**/*.rb']
+        legacy_question: ['app/legacy/**/*_legacy.rb']
       Retiring:
-        - legacy_query
+        - legacy_question
       BaseClasses:
-        command: [Command]
-        query: [Query]
-        legacy_query: [LegacyQuery]
+        deed: [Deed]
+        question: [Question]
+        legacy_question: [LegacyQuestion]
       Sisters:
-        - [command]
-        - [query, legacy_query]
+        - [deed]
+        - [question, legacy_question]
       Matrix:
-        command: [query, legacy_query]
-        query: []
-        legacy_query: []
+        deed: [question, legacy_question]
+        question: []
+        legacy_question: []
   YAML
 
   GROWTH_YML = <<~YAML
@@ -617,7 +617,7 @@ class CheckTest < Minitest::Test
     end
   end
 
-  def in_repo(baseline: OTHER_QUERY, config: nil)
+  def in_repo(baseline: OTHER_QUESTION, config: nil)
     with_gem_on_the_load_path do
       in_repo_without_load_path(baseline: baseline, config: config) { |root| yield(root) }
     end
@@ -638,9 +638,9 @@ class CheckTest < Minitest::Test
       git!(root, "config", "user.name", "test")
 
       write(root, ".rubocop.yml", format(config || RUBOCOP_YML, gem: gem_root))
-      write(root, "app/commands/create_person.rb", CLEAN_COMMAND)
-      write(root, "app/queries/other.rb", OTHER_QUERY)
-      write(root, "app/queries/list_people.rb", baseline)
+      write(root, "app/deeds/create_person.rb", CLEAN_DEED)
+      write(root, "app/questions/other.rb", OTHER_QUESTION)
+      write(root, "app/questions/list_people.rb", baseline)
 
       git!(root, "add", "-A")
       git!(root, "commit", "--quiet", "-m", "baseline")

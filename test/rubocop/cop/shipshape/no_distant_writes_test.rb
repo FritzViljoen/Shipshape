@@ -13,14 +13,14 @@ class NoDistantWritesTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
         "request_handling" => ["app/controllers/**/*_controller.rb"],
       },
-      "Matrix" => { "command" => [], "request_handling" => ["command"] },
+      "Matrix" => { "deed" => [], "request_handling" => ["deed"] },
     },
   }.freeze
 
-  COMMAND = "app/commands/switch_tenant.rb"
+  DEED = "app/deeds/switch_tenant.rb"
 
   def test_assigning_a_global_is_a_distant_write
     found = check(<<~RUBY)
@@ -136,6 +136,6 @@ class NoDistantWritesTest < Minitest::Test
   private
 
   def check(source)
-    offences(source, cop_class: COP, path: COMMAND, other_cops: LAYOUT)
+    offences(source, cop_class: COP, path: DEED, other_cops: LAYOUT)
   end
 end

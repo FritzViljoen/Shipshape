@@ -212,16 +212,16 @@ class ReportTest < Minitest::Test
   def test_it_proposes_a_shape_named_from_their_own_code
     proposal = row("Request handling reaching straight into persistence").proposal
 
-    assert_includes proposal, "class FindOrder < Query"
-    assert_includes proposal, "app/queries/find_order.rb"
+    assert_includes proposal, "class FindOrder < Question"
+    assert_includes proposal, "app/questions/find_order.rb"
     assert_includes proposal, "@id = typed(id, Integer)",
-      "A suggestion written in the reader's own nouns is one they can argue with; one written in `YourCommand` and `SomeModel` is a slide."
+      "A suggestion written in the reader's own nouns is one they can argue with; one written in `YourDeed` and `SomeModel` is a slide."
   end
 
   def test_a_proposal_with_no_inputs_has_no_empty_initializer
     proposal = row("Rules living on persistence").proposal
 
-    assert_includes proposal, "class TotalOrder < Query"
+    assert_includes proposal, "class TotalOrder < Question"
     refute_includes proposal, "initialize()"
   end
 
@@ -237,9 +237,9 @@ class ReportTest < Minitest::Test
   end
 
   def test_the_message_decides_read_or_write_where_the_action_cannot
-    assert_equal "Query", Shipshape::Measures::Naming.kind_for(:archive_order, message: :where)
-    assert_equal "Command", Shipshape::Measures::Naming.kind_for(:index, message: :create!),
-      "The message is better evidence than the action name: `User.where` is a read whatever the method around it is called, and guessing Command from silence is how a report gets laughed at."
+    assert_equal "Question", Shipshape::Measures::Naming.kind_for(:archive_order, message: :where)
+    assert_equal "Deed", Shipshape::Measures::Naming.kind_for(:index, message: :create!),
+      "The message is better evidence than the action name: `User.where` is a read whatever the method around it is called, and guessing Deed from silence is how a report gets laughed at."
   end
 
   def test_framework_methods_are_not_rules
@@ -294,7 +294,7 @@ class ReportTest < Minitest::Test
       "Their own code, doing it right. Every codebase has some, and holding it up turns a diagnostic from a verdict into a direction."
   end
 
-  def test_it_infers_command_or_query_from_what_the_method_does
+  def test_it_infers_deed_or_question_from_what_the_method_does
     proposals = row("Rules living on persistence").findings.map { |finding| finding.context }
 
     settle = proposals.find { |context| context[:method] == :settle! }
@@ -311,9 +311,9 @@ class ReportTest < Minitest::Test
     finding = write.call(sources_for_app).find { |candidate| candidate.context[:method] == :settle! }
     proposal = write.proposal([finding])
 
-    assert_includes proposal, "class SettleOrder < Command"
-    assert_includes proposal, "app/commands/settle_order.rb"
-    assert_includes proposal, "It calls `update!`, so it writes: a Command."
+    assert_includes proposal, "class SettleOrder < Deed"
+    assert_includes proposal, "app/deeds/settle_order.rb"
+    assert_includes proposal, "It calls `update!`, so it writes: a Deed."
   end
 
   # "98% of your classes are not god classes" reassures, and it is the wrong reading: one
@@ -415,10 +415,10 @@ class ReportTest < Minitest::Test
 
     assert_includes text, "## What the shape is"
 
-    # Record, shape, query, command, workflow — the order the rename makes possible, and
+    # Record, shape, question, deed, workflow — the order the rename makes possible, and
     # the order a reader can follow: the table lets go of the name, then the name is used.
-    order = ["class InvoiceRecord", "class Invoice < Shape", "class FindInvoice < Query",
-             "class SettleInvoice < Command", "class CloseTheMonth < Workflow"]
+    order = ["class InvoiceRecord", "class Invoice < Shape", "class FindInvoice < Question",
+             "class SettleInvoice < Deed", "class CloseTheMonth < Workflow"]
 
     assert_equal order, order.sort_by { |declaration| text.index(declaration) }
     # A part, nested inside the thing it belongs to — there is no top-level InvoiceLine
@@ -439,9 +439,9 @@ class ReportTest < Minitest::Test
     assert_includes text, "the naming collision paying off"
 
     # The example taught the opposite of the rule: FindInvoice called FindCustomer, which is
-    # query -> query, the sister call this canon calls load-bearing.
+    # question -> question, the sister call this canon calls load-bearing.
     refute_includes text, "FindCustomer.call"
-    assert_includes text, "A QUERY OWNS ITS ENTIRE READ"
+    assert_includes text, "A QUESTION OWNS ITS ENTIRE READ"
 
     # The layer the whole report is about has to appear in the example of what good looks
     # like — including the two-call case, which is the one people ask about.
@@ -560,7 +560,7 @@ class ReportTest < Minitest::Test
 
     refute_includes labels.join, "#auto_settled?"
     refute_includes labels.join, "#settle!",
-      "Not a matter of taste: a shape has no database, so a method needing one cannot exist on it. `auto_settled?` becomes a field the query fills, not a Query class of its own."
+      "Not a matter of taste: a shape has no database, so a method needing one cannot exist on it. `auto_settled?` becomes a field the question fills, not a Question class of its own."
   end
 
   def test_the_proposal_says_what_happens_to_the_ones_that_cannot_move
@@ -629,7 +629,7 @@ class ReportTest < Minitest::Test
   def test_a_mailer_is_an_outbound_write_not_an_entry_point
     kinds = YAML.load_file(Shipshape::CONFIG_DEFAULT.to_s).fetch("Shipshape/CallGraph").fetch("Kinds")
 
-    assert_includes kinds.fetch("io_command").join, "app/mailers"
+    assert_includes kinds.fetch("io_deed").join, "app/mailers"
     refute_includes kinds.fetch("entry_point").join, "app/mailers",
       "Sending mail leaves the process, so a mailer is a write to the outside rather than a door into the application. In the target shape there is no mailer directory at all."
   end
@@ -721,7 +721,7 @@ class ReportTest < Minitest::Test
   end
 
   # It must ask. A bang method does the thing, and reporting one made the measure look careless.
-  def test_a_command_that_names_a_user_is_not_a_question
+  def test_a_deed_that_names_a_user_is_not_a_question
     assert_empty authorisation_in(<<~RUBY)
       class User < ApplicationRecord
         def ban_by_user_for_reason!(banner, reason)
@@ -734,8 +734,8 @@ class ReportTest < Minitest::Test
   # An operation carries its permission in its class name, so a predicate there is the model
   # working. What this hunts is the same decision anywhere else.
   def test_a_predicate_inside_an_operation_is_the_model_working
-    assert_empty authorisation_in("class Settle < Command\n  def can_run?\n    true\n  end\nend\n",
-                                  relative: "app/commands/settle.rb")
+    assert_empty authorisation_in("class Settle < Deed\n  def can_run?\n    true\n  end\nend\n",
+                                  relative: "app/deeds/settle.rb")
   end
 
   private

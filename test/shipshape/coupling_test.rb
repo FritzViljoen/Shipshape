@@ -19,17 +19,17 @@ class CouplingTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
-        query: ['app/queries/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
+        question: ['app/questions/**/*.rb']
       BaseClasses:
-        command: [Command]
-        query: [Query]
+        deed: [Deed]
+        question: [Question]
       Sisters:
-        - [command]
-        - [query]
+        - [deed]
+        - [question]
       Matrix:
-        command: [query]
-        query: []
+        deed: [question]
+        question: []
   YAML
 
   DISABLED_YML = <<~YAML
@@ -44,13 +44,13 @@ class CouplingTest < Minitest::Test
       Enabled: false
   YAML
 
-  COMMAND = "class CreatePerson < Command\n  def call\n    ListPeople.call\n  end\nend\n"
-  QUERY = "class ListPeople < Query\n  def call\n    []\n  end\nend\n"
+  DEED = "class CreatePerson < Deed\n  def call\n    ListPeople.call\n  end\nend\n"
+  QUESTION = "class ListPeople < Question\n  def call\n    []\n  end\nend\n"
 
   def test_an_allowed_edge_still_counts
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       assert_equal 1, call(root), "coupling counts a legal edge - it is the graph, not the violations on it"
     end
@@ -59,8 +59,8 @@ class CouplingTest < Minitest::Test
   # A sister call is always a violation (Matrix names no sister), and still one edge.
   def test_a_disallowed_edge_counts_the_same_as_an_allowed_one
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/queries/list_people.rb", "class ListPeople < Query\n  def call\n    Other.call\n  end\nend\n")
-      write(root, "app/queries/other.rb", "class Other < Query\n  def call\n    []\n  end\nend\n")
+      write(root, "app/questions/list_people.rb", "class ListPeople < Question\n  def call\n    Other.call\n  end\nend\n")
+      write(root, "app/questions/other.rb", "class Other < Question\n  def call\n    []\n  end\nend\n")
 
       assert_equal 1, call(root)
     end
@@ -68,7 +68,7 @@ class CouplingTest < Minitest::Test
 
   def test_a_call_to_an_ungoverned_class_does_not_count
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n    Time.zone.now\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n    Time.zone.now\n  end\nend\n")
 
       assert_equal 0, call(root)
     end
@@ -76,7 +76,7 @@ class CouplingTest < Minitest::Test
 
   def test_a_superclass_reference_does_not_count
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n    Command.transaction { }\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n    Deed.transaction { }\n  end\nend\n")
 
       assert_equal 0, call(root)
     end
@@ -86,18 +86,18 @@ class CouplingTest < Minitest::Test
   # calls untouched, must read exactly the same.
   def test_a_move_leaves_it_flat
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       before = call(root)
 
-      moved_command = File.join(root, "app/commands/people/create_person.rb")
-      FileUtils.mkdir_p(File.dirname(moved_command))
-      FileUtils.mv(File.join(root, "app/commands/create_person.rb"), moved_command)
+      moved_deed = File.join(root, "app/deeds/people/create_person.rb")
+      FileUtils.mkdir_p(File.dirname(moved_deed))
+      FileUtils.mv(File.join(root, "app/deeds/create_person.rb"), moved_deed)
 
-      moved_query = File.join(root, "app/queries/people/list_people.rb")
-      FileUtils.mkdir_p(File.dirname(moved_query))
-      FileUtils.mv(File.join(root, "app/queries/list_people.rb"), moved_query)
+      moved_question = File.join(root, "app/questions/people/list_people.rb")
+      FileUtils.mkdir_p(File.dirname(moved_question))
+      FileUtils.mv(File.join(root, "app/questions/list_people.rb"), moved_question)
 
       assert_equal before, call(root), "both files moved, no call site touched - the count must not move"
     end
@@ -107,12 +107,12 @@ class CouplingTest < Minitest::Test
   # together are the proof: moving is flat, cutting is not.
   def test_a_cut_call_falls
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       before = call(root)
 
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n  end\nend\n")
 
       after = call(root)
 
@@ -123,20 +123,20 @@ class CouplingTest < Minitest::Test
 
   def test_the_governed_set_names_every_caller_kind_file_regardless_of_edges
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson < Command\n  def call\n  end\nend\n")
-      write(root, "app/legacy/old_query.rb", "class OldQuery\n  def call\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson < Deed\n  def call\n  end\nend\n")
+      write(root, "app/legacy/old_question.rb", "class OldQuestion\n  def call\n  end\nend\n")
 
       found = report(root).governed
 
-      assert_includes found, "app/commands/create_person.rb"
-      refute_includes found, "app/legacy/old_query.rb"
+      assert_includes found, "app/deeds/create_person.rb"
+      refute_includes found, "app/legacy/old_question.rb"
     end
   end
 
   def test_a_disabled_cop_measures_no_coupling
     in_repo(DISABLED_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       assert_equal 0, call(root)
     end
@@ -145,13 +145,13 @@ class CouplingTest < Minitest::Test
   # `CouplingDelta` needs an edge's callee file, not just that it exists.
   def test_an_edge_names_its_caller_and_callee_files
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       edge = report(root).edges.first
 
-      assert_equal "app/commands/create_person.rb", edge.caller
-      assert_equal "app/queries/list_people.rb", edge.callee
+      assert_equal "app/deeds/create_person.rb", edge.caller
+      assert_equal "app/questions/list_people.rb", edge.callee
     end
   end
 
@@ -159,17 +159,17 @@ class CouplingTest < Minitest::Test
   def test_a_nested_config_does_not_lose_its_own_governed_files
     in_repo(RUBOCOP_YML) do |root|
       write(root, "sandbox/.rubocop.yml", "inherit_from:\n  - ../.rubocop.yml\n")
-      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
-      write(root, "sandbox/app/queries/list_people.rb", QUERY)
+      write(root, "sandbox/app/deeds/create_person.rb", DEED)
+      write(root, "sandbox/app/questions/list_people.rb", QUESTION)
 
       found = Shipshape::Coupling.new(directory: root, config: nil).call
 
-      assert_includes found.governed, "sandbox/app/commands/create_person.rb"
-      assert_includes found.governed, "sandbox/app/queries/list_people.rb"
+      assert_includes found.governed, "sandbox/app/deeds/create_person.rb"
+      assert_includes found.governed, "sandbox/app/questions/list_people.rb"
 
-      edge = found.edges.find { |e| e.caller == "sandbox/app/commands/create_person.rb" }
+      edge = found.edges.find { |e| e.caller == "sandbox/app/deeds/create_person.rb" }
       refute_nil edge, "the caller under the nested config must still be a recorded edge"
-      assert_equal "sandbox/app/queries/list_people.rb", edge.callee
+      assert_equal "sandbox/app/questions/list_people.rb", edge.callee
     end
   end
 
@@ -218,8 +218,8 @@ class CouplingTest < Minitest::Test
   # still show its coupling here - the shared-bucket bug this reddens if reverted.
   def test_a_file_the_line_ratchet_already_cached_still_reports_its_coupling
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", COMMAND)
-      write(root, "app/queries/list_people.rb", QUERY)
+      write(root, "app/deeds/create_person.rb", DEED)
+      write(root, "app/questions/list_people.rb", QUESTION)
 
       with_fresh_cache_root do
         Shipshape::BaseTestClassLines.new(directory: root, config: File.join(root, ".rubocop.yml")).call
