@@ -10,7 +10,8 @@ module Shipshape
       end
     end
 
-    # Not a base class the measures inherit: `one-level-of-inheritance` binds this gem too.
+    # Helper functions, called directly and never included or inherited, so no measure
+    # gains a second layer of shared behaviour through this module.
     module ClassReading
       module_function
 
