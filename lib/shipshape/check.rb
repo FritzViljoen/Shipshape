@@ -16,9 +16,9 @@ require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The ratchet: each cop's offences, and the population of every retiring kind, here and at the
-  # merge base — failing where either rose. No checked-in baseline: a snapshot has a regenerate
-  # button, and pressing it on a red build erases the signal.
+  # The ratchet: each cop's offences, failing where they rose - and the population of every
+  # retiring kind, reported but never gated on, since `the-call-graph-is-declared` calls that
+  # a curve, not a ratchet. No checked-in baseline: a regenerate button on a red build erases it.
   class Check
     include TypedArguments
 
