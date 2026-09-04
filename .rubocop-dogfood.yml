@@ -3,7 +3,7 @@
 # all 35 planted violations out of inspection — every canary went silent while passing.
 #
 # The one cop that is not scoped at an application's operations. The rest read kinds —
-# command, query, record — and this repository has none.
+# deed, question, record — and this repository has none.
 require:
   - ./lib/rubocop/cop/shipshape/comment_budget
 

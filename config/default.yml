@@ -15,7 +15,7 @@ Shipshape/CallGraph:
   #
   # Two kinds carry a filename suffix, and for one reason: they are the two that are
   # infrastructure rather than domain. Everything the MVC model used to hold has been split
-  # into workflows, commands, queries and shapes, so what is still called a record is
+  # into workflows, deeds, questions and shapes, so what is still called a record is
   # only the table — and it is named to say so.
   #
   Kinds:
@@ -31,14 +31,14 @@ Shipshape/CallGraph:
     # The other doors. A job, a subscriber and a channel are request handling through a
     # different entrance: each parses its input, calls operations and decides nothing.
     #
-    # MAILERS ARE NOT HERE. Sending mail leaves the process, so a send is an io_command;
+    # MAILERS ARE NOT HERE. Sending mail leaves the process, so a send is an io_deed;
     # the body it renders is a template like any other. In the shape being asked for there
     # is no mailer directory at all — during migration there is, and it is classified below
     # as what it does rather than where it sits.
     #
     # SUBSCRIBERS AND CHANNELS ARE, and it is a close call. Both are reached from outside
-    # their own call path, which is what makes them feel like IO. But io_command's row is
-    # `query, shape` — a subscriber classified there would be a violation for doing the one
+    # their own call path, which is what makes them feel like IO. But io_deed's row is
+    # `question, shape` — a subscriber classified there would be a violation for doing the one
     # thing subscribers do, which is call a domain operation.
     #
     # What is actually wrong with them is not their kind. A subscriber is invoked by an
@@ -46,7 +46,7 @@ Shipshape/CallGraph:
     # `nothing-travels-off-the-call-path` names it. A law it breaks, not a kind it is.
     #
     # In the target shape neither directory exists: a subscriber becomes an explicit step in
-    # a workflow, and a channel's broadcast becomes an io_command while its subscribe stays
+    # a workflow, and a channel's broadcast becomes an io_deed while its subscribe stays
     # a door. Until then the row here is the one that fits what they do.
     entry_point:
       - 'app/jobs/**/*.rb'
@@ -63,28 +63,28 @@ Shipshape/CallGraph:
     workflow:
       - 'app/workflows/**/*.rb'
       - 'packs/*/workflows/**/*.rb'
-    command:
-      - 'app/commands/**/*.rb'
-      - 'packs/*/commands/**/*.rb'
-    query:
-      - 'app/queries/**/*.rb'
-      - 'packs/*/queries/**/*.rb'
+    deed:
+      - 'app/deeds/**/*.rb'
+      - 'packs/*/deeds/**/*.rb'
+    question:
+      - 'app/questions/**/*.rb'
+      - 'packs/*/questions/**/*.rb'
     # Reading and changing state OUTSIDE this process. Same two operations, marked, and the
     # `Io` prefix on the class name means the crossing is visible at every call site.
     #
-    # THE REASON THEY ARE SEPARATE KINDS IS THE TRANSACTION. A command is exactly one
+    # THE REASON THEY ARE SEPARATE KINDS IS THE TRANSACTION. A deed is exactly one
     # transaction; an external call inside one holds a database transaction open across a
     # network round trip, and a remote write cannot be rolled back by it in any case. So a
-    # command may not do IO — the external call and the local write that records it are two
+    # deed may not do IO — the external call and the local write that records it are two
     # steps, sequenced by a workflow, which is the only kind that has accepted the bill for
     # spanning them.
     #
-    # They are SISTERS of the internal pair, not new concepts: an io_command is a command
-    # whose store belongs to somebody else. Which is why a command may not call one.
-    io_query:
+    # They are SISTERS of the internal pair, not new concepts: an io_deed is a deed
+    # whose store belongs to somebody else. Which is why a deed may not call one.
+    io_question:
       - 'app/io/**/*.rb'
       - 'packs/*/io/**/*.rb'
-    io_command:
+    io_deed:
       - 'app/io/**/*.rb'
       - 'app/mailers/**/*.rb'
       - 'packs/*/io/**/*.rb'
@@ -94,7 +94,7 @@ Shipshape/CallGraph:
     # the suffix means the dependency is visible at the call site without opening anything.
     #
     # There are two rather than one so that the return shape survives the crossing: a
-    # legacy query answers with shapes, a legacy command answers with a Result. A single
+    # legacy question answers with shapes, a legacy deed answers with a Result. A single
     # door would have to answer both ways, and that is the flag this canon refuses.
     #
     # Both share one suffix. The path says "this is a door"; the BASE CLASS says which of
@@ -113,14 +113,14 @@ Shipshape/CallGraph:
     # legacy door lives at are the application's to declare, and a glob shipped in the
     # default config would claim a directory most repositories do not have. Add
     # `app/grids/**/*.rb` to this list in your own .rubocop.yml where the gem is in use.
-    legacy_query:
+    legacy_question:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'
-    legacy_command:
+    legacy_deed:
       - 'app/legacy/**/*_legacy.rb'
       - 'packs/*/legacy/**/*_legacy.rb'
       # A concern has no superclass, so the path decides — and the two legacy kinds share one
-      # glob. It goes to the command, whose matrix row is the wider of the two: over-firing on
+      # glob. It goes to the deed, whose matrix row is the wider of the two: over-firing on
       # correct code is how a cop gets switched off, and under-firing here costs one row.
       - 'app/legacy/concerns/**/*.rb'
       - 'packs/*/legacy/concerns/**/*.rb'
@@ -142,7 +142,7 @@ Shipshape/CallGraph:
   # legacy pair do — and a governed file whose superclass is not listed here falls back to
   # its path, or to no kind if the path does not say either.
   # **Rails' own base classes are named here too.** They live inside the trees these globs
-  # cover — `app/mailers/application_mailer.rb` is under the io_command glob — so a class
+  # cover — `app/mailers/application_mailer.rb` is under the io_deed glob — so a class
   # inheriting one looked like a second level of inheritance to
   # Shipshape/OperationsAreLeaves, which fired on every mailer in forem. Being on this list
   # is what makes a name a base class, and a rename buys nothing, so it cannot go stale.
@@ -150,16 +150,16 @@ Shipshape/CallGraph:
   # here, beside the kinds, because an agent reading what the kinds are must read this in the
   # same breath — a refactor into a kind on its way out is how a migration stops half way.
   Retiring:
-    - legacy_command
-    - legacy_query
+    - legacy_deed
+    - legacy_question
   BaseClasses:
     workflow: [Workflow]
-    command: [Command]
-    query: [Query]
-    io_query: [IoQuery]
-    io_command: [IoCommand, ApplicationMailer, ActionMailer::Base]
-    legacy_query: [LegacyQuery]
-    legacy_command: [LegacyCommand]
+    deed: [Deed]
+    question: [Question]
+    io_question: [IoQuestion]
+    io_deed: [IoDeed, ApplicationMailer, ActionMailer::Base]
+    legacy_question: [LegacyQuestion]
+    legacy_deed: [LegacyDeed]
     view_component: [ApplicationViewComponent, ViewComponent::Base]
     shape: [Shape]
     record: [ApplicationRecord, ActiveRecord::Base]
@@ -174,25 +174,24 @@ Shipshape/CallGraph:
   # every kind is its own sister — that rule lives in the cop, not here, so a Matrix row
   # naming a sister stops the run rather than being honoured.
   #
-  # A legacy command is a command that wraps something old, so calling one from a command
-  # is a write sequencing a write. THE REASON IS THE TRANSACTION: a command is exactly one
-  # transaction, and a workflow is several. A command that calls a command has either
-  # nested a transaction or silently widened one, and either way nobody decided it —
+  # A legacy deed is a deed that wraps something old, so calling one from a deed is a deed
+  # calling another deed — and two deeds always done together are one deed. Nesting them
+  # either nests a transaction or silently widens one, and either way nobody decided it —
   # whereas a workflow crossing transactions is obliged to make each step idempotent and
   # each intermediate state legal.
   Sisters:
-    - [command, io_command, legacy_command]
-    - [query, io_query, legacy_query]
+    - [deed, io_deed, legacy_deed]
+    - [question, io_question, legacy_question]
   # Who may call whom. A pair absent from this matrix is an offence.
   Matrix:
     request_handling:
       - workflow
-      - command
-      - query
-      - io_command
-      - io_query
-      - legacy_command
-      - legacy_query
+      - deed
+      - question
+      - io_deed
+      - io_question
+      - legacy_deed
+      - legacy_question
       - view_component
       - shape
     # The same row as request handling, exactly. A job is a controller with a different
@@ -200,12 +199,12 @@ Shipshape/CallGraph:
     # at the end of it just as an action does.
     entry_point:
       - workflow
-      - command
-      - query
-      - io_command
-      - io_query
-      - legacy_command
-      - legacy_query
+      - deed
+      - question
+      - io_deed
+      - io_question
+      - legacy_deed
+      - legacy_question
       - view_component
       - shape
     # It renders what it was handed and reads nothing. A component that can reach an
@@ -213,22 +212,22 @@ Shipshape/CallGraph:
     view_component:
       - shape
     workflow:
-      - command
-      - query
-      - io_command
-      - io_query
-      - legacy_command
-      - legacy_query
+      - deed
+      - question
+      - io_deed
+      - io_question
+      - legacy_deed
+      - legacy_question
       - shape
-    # NO IO IN A COMMAND OR A QUERY. A command is one transaction, and an external call
-    # inside one holds it open across a network round trip; a query reads what it names, and
+    # NO IO IN A DEED OR A QUESTION. A deed is one transaction, and an external call
+    # inside one holds it open across a network round trip; a question reads what it names, and
     # an external call is a read nobody can see. Both are sisters besides.
-    command:
-      - query
-      - legacy_query
+    deed:
+      - question
+      - legacy_question
       - shape
       - record
-    query:
+    question:
       - shape
       - record
     # An io operation talks to the outside, which is unclassified and therefore skipped, so
@@ -236,27 +235,27 @@ Shipshape/CallGraph:
     # external call and the local write that records it are two steps, and a workflow
     # sequences them.
     #
-    # `io_command -> io_query` mirrors `command -> query`: a write may read first, and
+    # `io_deed -> io_question` mirrors `deed -> question`: a write may read first, and
     # fetching a token before posting is that shape. The read it may do is the one in its
     # own world.
     #
-    # It may NOT reach `query`, which it could before this was looked at. An external write
+    # It may NOT reach `question`, which it could before this was looked at. An external write
     # pulling from the local store is reaching back across the boundary it just crossed —
     # and anything it needs from here should have been handed to it, like every other input.
-    io_command:
-      - io_query
+    io_deed:
+      - io_question
       - shape
-    io_query:
+    io_question:
       - shape
     # A door mirrors the row of the kind it is a sister to, because it IS that kind — it
     # only happens to wrap something old. What it really talks to, the old world, is
     # unclassified, and an unclassified constant is skipped, so that needs no row here.
-    legacy_command:
-      - query
-      - legacy_query
+    legacy_deed:
+      - question
+      - legacy_question
       - shape
       - record
-    legacy_query:
+    legacy_question:
       - shape
       - record
     shape: []
@@ -290,12 +289,12 @@ Shipshape/OneOperationOneClass:
   # declared once on Shipshape/CallGraph and read from there, so it is not repeated here.
   OperationKinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
   PublicMethod: call
   # The permission model requires this second name: an operation that runs before anyone is
   # identified says so by implementing it instead of `call`. A class defining both is still
@@ -334,7 +333,7 @@ Shipshape/NoCallbacks:
 
 Shipshape/PresentationHoldsNoRecords:
   Description: >-
-    A record is only allowed in a command or a query. The matrix holds that where the record is
+    A record is only allowed in a deed or a question. The matrix holds that where the record is
     named; a shape or a component is asked instead, because an argument names no constant.
   Enabled: true
   VersionAdded: '0.0.1'
@@ -384,10 +383,10 @@ Shipshape/NoTypeInterrogation:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
+    - deed
+    - question
+    - io_deed
+    - io_question
     - shape
     - view_component
   # **The legacy doors are deliberately absent, and this is the exemption, not an oversight.**
@@ -411,10 +410,10 @@ Shipshape/NoAmbientReads:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
+    - deed
+    - question
+    - io_deed
+    - io_question
     - shape
     # **A view component is the other presentation kind**, and the matrix says so: its whole
     # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
@@ -424,8 +423,8 @@ Shipshape/NoAmbientReads:
     # **A legacy door is new code.** Only the world on the far side of it is old — the door
     # itself takes what it was given, like every other kind. Left out until the kinds were
     # audited, so a door could read the clock or mutate a constant with nothing objecting.
-    - legacy_command
-    - legacy_query
+    - legacy_deed
+    - legacy_question
 
 Shipshape/NoDistantWrites:
   Description: >-
@@ -437,10 +436,10 @@ Shipshape/NoDistantWrites:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
+    - deed
+    - question
+    - io_deed
+    - io_question
     - shape
     # **A view component is the other presentation kind**, and the matrix says so: its whole
     # row is `shape`. It renders what it was handed. `Current.user` in a component, a clock
@@ -450,8 +449,8 @@ Shipshape/NoDistantWrites:
     # **A legacy door is new code.** Only the world on the far side of it is old — the door
     # itself takes what it was given, like every other kind. Left out until the kinds were
     # audited, so a door could read the clock or mutate a constant with nothing objecting.
-    - legacy_command
-    - legacy_query
+    - legacy_deed
+    - legacy_question
     # **The seams too.** A controller or a job mutating a global or a constant is the same
     # action at a distance it is anywhere else, and there is no adapter's excuse for it — the
     # seam parses input and calls an operation. They stay out of `Shipshape/NoAmbientReads`
@@ -471,12 +470,12 @@ Shipshape/TypedArguments:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
     # **A shape holds a shape and validates that shape**, which is the whole of what it is
     # for — so its initializer is asserted exactly as a door's is. Left out until it was
     # audited for, and a shape could take a positional, a `**rest`, or an unguarded keyword
@@ -604,7 +603,7 @@ Shipshape/PersistenceHoldsNoBehaviour:
 Shipshape/PresenceIsNotRedefined:
   Description: >-
     A shape does not answer `present?`, `blank?` or `empty?` for itself. Request handling tests
-    `present?` and nothing else, and it means one thing: did the query find anything.
+    `present?` and nothing else, and it means one thing: did the question find anything.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
@@ -636,12 +635,12 @@ Shipshape/NoGeneratedInterfaces:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
     - shape
     - record
     # A component that invents a macro hides the same thing: a reader greps for the method
@@ -659,13 +658,13 @@ Shipshape/AggregationIsReadable:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
-  # A command naming no operation is an ordinary command. A workflow naming none is not a
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
+  # A deed naming no operation is an ordinary deed. A workflow naming none is not a
   # workflow, so only this kind is failed for sequencing nothing.
   SequencingKinds:
     - workflow
@@ -692,12 +691,12 @@ Shipshape/OperationsAreLeaves:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
 
 Shipshape/NoEntryPointBypass:
   Description: >-
@@ -715,7 +714,7 @@ Shipshape/NoEntryPointBypass:
   Include:
     - '**/*.rb'
   # The generated base classes are where the legitimate `send` lives. Excluded by path, not
-  # by name: an application file called command.rb is not one of these.
+  # by name: an application file called deed.rb is not one of these.
   # Tests are exempt: a test legitimately reaches a private method, and refusing that would
   # make this the first cop a team turns off.
   Exclude:
@@ -744,23 +743,23 @@ Shipshape/OnlyTheDoorIsCalled:
     - anonymous?
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
   # **Deferring is running, at a different time**, so it goes through the base class exactly
   # as `call` does — the permission check, the argument assertion and the audit entry all
   # happen. But only the writing doors have the method: a workflow spans several transactions
-  # and a query answers nothing to nobody. Allowed for those kinds and refused for the rest,
+  # and a question answers nothing to nobody. Allowed for those kinds and refused for the rest,
   # rather than added to AllowedMessages, which is checked before the kind is known.
   DeferredMessages:
     - call_later
   DeferrableKinds:
-    - command
-    - io_command
-    - legacy_command
+    - deed
+    - io_deed
+    - legacy_deed
   # **And the kinds that may not send it.** A workflow states an order; a deferred step leaves
   # that order, so the sequence answers success for work that has not happened.
   SequencingKinds:
@@ -792,13 +791,13 @@ Shipshape/MixinsAddNothingPublic:
   # layout itself is declared once on Shipshape/CallGraph and read from there.
   OperationKinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
-  # Excluded because `OperationKinds` names workflows, commands, queries and IO doors, and no
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
+  # Excluded because `OperationKinds` names workflows, deeds, questions and IO doors, and no
   # test file is any of those - not because a test module may hand out public helpers through a
   # mixin. It may not: `Shipshape/NoTestMixins` forbids exactly that, everything this cop
   # exempts included.
@@ -806,20 +805,20 @@ Shipshape/MixinsAddNothingPublic:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
-Shipshape/QueriesOnlyRead:
+Shipshape/QuestionsNeverWrite:
   Description: >-
-    A query never writes. It may reach a record, so the call graph allows the call and cannot
-    see that the message sent is a write - and a query opens no transaction, so the write
+    A question never writes. It may reach a record, so the call graph allows the call and cannot
+    see that the message sent is a write - and a question opens no transaction, so the write
     runs outside one.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
-  # The read-only doors. A command may write; that is what it is for.
+  # The read-only doors. A deed may write; that is what it is for.
   Kinds:
-    - query
-    - io_query
-    - legacy_query
+    - question
+    - io_question
+    - legacy_question
   RecordKinds:
     - record
   # **Tests are exempt.** A test sets up rows directly, which is what a test is for.
@@ -838,12 +837,12 @@ Shipshape/OperationsOpenNoTransaction:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
 
 Shipshape/IoIsItsOwnKind:
   Description: >-
@@ -858,8 +857,8 @@ Shipshape/IoIsItsOwnKind:
   # old world this canon has not classified.
   Kinds:
     - workflow
-    - command
-    - query
+    - deed
+    - question
     - shape
     - view_component
     - record
@@ -961,19 +960,19 @@ Shipshape/AssociationsSurviveErasure:
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
 
-Shipshape/CommandsProveIdempotence:
+Shipshape/DeedsProveIdempotence:
   Description: >-
-    Every command's test says what happens when it runs twice. `tell-dont-ask` already obliges
-    it - a caller may not ask whether the work has happened, so the command owns repetition -
+    Every deed's test says what happens when it runs twice. `tell-dont-ask` already obliges
+    it - a caller may not ask whether the work has happened, so the deed owns repetition -
     and a queue retry is what makes it load-bearing.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:
     - '**/*.rb'
   Kinds:
-    - command
-    - io_command
-    - legacy_command
+    - deed
+    - io_deed
+    - legacy_deed
   # The phrase IS the act being required, the same way `Watched to fail` is. The check is that
   # somebody wrote it; no check makes the judgement behind it.
   Claim: 'Idempotent:'
@@ -995,12 +994,12 @@ Shipshape/AnonymityIsClosedDownward:
     - '**/*.rb'
   Kinds:
     - workflow
-    - command
-    - query
-    - io_command
-    - io_query
-    - legacy_command
-    - legacy_query
+    - deed
+    - question
+    - io_deed
+    - io_question
+    - legacy_deed
+    - legacy_question
 
 Shipshape/NoTestFactories:
   Description: >-
@@ -1018,7 +1017,7 @@ Shipshape/NoTestFactories:
 
 Shipshape/NothingSchedulesWork:
   Description: >-
-    A schedule is a row - which command, what arguments, how often, and as whom - not a
+    A schedule is a row - which deed, what arguments, how often, and as whom - not a
     cadence declared in code. Work that starts on a clock runs under somebody's name.
   Enabled: true
   VersionAdded: '0.0.1'
@@ -1055,13 +1054,13 @@ Shipshape/OperationsReportWhatTheyDid:
   # one of them.
   Include:
     - '**/shipshape/*.rb'
-  # The operations that perform an act. A query answers a caller and changes nothing, and a
+  # The operations that perform an act. A question answers a caller and changes nothing, and a
   # workflow only sequences — its steps each record what they did, so an entry from the
   # workflow would be a second row saying that the rows below it happened.
   Operations:
-    - command
-    - io_command
-    - legacy_command
+    - deed
+    - io_deed
+    - legacy_deed
   Recorder: AuditLog
 
 Shipshape/NoTestMixins:
