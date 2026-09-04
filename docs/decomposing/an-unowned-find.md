@@ -38,7 +38,7 @@ complete and row-level ownership is entirely outside it.** That gap is the subje
 ## 0. Find the loads that take an id from outside
 
 ```sh
-grep -rn "\.find(\|\.find_by(\|\.find_by_id\|\.where(id:" app/questions app/deeds app/io_questions app/io_deeds
+grep -rn "\.find(\|\.find_by(\|\.find_by_id\|\.where(id:" app/questions app/deeds app/io
 ```
 
 Then narrow to the ones whose id came from a keyword argument rather than from another row

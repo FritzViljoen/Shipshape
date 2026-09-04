@@ -215,7 +215,10 @@ about when the application above it has stopped moving.
 
 ## 9. Tests, once there is something to build state with
 
-[A factory graph](a-factory-graph.md).
+[A factory graph](a-factory-graph.md) — needs `shipshape install --auth`, run first. `test_call`
+is declared inside each template's `auth` branch, so without it there is no second entry point
+for that procedure's examples to call. Step 10 is where `--auth` is installed; run that part of
+it now, out of order, then come back.
 
 **Last, necessarily.** `no-test-factories` asks a test to build state by calling operations, and
 until the operations step there are none to call. Attempting it earlier is how a suite ends up with

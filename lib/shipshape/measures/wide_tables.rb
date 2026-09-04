@@ -8,7 +8,7 @@ module Shipshape
     # The god object as it appears in the schema: one table, many columns.
     class WideTables
       TITLE = "Widest tables"
-      LAW = "model-concerns-not-groups"
+      LAW = "a-shape-is-composed-not-flattened"
       WHY = "A class can be split quietly; a table cannot. Every column past the point " \
             "where the noun stops explaining them is a concept with nowhere else to go."
       CAVEAT = "No threshold — the widest are listed in order and the reader decides. A " \

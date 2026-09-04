@@ -164,7 +164,7 @@ there and merely tedious here.
 
 ```sh
 # the question names its tables; these are the deeds that must invalidate
-grep -rn "OrderLineRecord\|OrderRecord" app/deeds app/io_deeds
+grep -rn "OrderLineRecord\|OrderRecord" app/deeds app/io
 ```
 
 **Reach for it last**, after the cheaper answers: an index

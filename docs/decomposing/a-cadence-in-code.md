@@ -40,7 +40,7 @@ column. [`a-schedule-is-a-row`](../laws/a-schedule-is-a-row.md) is the law, and
 ## 0. Inventory what runs, and under whose name
 
 ```sh
-shipshape check --only Shipshape/NothingSchedulesWork
+bundle exec rubocop --only Shipshape/NothingSchedulesWork
 grep -rn "every \|Sidekiq::Cron\|Clockwork\|recurring " config lib
 ```
 

@@ -53,7 +53,7 @@ end of this work is "the database is inventoried, and the rest is not".
 ## 1. Take the inventory the cheap way
 
 ```sh
-shipshape check --only Shipshape/PersonalDataIsDeclared
+bundle exec rubocop --only Shipshape/PersonalDataIsDeclared
 ```
 
 Every column whose name suggests a person, that nothing has classified. Four answers, and
@@ -96,7 +96,7 @@ or the search was not real.
 ## 3. Decide what happens to the children
 
 ```sh
-shipshape check --only Shipshape/AssociationsSurviveErasure
+bundle exec rubocop --only Shipshape/AssociationsSurviveErasure
 ```
 
 An association with no `dependent:` leaves the children behind — the person is deleted and
@@ -162,7 +162,7 @@ raises nothing.
 ## 6. Count the copies you send out
 
 ```sh
-shipshape check --only Shipshape/IoIsItsOwnKind
+bundle exec rubocop --only Shipshape/IoIsItsOwnKind
 ```
 
 Every crossing is a place personal data may have left. Once the IO is its own kind, the

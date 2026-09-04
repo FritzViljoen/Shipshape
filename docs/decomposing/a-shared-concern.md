@@ -81,7 +81,7 @@ For a module that really is shared private helpers, the fix is one line and the 
 writes it:
 
 ```sh
-shipshape check --fix          # or: rubocop -A --only Shipshape/MixinsAddNothingPublic
+rubocop -A --only Shipshape/MixinsAddNothingPublic
 ```
 
 **Do this before anything structural.** It empties the list down to the modules that need a
