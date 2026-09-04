@@ -257,7 +257,11 @@ base. Only the root config is copied to the base tree. The merge-base is used ra
 trunk's tip, so an offence somebody else pushed after you branched is not billed to you. `OFF`
 is read from the root config alone — a cop a subdirectory `.rubocop.yml` disables is invisible
 to it, so it reports nothing off while `rubocop` itself, resolving per file, silences that cop
-there.
+there. A rename that changes what a classifier keys on — a `Kinds:` glob, or a literal name
+list inside a cop such as `EveryDoorChecksPermission`'s `DOORS` — can flip a base-tree file
+between governed and ungoverned by name alone, because one version of the code scores both
+trees. A kind- or name-scoped cop's count is not comparable across such a rename, and `check`
+reports `ROSE` because it cannot tell the two apart.
 
 ## Tests
 
@@ -265,6 +269,12 @@ there.
 bundle exec rake              # the suite
 bundle exec rake test:removal # neuter each cop in turn, confirm its own test goes red
 ```
+
+**RuboCop's own cache is not isolated per gem version.** `~/.cache/rubocop_cache` is shared
+across every checkout that runs the same Ruby and RuboCop version, worktrees included. A cache
+entry written before a change to what a cop records can poison every run after — a fixed cop
+kept reporting phantom offences from a stale entry until the cache was bypassed. `--no-cache`,
+or clearing that directory, rules it out when a result looks wrong for no visible reason.
 
 ## Licence
 
