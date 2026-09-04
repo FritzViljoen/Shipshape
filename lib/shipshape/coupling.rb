@@ -5,10 +5,12 @@ require "json"
 require "open3"
 require "rubocop"
 require "rubocop/cop/shipshape/call_graph"
+require "shipshape/config_at"
 require "shipshape/error"
 require "shipshape/kinds"
 require "shipshape/settings"
 require "shipshape/typed_arguments"
+require "shipshape/unrecognized_cops"
 
 module Shipshape
   # Every call `Shipshape/CallGraph` resolves to two governed kinds, legal or not — governance
@@ -21,22 +23,24 @@ module Shipshape
 
     # `callee` is nil for a `BaseClasses`-only match, which has no file. `CouplingDelta` reads both.
     Edge = Struct.new(:caller, :callee, keyword_init: true)
-    Report = Struct.new(:edges, :governed, keyword_init: true)
+    Report = Struct.new(:edges, :governed, :skipped_cops, keyword_init: true) # see `ConfigAt`
 
-    def initialize(directory:, config: nil)
+    def initialize(directory:, config: nil, tolerate_unknown_cops: false)
       @directory = typed(directory, String)
       @config = typed(config, String, allow_nil: true)
+      @tolerate_unknown_cops = tolerate_unknown_cops
+      @skipped_cops = Set.new
     end
 
     def call
       files = JSON.parse(json).fetch("files", [])
 
-      Report.new(edges: edges_in(files), governed: governed_files)
+      Report.new(edges: edges_in(files), governed: governed_files, skipped_cops: skipped_cops.to_a.sort)
     end
 
     private
 
-    attr_reader :directory, :config
+    attr_reader :directory, :config, :tolerate_unknown_cops, :skipped_cops
 
     def edges_in(files)
       files.each_with_object([]) do |file, found|
@@ -88,19 +92,16 @@ module Shipshape
       full.start_with?(prefix) ? full[prefix.length..-1] : full
     end
 
-    # Same lookup as `Check#config_at`: nil `config` falls back to the normal upward search.
+    # Same lookup as `Check#config_at`, both now routed through `ConfigAt`.
     def config_at(dir)
-      config_store.for_dir(dir)
-    end
-
-    def config_store
-      @config_store ||= RuboCop::ConfigStore.new.tap do |store|
-        store.options_config = config if config && File.file?(config)
-      end
+      result = ConfigAt.call(dir, config: config, tolerate_unknown_cops: tolerate_unknown_cops)
+      skipped_cops.merge(result.skipped_cops)
+      result.config
     end
 
     def json
       out, err, = Open3.capture3(coupling_env, *command, chdir: directory)
+      skipped_cops.merge(UnrecognizedCops.named_in(err)) if tolerate_unknown_cops
       return out if out.start_with?("{")
 
       raise Error, "shipshape: could not measure coupling in #{directory}: #{err.strip}"
@@ -114,6 +115,7 @@ module Shipshape
     def command
       arguments = [RbConfig.ruby, rubocop, "--require", "shipshape", "--format", "json", "--no-color",
                    "--display-style-guide"]
+      arguments << "--ignore-unrecognized-cops" if tolerate_unknown_cops
       arguments += ["--config", config] if config
 
       arguments

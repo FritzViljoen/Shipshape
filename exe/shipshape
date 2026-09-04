@@ -362,6 +362,14 @@ def check(trunk)
     puts
   end
 
+  if report[:skipped_cops].any?
+    report[:skipped_cops].each do |cop|
+      puts "  SKIPPED  #{cop} — the base config names it; this version's registry does not, " \
+           "so the base was measured without it"
+    end
+    puts
+  end
+
   report[:fallen].each { |cop, row| puts "  fell     #{cop}  #{row[:was]} -> #{row[:now]}" }
   report[:risen].each { |cop, row| puts "  ROSE     #{cop}  #{row[:was]} -> #{row[:now]}" }
   report[:retiring].each do |kind, row|

@@ -179,6 +179,39 @@ class GuardsTest < Minitest::Test
     end
   end
 
+  RETIRED_COP_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+
+    Shipshape/RetiredCopName:
+      Enabled: true
+  YAML
+
+  # Shares `Coupling`'s exposure: a config naming a cop this version's registry does not hold
+  # crashes `--show-cops` the same way it crashes the in-process read - `check` never actually
+  # asks Guards about the base tree, but the class itself must survive being asked to.
+  def test_a_config_naming_an_unknown_cop_is_refused_without_tolerance
+    in_repo(RETIRED_COP_YML) do |root|
+      error = assert_raises(Shipshape::Error) { call(root) }
+
+      assert_includes error.message, "produced no report"
+    end
+  end
+
+  def test_a_config_naming_an_unknown_cop_is_tolerated_and_named
+    in_repo(RETIRED_COP_YML) do |root|
+      guards = Shipshape::Guards.new(directory: root, config: File.join(root, ".rubocop.yml"),
+                                      tolerate_unknown_cops: true)
+
+      assert_empty guards.call
+      assert_includes guards.skipped_cops, "Shipshape/RetiredCopName"
+    end
+  end
+
   # `--show-cops` always prints valid YAML, so this reaches the guard the other way.
   def test_output_that_fails_to_parse_is_refused
     guards = Shipshape::Guards.new(directory: Dir.mktmpdir("shipshape-guards"))

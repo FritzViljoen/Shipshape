@@ -362,6 +362,52 @@ class CheckTest < Minitest::Test
     end
   end
 
+  # `measure_base` copies HEAD's root `.rubocop.yml` over the base's own, so only a NESTED
+  # config (like `test/canaries/.rubocop.yml`) can still name a cop this version renamed away.
+  # Watched to fail: reddened with a raw `RuboCop::ValidationError` before `tolerate_unknown_cops:`.
+  EXCLUDES_SANDBOX_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+      Exclude:
+        - 'sandbox/**/*'
+
+    Shipshape/CallGraph:
+      Kinds:
+        command: ['app/commands/**/*.rb']
+        query: ['app/queries/**/*.rb']
+      BaseClasses:
+        command: [Command]
+        query: [Query]
+      Sisters:
+        - [command]
+        - [query]
+      Matrix:
+        command: [query]
+        query: []
+  YAML
+
+  def test_a_base_config_naming_a_cop_this_version_lacks_is_survived_and_named
+    custom_repo({
+      "app/commands/create_person.rb" => CLEAN_COMMAND,
+      "app/queries/list_people.rb" => OTHER_QUERY,
+      "sandbox/.rubocop.yml" => "Shipshape/RetiredCopName:\n  Enabled: true\n",
+    }, config: EXCLUDES_SANDBOX_YML) do |root|
+      # The branch deletes the nested config, exactly as retiring a stale override would.
+      FileUtils.rm(File.join(root, "sandbox/.rubocop.yml"))
+      git!(root, "add", "-A")
+      git!(root, "commit", "--quiet", "-m", "drop sandbox's own config")
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_includes report[:skipped_cops], "Shipshape/RetiredCopName"
+      assert_empty report[:risen]
+    end
+  end
+
   def test_a_directory_that_is_not_a_repository_says_so
     Dir.mktmpdir("shipshape-none") do |root|
       error = assert_raises(Shipshape::Error) { Shipshape::Check.new(root: root).call }

@@ -5,6 +5,7 @@ require "tmpdir"
 require "shipshape/error"
 require "shipshape/git"
 require "shipshape/base_test_class_lines"
+require "shipshape/config_at"
 require "shipshape/coupling"
 require "shipshape/coupling_delta"
 require "shipshape/coverage"
@@ -43,17 +44,27 @@ module Shipshape
       off = Guards.new(directory: root, config: resolved).call
       lines_after = BaseTestClassLines.new(directory: root, config: resolved).call
       coupling_after = Coupling.new(directory: root, config: resolved).call
+      after, after_skips = population(root)
 
-      base, lived, lines_before, coupling_before = git.at(sha) do |path|
+      base, lived, before_skips, lines_before, coupling_before, base_skips = git.at(sha) do |path|
         base_offences, base_config = measure_base(path)
-        [base_offences.call, population(path), BaseTestClassLines.new(directory: path, config: base_config).call,
-         Coupling.new(directory: path, config: base_config).call]
+        base_lines = BaseTestClassLines.new(directory: path, config: base_config, tolerate_unknown_cops: true)
+        base_coupling = Coupling.new(directory: path, config: base_config, tolerate_unknown_cops: true)
+
+        base_offences_result = base_offences.call
+        base_population, base_population_skips = population(path, tolerate: true)
+        base_lines_result = base_lines.call
+        base_coupling_result = base_coupling.call
+
+        [base_offences_result, base_population, base_population_skips, base_lines_result, base_coupling_result,
+         base_offences.skipped_cops + base_lines.skipped_cops + base_coupling_result.skipped_cops]
       end
 
       coupling = CouplingDelta.new(base: coupling_before, head: coupling_after, renames: renames).call
+      skipped = (after_skips + before_skips + base_skips).uniq.sort
 
-      report(base: base, head: head, off: off, sha: sha, before: lived, after: population(root),
-             lines_before: lines_before, lines_after: lines_after, coupling: coupling)
+      report(base: base, head: head, off: off, sha: sha, before: lived, after: after,
+             lines_before: lines_before, lines_after: lines_after, coupling: coupling, skipped_cops: skipped)
     end
 
     private
@@ -98,7 +109,7 @@ module Shipshape
         FileUtils.cp(source, target)
       end
 
-      [Offences.new(directory: path, config: config && target), config && target]
+      [Offences.new(directory: path, config: config && target, tolerate_unknown_cops: true), config && target]
     end
 
     def relative(path)
@@ -113,21 +124,22 @@ module Shipshape
     end
 
     # A legacy door is correct code and raises nothing, so what ratchets is the population.
-    def population(path)
-      settings = Settings.layout(config_at(path))
+    # Returns `[population_by_kind, skipped_cops]` - see `ConfigAt`.
+    def population(path, tolerate: false)
+      layout = ConfigAt.call(path, config: config_path_in(path), tolerate_unknown_cops: tolerate)
+      settings = Settings.layout(layout.config)
 
-      return {} if settings.retiring.empty?
+      return [{}, layout.skipped_cops] if settings.retiring.empty?
 
-      by_kind = Coverage.new(config: config_at(path), root: path).call.by_kind
+      coverage_config = ConfigAt.call(path, config: config_path_in(path), tolerate_unknown_cops: tolerate)
+      by_kind = Coverage.new(config: coverage_config.config, root: path).call.by_kind
 
-      settings.retiring.to_h { |kind| [kind, by_kind.fetch(kind, 0)] }
+      hash = settings.retiring.to_h { |kind| [kind, by_kind.fetch(kind, 0)] }
+      [hash, (layout.skipped_cops + coverage_config.skipped_cops).uniq.sort]
     end
 
-    def config_at(path)
-      store = RuboCop::ConfigStore.new
-      chosen = File.join(path, config || CONFIG)
-      store.options_config = chosen if File.file?(chosen)
-      store.for_dir(path)
+    def config_path_in(path)
+      File.join(path, config || CONFIG)
     end
 
     ZERO_COUPLING = CouplingDelta::Totals.new(was: 0, now: 0, arrived_edges: 0, arrived_files: 0,
@@ -135,7 +147,7 @@ module Shipshape
 
     # `before:`/`after:`: the loops below assign `was` and `now`, and reassign them.
     def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {},
-               coupling: ZERO_COUPLING)
+               coupling: ZERO_COUPLING, skipped_cops: [])
       cops = (base.keys + head.keys).uniq.sort
 
       risen = cops.each_with_object({}) do |cop, rows|
@@ -154,7 +166,8 @@ module Shipshape
         retiring: arrived_in(before, after), growth: grown_files(lines_before, lines_after),
         coupling: { was: coupling.was, now: coupling.now,
                     arrived_edges: coupling.arrived_edges, arrived_files: coupling.arrived_files,
-                    left_edges: coupling.left_edges, left_files: coupling.left_files } }
+                    left_edges: coupling.left_edges, left_files: coupling.left_files },
+        skipped_cops: skipped_cops }
     end
   end
 end
