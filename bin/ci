@@ -1,12 +1,38 @@
 #!/usr/bin/env bash
-# Everything CI runs, and everything a developer runs. One command, one list.
+# The developer's one command, and the one list CI's three jobs call each of their steps
+# from — see .github/workflows/ci.yml, which names them separately because a failure is read
+# by job name, not by which line of this file ran.
 #
-# `ci-is-one-command`: the workflow calls this file and nothing else, so a green run here
-# is a green build. Nothing reads the workflow to prove that, which makes this a
-# convention rather than a law — see docs/laws/a-guard-states-its-limit.md.
+# With no argument: the suite and the comment budget over this gem's own files — the fast
+# round-trip to run before pushing. `bin/ci removal` is the slow one (minutes: a Ruby process
+# per cop), `bin/ci canaries` runs the real binary over one planted violation per cop, and
+# `bin/ci ratchet [--trunk REF]` is the PR-only check that nothing rose against the base.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "== tests =="
-bundle exec rake test test:removal
+mode="${1:-}"
+[ $# -gt 0 ] && shift || true
+
+case "$mode" in
+  "")
+    echo "== tests, lint =="
+    bundle exec rake
+    ;;
+  canaries)
+    echo "== canaries =="
+    bundle exec exe/shipshape canaries
+    ;;
+  removal)
+    echo "== every guard watched to fail =="
+    bundle exec rake test:removal
+    ;;
+  ratchet)
+    echo "== nothing rose against the base =="
+    bundle exec exe/shipshape check "$@"
+    ;;
+  *)
+    echo "usage: bin/ci [canaries|removal|ratchet [--trunk REF]]" >&2
+    exit 1
+    ;;
+esac
