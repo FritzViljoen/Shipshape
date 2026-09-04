@@ -18,11 +18,11 @@ jobs:
           bundler-cache: true
 
       # The suite, and the comment budget over this gem's own files.
-      - run: bundle exec rake
+      - run: bin/ci
 
       # A guard that does not run reports the same thing as a guard that finds nothing. This
       # runs the real binary over one planted violation per cop, under real globs.
-      - run: bundle exec exe/shipshape canaries
+      - run: bin/ci canaries
 
   removal:
     name: every guard watched to fail
@@ -37,7 +37,7 @@ jobs:
 
       # Neuters each cop in turn and confirms its own test goes red. Minutes, and a separate
       # job because it spawns a Ruby process per cop.
-      - run: bundle exec rake test:removal
+      - run: bin/ci removal
 
   ratchet:
     name: nothing rose against the base
@@ -55,4 +55,4 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - run: bundle exec exe/shipshape check --trunk origin/${{ github.base_ref }}
+      - run: bin/ci ratchet --trunk origin/${{ github.base_ref }}
