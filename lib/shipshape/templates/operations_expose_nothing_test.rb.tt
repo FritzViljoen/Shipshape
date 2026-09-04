@@ -12,7 +12,7 @@ require_relative "test_case"
 # `one-operation-one-class`, asked of the loaded app.
 class OperationsExposeNothingTest < TestCase
 <%- end -%>
-  DOORS = [Command, Query, Workflow, IoQuery, IoCommand, LegacyQuery, LegacyCommand].freeze
+  DOORS = [Deed, Question, Workflow, IoQuestion, IoDeed, LegacyQuestion, LegacyDeed].freeze
 
   ENTRY = %i[call anonymous_call].freeze
 
@@ -37,7 +37,7 @@ class OperationsExposeNothingTest < TestCase
       something it mixes in.
 
       Nearly always the fix is `private`. Where a caller really needs the answer, it is a
-      query with its own name and its own door — not a second entrance to this one.
+      question with its own name and its own door — not a second entrance to this one.
     WHY
   end
 

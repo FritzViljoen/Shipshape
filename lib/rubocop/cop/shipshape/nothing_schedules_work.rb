@@ -52,7 +52,7 @@ module RuboCop
           explain(
             "`#{name}` declares a cadence in code, and a schedule is a row.",
             because: "A schedule is a controller action called at a set frequency — something " \
-                     "arrives, an actor is established, one command runs. Declared in code it " \
+                     "arrives, an actor is established, one deed runs. Declared in code it " \
                      "has no actor, so the work runs under nobody's name: nothing can say who " \
                      "authorised it, revoking a person does not stop what they set running, " \
                      "and the audit trail answers `system` to the only question worth asking " \

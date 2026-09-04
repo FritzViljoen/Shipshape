@@ -20,7 +20,7 @@ module RuboCop
           t.string :state, null: false
 
           # the domain names the fallback, in one place, where it can be read
-          class CreateBooking < Command
+          class CreateBooking < Deed
             def call
               BookingRecord.create!(state: @state || Booking::HELD)
             end

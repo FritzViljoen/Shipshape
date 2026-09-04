@@ -22,7 +22,7 @@ module RuboCop
 
         NAMED = <<~RUBY
           # the operation that wanted the work says so, by name and in order
-          class ConfirmBooking < Command
+          class ConfirmBooking < Deed
             def call
               RecalculateTotals.call(booking: @booking)
               success(@booking)

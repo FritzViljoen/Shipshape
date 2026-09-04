@@ -70,7 +70,7 @@ module Shipshape
         method = finding.context[:method]
         # `settle!` must not become `Settle!Order`: the suffix is punctuation.
         name = "#{Naming.camel(method.to_s.delete_suffix("?").delete_suffix("!"))}#{record}"
-        kind = finding.context[:writes] ? "Command" : "Query"
+        kind = finding.context[:writes] ? "Deed" : "Question"
 
         <<~TEXT
           `#{record}##{method}` is a rule living on the thing that stores it, reachable
@@ -98,9 +98,9 @@ module Shipshape
 
       # Naming the write is what separates a measurement from an assertion.
       def reasoning(finding, kind)
-        return "It calls `#{finding.context[:write]}`, so it writes: a Command." if finding.context[:writes]
+        return "It calls `#{finding.context[:write]}`, so it writes: a Deed." if finding.context[:writes]
 
-        "Nothing in it writes, so it is a Query. A method that only derives a value from " \
+        "Nothing in it writes, so it is a Question. A method that only derives a value from " \
           "what it was handed may not need a class at all — it may belong on the shape."
       end
 

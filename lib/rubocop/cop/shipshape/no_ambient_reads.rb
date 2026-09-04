@@ -34,7 +34,7 @@ module RuboCop
 
         MOMENT = <<~RUBY
           # the caller reads the clock once, at the edge, and hands the moment down
-          class ExpireHolds < Command
+          class ExpireHolds < Deed
             def initialize(now:)
               @now = typed(now, ActiveSupport::TimeWithZone)
             end
@@ -46,7 +46,7 @@ module RuboCop
 
         HANDED_IN = <<~RUBY
           # it arrives as an argument, so the signature says what this operation needs
-          class SendReceipt < Command
+          class SendReceipt < Deed
             def initialize(api_key:)
               @api_key = typed(api_key, String)
             end
@@ -194,7 +194,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[workflow command query io_command io_query shape])
+          cop_config.fetch("Kinds", %w[workflow deed question io_deed io_question shape])
         end
       end
     end

@@ -11,7 +11,7 @@ module RuboCop
         include Explains
 
         DOORS = %w[
-          command io_command legacy_command query io_query legacy_query workflow
+          deed io_deed legacy_deed question io_question legacy_question workflow
         ].freeze
 
         CHECK = :permits?
@@ -27,7 +27,7 @@ module RuboCop
             # ... the work
           end
 
-          # A query has no envelope, so it raises instead:
+          # A question has no envelope, so it raises instead:
           #   raise Permission::Refused, permission unless permits?(actor)
           #
           # Deliberately unauthenticated? The operation says so by implementing
