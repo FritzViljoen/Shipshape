@@ -1,24 +1,24 @@
 # `no-test-factories` — A test builds state the way the application does, or the state is fiction
 
 `create(:booking, status: "confirmed")` is a second way to construct domain state, running
-beside the commands and obeying none of their rules. No permission is checked, no arguments are
+beside the deeds and obeying none of their rules. No permission is checked, no arguments are
 typed, no audit entry is written, and no sequence is respected. It is a private door into the
 domain, held open in the one place nobody thinks of as production code.
 
 **So a test builds what it needs by calling operations.** To have a confirmed booking, call the
-command that confirms one.
+deed that confirms one.
 
 ## The state a factory builds may be unreachable
 
 This is the argument, and the rest are consequences of it.
 
-A factory sets columns. A command enforces the rules that decide which combinations of columns
+A factory sets columns. A deed enforces the rules that decide which combinations of columns
 are legal. So a factory can produce a row the application **cannot** produce — a confirmed
 booking with no payment, an order line priced in a currency its order does not use — and a test
 asserting behaviour on that row is asserting behaviour on fiction. It passes, it stays green
 for years, and it describes a system that does not exist.
 
-The inverse is worse and quieter. If a command *cannot* reach a state it should, the test that
+The inverse is worse and quieter. If a deed *cannot* reach a state it should, the test that
 would have found it never notices, because the factory reached it instead. **The bug is in the
 thing the factory replaced.**
 
@@ -44,7 +44,7 @@ an auth-sized operation is one call, and there is nothing left for a factory to 
 
 So the factory is downstream of the undivided model, and removing it before the operations exist
 only moves the pain. That is also why this is the **last** guard to switch on: `test_call` has
-nothing to call until the commands are there.
+nothing to call until the deeds are there.
 
 **The direction also runs the other way, which is why the guard is worth having at all.**
 Without a factory, a god model is improbable. Nobody tolerates constructing a 113-column row by
@@ -68,8 +68,8 @@ true.
 ## A test calls `test_call`, because authorisation is not the operation's behaviour
 
 Calling operations for setup does not mean assembling a grant bag to build a booking. So
-`Command`, `Query`, `LegacyCommand` and `LegacyQuery` carry a second entry point — every kind
-that reaches a record. `IoCommand` and `IoQuery` do not: they touch no record, so there is no
+`Deed`, `Question`, `LegacyDeed` and `LegacyQuestion` carry a second entry point — every kind
+that reaches a record. `IoDeed` and `IoQuestion` do not: they touch no record, so there is no
 state for a test to build through them, and a test doubles the wire instead:
 
 ```ruby
@@ -101,7 +101,7 @@ including in production. A method that refuses to exist outside tests cannot be.
 
 ## What it costs, and it is real
 
-Building state through commands is slower than an `INSERT`: every setup pays typed arguments
+Building state through deeds is slower than an `INSERT`: every setup pays typed arguments
 and a transaction. On a large suite that is minutes, and this law
 spends them deliberately, because a fast suite that proves the wrong thing is not a saving.
 
@@ -137,14 +137,14 @@ factoried. If nothing in the application creates a thing, a test may load it dir
 
   **The message assumes `test_call` exists, and a non-auth install has none at all.**
   `test_call` is declared inside each template's `auth` branch, so `Shipshape::Install.new(auth:
-  false)` renders a `Command`, `Query`, `LegacyCommand` and `LegacyQuery` with no second entry
+  false)` renders a `Deed`, `Question`, `LegacyDeed` and `LegacyQuestion` with no second entry
   point on any of them. The cop is `Enabled: true` unconditionally and its message still reads
   `CreateBooking.test_call(...)` there — a reader on that install cannot follow it, and this law
   says nothing about what such a suite does instead. Today it has none: state is built through
   `call` with whatever actor the install lets it construct.
 
   **`Workflow` carries no `test_call` either, on any install — the one omission that is not
-  `IoCommand`/`IoQuery`'s.** Those two are absent from the enumeration above because they touch
+  `IoDeed`/`IoQuestion`'s.** Those two are absent from the enumeration above because they touch
   no record; `Workflow` reaches one, through its steps, so it is exactly the kind this law is
   about and it is missing anyway. The reason is its permission: `permits?` checks the union of
   every step's (`aggregate_steps`), and a workflow-level `test_call` would still have to check

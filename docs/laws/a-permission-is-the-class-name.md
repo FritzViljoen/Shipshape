@@ -9,13 +9,13 @@ Uniqueness is free: two classes cannot share a constant, so no guard has to chec
 
 ## It fails closed
 
-A new command's permission exists the moment the class does, and nobody holds it. There is no
+A new deed's permission exists the moment the class does, and nobody holds it. There is no
 constant to forget, so requiring nothing cannot happen by omission — the way an omitted
 declaration fails open.
 
 **An operation that runs before anyone is identified implements `anonymous_call`.** The base
 class asks `instance_methods(false)` — **this class only, never an ancestor or a module.**
-`method_defined?` searches both, and a concern defining `anonymous_call` then made every command
+`method_defined?` searches both, and a concern defining `anonymous_call` then made every deed
 that included it public. That makes publicness a property of the class, never of the caller: there is no `public_call` for a caller
 to reach for. `grep -rn "def anonymous_call"` is the whole set, and it should only shrink. An
 actor who is known but needs no grant is a different case — give it an ordinary permission
@@ -26,24 +26,24 @@ prevent.
 
 ## An operation demands what it reaches
 
-A workflow calling its steps and a command calling a query are the same sentence. There is one
-rule, and no lighter case for commands — the version of this law that had one lasted a day.
+A workflow calling its steps and a deed calling a question are the same sentence. There is one
+rule, and no lighter case for deeds — the version of this law that had one lasted a day.
 
-Each door already checked on its own way in, so an inner query refused mid-command raised
+Each door already checked on its own way in, so an inner question refused mid-deed raised
 *there*: a 500 after the outer check passed, where
 [`an-operation-answers-a-result`](an-operation-answers-a-result.md) promises an outcome.
 Aggregating moves the refusal to the door.
 
 **There is no third answer** for an actor short of an inner permission: grant it, or make the
 inner operation `anonymous_call`, which is how a read declares it needs no grant of its own. A
-query reachable from a controller implements `call` and is granted; one that is part of its
+question reachable from a controller implements `call` and is granted; one that is part of its
 caller's act does not.
 
 **Anonymity is closed downward.** An anonymous operation may not reach a guarded one, or the
 declaration launders everything beneath it. What it *does* reach aggregates upward into a
 guarded caller, so nothing is lost by passing through one.
 
-The cost, stated: a command that gains an internal read gains a permission, so an internal
+The cost, stated: a deed that gains an internal read gains a permission, so an internal
 refactor can become an authorisation change. `CallGraph.routes` is what makes that survivable —
 the grants each endpoint demands are derived, not remembered.
 
@@ -51,7 +51,7 @@ the grants each endpoint demands are derived, not remembered.
 
 Granting `:SettleMonth` does nothing: a workflow performs no act, only sequences ones that do.
 And it refuses before the first step, because it spans transactions and cannot take one back —
-for a command the aggregate buys a tidier refusal, for a workflow the only moment refusing is
+for a deed the aggregate buys a tidier refusal, for a workflow the only moment refusing is
 free.
 
 ## Permission is code; capability is data
@@ -68,10 +68,10 @@ never sees capabilities. Existing grants do not move; what is new is the join.
 The catalogue is derived, so nothing can fall behind the code:
 
 ```ruby
-CallGraph.grantable(Command, Query)   # everything an actor can be asked for
-CallGraph.unchecked(Command, Query)   # declared to need no grant
+CallGraph.grantable(Deed, Question)   # everything an actor can be asked for
+CallGraph.unchecked(Deed, Question)   # declared to need no grant
 CallGraph.routes                      # per endpoint, which is the question being asked
-CallGraph.leaks(Command, Query)       # anonymity that is not closed downward
+CallGraph.leaks(Deed, Question)       # anonymity that is not closed downward
 ```
 
 **The keys are class names**, which is what a label table is keyed by. "Cancel a booking" is

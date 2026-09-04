@@ -29,8 +29,8 @@ CancelBooking.call(actor: actor, booking_id: id, reason: reason)   # one deed, o
 `Cancellation` — [`a-nullable-column.md`](a-nullable-column.md) names that sentence. What it
 does not walk is what happens when the sentence is true of three columns at once, and an agent
 fixes each one on its own: `booking_suppliers` for the linkage, `cancellation_reasons` for the
-text, `cancellation_actors` for who did it. Three tables, three commands to write them, three
-queries to read them back — the CRUD explosion this canon exists to stop, arriving one
+text, `cancellation_actors` for who did it. Three tables, three deeds to write them, three
+questions to read them back — the CRUD explosion this canon exists to stop, arriving one
 `null: true` at a time. [`absence-is-absence-never-a-value`](../laws/absence-is-absence-never-a-value.md)
 says it plainly: **"the failure is a concern nobody modelled; the null is only what that looks
 like in a column."** This procedure is the modelling act the law names and does not walk.
@@ -108,7 +108,7 @@ each catches a concern the query above misses, and each can also mislead on its 
 - **A shared name stem.** `cancelled_*` is visible without a query, and it misses a concern
   whose columns were named inconsistently before anyone saw them as one thing.
 - **One operation touching all of them.** Grep for every column in the candidate cluster and
-  see whether the same command or query reaches all of them:
+  see whether the same deed or question reaches all of them:
 
   ```sh
   grep -rln "cancelled_at\|cancellation_reason\|cancelled_by_id" app lib | grep -v spec
@@ -182,10 +182,10 @@ nullable, and the new table's own listing shows none either.
 ## 6. The operations follow the concern, not the columns
 
 This is the step the single-column procedure has no need for, because one column never tempts
-anyone into three commands. A cluster does:
+anyone into three deeds. A cluster does:
 
 ```ruby
-# wrong — the CRUD explosion, one command per field
+# wrong — the CRUD explosion, one deed per field
 SetCancelledAt.call(booking_id: id, at: now)
 SetCancellationReason.call(booking_id: id, reason: reason)
 SetCancelledBy.call(booking_id: id, actor_id: actor.id)
@@ -198,9 +198,9 @@ CancelBooking.call(actor: actor, booking_id: id, reason: reason)
 
 [`one-operation-one-class`](../laws/one-operation-one-class.md)'s sizing test is the reason:
 "who is allowed to do it" is one question here, one actor, one permission, so it is one
-operation. Three commands writing three columns of one event either check that permission
+operation. Three deeds writing three columns of one event either check that permission
 three times or, more likely, stop checking it at all past the first — and a reader who has
-just named a clean concern is exactly the person about to write the three commands, because
+just named a clean concern is exactly the person about to write the three deeds, because
 each column now looks like its own small, obviously-correct change.
 
 **Check:**
@@ -209,7 +209,7 @@ each column now looks like its own small, obviously-correct change.
 grep -rn "cancelled_at\s*=\|cancellation_reason\s*=\|cancelled_by_id\s*=" app lib
 ```
 
-names one command, or a workflow calling it — not three call sites each setting one column —
+names one deed, or a workflow calling it — not three call sites each setting one column —
 and `shipshape check` still falls.
 
 ---

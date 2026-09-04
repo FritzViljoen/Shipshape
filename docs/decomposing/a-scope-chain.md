@@ -1,4 +1,4 @@
-# Decomposing a scope chain — a query whose name was never written
+# Decomposing a scope chain — a question whose name was never written
 
 A procedure, meant to be followed by an agent one step at a time. Every step ends with
 something to **run**, because a decomposition nobody can verify is a rewrite with extra
@@ -13,7 +13,7 @@ Story.where(is_deleted: false).joins(:user).includes(:tags).order(created_at: :d
 **What you are aiming at:**
 
 ```ruby
-class FrontPageStories < Query
+class FrontPageStories < Question
   def initialize(reader_id:, page: 1)
     @reader_id = typed(reader_id, Integer)
     @page = typed(page, Integer)
@@ -79,14 +79,14 @@ moderator needs to see something a reader may not.
 
 ---
 
-## 2. Name the answer, not the query
+## 2. Name the answer, not the question
 
 `StoriesWhereNotDeletedJoinUser` is the SQL with the punctuation removed. `FrontPageStories`
 is the question. The name is what the next person greps for, and they will grep for the thing
 they want, not for the clauses that produce it.
 
 ```ruby
-class FrontPageStories < Query
+class FrontPageStories < Question
   def initialize(reader_id:, page: 1)
     @reader_id = typed(reader_id, Integer)
     @page = typed(page, Integer)
@@ -107,21 +107,21 @@ end
 A `scope :active, -> { where(deleted_at: nil, suspended: false) }` on the record is the rule
 about what *active* means, living on the thing that maps rows —
 [`persistence-holds-no-behaviour`](../laws/persistence-holds-no-behaviour.md). It travels into
-the query that needed it.
+the question that needed it.
 
-**A scope used by exactly one query is not shared, and never was.** A scope used by six is the
-interesting case: either it is one rule with six callers, in which case it becomes one query
+**A scope used by exactly one question is not shared, and never was.** A scope used by six is the
+interesting case: either it is one rule with six callers, in which case it becomes one question
 the six use, or the six mean subtly different things and the scope has been hiding that.
 
 **Check:** `Shipshape/PersistenceHoldsNoBehaviour` is quieter, and no scope is left that only
-one query uses.
+one question uses.
 
 ---
 
 ## 4. `includes` is a claim about what the caller renders
 
-A chain carrying `includes(:tags)` is encoding what some template touches, in the query, at a
-distance from the template. Move it and it is not lost — it is **fixed**: the shape the query
+A chain carrying `includes(:tags)` is encoding what some template touches, in the question, at a
+distance from the template. Move it and it is not lost — it is **fixed**: the shape the question
 answers declares exactly which fields exist, so the N+1 becomes impossible rather than avoided.
 
 This is the strongest argument for doing this work at all, and the one nobody makes. A shape
@@ -129,16 +129,16 @@ cannot lazily load anything, because it holds no record —
 [`a-shape-is-composed-not-flattened`](../laws/a-shape-is-composed-not-flattened.md) and the
 generated `Shape` refuse it at construction.
 
-**Check:** the query's own test asserts the number of database calls, and the number does not
+**Check:** the question's own test asserts the number of database calls, and the number does not
 depend on how many rows come back.
 
 ---
 
 ## 5. The cost, stated before you start
 
-`Query#call` refuses anything that is not a shape, so the template stops receiving records —
+`Question#call` refuses anything that is not a shape, so the template stops receiving records —
 which is the whole of [a form that fails](a-form-that-fails.md), and it is a bigger job than
-naming the query was. **Do it per template, not per query**: a query answering shapes whose
+naming the question was. **Do it per template, not per question**: a question answering shapes whose
 template still calls record methods fails at render, in a browser, whenever somebody looks.
 
 **Check:** the template names only methods the shape defines.
@@ -147,7 +147,7 @@ template still calls record methods fails at render, in a browser, whenever some
 
 ## 6. Sweep the call sites
 
-Every site that spelled the chain by hand now calls the query. That is
+Every site that spelled the chain by hand now calls the question. That is
 [a call-site sweep](a-call-site-sweep.md), and the sites that spelled it a fourth way are the
 ones the grep in step 0 missed — so the count only settles once `Shipshape/CallGraph` is
 silent on the tree.
@@ -169,7 +169,7 @@ a merge that was wrong: the SQL is identical, the tests pass, and the defect sur
 time one caller needs a condition the other must not have. That is `model-concerns-not-groups`
 and no tool makes it.
 
-The other one to expect: **a query that now returns fewer rows because a scope was applied
+The other one to expect: **a question that now returns fewer rows because a scope was applied
 that the old chain forgot** — or more, because one it had was dropped. The chains differed and
 the difference was the point. A characterisation test that records the ids each call site
 returned, before the change, is the only thing that catches it.

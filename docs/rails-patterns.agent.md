@@ -16,8 +16,8 @@ An operation is sized by **authorisation** — permitted or refused whole, no bi
 
 | pattern | verdict | write instead |
 |---|---|---|
-| Service objects | Is this | `Command` / `Query`. Sister calls refused before the matrix is read |
-| Result objects | Is this | command answers `Result`. Query answers shapes, no envelope |
+| Service objects | Is this | `Deed` / `Question`. Sister calls refused before the matrix is read |
+| Result objects | Is this | deed answers `Result`. Question answers shapes, no envelope |
 | Value objects | Is this | `Shape`. Takes records out of the view |
 | Query objects | Is this, one disagreement | answer **shapes, not relations**. Caller cannot chain |
 | Form objects | Instead | the operation's constructor is the form object |
@@ -27,12 +27,12 @@ An operation is sized by **authorisation** — permitted or refused whole, no bi
 | Interactor / dry-transaction | Is this, minus the DSL | `Workflow`, plain Ruby, in your repo |
 | State machines | Instead | derive state from event rows |
 | Observers / pub-sub | Refused | one workflow, one file, in order |
-| Repository pattern | Refused | record maps rows. Query reads with the framework, answers shapes |
+| Repository pattern | Refused | record maps rows. Question reads with the framework, answers shapes |
 | Rails engines | Out of scope | packaging, not shape |
 | Packwerk / packs | Complementary | it bounds packages. This bounds what a class may be |
 | CQRS | Is this, tenth of the cost | split at the operation. One table, one record class |
 | Event sourcing | Refused, one exception | ask what is lost if the log is dropped |
-| Hexagonal / clean | Refused | a record is the mapping. Adapters are `io_command`, `io_query` |
+| Hexagonal / clean | Refused | a record is the mapping. Adapters are `io_deed`, `io_question` |
 | Micro-services early | Out of scope | boundary without the network |
 | DCI | Refused by the shape | nothing to mix a role into |
 

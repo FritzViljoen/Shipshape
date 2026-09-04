@@ -93,8 +93,8 @@ answer is the same either way — a join, with a uniqueness constraint on the ke
 The order that stays green:
 
 1. add the column or table, `NOT NULL` with the value backfilled
-2. write both — the blob and the new place — in the same command, in one transaction
-   ([`a-command-is-one-transaction`](../laws/a-command-is-one-transaction.md))
+2. write both — the blob and the new place — in the same deed, in one transaction
+   ([`a-deed-is-one-transaction`](../laws/a-deed-is-one-transaction.md))
 3. backfill the rows written before step 2
 4. verify: nothing disagrees
 5. move the readers

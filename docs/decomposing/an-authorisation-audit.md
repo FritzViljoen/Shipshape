@@ -29,7 +29,7 @@ happen before any operation is written. Enforcing it is a different act, and sta
 actor on day one stops every call site at once.
 
 Run this audit without it, and the LLM writing the operations has only the schema for a
-signal — which is how a real migration produced hundreds of small CRUD-shaped commands, sized
+signal — which is how a real migration produced hundreds of small CRUD-shaped deeds, sized
 by table instead of by permission, with authorisation not even looked at until three steps
 later.
 
@@ -47,7 +47,7 @@ every app that does not use it.
 
 **`shipshape report`'s `AuthorisationScatteredOnClasses` row is the one part of this that is
 already a tool** — it finds ad-hoc predicates by name (`can_flag?`, `is_admin?`, `_by_user?`)
-on any class outside `app/commands`, `app/queries`, `app/workflows`, `app/operations`. Start
+on any class outside `app/deeds`, `app/questions`, `app/workflows`, `app/operations`. Start
 there; the greps below cover what its name-matching cannot: CanCan's DSL, Pundit's file
 layout, and the call sites rather than the definitions.
 

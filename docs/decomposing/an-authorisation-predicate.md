@@ -28,10 +28,10 @@ them, and a refusal leaves no trace.
 **What you are aiming at:**
 
 ```ruby
-# the permission is the class name of the command that does the thing
+# the permission is the class name of the deed that does the thing
 EditStory.call(actor: actor, story_id: id, title: title)
 
-# the setting is a row, read by the query that builds the shape
+# the setting is a row, read by the question that builds the shape
 plan.allows_images?
 ```
 
@@ -97,7 +97,7 @@ the procedure is waiting on.
 
 This is the cheap half, because
 [`a-permission-is-the-class-name`](../laws/a-permission-is-the-class-name.md) means the
-permission already exists the moment the command does:
+permission already exists the moment the deed does:
 
 ```ruby
 # before — the question and the doing are in two places, and only one is guarded
@@ -128,7 +128,7 @@ def can_have_images?
 end
 
 # after — the answer is data, and it changes without a deploy
-plan.allows_images?   # a column on plans, read by the query that builds the shape
+plan.allows_images?   # a column on plans, read by the question that builds the shape
 ```
 
 The shape the view holds then carries `images_allowed:` as a field, and nothing downstream
@@ -151,10 +151,10 @@ if EditStory.call(actor: actor, story_id: id, title: title).success?
 ```
 
 **Check:** the rule has one home. `grep -rn "created_at > " app/models` no longer finds it, and
-the command's own test names the outcome:
+the deed's own test names the outcome:
 
 ```sh
-grep -rn "too_old" app/commands spec test
+grep -rn "too_old" app/deeds spec test
 ```
 
 ---

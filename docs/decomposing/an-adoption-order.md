@@ -25,7 +25,7 @@ is nothing to sequence.
 **The ratchet is what has an opinion.** `shipshape check` compares each cop's count against the
 merge-base and fails where one **rose**, cop by cop. That is deliberate: a total would let a new
 violation hide behind a fixed one. The cost is that work which *moves* an offence from one cop
-to another reads as a regression — take a rule off a record before the query tree is declared,
+to another reads as a regression — take a rule off a record before the question tree is declared,
 and `PersistenceHoldsNoBehaviour` falls while `CallGraph` climbs.
 
 **The unit is the branch, not the commit.** The baseline is the merge-base, so a trade that
@@ -142,7 +142,7 @@ moves internals; the edge test is the only thing that will notice if behaviour c
 and `delegate` clauses of `persistence-holds-no-behaviour`.
 
 **This is first because everything else lands on top of it.** An action decomposed while its
-rules still live on the record produces a command that wraps the same god object — the
+rules still live on the record produces a deed that wraps the same god object — the
 extraction moved a call site and nothing else. [A fat controller](a-fat-controller.md) says so
 in its own step 0, and this is the same advice at repository scale.
 
@@ -176,7 +176,7 @@ before a single operation is written. Enforcing it stays last, for the reason gi
 base class demanding an actor on day one stops every call site at once.
 
 Skip this step and the operations step has only the schema for a signal — which is how a real
-migration produced hundreds of small CRUD-shaped commands, one per table, with authorisation
+migration produced hundreds of small CRUD-shaped deeds, one per table, with authorisation
 not even considered until three steps later.
 
 **Check:** every controller action in `bin/rails routes` has a row in the audit's table — gated
@@ -192,10 +192,10 @@ chain](a-scope-chain.md), [a filter chain](a-filter-chain.md).
 This is where the count falls fastest, and it is safe now: the rules are off the records, the
 seam parses, and the edges are recorded. **The operations to build are the permissions the
 previous step found, minimised — not the tables that exist.** A controller sitting on four
-tables and one permission is one command; a table reached by three permissions is three.
+tables and one permission is one deed; a table reached by three permissions is three.
 
 **Check:** `shipshape next` offers files with tests first, and `check` shows the fall. Every new
-command or query's class name is a permission from the audit's table, not a table name.
+deed or question's class name is a permission from the audit's table, not a table name.
 
 ---
 
@@ -253,8 +253,8 @@ Then seed the permissions from the graph rather than by hand:
 
 ```ruby
 CallGraph.routes        # what each endpoint demands
-CallGraph.grantable(Command, Query)
-CallGraph.leaks(Command, Query)   # anonymity that is not closed downward
+CallGraph.grantable(Deed, Question)
+CallGraph.leaks(Deed, Question)   # anonymity that is not closed downward
 ```
 
 **Check:** `leaks` is empty, and an actor holding nothing is refused at every door.

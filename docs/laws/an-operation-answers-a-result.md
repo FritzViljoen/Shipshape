@@ -1,8 +1,8 @@
 # `an-operation-answers-a-result` — Every door answers one shape, and a failure is a value
 
-A command, a workflow and the legacy doors answer with a `Result`: `success(value)`,
+A deed, a workflow and the legacy doors answer with a `Result`: `success(value)`,
 `failure(:code)`, or `failure(:code, value)` where the caller needs to know what was wrong. A
-query answers with shapes and no envelope, because a read that found nothing found nothing —
+question answers with shapes and no envelope, because a read that found nothing found nothing —
 that is an answer, not a failure.
 
 **A failure is a value, not an exception.** An expected failure is part of what the operation
@@ -31,7 +31,7 @@ something else. A subclass cannot quietly teach its callers a second shape, beca
 stops rather than the shape spreading.
 
 - **Principle:** `nothing-fails-quietly`
-- **Guard:** the generated `command.rb`, `workflow.rb`, `io_command.rb`, `legacy_command.rb`
+- **Guard:** the generated `deed.rb`, `workflow.rb`, `io_deed.rb`, `legacy_deed.rb`
   and `result.rb` — architecture rather than a cop. `self.call` asserts `result.is_a?(Result)`
   and raises `TypeError` naming the class and what it answered with. `Result.failure` refuses
   anything but a Symbol for the code, so an error sentence cannot be smuggled in as one, and
@@ -40,4 +40,4 @@ stops rather than the shape spreading.
 - **Guard's limit:** it is a runtime assertion, so it fires when the path runs rather than when
   the code is written — a branch no test covers answers wrongly until something takes it. It
   says nothing about whether the value inside a `success` is the right one, and nothing about a
-  query, which answers shapes and has no envelope to assert.
+  question, which answers shapes and has no envelope to assert.

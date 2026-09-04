@@ -2,7 +2,7 @@
 
 **MVC, taken apart.**
 
-The M is not one thing. It is workflows, commands, queries, shapes and records, and a codebase
+The M is not one thing. It is workflows, deeds, questions, shapes and records, and a codebase
 that calls all five "model" cannot tell you where a rule lives. shipshape gives each a place,
 keeps it with cops that can only ratchet, and ships the canon to agents as well as to CI.
 
@@ -54,7 +54,7 @@ which. A `.new` is never deleted either, even after it stops differing — once 
 matches this run again, `install` reports it `STALE` and leaves removing it to you. Neither kind
 of leftover is gitignored: a `.new` marks something still to review, and a `git status` that
 hides it is the wrong default. They sit outside the governed trees because a base class is not an
-instance of the thing it defines: `Command` is not a command.
+instance of the thing it defines: `Deed` is not a deed.
 
 **Authorisation is opt-in and off by default.** Base classes demanding an `actor:` on day one
 would stop every call site at once — an outage, not a migration. See
@@ -63,10 +63,10 @@ would stop every call site at once — an outage, not a migration. See
 | Written | What it is |
 |---|---|
 | `Workflow` | sequences operations across several transactions; answers with a `Result` |
-| `Command` | one transaction, however many writes it holds; answers with a `Result` |
-| `Query` | never writes; answers with a shape or an array of them, no envelope |
-| `IoCommand` / `IoQuery` | changing and reading state outside this process |
-| `LegacyCommand` / `LegacyQuery` | the two doors to the old world |
+| `Deed` | one transaction, however many writes it holds; answers with a `Result` |
+| `Question` | never writes; answers with a shape or an array of them, no envelope |
+| `IoDeed` / `IoQuestion` | changing and reading state outside this process |
+| `LegacyDeed` / `LegacyQuestion` | the two doors to the old world |
 | `Shape` | a domain object, detached from the database, with value semantics |
 | `Result` | `success(value)` / `failure(:code, value)` — an expected failure, never a bug |
 | `TypedArguments` | asserts every keyword where it arrives |
@@ -84,7 +84,7 @@ require:                          # .rubocop.yml
   - shipshape
 ```
 
-The defaults assume `app/commands`, `app/queries`, `app/workflows`, `app/shapes`, `app/records`,
+The defaults assume `app/deeds`, `app/questions`, `app/workflows`, `app/shapes`, `app/records`,
 `app/legacy` and their `packs/*/` equivalents. Override `Kinds` to match what your application
 already calls things.
 
@@ -94,20 +94,20 @@ at all, which is why two kinds can share one glob.
 | Kind | May call |
 |---|---|
 | request_handling / entry_point | every operation kind, view_component, shape |
-| workflow | command, query, io_command, io_query, legacy_command, legacy_query, shape |
-| command | query, legacy_query, shape, record |
-| query | shape, record |
-| io_command | io_query, shape |
-| io_query | shape |
-| legacy_command | query, legacy_query, shape, record |
-| legacy_query | shape, record |
+| workflow | deed, question, io_deed, io_question, legacy_deed, legacy_question, shape |
+| deed | question, legacy_question, shape, record |
+| question | shape, record |
+| io_deed | io_question, shape |
+| io_question | shape |
+| legacy_deed | question, legacy_question, shape, record |
+| legacy_question | shape, record |
 | view_component | shape |
 | shape / record | nothing |
 
 **No kind calls a sister, and every kind is its own sister** — a rule in the cop, not the matrix,
 so a row naming one stops the run. A sister call is how a class quietly becomes the kind above
-it: a command sequencing commands is a workflow that never said so, and a query composing
-queries is the read that becomes an N+1.
+it: two deeds always done together are one deed, sequenced as a workflow that never said so, and
+two questions composed together are one question's reads, the shape an N+1 arrives in.
 [`the-call-graph-is-declared`](docs/laws/the-call-graph-is-declared.md) carries the rest.
 
 On a real application most existing controllers violate the matrix on day one. That is correct

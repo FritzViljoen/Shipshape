@@ -1,9 +1,9 @@
 # `every-operation-reports-what-it-did` — One record of every attempt, including the refused ones
 
-Every operation that performs an act — a command, an io command, a legacy command — records what
+Every operation that performs an act — a deed, an io deed, a legacy deed — records what
 was attempted, by whom, and what it answered.
 
-**A query does not**: a read is not an attempt to change anything, and recording every read is
+**A question does not**: a read is not an attempt to change anything, and recording every read is
 how an audit log becomes a log. **A workflow does not either**: it performs no act, only
 sequencing ones that do, and each of those records itself. An entry from the workflow would be a
 second row saying that the rows beneath it happened — and the sequence is already legible from
@@ -26,8 +26,8 @@ This is the uniform shape paying for itself, and it is the clearest instance of 
 instrumentation and an audit trail are each **one place** only because `self.call` looks
 identical on every operation. Four return conventions and none of them could exist.
 
-It is also what makes deferral possible. A deferred command has no caller to answer, so
-[`deferral-is-one-command`](deferral-is-one-command.md) would otherwise be
+It is also what makes deferral possible. A deferred deed has no caller to answer, so
+[`deferral-is-one-deed`](deferral-is-one-deed.md) would otherwise be
 `nothing-fails-quietly` broken by design — the receiver was never only the caller.
 
 ## After the transaction, never inside it
@@ -37,9 +37,9 @@ attempt would leave no trace at exactly the moment a trace matters. The cost of 
 outside is a crash between commit and record, which loses one entry. The cost of writing it
 inside is losing every entry that describes a failure.
 
-**And a broken sink does not fail the command.** The write has already committed by the time
+**And a broken sink does not fail the deed.** The write has already committed by the time
 the log runs; raising there would have the audit trail deciding the outcome of the thing it is
-auditing, telling a caller its command failed when it had succeeded. The failure goes to
+auditing, telling a caller its deed failed when it had succeeded. The failure goes to
 stderr instead — not swallowed, just not fatal.
 
 ## Arguments are recorded, and the personal ones are redacted
