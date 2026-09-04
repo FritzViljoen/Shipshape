@@ -124,10 +124,13 @@ unchanged: make it anonymous, let it no-op convergently, or write two workflows.
 **Check:** the greps from step 0 return one fewer publisher, and the workflow names in `call`
 what that publisher used to broadcast.
 
-**No cop counts a bus**, so nothing here goes from red to green: `NoCallbacks` reads a closed
-list of ActiveRecord macros and `NoDistantWrites` reads assignment, and neither sees `publish`.
-The law forbids it and no guard holds it — the count you are working against is the grep, and
-this procedure will not tell you when you are finished.
+**Mostly no cop counts a bus.** `NoDistantWrites` catches `ActiveSupport::Notifications.subscribe`/
+`.instrument` and a callback hook attached to a named constant, but only inside a governed kind
+— and the forty registrations this procedure is about almost always live in an initializer,
+which is governed by nothing. `publish`, `broadcast`, and every other gem's own verb
+(`wisper`, `dry-events`, `rails_event_store`) are still invisible everywhere. The count you
+are mostly working against is still the grep, and this procedure will not tell you when you
+are finished.
 
 ---
 
@@ -187,12 +190,15 @@ why nobody could say what publishing did. If a team genuinely needs to add conse
 editing a sequence, that is a product requirement — and the honest shape for it is data the
 workflow reads, not a registry the workflow cannot see.
 
-**And no guard holds any of this.** `nothing-travels-off-the-call-path` forbids publishing to a
-subscriber list, and its cops read ambient reads and assignment shapes — not `publish`. Every
-step above is checked by a grep you run yourself, which is weaker than the rest of this playbook
-and is said here rather than implied.
+**And almost none of this is guarded.** `nothing-travels-off-the-call-path` forbids publishing
+to a subscriber list, and `NoDistantWrites` only ever sees `ActiveSupport::Notifications.subscribe`/
+`.instrument` and an attached callback hook, on a named constant, inside a governed kind —
+never `publish`, never a registration sitting in the initializer where this pattern usually
+puts it. Every step above is still checked by a grep you run yourself, which is weaker than
+the rest of this playbook and is said here rather than implied.
 
 **Nothing here finds a subscriber registered at runtime, either.** `subscribe` called from a
 conditional, a gem registering on your behalf, a test helper that registers and never
-unregisters — the grep in step 0 sees registration syntax, not behaviour, and a bus whose
-wiring is computed is a bus this procedure will leave half-dismantled.
+unregisters — the grep in step 0 sees registration syntax, not behaviour, and so does the cop
+where it reaches at all. A bus whose wiring is computed is a bus this procedure will leave
+half-dismantled.

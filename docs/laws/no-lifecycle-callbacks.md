@@ -15,9 +15,13 @@ the path anyone is reading — see
   behalf. `nothing-is-hidden` also produces it, for the reason above.
 - **Guard:** `Shipshape/NoCallbacks`, over the record tree, including concerns mixed into
   one. Fails the registration.
-- **Guard's limit:** it sees **registration syntax**. A callback registered dynamically, or
-  registered by a gem on your records' behalf, is invisible. Observers and subscribers
-  attached outside the record are not covered here — that is
-  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md)'s territory, and
-  it has no pub/sub matcher at all: a subscriber list held in a constant is only ever caught
-  incidentally, as a constant mutation, never as a named subscriber shape.
+- **Guard's limit:** it sees **registration syntax**, and only a bare hook name — nil
+  receiver, written inside the record. A callback registered dynamically, or registered by a
+  gem on your records' behalf, is invisible. Observers and subscribers attached from outside
+  the record — `BookingRecord.after_commit { ... }`, called on the constant rather than
+  written inside it — are
+  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md)'s territory:
+  `Shipshape/NoDistantWrites` matches that same hook list, plus
+  `ActiveSupport::Notifications.subscribe`/`.instrument`, whenever either lands on a named
+  constant. A subscriber list held any other way, or wired through a pub/sub gem other than
+  `ActiveSupport::Notifications`, still passes untouched.
