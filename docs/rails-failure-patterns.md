@@ -34,14 +34,19 @@ this document is that law applied to the whole canon at once.
 
 ---
 
-## Four verdicts
+## Six verdicts
 
 | Verdict | What it means |
 |---|---|
 | **Unsayable** | The shape removes it. You cannot write the failure and stay inside the canon — there is no callback to put it in, no NULL to misread, no record to pass. |
 | **Guarded** | A named cop fails the build on it. |
+| **Partly guarded** | A named cop fails the build on part of the failure; the rest is left, and named as one of the other five. |
 | **Procedure** | The playbook takes it apart, and no cop holds it. Judgement, with steps. |
+| **Partly procedure** | The playbook takes part of it apart; the rest is left, and named as one of the other five. |
 | **Uncovered** | shipshape does not address it. The tool that does is named. |
+
+Two verdicts on one row combines two of the six; it is not a seventh verdict —
+`Guarded` + `Procedure` means each applies to a different slice of the same failure.
 
 **Unsayable is the strongest and the rarest**, and it is what
 [`make-the-wrong-thing-impossible`](principles.md) is for. A cop is a guard you can disable; a
@@ -90,7 +95,7 @@ shape you cannot express is not a guard at all.
 | No value objects, primitives everywhere | **Guarded** + **Procedure** | `TypedArguments`, `ShapeIsComposed` — both satisfied by `typed(amount, Float)`, which is the defect declared. [a primitive that should be a type](decomposing/a-primitive-that-should-be-a-type.md) is how you find them |
 | Concerns as dumping grounds | **Guarded** + **Procedure** | `MixinsAddNothingPublic`; [a shared concern](decomposing/a-shared-concern.md), [a record concern](decomposing/a-record-concern.md) |
 | STI overuse, endless `type` conditionals | **Guarded** + **Procedure** | `NoTypeInterrogation`; [a type hierarchy](decomposing/a-type-hierarchy.md) |
-| Delegation chains hiding nil errors | **Guarded on records** | `PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. Elsewhere it stays exempt: `code-is-written-not-generated` draws its line at framework macros and uses `delegate` to draw it |
+| Delegation chains hiding nil errors | **Partly guarded** | `PersistenceHoldsNoBehaviour` — a gap this survey found, now closed, on records. **Uncovered elsewhere by decision**: `code-is-written-not-generated` draws its line at framework macros and uses `delegate` to draw it |
 | `attr_accessor` shadowing a real column | **Uncovered** | — |
 
 ## Controllers
@@ -158,7 +163,7 @@ place to live and one place to be invalidated from. That is a precondition, not 
 |---|---|---|
 | Testing implementation instead of behaviour | **Procedure** | [characterise the edges](decomposing/characterise-the-edges.md) — the black-box step before every other step |
 | No system tests for critical paths | **Procedure** | `shipshape edges` lists the edges no test names |
-| Time-dependent tests without `travel_to` | **Unsayable in the operation, uncovered in the test** | `NoAmbientReads` makes the clock an argument, so an operation has no ambient time to freeze. The cop is kind-scoped and no test path resolves to a kind, so nothing reads the test itself |
+| Time-dependent tests without `travel_to` | **Unsayable** + **Uncovered** | `NoAmbientReads` makes the clock an argument, so an operation has no ambient time to freeze — unsayable there. The cop is kind-scoped and no test path resolves to a kind, so the test itself is uncovered |
 | Tests coupled to fixtures and factories with implicit global state | **Guarded** + **Procedure** | `Shipshape/NoTestFactories` and [`no-test-factories`](laws/no-test-factories.md); [a factory graph](decomposing/a-factory-graph.md). A test builds state by calling operations, because a factory can build a row the application cannot |
 | Factories that build entire object graphs, slow suite | **Procedure** | [a factory graph](decomposing/a-factory-graph.md) |
 | Over-mocking, `sleep`, no transactional cleanup | **Uncovered** | Suite hygiene the canon does not reach |
@@ -185,7 +190,7 @@ place to live and one place to be invalidated from. That is a precondition, not 
 
 | Failure | Verdict | How |
 |---|---|---|
-| **Conventions documented but not enforced in CI** | **This is the whole thesis** | [`one-mechanism-guards-everything`](laws/one-mechanism-guards-everything.md), the canaries, `rake test:removal`, `a-guard-states-its-limit`. A convention nobody enforces is the failure shipshape exists to answer |
+| **Conventions documented but not enforced in CI** | **Guarded** | [`one-mechanism-guards-everything`](laws/one-mechanism-guards-everything.md), the canaries, `rake test:removal`, `a-guard-states-its-limit`. A convention nobody enforces is the failure shipshape exists to answer — this is the whole thesis |
 | No clear boundary between domain and framework | **Guarded** | `Shipshape/CallGraph` is exactly this, declared once as a matrix |
 | Premature service extraction | **Procedure** | [a service](decomposing/a-service.md), and the detangling stance generally |
 | Feature flags added but never removed | **Procedure** | [a feature flag](decomposing/a-feature-flag.md). No cop reads a calendar, and what makes a flag a defect is time |

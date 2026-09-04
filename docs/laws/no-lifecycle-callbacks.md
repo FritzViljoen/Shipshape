@@ -18,5 +18,6 @@ the path anyone is reading — see
 - **Guard's limit:** it sees **registration syntax**. A callback registered dynamically, or
   registered by a gem on your records' behalf, is invisible. Observers and subscribers
   attached outside the record are not covered here — that is
-  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md), whose list is
-  also closed.
+  [`nothing-travels-off-the-call-path`](nothing-travels-off-the-call-path.md)'s territory, and
+  it has no pub/sub matcher at all: a subscriber list held in a constant is only ever caught
+  incidentally, as a constant mutation, never as a named subscriber shape.

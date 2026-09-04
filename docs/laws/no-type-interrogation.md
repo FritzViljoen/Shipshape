@@ -30,5 +30,8 @@ difference is what happens next: an assertion has one outcome, a dispatch has tw
 - **Guard's limit:** a genuine boundary check written outside that helper is a **false
   positive**, and it is meant to be argued in review rather than suppressed in silence — a
   suppression comment on this cop should be rare enough to notice. Deserialisation and
-  adapter code at a real edge often need the ask, which is why those trees are outside the
-  cop's scope rather than exempted inside it.
+  adapter code at a real edge often need the ask, and `io_deed`/`io_question` are exactly
+  that edge — but they are governed like every other kind here, named in `Kinds` alongside
+  `workflow`, `deed`, `question` and `shape`. The only relief is the argument-assertion
+  helper; an ask written inline in an `io_deed` is caught the same as anywhere else and has
+  to be argued in review, not waved through by tree.
