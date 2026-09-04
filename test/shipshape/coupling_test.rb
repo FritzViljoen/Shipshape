@@ -186,19 +186,19 @@ class CouplingTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
   YAML
 
   # Watched to fail: reddened with a raw `RuboCop::ValidationError` before `ConfigAt`.
   def test_a_nested_config_naming_an_unknown_cop_is_tolerated_and_named
     in_repo(UNKNOWN_COP_IN_NESTED_CONFIG_YML) do |root|
       write(root, "sandbox/.rubocop.yml", "Shipshape/RetiredCopName:\n  Enabled: true\n")
-      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
+      write(root, "sandbox/app/deeds/create_person.rb", DEED)
 
       found = Shipshape::Coupling.new(directory: root, config: nil, tolerate_unknown_cops: true).call
 
       assert_includes found.skipped_cops, "Shipshape/RetiredCopName"
-      assert_includes found.governed, "sandbox/app/commands/create_person.rb"
+      assert_includes found.governed, "sandbox/app/deeds/create_person.rb"
     end
   end
 
@@ -206,7 +206,7 @@ class CouplingTest < Minitest::Test
   def test_a_nested_config_naming_an_unknown_cop_still_raises_without_tolerance
     in_repo(UNKNOWN_COP_IN_NESTED_CONFIG_YML) do |root|
       write(root, "sandbox/.rubocop.yml", "Shipshape/RetiredCopName:\n  Enabled: true\n")
-      write(root, "sandbox/app/commands/create_person.rb", COMMAND)
+      write(root, "sandbox/app/deeds/create_person.rb", DEED)
 
       assert_raises(RuboCop::ValidationError) do
         Shipshape::Coupling.new(directory: root, config: nil).call

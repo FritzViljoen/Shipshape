@@ -377,23 +377,23 @@ class CheckTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
-        query: ['app/queries/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
+        question: ['app/questions/**/*.rb']
       BaseClasses:
-        command: [Command]
-        query: [Query]
+        deed: [Deed]
+        question: [Question]
       Sisters:
-        - [command]
-        - [query]
+        - [deed]
+        - [question]
       Matrix:
-        command: [query]
-        query: []
+        deed: [question]
+        question: []
   YAML
 
   def test_a_base_config_naming_a_cop_this_version_lacks_is_survived_and_named
     custom_repo({
-      "app/commands/create_person.rb" => CLEAN_COMMAND,
-      "app/queries/list_people.rb" => OTHER_QUERY,
+      "app/deeds/create_person.rb" => CLEAN_DEED,
+      "app/questions/list_people.rb" => OTHER_QUESTION,
       "sandbox/.rubocop.yml" => "Shipshape/RetiredCopName:\n  Enabled: true\n",
     }, config: EXCLUDES_SANDBOX_YML) do |root|
       # The branch deletes the nested config, exactly as retiring a stale override would.

@@ -18,9 +18,9 @@ class OffencesTest < Minitest::Test
 
     Shipshape/CallGraph:
       Kinds:
-        command: ['app/commands/**/*.rb']
+        deed: ['app/deeds/**/*.rb']
       BaseClasses:
-        command: [Command]
+        deed: [Deed]
   YAML
 
   RETIRED_COP_YML = <<~YAML
@@ -37,7 +37,7 @@ class OffencesTest < Minitest::Test
 
   def test_offences_are_counted_by_cop
     in_repo(RUBOCOP_YML) do |root|
-      write(root, "app/commands/create_person.rb", "class CreatePerson\n  def call\n  end\nend\n")
+      write(root, "app/deeds/create_person.rb", "class CreatePerson\n  def call\n  end\nend\n")
 
       counts = Shipshape::Offences.new(directory: root, config: File.join(root, ".rubocop.yml")).call
 
