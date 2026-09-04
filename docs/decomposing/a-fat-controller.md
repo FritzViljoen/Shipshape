@@ -174,6 +174,8 @@ one place, and the controller is not one of the places you have to check.
 ## What none of this proves
 
 Whether a `before_action` is a decision. Most are — a filter that finds, authorises, or
-branches is the action's work moved one line up, and the cop does not see it because it is
-not a conditional in the method. The report counts what the action does; a filter chain that
-does the deciding for it is invisible to both, and that is the honest limit here.
+branches is the action's work moved one line up. `Shipshape/NoDecisionsInRequestHandling` reads
+the whole file, so a real `if`/`case` written inside the filter method is caught same as one
+inside the action; what it cannot see is a decision spelled `only:`, `except:` or `if:` on the
+`before_action` line itself — those are macro arguments, never an `if` or `case` node.
+[A filter chain](a-filter-chain.md) is the procedure for that blind spot.

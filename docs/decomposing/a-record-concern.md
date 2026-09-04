@@ -43,9 +43,12 @@ a god record distributed**, and it is harder to see for exactly that reason: the
 a 4,000-line file that everybody complains about, and this is twenty-two files that each look
 reasonable, plus a module nobody reads as schema.
 
-`Shipshape/PersistenceHoldsNoBehaviour` says so in its own stated limit — it sees "the record
-tree only", and "a module included from outside … is not covered". The cop reads the record;
-the concern is not in it. That is why this needs a procedure and not a cop.
+No cop catches this. `Shipshape/PersistenceHoldsNoBehaviour` reads the record tree for
+behaviour, not the schema for repetition — `app/models/concerns/sluggable.rb` sits inside that
+tree (`app/models/**/*.rb` matches it), so a method the concern itself defined would be seen.
+What is invisible is what this procedure is actually about: the same two columns, declared
+independently on twenty-two tables, are not a behaviour, and nothing here counts them. That is
+why this needs a procedure and not a cop.
 
 ---
 
