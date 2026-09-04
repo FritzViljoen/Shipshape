@@ -75,14 +75,14 @@ module Shipshape
           has no database, no associations and no reach, so a method needing any of those is
           impossible on one. It has two futures:
 
-          - **A derived value becomes a field**, computed by the query that builds the shape
+          - **A derived value becomes a field**, computed by the question that builds the shape
             while the database is already open. `auto_settled?` stops being a method and
             becomes `auto_settled:` — one read, at the moment everything else is read, rather
-            than a query fired later by whoever happened to ask.
+            than a question fired later by whoever happened to ask.
           - **A decision becomes an operation**, because a decision is a rule and a rule has
             one home.
 
-          Neither is a Query class per derivation. That would be a class named
+          Neither is a Question class per derivation. That would be a class named
           `AutoSettledBooking`, and nobody would write it twice.
         TEXT
       end

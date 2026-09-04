@@ -17,7 +17,7 @@ module RuboCop
 
         READERS = %i[attr_reader attr_accessor attr_writer].freeze
 
-        PRIVATE_OR_QUERY = <<~RUBY
+        PRIVATE_OR_QUESTION = <<~RUBY
           # the methods stay, and go under `private` — an operation's helpers, shared
           module Paying
             private
@@ -27,8 +27,8 @@ module RuboCop
             end
           end
 
-          # if callers really need the answer, it is a query, not a mixin
-          class TotalOf < Query
+          # if callers really need the answer, it is a question, not a mixin
+          class TotalOf < Question
             def call
               success(@lines.sum(&:amount))
             end
@@ -99,7 +99,7 @@ module RuboCop
                      "reopened somewhere nobody looks for it. The same module is perfectly " \
                      "correct with these methods public if it is mixed into a shape, whose " \
                      "job is to be read; what makes it wrong is where it is going.",
-            instead: PRIVATE_OR_QUERY,
+            instead: PRIVATE_OR_QUESTION,
           )
         end
 

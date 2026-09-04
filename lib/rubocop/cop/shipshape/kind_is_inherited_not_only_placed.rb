@@ -11,7 +11,7 @@ module RuboCop
         include ReadsKinds
 
         # One example per kind, naming that kind's own declared base rather than a fixed
-        # one: copying `SHAPE` used to hand back a command wherever it fired, base and all.
+        # one: copying `SHAPE` used to hand back a deed wherever it fired, base and all.
         INSTEAD = {
           "workflow" => <<~RUBY,
             class SettleOrder < %<base>s
@@ -23,14 +23,14 @@ module RuboCop
               end
             end
           RUBY
-          "command" => <<~RUBY,
+          "deed" => <<~RUBY,
             class SettleInvoice < %<base>s
               def call
                 success(...)
               end
             end
           RUBY
-          "query" => <<~RUBY,
+          "question" => <<~RUBY,
             class FindBooking < %<base>s
               def call
                 row = BookingRecord.find_by(id: @id)
@@ -38,28 +38,28 @@ module RuboCop
               end
             end
           RUBY
-          "io_command" => <<~RUBY,
+          "io_deed" => <<~RUBY,
             class ChargeCard < %<base>s
               def call
                 success(@gateway.charge(@order.total))
               end
             end
           RUBY
-          "io_query" => <<~RUBY,
+          "io_question" => <<~RUBY,
             class ChargeStatus < %<base>s
               def call
                 Charge.from(@gateway.status(@reference))
               end
             end
           RUBY
-          "legacy_command" => <<~RUBY,
+          "legacy_deed" => <<~RUBY,
             class SettleLegacyInvoice < %<base>s
               def call
                 success(...)
               end
             end
           RUBY
-          "legacy_query" => <<~RUBY,
+          "legacy_question" => <<~RUBY,
             class FindLegacyBooking < %<base>s
               def call
                 LegacyBookingRecord.find_by(id: @id)

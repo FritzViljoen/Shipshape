@@ -9,9 +9,9 @@ module RuboCop
       class OperationsReportWhatTheyDid < Base
         include Explains
 
-        # The operations that write. A query answers a caller and changes nothing.
+        # The operations that write. A question answers a caller and changes nothing.
         # A workflow is not here: it performs no act, so it has nothing of its own to record.
-        WRITING = %w[command io_command legacy_command].freeze
+        WRITING = %w[deed io_deed legacy_deed].freeze
 
         RECORDER = "AuditLog"
 

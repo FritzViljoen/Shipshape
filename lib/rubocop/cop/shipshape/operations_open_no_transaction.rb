@@ -5,36 +5,36 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-command-is-one-transaction`.
+      # Holds `a-deed-is-one-transaction`.
       class OperationsOpenNoTransaction < Base
         include ReadsKinds
 
-        # True for the kind it fires on, not for all seven: `command` and `legacy_command`
+        # True for the kind it fires on, not for all seven: `deed` and `legacy_deed`
         # have a base class that already opened one; a `workflow` spans several and each step
-        # owns its own; `io_command` and `io_query` must never hold one open over the wire; a
-        # `query` and `legacy_query` read, and a read needs none.
+        # owns its own; `io_deed` and `io_question` must never hold one open over the wire; a
+        # `question` and `legacy_question` read, and a read needs none.
         BECAUSE = {
-          "command" => "The generated base class wraps the call in exactly one, opened " \
+          "deed" => "The generated base class wraps the call in exactly one, opened " \
                        "before the work and after the permission check. A second call here " \
                        "either nests that one or silently widens it, and nobody decided which.",
           "workflow" => "A workflow sequences several transactions, one per step, and each " \
                         "step is the one that owns and covers its own writes. Wrapping steps " \
                         "in a transaction here removes the boundary a step already answers " \
                         "for, silently, and widens what a crash mid-way leaves half done.",
-          "io_command" => "A call inside a transaction holds it open over the wire, for " \
+          "io_deed" => "A call inside a transaction holds it open over the wire, for " \
                           "however long the outside world takes to answer. This kind exists " \
                           "so that never happens; a transaction written here is the mistake " \
-                          "the split from `Command` was made to refuse.",
-          "io_query" => "A call inside a transaction holds it open over the wire, for " \
+                          "the split from `Deed` was made to refuse.",
+          "io_question" => "A call inside a transaction holds it open over the wire, for " \
                         "however long the outside world takes to answer, and this kind " \
-                        "writes nothing — it answers with shapes, same as `Query` — so " \
+                        "writes nothing — it answers with shapes, same as `Question` — so " \
                         "there is nothing here for a transaction to protect. One opened " \
                         "here only holds a connection for as long as the remote call takes.",
-          "query" => "A read needs no transaction at all. One wrapped around a read holds a " \
+          "question" => "A read needs no transaction at all. One wrapped around a read holds a " \
                      "connection open for nothing, and the base class already omits it.",
         }
-        BECAUSE["legacy_command"] = BECAUSE["command"]
-        BECAUSE["legacy_query"] = BECAUSE["query"]
+        BECAUSE["legacy_deed"] = BECAUSE["deed"]
+        BECAUSE["legacy_question"] = BECAUSE["question"]
 
         # `Kinds` may configure a kind neither hash above lists.
         GENERIC_BECAUSE = "An operation opens no transaction of its own. That is true of " \
@@ -43,9 +43,9 @@ module RuboCop
         BECAUSE.freeze
 
         INSTEAD = {
-          "command" => <<~RUBY,
+          "deed" => <<~RUBY,
             # the writes are one act; the base class's transaction already covers them
-            class ConfirmBooking < Command
+            class ConfirmBooking < Deed
               def call
                 @booking.confirm!
                 @booking.ledger_entries.create!(amount: @booking.total)
@@ -64,25 +64,25 @@ module RuboCop
               end
             end
           RUBY
-          "io_command" => <<~RUBY,
+          "io_deed" => <<~RUBY,
             # the call to the gateway is never held inside a transaction
-            class ChargeCard < IoCommand
+            class ChargeCard < IoDeed
               def call
                 success(@gateway.charge(@order.total))
               end
             end
           RUBY
-          "io_query" => <<~RUBY,
+          "io_question" => <<~RUBY,
             # the call to the gateway is never held inside a transaction
-            class ChargeStatus < IoQuery
+            class ChargeStatus < IoQuestion
               def call
                 Charge.from(@gateway.status(@reference))
               end
             end
           RUBY
-          "query" => <<~RUBY,
+          "question" => <<~RUBY,
             # a read needs no transaction; the base class already has none
-            class FindBooking < Query
+            class FindBooking < Question
               def call
                 row = BookingRecord.find_by(id: @id)
                 row && Booking.from(row)
@@ -90,8 +90,8 @@ module RuboCop
             end
           RUBY
         }
-        INSTEAD["legacy_command"] = INSTEAD["command"]
-        INSTEAD["legacy_query"] = INSTEAD["query"]
+        INSTEAD["legacy_deed"] = INSTEAD["deed"]
+        INSTEAD["legacy_question"] = INSTEAD["question"]
 
         GENERIC_INSTEAD = <<~RUBY.freeze
           # this kind opens no transaction of its own
@@ -140,7 +140,7 @@ module RuboCop
         def operation_kinds
           cop_config.fetch(
             "Kinds",
-            %w[workflow command query io_command io_query legacy_command legacy_query],
+            %w[workflow deed question io_deed io_question legacy_deed legacy_question],
           )
         end
       end

@@ -107,7 +107,7 @@ module Shipshape
         customer sees and the invoice finance reconciles are different objects read from the
         same rows. There is a worked pair below the main example.
 
-        **A naming collision is signal, not an obstacle.** If a query and a shape both want
+        **A naming collision is signal, not an obstacle.** If a question and a shape both want
         to be called `Invoice`, they are the same concept and one of them is wrong. If
         `SettleInvoice` already exists, the write you are about to add is that write. The
         names running out is the design telling you something, and reaching for
@@ -157,8 +157,8 @@ module Shipshape
           end
 
           # NOT here: `overdue?`. It needs today's date, which this was not handed — so the
-          # query that builds the invoice works it out and passes `overdue:` in as a field.
-          # One read, while the database is already open, instead of a query fired later by
+          # question that builds the invoice works it out and passes `overdue:` in as a field.
+          # One read, while the database is already open, instead of a question fired later by
           # whoever happened to ask.
 
           # WHO THIS WAS BILLED TO, AS PRINTED — two fields, because that is what an
@@ -198,16 +198,16 @@ module Shipshape
           end
         end
 
-        # A QUERY never writes, and answers with shapes. No envelope: finding nothing is an
+        # A QUESTION never writes, and answers with shapes. No envelope: finding nothing is an
         # answer, not a failure.
-        class FindInvoice < Query
+        class FindInvoice < Question
           def initialize(id:)
             @id = typed(id, Integer)
           end
 
           def call
-            # A QUERY OWNS ITS ENTIRE READ. It reads every table it needs and builds every
-            # part it returns, rather than delegate part of the read to another query.
+            # A QUESTION OWNS ITS ENTIRE READ. It reads every table it needs and builds every
+            # part it returns, rather than delegate part of the read to another question.
             # Calling FindCustomer here would be two reads wearing one name.
             record = InvoiceRecord.includes(:invoice_line_records, :customer_record).find(@id)
 
@@ -220,8 +220,8 @@ module Shipshape
           end
         end
 
-        # A COMMAND is one transaction, however many writes it holds, and answers with a Result.
-        class SettleInvoice < Command
+        # A DEED is one transaction, however many writes it holds, and answers with a Result.
+        class SettleInvoice < Deed
           def initialize(invoice:, paid_on:)
             @invoice = typed(invoice, Invoice)     # asserted here, and nowhere after
             @paid_on = typed(paid_on, Date)
@@ -254,7 +254,7 @@ module Shipshape
             # reads as "should I proceed", which is deciding; a two-armed conditional reads
             # as "which of these", which is placing.
             #
-            # The decision itself was made by the command and came back as a value. Asking
+            # The decision itself was made by the deed and came back as a value. Asking
             # the invoice would not be allowed:
             #
             #   invoice = FindInvoice.call(id: id)
@@ -285,7 +285,7 @@ module Shipshape
           end
         end
 
-        # A WORKFLOW sequences commands and queries. It never branches, and it spans several
+        # A WORKFLOW sequences deeds and questions. It never branches, and it spans several
         # transactions — so every step is idempotent and every stop leaves a legal state.
         #
         # It is OPTIONAL. Two calls from an action need none — they are visibly two
@@ -362,8 +362,8 @@ module Shipshape
         - Request handling **decides nothing**. One operation is the common case; several
           are allowed as long as no result is examined, and a workflow is reached for when a
           sequence has obligations worth naming rather than because there are two calls.
-        - A command is one transaction, however many writes it holds; sequencing writes is a workflow's job.
-        - A query never writes; a query calling a query is the shape an N+1 arrives in.
+        - A deed is one transaction, however many writes it holds; sequencing writes is a workflow's job.
+        - A question never writes; two questions always composed together are one question's reads, and that is the shape an N+1 arrives in.
         - Nothing reaches the outside from inside a transaction.
         - A record holds no rules, so no concern can settle on it, and it never leaves the
           operation that read it.
@@ -373,9 +373,9 @@ module Shipshape
           needs anything else. A part is nested inside the thing it belongs to, and a shape
           never holds a record — a shape that could reach the database is not detached, and
           being detached is the whole of what it is for.
-        - **A query owns its entire read.** It reads every table it needs and builds every
-          part it returns. If two queries want the same sub-shape, that is the signal it is
-          not a part but a peer: promote it, give it its own query, and let whoever wanted
+        - **A question owns its entire read.** It reads every table it needs and builds every
+          part it returns. If two questions want the same sub-shape, that is the signal it is
+          not a part but a peer: promote it, give it its own question, and let whoever wanted
           both do the combining.
         - A shape is not a table. It is assembled from as many as it takes, and one table
           may feed several shapes.
@@ -388,7 +388,7 @@ module Shipshape
           global cannot be seen from the call and cannot be wrong in a test.
         - **A stored state is a denormalisation.** A `state` column beside the events that
           produced it is a second answer to one question, and it drifts. The state is a
-          query over what happened; where the read is too slow to do live, the answer lives
+          question over what happened; where the read is too slow to do live, the answer lives
           in a table whose name ends `_cache`, which is never authoritative and can be
           dropped and rebuilt without losing anything.
         - Every class inherits exactly one of these, one level deep, so its kind — and

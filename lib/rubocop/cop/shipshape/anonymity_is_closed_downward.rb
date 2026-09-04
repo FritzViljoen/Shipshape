@@ -10,12 +10,12 @@ module RuboCop
         include ReadsKinds
 
         RUNS = %i[call call_later].freeze
-        KINDS = %w[workflow command query io_command io_query legacy_command legacy_query].freeze
+        KINDS = %w[workflow deed question io_deed io_question legacy_deed legacy_question].freeze
 
         CLOSED = <<~RUBY
           # what an anonymous operation reaches is anonymous too, so nothing guarded runs
           # without somebody having been asked
-          class LogIn < Command
+          class LogIn < Deed
             def anonymous_call
               FindPersonByEmail.call(email: @email)
             end

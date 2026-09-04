@@ -26,7 +26,7 @@ module Shipshape
       "failure" => "builds the `Result` a writing operation answers with when it did not — an " \
                    "error code and, optionally, a value to redraw a form with.",
       "success?" => "`Result`'s own predicate for which one came back.",
-      "shapes?" => "the check a query's answer must pass: nil, a `Shape`, or an array of them.",
+      "shapes?" => "the check a question's answer must pass: nil, a `Shape`, or an array of them.",
       "typed" => "asserts an argument's class at construction; raises rather than coercing.",
       "typed_array" => "the same assertion over every element of an Array.",
       "typed_hash" => "the same assertion over every key and value of a Hash.",
@@ -111,7 +111,7 @@ module Shipshape
       "sink" => "the internal getter `record` reads; an application points it once with " \
                 "`AuditLog.sink=`, an attr_writer, not this.",
       "perform" => "the transaction/permission wrapper `call` opens, or the hook the job " \
-                   "runner invokes to run a deferred command — never called by name.",
+                   "runner invokes to run a deferred deed — never called by name.",
       "actor_finder" => "the lookup `perform` uses to rebuild a deferred actor; configured " \
                          "once via `actor_finder=`, not called by name.",
       "attempts_for" => "the retry limit `perform` reads off the operation.",
@@ -191,8 +191,8 @@ module Shipshape
       <<~TEXT.strip
         ## What may call what
 
-        No kind calls its own kind, or a sister of it. Sequencing two writes is a workflow's
-        job, and a command that calls a command is a workflow that never said so.
+        No kind calls its own kind, or a sister of it. Two deeds always done together are one
+        deed — a deed that calls a deed is a workflow that never said so.
 
         | this kind | may call |
         |---|---|
@@ -306,11 +306,11 @@ module Shipshape
       ERB.new(File.read(path), trim_mode: "-").result(binding)
     end
 
-    # `permission`/`anonymous?` are mixed into `command.rb` (`extend Permission`), never defined
-    # in `permission.rb` itself, so a stale, never-overwritten `command.rb` leaves them exactly
+    # `permission`/`anonymous?` are mixed into `deed.rb` (`extend Permission`), never defined
+    # in `permission.rb` itself, so a stale, never-overwritten `deed.rb` leaves them exactly
     # as unreachable as a missing `test_call` even once `permission.rb` exists on disk.
     def installed_auth?
-      @installed_auth = (installed_source("command") || "").include?("extend Permission") if
+      @installed_auth = (installed_source("deed") || "").include?("extend Permission") if
         @installed_auth.nil?
       @installed_auth
     end

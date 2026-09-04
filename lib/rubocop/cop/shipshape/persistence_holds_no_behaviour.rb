@@ -17,8 +17,8 @@ module RuboCop
             belongs_to :supplier_record
           end
 
-          # the query composes: a Booking holds a Supplier, and never copies its columns
-          class ShowBooking < Query
+          # the question composes: a Booking holds a Supplier, and never copies its columns
+          class ShowBooking < Question
             def call
               row = BookingRecord.find(@id)
               success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
@@ -35,7 +35,7 @@ module RuboCop
           end
 
           # the filter is named, and it is read where it is used
-          class ListLiveBookings < Query
+          class ListLiveBookings < Question
             def call
               success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
             end
@@ -58,7 +58,7 @@ module RuboCop
           end
 
           # and the operation is where deriving happens
-          class TotalBooking < Query
+          class TotalBooking < Question
             def call
               success(@booking.lines.sum(&:amount) * (1 + @tax_rate))
             end

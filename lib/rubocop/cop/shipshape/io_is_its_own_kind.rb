@@ -18,7 +18,7 @@ module RuboCop
 
         OWN_OPERATION = <<~RUBY
           # the call is its own operation, in the kind that has accepted the bill for it
-          class ChargeCard < IoCommand
+          class ChargeCard < IoDeed
             def call
               success(Net::HTTP.post(uri, body))
             end
@@ -54,7 +54,7 @@ module RuboCop
         def message_for(name, message)
           explain(
             "`#{name}.#{message}` talks to the outside, and #{article} does not.",
-            because: "A command is exactly one transaction, opened before `call` runs — so a " \
+            because: "A deed is exactly one transaction, opened before `call` runs — so a " \
                      "network round trip inside one holds a database connection for as long " \
                      "as the far end takes, including its timeout and its retries. The call " \
                      "matrix cannot refuse this: `#{name}` belongs to a gem, resolves to no " \
@@ -80,7 +80,7 @@ module RuboCop
         def governed_kinds
           cop_config.fetch(
             "Kinds",
-            %w[workflow command query shape view_component record request_handling entry_point],
+            %w[workflow deed question shape view_component record request_handling entry_point],
           )
         end
       end

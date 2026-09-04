@@ -5,8 +5,8 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-query-only-reads`.
-      class QueriesOnlyRead < Base
+      # Holds `a-question-never-writes`.
+      class QuestionsNeverWrite < Base
         include ReadsKinds
 
         # Every one of these writes. Deliberately a closed list rather than a pattern: `save`
@@ -19,9 +19,9 @@ module RuboCop
           first_or_create first_or_create! find_or_create_by find_or_create_by!
         ].freeze
 
-        COMMAND = <<~RUBY
-          # the write is a command, with its own name and its own permission
-          class CreatePerson < Command
+        DEED = <<~RUBY
+          # the write is a deed, with its own name and its own permission
+          class CreatePerson < Deed
             def call
               success(PersonRecord.create!(name: @name))
             end
@@ -56,14 +56,14 @@ module RuboCop
 
         def message_for(name, writer)
           explain(
-            "`#{name}.#{writer}` is a write, and a query never writes.",
-            because: "A query opens no transaction, because a read needs none — so this " \
+            "`#{name}.#{writer}` is a write, and a question never writes.",
+            because: "A question opens no transaction, because a read needs none — so this " \
                      "write runs outside any transaction, and a caller sequencing two " \
-                     "queries has no rollback for the second. Every name on the path says " \
-                     "nothing happened. The call graph cannot catch it: a query reaching a " \
-                     "record is exactly what a query is for, so the matrix allows the call " \
+                     "questions has no rollback for the second. Every name on the path says " \
+                     "nothing happened. The call graph cannot catch it: a question reaching a " \
+                     "record is exactly what a question is for, so the matrix allows the call " \
                      "and only the message it sends is wrong.",
-            instead: COMMAND,
+            instead: DEED,
           )
         end
 
@@ -72,7 +72,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[query io_query legacy_query])
+          cop_config.fetch("Kinds", %w[question io_question legacy_question])
         end
       end
     end

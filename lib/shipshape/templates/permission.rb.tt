@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Holds `a-permission-is-the-class-name`. `instance_methods(false)` is this class only: a
-# concern defining `anonymous_call` had made every command including it public.
+# concern defining `anonymous_call` had made every deed including it public.
 module Permission
   def self.catalogue(*doors)
     doors.flat_map { |door| door.descendants }

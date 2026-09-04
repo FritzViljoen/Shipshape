@@ -6,8 +6,8 @@ require "rubocop/cop/shipshape/reads_kinds"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `a-command-runs-twice`.
-      class CommandsProveIdempotence < Base
+      # Holds `a-deed-runs-twice`.
+      class DeedsProveIdempotence < Base
         include ReadsKinds
 
         # Bare, this cost one word; `claimed?` also requires it lead a comment and carry a reason.
@@ -17,7 +17,7 @@ module RuboCop
         MIN_REASON_WORDS = 3
 
         IDEMPOTENT = <<~RUBY
-          # in the command's test, naming what makes the second run safe
+          # in the deed's test, naming what makes the second run safe
           # Idempotent: the second call finds settled_at set and answers :already_settled.
           def test_settling_twice_settles_once
             SettleInvoice.call(actor: actor, invoice_id: id)
@@ -44,8 +44,8 @@ module RuboCop
         private
 
         # By file name, so a repository filing tests by kind, by path or flat is one case.
-        # Indexed once rather than scanned per command: re-globbing and building a Regexp per
-        # (command, test file) pair was thirteen seconds at 300 commands and 5,000 test files.
+        # Indexed once rather than scanned per deed: re-globbing and building a Regexp per
+        # (deed, test file) pair was thirteen seconds at 300 deeds and 5,000 test files.
         def tests_for(path)
           stem = File.basename(path, ".rb")
 
@@ -72,9 +72,9 @@ module RuboCop
             "`#{name}` does not say what happens when it runs twice — #{found}.",
             because: "`tell-dont-ask` already obliges it: a caller may not ask whether this " \
                      "has happened already, because branching is asking, so the caller " \
-                     "cannot guard the call and the command must own repetition itself. That " \
+                     "cannot guard the call and the deed must own repetition itself. That " \
                      "is true today and it becomes load-bearing the moment the work is " \
-                     "deferred, because a queue retries — and a command that double-applies " \
+                     "deferred, because a queue retries — and a deed that double-applies " \
                      "turns one retry into two charges. This checks that somebody decided " \
                      "how; it cannot check that they were right.",
             instead: IDEMPOTENT,
@@ -102,7 +102,7 @@ module RuboCop
         end
 
         def governed_kinds
-          cop_config.fetch("Kinds", %w[command io_command legacy_command])
+          cop_config.fetch("Kinds", %w[deed io_deed legacy_deed])
         end
 
         def base_dir

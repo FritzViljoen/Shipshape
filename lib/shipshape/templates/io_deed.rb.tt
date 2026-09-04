@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
-# Holds `a-command-is-one-transaction`, opened here rather than in each subclass.
-<%- if auth -%>
-# `test_call` skips the permission check and the audit entry, and raises outside tests.
-<%- end -%>
-# `new` and `allocate` are private: `allocate` skips `initialize` and was a way in.
-class Command
+# A write to something outside this process. A sister of Deed, because an external
+# call inside a transaction holds it open over the wire. Assume it will be retried.
+# No `test_call`: it touches no record, so a test doubles the wire rather than building state.
+class IoDeed
   include TypedArguments
 
 <%- if auth -%>
@@ -20,7 +18,15 @@ class Command
       return Result.failure(:forbidden)
     end
 
-    result = perform(actor, arguments)
+    operation = new(**arguments)
+    result = operation.__perform__(actor)
+<%- else -%>
+  def self.call(**arguments)
+    result = new(**arguments).__perform__
+<%- end -%>
+
+<%- if auth -%>
+    raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 
     AuditLog.record(
       operation: name,
@@ -33,29 +39,6 @@ class Command
 
     result
   end
-
-  def self.test_call(actor: nil, **arguments)
-    unless defined?(::Rails) && ::Rails.env.test?
-      raise "#{name}.test_call is for tests: there is no unchecked door outside the test environment"
-    end
-
-    perform(actor, arguments)
-  end
-
-  def self.perform(actor, arguments)
-    operation = new(**arguments)
-    result = ActiveRecord::Base.transaction { operation.__perform__(actor) }
-<%- else -%>
-  def self.call(**arguments)
-    result = ActiveRecord::Base.transaction { new(**arguments).__perform__ }
-<%- end -%>
-
-<%- if auth -%>
-    raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
-
-    result
-  end
-  private_class_method :perform
 <%- else -%>
     raise TypeError, "#{name}#call must answer with a Result, got #{result.class}" unless result.is_a?(Result)
 

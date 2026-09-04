@@ -32,7 +32,7 @@ module RuboCop
 
           # needed a different starting point? That is a different operation, with its
           # own name and its own door — not a second entrance to this one.
-          class SettleInvoiceFromParams < Command
+          class SettleInvoiceFromParams < Deed
             private
 
             def call
@@ -118,7 +118,7 @@ module RuboCop
         end
 
         def deferrable_kinds
-          cop_config.fetch("DeferrableKinds", %w[command io_command legacy_command])
+          cop_config.fetch("DeferrableKinds", %w[deed io_deed legacy_deed])
         end
 
         def door
@@ -128,7 +128,7 @@ module RuboCop
         def governed_kinds
           cop_config.fetch(
             "Kinds",
-            %w[workflow command query io_command io_query legacy_command legacy_query],
+            %w[workflow deed question io_deed io_question legacy_deed legacy_question],
           )
         end
       end

@@ -54,12 +54,12 @@ module RuboCop
         def factory_message(name)
           explain(
             "`#{name}` builds domain state without going through an operation.",
-            because: "A factory sets columns; a command enforces which combinations of them " \
+            because: "A factory sets columns; a deed enforces which combinations of them " \
                      "are legal. So a factory can produce a row the application cannot — a " \
                      "confirmed booking with no payment — and a test asserting behaviour on " \
                      "that row asserts behaviour on fiction. It passes, it stays green, and " \
                      "it describes a system that does not exist. The inverse is quieter: if " \
-                     "a command cannot reach a state it should, nothing notices, because the " \
+                     "a deed cannot reach a state it should, nothing notices, because the " \
                      "factory reached it instead.",
             instead: CALLED,
           )

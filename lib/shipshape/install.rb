@@ -24,13 +24,13 @@ module Shipshape
       result
       audit_log
       operation_job
-      query
-      command
+      question
+      deed
       workflow
-      io_query
-      io_command
-      legacy_query
-      legacy_command
+      io_question
+      io_deed
+      legacy_question
+      legacy_deed
       typed_params
       personal_data
       application_view_component
