@@ -34,7 +34,7 @@ it per integration, instead of one per call site.
 ## 0. Find the calls, then find the ones outside the io kinds
 
 ```sh
-grep -rn "Net::HTTP\|HTTParty\|Faraday\|RestClient\|\.get(\|\.post(" app lib | grep -v "app/io_"
+grep -rn "Net::HTTP\|HTTParty\|Faraday\|RestClient\|\.get(\|\.post(" app lib | grep -v "app/io/"
 ```
 
 **A call outside the io trees is the first finding and the bigger one.** It is

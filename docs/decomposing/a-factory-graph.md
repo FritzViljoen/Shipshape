@@ -8,6 +8,11 @@ The shape: `spec/factories/`, forty definitions, `create(:booking)` pulling in a
 supplier, a tenant and a currency because each declared an association. One line of setup, four
 hundred milliseconds, and a row nobody can explain.
 
+**This procedure needs `shipshape install --auth`.** `test_call` is declared inside each
+template's `auth` branch, so a non-auth install renders `Deed`, `Question`, `LegacyDeed` and
+`LegacyQuestion` with no second entry point on any of them — every `test_call` line below fails
+until `--auth` has been run.
+
 **What you are aiming at:**
 
 ```ruby
@@ -42,7 +47,7 @@ at once, and a suite that is entirely red teaches nothing about which part you b
 ## 0. Count what depends on what
 
 ```sh
-shipshape check --only Shipshape/NoTestFactories
+bundle exec rubocop --only Shipshape/NoTestFactories
 grep -rc "create(:\|build(:" test spec | grep -v ":0$" | sort -t: -k2 -rn | head -20
 ```
 

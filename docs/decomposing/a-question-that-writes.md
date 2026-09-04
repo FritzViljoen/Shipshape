@@ -23,7 +23,7 @@ across seven repositories, and the call sites all read like reads.
 class RegisterConsumerApp < Workflow
   def call
     found = FindConsumerApp.call(actor: actor, name: @name)   # the read
-    return found if found.value
+    return success(found) if found
 
     CreateConsumerApp.call(actor: actor, name: @name)         # the write
   end
@@ -106,7 +106,7 @@ that it spans more than one transaction:
 class RegisterConsumerApp < Workflow
   def call
     found = FindConsumerApp.call(actor: actor, name: @name)
-    return found if found.value
+    return success(found) if found
 
     CreateConsumerApp.call(actor: actor, name: @name)
   end

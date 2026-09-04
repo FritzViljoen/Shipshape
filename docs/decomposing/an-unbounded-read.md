@@ -35,7 +35,7 @@ cannot ask for "all" without saying so.
 ## 0. Find the reads with no ceiling
 
 ```sh
-grep -rn "\.all\b\|\.each\b\|\.map\b" app/questions app/io_questions | grep -v "find_each\|limit\|first("
+grep -rn "\.all\b\|\.each\b\|\.map\b" app/questions app/io | grep -v "find_each\|limit\|first("
 ```
 
 Then the edges, because an index action is the commonest instance and does not look like one:

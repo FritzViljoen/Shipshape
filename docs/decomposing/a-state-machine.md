@@ -17,7 +17,9 @@ class DeliverEmail < Deed
 end
 
 class EmailState < Question
-  def call = state_of(@email)   # reads the events, answers a shape
+  def call
+    state_of(@email)   # reads the events, answers a shape
+  end
 end
 ```
 
@@ -100,7 +102,9 @@ saved.
 
 ```ruby
 class EmailState < Question
-  def call = success(state_of(@email))
+  def call
+    state_of(@email)
+  end
 end
 ```
 

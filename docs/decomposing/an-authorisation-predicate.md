@@ -16,7 +16,7 @@ class Story < ApplicationRecord
 allowed; the other asks what this tier of account includes. They are written the same way, sit
 on the same class, and read the same in a controller — and they belong in opposite places. A
 permission belongs to the operation that does the thing; a setting is a row, per
-[`no-industry-terms-in-code`](../laws/no-industry-terms-in-code.md).
+[`no-industry-terms-in-code`](../principles.md).
 
 Neither is a method on a table, which is why they are found together and sorted before
 anything moves. **The sorting is the work, and no tool does it for you.**
