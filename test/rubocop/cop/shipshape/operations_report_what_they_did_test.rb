@@ -14,7 +14,7 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
   INSTALLED = { "app/shipshape/audit_log.rb" => "module AuditLog\nend\n" }.freeze
 
   SILENT = <<~RUBY
-    class Command
+    class Deed
       def self.call(**arguments)
         new(**arguments).__perform__
       end
@@ -22,7 +22,7 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
   RUBY
 
   RECORDING = <<~RUBY
-    class Command
+    class Deed
       def self.call(**arguments)
         result = new(**arguments).__perform__
         AuditLog.record(operation: name, outcome: :succeeded)
@@ -52,11 +52,11 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
 
   # No `audit_log.rb` beside it means this application has no trail to keep.
   def test_an_application_without_an_audit_log_is_left_alone
-    assert_empty offences(SILENT, cop_class: COP, path: "app/shipshape/command.rb", files: {})
+    assert_empty offences(SILENT, cop_class: COP, path: "app/shipshape/deed.rb", files: {})
   end
 
   def test_it_covers_every_operation_that_performs_an_act
-    %w[command io_command legacy_command].each do |name|
+    %w[deed io_deed legacy_deed].each do |name|
       assert_equal 1, check(SILENT, "app/shipshape/#{name}.rb").length, name
     end
   end
@@ -66,20 +66,20 @@ class OperationsReportWhatTheyDidTest < Minitest::Test
       "**A workflow performs no act**, so it records nothing of its own: each step records what it did, and an entry here would be a second row saying the rows beneath it happened. Holding the installed `workflow.rb` to an audit call made a correct install fail this cop."
   end
 
-  def test_a_query_is_not_held_to_it
-    %w[query io_query legacy_query].each do |name|
+  def test_a_question_is_not_held_to_it
+    %w[question io_question legacy_question].each do |name|
       assert_empty check(SILENT, "app/shipshape/#{name}.rb"), name
     end
   end
 
   def test_only_the_installed_base_classes_are_checked
-    assert_empty offences(SILENT, cop_class: COP, path: "app/commands/command.rb", files: INSTALLED),
-      "The base classes are installed under `app/shipshape/`; an application class that happens to be called `command.rb` elsewhere is not one of them."
+    assert_empty offences(SILENT, cop_class: COP, path: "app/deeds/deed.rb", files: INSTALLED),
+      "The base classes are installed under `app/shipshape/`; an application class that happens to be called `deed.rb` elsewhere is not one of them."
   end
 
   private
 
-  def check(source, path = "app/shipshape/command.rb")
+  def check(source, path = "app/shipshape/deed.rb")
     offences(source, cop_class: COP, path: path, files: INSTALLED)
   end
 end

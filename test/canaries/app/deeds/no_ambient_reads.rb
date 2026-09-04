@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NoAmbientReads < Command
+class NoAmbientReads < Deed
 def call
   Time.now
 end

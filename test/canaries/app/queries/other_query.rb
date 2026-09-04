@@ -1,2 +1,0 @@
-class OtherQuery < Query
-end

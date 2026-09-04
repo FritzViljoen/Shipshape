@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-# Watched to fail: removing the `Kinds` default reddens the workflow and query tests; a bang
+# Watched to fail: removing the `Kinds` default reddens the workflow and question tests; a bang
 # form reddens every offence test; dropping the block check reddens the false-positive tests
 # below, none of which write a block; dropping the receiver check reddens the last one, which does.
 class OperationsOpenNoTransactionTest < Minitest::Test
@@ -13,15 +13,15 @@ class OperationsOpenNoTransactionTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
-        "query" => ["app/queries/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
+        "question" => ["app/questions/**/*.rb"],
         "workflow" => ["app/workflows/**/*.rb"],
-        "io_query" => ["app/io_queries/**/*.rb"],
+        "io_question" => ["app/io_questions/**/*.rb"],
         "record" => ["app/records/**/*_record.rb"],
       },
       "BaseClasses" => { "record" => %w[ApplicationRecord ActiveRecord::Base] },
       "Matrix" => {
-        "command" => [], "query" => [], "workflow" => ["command"], "io_query" => [], "record" => [],
+        "deed" => [], "question" => [], "workflow" => ["deed"], "io_question" => [], "record" => [],
       },
     },
   }.freeze
@@ -30,9 +30,9 @@ class OperationsOpenNoTransactionTest < Minitest::Test
     "app/records/booking_record.rb" => "class BookingRecord < ApplicationRecord\nend\n",
   }.freeze
 
-  def test_a_command_opening_a_transaction_is_an_offence
-    found = check(<<~RUBY, path: "app/commands/confirm_booking.rb")
-      class ConfirmBooking < Command
+  def test_a_deed_opening_a_transaction_is_an_offence
+    found = check(<<~RUBY, path: "app/deeds/confirm_booking.rb")
+      class ConfirmBooking < Deed
         def call
           ActiveRecord::Base.transaction do
             @booking.confirm!
@@ -46,8 +46,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
   end
 
   def test_the_offence_carries_the_reason_and_an_example
-    message = check(<<~RUBY, path: "app/commands/confirm_booking.rb").first.message
-      class ConfirmBooking < Command
+    message = check(<<~RUBY, path: "app/deeds/confirm_booking.rb").first.message
+      class ConfirmBooking < Deed
         def call
           transaction { @booking.confirm! }
         end
@@ -56,12 +56,12 @@ class OperationsOpenNoTransactionTest < Minitest::Test
 
     assert_includes message, "WHY: The generated base class wraps the call in exactly one"
     assert_includes message, "INSTEAD:"
-    assert_includes message, "class ConfirmBooking < Command"
+    assert_includes message, "class ConfirmBooking < Deed"
   end
 
-  def test_a_query_opening_a_transaction_is_an_offence
-    found = check(<<~RUBY, path: "app/queries/find_booking.rb")
-      class FindBooking < Query
+  def test_a_question_opening_a_transaction_is_an_offence
+    found = check(<<~RUBY, path: "app/questions/find_booking.rb")
+      class FindBooking < Question
         def call
           BookingRecord.transaction { BookingRecord.find(@id) }
         end
@@ -85,8 +85,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
   end
 
   def test_an_operation_with_no_transaction_is_the_shape
-    assert_empty check(<<~RUBY, path: "app/commands/confirm_booking.rb")
-      class ConfirmBooking < Command
+    assert_empty check(<<~RUBY, path: "app/deeds/confirm_booking.rb")
+      class ConfirmBooking < Deed
         def call
           @booking.confirm!
           success(@booking)
@@ -108,8 +108,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
 
   # Reported by review: a payment gateway's own API, once refused by the receiver-blind matcher.
   def test_a_same_named_read_on_a_gateway_is_left_alone
-    assert_empty check(<<~RUBY, path: "app/io_queries/charge_status.rb")
-      class ChargeStatus < IoQuery
+    assert_empty check(<<~RUBY, path: "app/io_questions/charge_status.rb")
+      class ChargeStatus < IoQuestion
         def call
           success(@gateway.transaction(@reference))
         end
@@ -119,8 +119,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
 
   # Reported by review: an association named `transaction`, which opens nothing.
   def test_a_same_named_association_is_left_alone
-    assert_empty check(<<~RUBY, path: "app/commands/reverse_charge.rb")
-      class ReverseCharge < Command
+    assert_empty check(<<~RUBY, path: "app/deeds/reverse_charge.rb")
+      class ReverseCharge < Deed
         def call
           @payment.transaction.reverse!
           success(@payment)
@@ -131,8 +131,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
 
   # Reported by review: an attr_reader named `transaction`, called with no block at all.
   def test_a_same_named_attr_reader_is_left_alone
-    assert_empty check(<<~RUBY, path: "app/queries/find_charge.rb")
-      class FindCharge < Query
+    assert_empty check(<<~RUBY, path: "app/questions/find_charge.rb")
+      class FindCharge < Question
         attr_reader :transaction
 
         def call
@@ -172,8 +172,8 @@ class OperationsOpenNoTransactionTest < Minitest::Test
 
   # The gateway read above, with a block attached: proves the fix is the receiver, not the block.
   def test_a_block_call_on_a_non_record_receiver_is_left_alone
-    assert_empty check(<<~RUBY, path: "app/commands/reverse_charge.rb")
-      class ReverseCharge < Command
+    assert_empty check(<<~RUBY, path: "app/deeds/reverse_charge.rb")
+      class ReverseCharge < Deed
         def call
           @gateway.transaction(@reference) { |t| t.reverse! }
           success(@payment)

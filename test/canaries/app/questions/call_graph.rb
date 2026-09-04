@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-class NoDistantWrites < Command
+class CallGraph < Question
 def call
-  $canary = 1
+  OtherQuestion.call
 end
 end

@@ -12,9 +12,9 @@ class EdgesTest < Minitest::Test
     kinds: {
       "request_handling" => ["app/controllers/**/*_controller.rb"],
       "entry_point" => ["app/jobs/**/*.rb"],
-      "command" => ["app/commands/**/*.rb"],
+      "deed" => ["app/deeds/**/*.rb"],
     },
-    matrix: { "request_handling" => [], "entry_point" => [], "command" => [] },
+    matrix: { "request_handling" => [], "entry_point" => [], "deed" => [] },
   )
 
   CONTROLLER = "class StoriesController < ApplicationController\n  def index; end\n\n  def show; end\n\n" \
@@ -71,11 +71,11 @@ class EdgesTest < Minitest::Test
     assert_equal %w[perform], report.edges.first.actions
   end
 
-  def test_a_command_is_not_an_edge
-    report = report_for("app/commands/settle.rb" => "class Settle < Command\n  def call; end\nend\n")
+  def test_a_deed_is_not_an_edge
+    report = report_for("app/deeds/settle.rb" => "class Settle < Deed\n  def call; end\nend\n")
 
     assert_empty report.edges,
-      "A command is not an edge — nothing arrives from outside at one."
+      "A deed is not an edge — nothing arrives from outside at one."
   end
 
   def test_a_suite_one_level_down_still_counts

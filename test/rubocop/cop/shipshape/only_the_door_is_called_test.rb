@@ -14,25 +14,25 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
   LAYOUT = {
     "Shipshape/CallGraph" => {
       "Kinds" => {
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
         "workflow" => ["app/workflows/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
         "request_handling" => ["app/controllers/**/*_controller.rb"],
       },
       "BaseClasses" => {
-        "command" => ["Command"], "workflow" => ["Workflow"], "shape" => ["Shape"]
+        "deed" => ["Deed"], "workflow" => ["Workflow"], "shape" => ["Shape"]
       },
       "Matrix" => {
-        "request_handling" => %w[command workflow shape],
-        "command" => ["shape"], "workflow" => ["command"], "shape" => []
+        "request_handling" => %w[deed workflow shape],
+        "deed" => ["shape"], "workflow" => ["deed"], "shape" => []
       },
     },
   }.freeze
 
-  DEFERRABLE = { "DeferrableKinds" => %w[command], "DeferredMessages" => %w[call_later] }.freeze
+  DEFERRABLE = { "DeferrableKinds" => %w[deed], "DeferredMessages" => %w[call_later] }.freeze
 
   TREE = {
-    "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\nend\n",
+    "app/deeds/settle_invoice.rb" => "class SettleInvoice < Deed\nend\n",
     "app/workflows/settle_month.rb" => "class SettleMonth < Workflow\nend\n",
     "app/shapes/invoice.rb" => "class Invoice < Shape\nend\n",
   }.freeze
@@ -85,7 +85,7 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
     assert_includes found.first.message, "answers success for work that has not been done"
   end
 
-  def test_a_command_may_still_defer
+  def test_a_deed_may_still_defer
     assert_empty check("SettleInvoice.call_later(actor: actor)\n")
   end
 
@@ -103,14 +103,14 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
   # :allocate` refuses this at runtime, and an operation declares no other public class
   # method, so there is nothing else to reach for.
   def test_an_operation_held_in_a_variable_is_the_stated_blind_spot
-    assert_empty check("command = SettleInvoice\n    command.new(invoice_id: 1)")
+    assert_empty check("deed = SettleInvoice\n    deed.new(invoice_id: 1)")
   end
 
   def test_something_that_is_not_an_operation_is_left_alone
     assert_empty check("Invoice.new(number: '1')")
   end
 
-  def test_a_command_may_be_deferred
+  def test_a_deed_may_be_deferred
     assert_empty check("SettleInvoice.call_later(actor: actor, invoice_id: 1)"),
       "**Deferring is running, at a different time**, so the writing doors answer it."
   end
@@ -125,8 +125,8 @@ class OnlyTheDoorIsCalledTest < Minitest::Test
 
   # A class naming itself is not a call site reaching in.
   def test_a_class_referring_to_itself_is_not_a_call_site
-    assert_empty offences("class SettleInvoice < Command\n  def self.build\n    SettleInvoice.new\n  end\nend\n",
-                          cop_class: COP, path: "app/commands/settle_invoice.rb",
+    assert_empty offences("class SettleInvoice < Deed\n  def self.build\n    SettleInvoice.new\n  end\nend\n",
+                          cop_class: COP, path: "app/deeds/settle_invoice.rb",
                           files: TREE, other_cops: LAYOUT)
   end
 

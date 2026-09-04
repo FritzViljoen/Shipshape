@@ -11,7 +11,7 @@ class NoEmptyRescueTest < Minitest::Test
 
   COP = RuboCop::Cop::Shipshape::NoEmptyRescue
 
-  PATH = "app/commands/charge_card.rb"
+  PATH = "app/deeds/charge_card.rb"
 
   def test_an_empty_rescue_is_an_offence
     found = check(<<~RUBY)

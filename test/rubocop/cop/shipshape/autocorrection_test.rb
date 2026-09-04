@@ -18,10 +18,10 @@ class AutocorrectionTest < Minitest::Test
 
   OPERATION = {
     "Shipshape/CallGraph" => {
-      "Kinds" => { "command" => ["app/commands/**/*.rb"] },
-      "Matrix" => { "command" => [] },
+      "Kinds" => { "deed" => ["app/deeds/**/*.rb"] },
+      "Matrix" => { "deed" => [] },
     },
-    "Shipshape/OneOperationOneClass" => { "OperationKinds" => ["command"], "PublicMethod" => "call" },
+    "Shipshape/OneOperationOneClass" => { "OperationKinds" => ["deed"], "PublicMethod" => "call" },
   }.freeze
 
   def test_a_silent_numeric_cast_is_rewritten_to_a_parser
@@ -53,7 +53,7 @@ class AutocorrectionTest < Minitest::Test
   end
 
   # The vulnerability this cop nearly shipped: rewriting a session read moves the value to the
-  # query string, turning an OAuth state check into a comparison of a parameter with itself.
+  # question string, turning an OAuth state check into a comparison of a parameter with itself.
   def test_only_params_is_ever_rewritten
     %w[session cookies env request].each do |source|
       assert_unchanged "#{source}[:token].to_s", RuboCop::Cop::Shipshape::NoSilentCoercion
@@ -79,9 +79,9 @@ class AutocorrectionTest < Minitest::Test
 
   def test_a_file_that_is_not_a_door_is_reported_and_left_alone
     source = "class Report\n  def call\n    params[:page].to_i\n  end\nend\n"
-    path = "app/queries/report.rb"
-    layout = { "Shipshape/CallGraph" => { "Kinds" => { "query" => ["app/queries/**/*.rb"] },
-                                          "Matrix" => { "query" => [] } } }
+    path = "app/questions/report.rb"
+    layout = { "Shipshape/CallGraph" => { "Kinds" => { "question" => ["app/questions/**/*.rb"] },
+                                          "Matrix" => { "question" => [] } } }
 
     refute_empty offences(source, cop_class: RuboCop::Cop::Shipshape::NoSilentCoercion,
                                   path: path, other_cops: layout)
@@ -119,7 +119,7 @@ class AutocorrectionTest < Minitest::Test
     RUBY
 
     corrected = correct(source, RuboCop::Cop::Shipshape::OneOperationOneClass,
-                        path: "app/commands/settle.rb", layout: OPERATION)
+                        path: "app/deeds/settle.rb", layout: OPERATION)
 
     assert_includes corrected, "  def call\n    helper\n  end\n\n  private\n\n  def helper"
     assert_equal 1, corrected.scan(/^\s*private$/).length, "one private, not one per method"

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-class CallGraph < Query
+class NoDistantWrites < Deed
 def call
-  OtherQuery.call
+  $canary = 1
 end
 end

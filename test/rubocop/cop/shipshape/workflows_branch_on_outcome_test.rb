@@ -15,10 +15,10 @@ class WorkflowsBranchOnOutcomeTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "workflow" => ["app/workflows/**/*.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
       },
-      "BaseClasses" => { "workflow" => ["Workflow"], "command" => ["Command"] },
-      "Matrix" => { "workflow" => ["command"], "command" => [] },
+      "BaseClasses" => { "workflow" => ["Workflow"], "deed" => ["Deed"] },
+      "Matrix" => { "workflow" => ["deed"], "deed" => [] },
     },
   }.freeze
 
@@ -34,7 +34,7 @@ class WorkflowsBranchOnOutcomeTest < Minitest::Test
   def test_the_offence_carries_the_reason_and_an_example
     message = check("if charge.value.settled?\n      success(1)\n    end").first.message
 
-    assert_includes message, "WHY: A workflow is closer to a controller than to a command"
+    assert_includes message, "WHY: A workflow is closer to a controller than to a deed"
     assert_includes message, "INSTEAD:"
     assert_includes message, "return failure(charge.error) if charge.failure?"
   end
@@ -58,9 +58,9 @@ class WorkflowsBranchOnOutcomeTest < Minitest::Test
     assert_empty check("Notify.call(actor: @actor, id: charge.value)\n    success(1)")
   end
 
-  def test_a_command_is_not_this_cops_business
-    assert_empty offences("class CreatePerson < Command\n  def call\n    if x.value.total > 1\n      1\n    end\n  end\nend\n",
-                          cop_class: COP, path: "app/commands/create_person.rb", other_cops: LAYOUT)
+  def test_a_deed_is_not_this_cops_business
+    assert_empty offences("class CreatePerson < Deed\n  def call\n    if x.value.total > 1\n      1\n    end\n  end\nend\n",
+                          cop_class: COP, path: "app/deeds/create_person.rb", other_cops: LAYOUT)
   end
 
   private

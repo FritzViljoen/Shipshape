@@ -15,12 +15,12 @@ class AggregationIsReadableTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "workflow" => ["app/workflows/**/*.rb"],
-        "command" => ["app/commands/**/*.rb"],
-        "query" => ["app/queries/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
+        "question" => ["app/questions/**/*.rb"],
         "shape" => ["app/shapes/**/*.rb"],
       },
       "Matrix" => {
-        "workflow" => %w[command query shape], "command" => ["query"], "query" => [], "shape" => []
+        "workflow" => %w[deed question shape], "deed" => ["question"], "question" => [], "shape" => []
       },
     },
   }.freeze
@@ -31,23 +31,23 @@ class AggregationIsReadableTest < Minitest::Test
     "Shipshape/CallGraph" => {
       "Kinds" => {
         "workflow" => ["app/workflows/**/*.rb"],
-        "command" => ["app/commands/**/*.rb"],
+        "deed" => ["app/deeds/**/*.rb"],
       },
-      "Matrix" => { "workflow" => ["command"], "command" => [] },
+      "Matrix" => { "workflow" => ["deed"], "deed" => [] },
     },
   }.freeze
 
   NAMESPACED = {
-    "app/commands/billing/settle_invoice.rb" =>
-      "module Billing\n  class SettleInvoice < Command\n  end\nend\n",
+    "app/deeds/billing/settle_invoice.rb" =>
+      "module Billing\n  class SettleInvoice < Deed\n  end\nend\n",
   }.freeze
 
   # The kinds are decided by the superclass, so the steps need real bodies on disk. They
   # declare no permission of their own: the class name is the permission.
   TREE = {
-    "app/commands/settle_invoice.rb" => "class SettleInvoice < Command\nend\n",
-    "app/commands/notify_customer.rb" => "class NotifyCustomer < Command\nend\n",
-    "app/queries/list_invoices.rb" => "class ListInvoices < Query\nend\n",
+    "app/deeds/settle_invoice.rb" => "class SettleInvoice < Deed\nend\n",
+    "app/deeds/notify_customer.rb" => "class NotifyCustomer < Deed\nend\n",
+    "app/questions/list_invoices.rb" => "class ListInvoices < Question\nend\n",
     "app/shapes/invoice.rb" => "class Invoice < Shape\nend\n",
   }.freeze
 
@@ -89,7 +89,7 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  def test_a_query_step_counts_as_well_as_a_command
+  def test_a_question_step_counts_as_well_as_a_deed
     assert_empty check(<<~RUBY)
       class SettleMonth < Workflow
         def call
@@ -237,11 +237,11 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  # A command naming no operation is an ordinary command, so only a workflow is failed for
+  # A deed naming no operation is an ordinary deed, so only a workflow is failed for
   # sequencing nothing.
-  def test_a_command_that_names_no_operation_is_not_an_offence
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
-      class SettleInvoice < Command
+  def test_a_deed_that_names_no_operation_is_not_an_offence
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/deeds/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
+      class SettleInvoice < Deed
         def call
           success(:settled)
         end
@@ -249,9 +249,9 @@ class AggregationIsReadableTest < Minitest::Test
     RUBY
   end
 
-  def test_a_command_reaching_a_query_from_a_helper_is_an_offence
-    found = offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
-      class SettleInvoice < Command
+  def test_a_deed_reaching_a_question_from_a_helper_is_an_offence
+    found = offences(<<~RUBY, cop_class: COP, path: "app/deeds/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
+      class SettleInvoice < Deed
         def call
           success(load)
         end
@@ -266,12 +266,12 @@ class AggregationIsReadableTest < Minitest::Test
 
     assert_equal 1, found.length
     assert_includes found.first.message, "`ListInvoices` is reached from somewhere",
-      "**The widening.** Scoped to workflows, this was unreported — and it is the same fail-open one kind down: the command demands nothing for a query it performs."
+      "**The widening.** Scoped to workflows, this was unreported — and it is the same fail-open one kind down: the deed demands nothing for a question it performs."
   end
 
-  def test_a_command_naming_its_query_in_call_is_the_shape
-    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/commands/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
-      class SettleInvoice < Command
+  def test_a_deed_naming_its_question_in_call_is_the_shape
+    assert_empty offences(<<~RUBY, cop_class: COP, path: "app/deeds/settle_invoice.rb", files: TREE, other_cops: LAYOUT)
+      class SettleInvoice < Deed
         def call
           ListInvoices.call(actor: @actor)
         end
