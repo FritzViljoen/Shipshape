@@ -18,7 +18,7 @@ class NoEntryPointBypassTest < Minitest::Test
 
     assert_equal 1, found.length,
       "Construction is what is closed: `call` is the only way in, and it is where the permission check, the transaction and the return-type assertion live."
-    assert_includes found.first.message, "`send(:new)` builds an operation without going through the door"
+    assert_includes found.first.message, "`send(:new)` reaches `new`, a private entry point, around `call`"
   end
 
   def test_the_offence_carries_the_reason_and_an_example

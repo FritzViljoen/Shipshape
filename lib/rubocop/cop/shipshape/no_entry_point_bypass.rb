@@ -39,7 +39,7 @@ module RuboCop
 
         def message_for(sender, named)
           explain(
-            "`#{sender}(:#{named})` builds an operation without going through the door.",
+            "`#{sender}(:#{named})` reaches `#{named}`, a private entry point, around `call`.",
             because: "The constructor is private so that `call` is the only way in, and " \
                      "`call` is where the permission check runs, where the transaction " \
                      "opens, and where the return type is asserted. An operation built this " \
