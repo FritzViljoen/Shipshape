@@ -1316,8 +1316,8 @@ class GeneratedBaseClassesTest < Minitest::Test
     assert_raises(ArgumentError) { renaming.new(**renaming.new(from: "x").to_h) }
   end
 
-  # **Every writing door, not just `Deed`.** The audit call is in four base classes and
-  # only one of them was ever exercised — so three could have lost it and every check here
+  # **Every writing door, not just `Deed`.** The audit call is in three base classes and
+  # only one of them was ever exercised — so two could have lost it and every check here
   # would have stayed green, which is exactly the hole this suite was told it had.
   class AuditedDeed < Deed
     def initialize; end

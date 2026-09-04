@@ -9,7 +9,9 @@ The default kinds, and an application may name its own:
 
 | Kind | May call |
 |---|---|
-| request handling | workflow, deed, question, io_deed, io_question, legacy_deed, legacy_question |
+| request handling | workflow, deed, question, io_deed, io_question, legacy_deed, legacy_question, view component, shape |
+| entry point | workflow, deed, question, io_deed, io_question, legacy_deed, legacy_question, view component, shape |
+| view component | shape |
 | workflow | deed, question, io_deed, io_question, legacy_deed, legacy_question, shape |
 | deed | question, legacy_question, shape, record |
 | question | shape, record |
@@ -204,7 +206,9 @@ reach becomes the place unrelated things are put.
   **The superclass is read, not parsed** — a regular expression over the file's source,
   matching the first `class X < Y`. A superclass written as an expression, assigned through
   a constant, or produced by a class-generating call is invisible, and the file falls back
-  to its path. `one-level-of-inheritance` is what keeps that rare.
+  to its path. A chain like that is rare for a governed kind because
+  [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) refuses a second level inside this
+  canon's own hierarchy.
 
   **The suffixes cut a hole of the same shape.** A file in the records tree not named
   `*_record.rb` matches no kind, so it is skipped rather than failed — the file has quietly

@@ -11,7 +11,7 @@ four things and stops:
 - **the guard's limit** — what a passing run does not prove
 
 > **Every law here names a guard, and `CanonTest` fails the build if it does not** — a cop
-> that exists, one of two guards that ship with this gem's own suite, or the words *not
+> that exists, one of the guards that ship with this gem's own suite, or the words *not
 > built yet*, which make it a convention. That is a narrower claim than it looks: it holds
 > that a guard is *named*, never that it covers everything the law describes. Each law's
 > **guard's limit** is where that gap is written down, and it is the part worth reading.
@@ -59,5 +59,5 @@ not make it hold.
 | [`co-change-is-a-fact-not-a-verdict`](co-change-is-a-fact-not-a-verdict.md) | `nothing-is-hidden` |
 | [`a-method-carries-its-own-weight`](a-method-carries-its-own-weight.md) | `nothing-is-hidden` |
 
-`make-the-wrong-thing-impossible` produces no law of its own — it produces every
-guard on this list, and the rule that each is tested by removal.
+`make-the-wrong-thing-impossible` also produces every guard on this list, and the rule that
+each is tested by removal — beyond the two laws above it names as its own.

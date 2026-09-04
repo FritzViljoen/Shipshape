@@ -30,10 +30,12 @@ where it is needed.
 
 **Construction is not this law's business, and the base class holds none of it.**
 [`no-test-factories`](no-test-factories.md) already says how a test builds the state it needs:
-by calling the application's own operations, through `test_call`, which every generated
-`Deed` and `Question` carries already. `ConfirmBooking.test_call(booking_id: booking.id)` is
-the shared, named, tested way to reach a confirmed booking, and it lives on the operation's own
-base class, not on the test's. So the base test class this law describes holds suite plumbing —
+by calling the application's own operations, through `test_call` — declared only inside each
+template's `auth` branch, so it exists on a generated `Deed` and `Question` when the install
+turns auth on, and not on `Shipshape::Install`'s own default of `auth: false`. Where it
+exists, `ConfirmBooking.test_call(booking_id: booking.id)` is the shared, named, tested way
+to reach a confirmed booking, and it lives on the operation's own base class, not on the
+test's. So the base test class this law describes holds suite plumbing —
 what the framework itself asks for — and nothing that constructs domain state. A test needing a
 new way to build something is a reason to look at the operation, not at this class.
 
@@ -90,15 +92,17 @@ by other means: move the behaviour onto the one class already in the inheritance
 
 ## Two rejected shapes
 
-**Generated, regenerate-not-edit.** A stricter shape was considered: install rewrites the base
-test class every run and treats a local edit as drift to warn about. Rejected — a real suite's
-base test legitimately needs setup specific to the application, how *this* app signs in an
-actor, what *this* app's time zone is, and a base class that refuses local edits pushes that
-need straight back into a module, which is the thing this law exists to close. Nothing about
-installation singles this file out: like every other base class `shipshape install` writes,
-`Deed` included, it is written once and never touched again — `Install#call` skips a target
-that already exists, for this file exactly as for every other, and the gem has no drift check
-at all.
+**Generated, regenerate-not-edit.** A stricter shape was considered: install overwrites the
+base test class every run, and a local edit is lost rather than kept. Rejected — a real
+suite's base test legitimately needs setup specific to the application, how *this* app signs
+in an actor, what *this* app's time zone is, and a base class that refuses local edits pushes
+that need straight back into a module, which is the thing this law exists to close. Nothing
+about installation singles this file out: like every other base class `shipshape install`
+writes, `Deed` included, a local edit is never overwritten — `Install#call` compares an
+existing target against what this run would write and, on any difference, leaves the target
+untouched and writes the divergence beside it as `.new`, for a human to reconcile by choosing
+to reinstall. That drift check runs only when someone chooses to run it, never as a build-time
+gate over every commit — the stricter shape this law does not need.
 
 **A public-method-count ratchet, alone.** Counting only the base class's public methods was
 considered and rejected. Private is exactly where an agent under this law puts
@@ -115,10 +119,15 @@ a guard set is only tested by something actively trying to get work done through
 - **Principle:** `nothing-is-hidden` governs — a module's methods live in a file the test never
   mentions, which is the same defect named above from an operation's side.
 - **Guard:** `Shipshape/NoTestMixins`, over the test trees — fails `include`, `extend` and
-  `prepend` naming anything but the language's own modules.
-- **Guard's limit:** it sees only the bare directive that opens a class or module — `include`,
-  `extend`, `prepend` — and the `extend self` back door onto that same directive. It does not
-  see the call site of a module function called directly: `BookingHelper.a_booking(**args)`
+  `prepend` naming a mixin that resolves to a file the repository's own test tree owns.
+  A language module (`Comparable`, `Enumerable`, and the rest of Ruby's own sharing) is
+  never named; neither is a gem's module, or a name this cop cannot resolve to a file.
+- **Guard's limit:** **it offends only what it can resolve to a local file, so `include
+  SomeGemConcern` passes untouched** — a mixin from outside the test tree is invisible to
+  it, whatever it does. It sees only the bare directive that opens a class or module —
+  `include`, `extend`, `prepend` — and the `extend self` back door onto that same directive.
+  It does not see the call site of a module function called directly:
+  `BookingHelper.a_booking(**args)`
   needs no `include` and travels through neither this guard nor, today,
   `Shipshape/NoTestFactories`. `Shipshape/BaseTestClassGrowth` still sees the definition itself
   — `def self.a_booking` inside `BookingHelper` ratchets exactly as a mixin's method would —
