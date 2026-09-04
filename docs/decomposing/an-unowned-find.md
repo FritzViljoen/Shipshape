@@ -38,7 +38,7 @@ complete and row-level ownership is entirely outside it.** That gap is the subje
 ## 0. Find the loads that take an id from outside
 
 ```sh
-grep -rn "\.find(\|\.find_by(\|\.find_by_id\|\.where(id:" app/queries app/commands app/io_queries app/io_commands
+grep -rn "\.find(\|\.find_by(\|\.find_by_id\|\.where(id:" app/questions app/deeds app/io_questions app/io_deeds
 ```
 
 Then narrow to the ones whose id came from a keyword argument rather than from another row
@@ -142,7 +142,7 @@ are done when every entry has an answer from step 1 and a test from step 4.
 ## What this leaves you
 
 **An operation that cannot return a row the actor has no claim to**, because it never loaded
-one. Ownership stops being a check somebody remembers and becomes the shape of the query.
+one. Ownership stops being a check somebody remembers and becomes the shape of the question.
 
 ## What none of this proves
 

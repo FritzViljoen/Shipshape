@@ -131,25 +131,25 @@ this procedure will not tell you when you are finished.
 
 ---
 
-## 4. Asynchronous subscribers become deferred commands, one job each
+## 4. Asynchronous subscribers become deferred deeds, one job each
 
 A bus that delivers in a background job is doing two things at once — decoupling and deferring
 — and only the second was worth having.
 
-`call_later` defers **one command, one transaction, one job**
-([`deferral-is-one-command`](../laws/deferral-is-one-command.md)), so a retry re-runs exactly
+`call_later` defers **one deed, one transaction, one job**
+([`deferral-is-one-deed`](../laws/deferral-is-one-deed.md)), so a retry re-runs exactly
 one transaction. A subscriber list delivered as one job retries all of them, including the ones
 that already succeeded.
 
-**Check:** each deferred step is its own command, and
-`Shipshape/CommandsProveIdempotence` is silent — a queue retries, and it will.
+**Check:** each deferred step is its own deed, and
+`Shipshape/DeedsProveIdempotence` is silent — a queue retries, and it will.
 
 ---
 
 ## 5. An event with an outside consumer is an integration, not a subscriber
 
 If another service consumes the event, it is not yours to delete. It becomes an explicit
-outbound call: an `io_command`, on the call path, with a timeout
+outbound call: an `io_deed`, on the call path, with a timeout
 ([an untimed call](an-untimed-call.md)) and a failure the caller can see.
 
 **Check:** every remaining publish either has a named outside consumer or is on the deletion

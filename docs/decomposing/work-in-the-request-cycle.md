@@ -14,16 +14,16 @@ SendConfirmation.call(actor: actor, order_id: order.id)
 SendConfirmation.call_later(actor: actor, order_id: order.id)
 ```
 
-One command, one transaction, one job — the grain at which a retry is safe, which
-`a-command-runs-twice` is what makes harmless. `success(:enqueued)` means accepted, not done.
+One deed, one transaction, one job — the grain at which a retry is safe, which
+`a-deed-runs-twice` is what makes harmless. `success(:enqueued)` means accepted, not done.
 
 The shape: creating an order sends a confirmation email, posts to an analytics endpoint,
 rebuilds a cache and writes a PDF — all before the response. The user waits for four things
 they cannot see, and any one of them failing loses the order.
 
 **With the operation shape in place this is nearly free to fix**, which is the reason it is
-worth a procedure: `call_later` defers any command
-([`deferral-is-one-command`](../laws/deferral-is-one-command.md)), so the mechanics are one
+worth a procedure: `call_later` defers any deed
+([`deferral-is-one-deed`](../laws/deferral-is-one-deed.md)), so the mechanics are one
 word. **All the difficulty is in deciding what may be deferred**, and that is a judgement the
 word makes it easy to skip.
 
@@ -83,7 +83,7 @@ and dangerous in an ordinary Rails app: nothing serialises a record, because
 `Shipshape/TypedArguments` refuses one at construction. "Passing AR objects to jobs" is a row
 on every list of Rails failures and it is unsayable in this shape.
 
-**Check:** `shipshape check` is silent, and the deferred command's arguments are all primitives
+**Check:** `shipshape check` is silent, and the deferred deed's arguments are all primitives
 or shapes.
 
 ---
@@ -91,18 +91,18 @@ or shapes.
 ## 3. It will run twice, so prove it can
 
 A queue retries. A deploy interrupts a worker mid-job and the job comes back. **A deferred
-command that is not idempotent is a defect the moment it is deferred**, and the guard already
+deed that is not idempotent is a defect the moment it is deferred**, and the guard already
 demands the proof:
 
 ```sh
-bundle exec rubocop --only Shipshape/CommandsProveIdempotence
+bundle exec rubocop --only Shipshape/DeedsProveIdempotence
 ```
 
-`Shipshape/CommandsProveIdempotence` requires every command's test to say what happens on the
+`Shipshape/DeedsProveIdempotence` requires every deed's test to say what happens on the
 second run. Deferring one whose test does not is the point at which that requirement stops
 being paperwork.
 
-**Check:** the command's test runs it twice and asserts the second run's effect, and the answer
+**Check:** the deed's test runs it twice and asserts the second run's effect, and the answer
 is one you would accept in production — not "it sends two emails".
 
 ---
@@ -115,10 +115,10 @@ Every operation records to the audit log, failures included
 ([`every-operation-reports-what-it-did`](../laws/every-operation-reports-what-it-did.md)), so
 the trail exists. What does not exist by default is anybody looking at it.
 
-**And retries are bounded per command**, by `ATTEMPTS` on the installed job — an unbounded
+**And retries are bounded per deed**, by `ATTEMPTS` on the installed job — an unbounded
 retry against a broken dependency is a queue hammering an outage into a longer one.
 
-**Check:** the command declares its `ATTEMPTS`, and you can name where a permanent failure
+**Check:** the deed declares its `ATTEMPTS`, and you can name where a permanent failure
 surfaces.
 
 ---
@@ -147,6 +147,6 @@ server was an error somebody saw immediately. In a queue it is a job that retrie
 overnight, and the difference between those two is whether anybody reads the audit trail. This
 procedure moves the failure; it does not remove it, and it makes noticing somebody's job.
 
-**Ordering is not preserved.** Two commands deferred in sequence run in whatever order the
+**Ordering is not preserved.** Two deeds deferred in sequence run in whatever order the
 queue gives them. If one depends on the other, they are one workflow with one deferral at the
 front, not two independent jobs — and nothing here checks that you got that right.

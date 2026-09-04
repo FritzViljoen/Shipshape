@@ -64,7 +64,7 @@ shape you cannot express is not a guard at all.
 | Serialized columns that later need querying | **Procedure** | [a serialized column](decomposing/a-serialized-column.md) — a blob is an undeclared schema, and `AbsenceIsAbsenceNeverAValue` cannot see inside one |
 | `default_scope` leaking into every query, and into `create` | **Guarded** | `Shipshape/PersistenceHoldsNoBehaviour` — a gap this survey found, now closed. It is implicit behaviour: global state in, distant write out |
 | `unscoped` used to escape a bad `default_scope` | **Unsayable** | There is no `default_scope` left to escape |
-| N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Query` classes, so the fix has one home — that is all |
+| N+1 queries | **Uncovered** | Bullet, prosopite. Reads live in named `Question` classes, so the fix has one home — that is all |
 | Missing indexes on foreign keys | **Procedure** | [an unindexed foreign key](decomposing/an-unindexed-foreign-key.md) — a runtime failure with a structural cause: both facts are in `db/schema.rb`, which this canon already reads |
 | Missing indexes on sort and uniqueness columns | **Uncovered** | `lol_dba`. Which column a query sorts on is not in the schema |
 | `dependent: :destroy` on huge associations | **Uncovered** | And note the tension: `AssociationsSurviveErasure` *demands* a `dependent:`, for erasure, which can make this worse |
@@ -99,7 +99,7 @@ shape you cannot express is not a guard at all.
 |---|---|---|
 | Business logic in actions | **Guarded** + **Procedure** | `NoDecisionsInRequestHandling`; [a fat controller](decomposing/a-fat-controller.md) |
 | Ignoring `save`'s return value, silent failures | **Unsayable** | An operation answers a `Result`; `OperationsReportWhatTheyDid`, `NoEmptyRescue` |
-| Authorization checked in views instead of controllers | **Unsayable** | There is no predicate for a view to ask: `permits?` is private to the door. A page offers the action and places the refusal, or a query hands it a shape that already says what is offerable |
+| Authorization checked in views instead of controllers | **Unsayable** | There is no predicate for a view to ask: `permits?` is private to the door. A page offers the action and places the refusal, or a question hands it a shape that already says what is offerable |
 | Loose strong params, mass assignment | **Guarded** | `NoInlineParamParse`, `NoUnparsedLookup`, `TypedArguments` |
 | Fat `params` juggling instead of form objects | **Guarded** | Parsed at the seam, typed at construction |
 | `before_action` chains that make flow untraceable | **Procedure** | [a filter chain](decomposing/a-filter-chain.md). Still uncovered by any cop — the branching is in `only:`/`except:`, which nothing here reads |
@@ -125,24 +125,24 @@ shape you cannot express is not a guard at all.
 |---|---|---|
 | Passing AR objects instead of IDs | **Unsayable** | `TypedArguments` refuses a record at construction and `HoldsNoRecords` refuses one in a shape; `call_later` serialises typed arguments |
 | Jobs enqueued in `after_save`, before commit | **Unsayable** | There is no `after_save` |
-| Jobs that aren't idempotent, then retried | **Guarded** | `Shipshape/CommandsProveIdempotence` — every command's test says what happens on the second run |
-| Unbounded retries hammering a broken dependency | **Guarded** | Per-command `ATTEMPTS` on the installed job |
+| Jobs that aren't idempotent, then retried | **Guarded** | `Shipshape/DeedsProveIdempotence` — every deed's test says what happens on the second run |
+| Unbounded retries hammering a broken dependency | **Guarded** | Per-deed `ATTEMPTS` on the installed job |
 | No failure visibility | **Guarded** | Every operation records to the audit log, failures included |
 | Long work in the request cycle | **Procedure** | [work in the request cycle](decomposing/work-in-the-request-cycle.md). `call_later` makes the mechanics one word, which is why the procedure is all judgement |
 | One queue for everything | **Uncovered** | — |
-| Cron jobs with no locking, two servers running the same task | **Guarded** | `Shipshape/NothingSchedulesWork` and [`a-schedule-is-a-row`](laws/a-schedule-is-a-row.md). A schedule is a stored request naming a route and an actor; two servers firing one row is a double-post, which `a-command-runs-twice` already obliges every command to survive |
+| Cron jobs with no locking, two servers running the same task | **Guarded** | `Shipshape/NothingSchedulesWork` and [`a-schedule-is-a-row`](laws/a-schedule-is-a-row.md). A schedule is a stored request naming a route and an actor; two servers firing one row is a double-post, which `a-deed-runs-twice` already obliges every deed to survive |
 
 ## Caching
 
 Every row — stale keys, no expiry, Russian doll without `touch:`, user data under a shared key,
 stampede on expiry — is **Uncovered**. Nothing here reads a cache, and no static rule could.
 
-**One thing next door is covered.** A cache *in the database* — a saved query answer in its own
+**One thing next door is covered.** A cache *in the database* — a saved question answer in its own
 table — is sanctioned as a last resort by [a stored derivation](decomposing/a-stored-derivation.md),
 under a name that makes it greppable and a gate that refuses it unless the invalidation is
 written down. That is not fragment caching and does not help with any row above it.
 
-The one structural contribution: reads are named `Query` classes, so a cache has an obvious
+The one structural contribution: reads are named `Question` classes, so a cache has an obvious
 place to live and one place to be invalidated from. That is a precondition, not a guard.
 
 ## Migrations and deploys

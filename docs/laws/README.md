@@ -25,13 +25,13 @@ not make it hold.
 |---|---|
 | [`one-operation-one-class`](one-operation-one-class.md) | `one-way-to-say-each-thing` |
 | [`an-operation-answers-a-result`](an-operation-answers-a-result.md) | `nothing-fails-quietly` |
-| [`a-command-is-one-transaction`](a-command-is-one-transaction.md) | `make-the-wrong-thing-impossible` |
-| [`a-query-only-reads`](a-query-only-reads.md) | `good-boundaries-make-good-neighbours` |
+| [`a-deed-is-one-transaction`](a-deed-is-one-transaction.md) | `make-the-wrong-thing-impossible` |
+| [`a-question-never-writes`](a-question-never-writes.md) | `good-boundaries-make-good-neighbours` |
 | [`io-is-its-own-kind`](io-is-its-own-kind.md) | `good-boundaries-make-good-neighbours` |
 | [`personal-data-is-declared-and-erasable`](personal-data-is-declared-and-erasable.md) | `nothing-is-hidden` |
-| [`a-command-runs-twice`](a-command-runs-twice.md) | `tell-dont-ask` |
+| [`a-deed-runs-twice`](a-deed-runs-twice.md) | `tell-dont-ask` |
 | [`every-operation-reports-what-it-did`](every-operation-reports-what-it-did.md) | `nothing-fails-quietly` |
-| [`deferral-is-one-command`](deferral-is-one-command.md) | `good-boundaries-make-good-neighbours` |
+| [`deferral-is-one-deed`](deferral-is-one-deed.md) | `good-boundaries-make-good-neighbours` |
 | [`a-schedule-is-a-row`](a-schedule-is-a-row.md) | `nothing-is-hidden` |
 | [`no-test-factories`](no-test-factories.md) | `one-way-to-say-each-thing` |
 | [`an-operation-is-a-leaf`](an-operation-is-a-leaf.md) | `nothing-is-hidden` |

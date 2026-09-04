@@ -26,24 +26,24 @@ end
 Parse at the seam, call one thing, place a response per outcome. The action tests `success?`
 and `present?` and nothing else — every other question moved inside the operation.
 
-## It is a command turned inside out
+## It is a deed turned inside out
 
-**The command is already written — it is in the action, with its parts the wrong way round.**
+**The deed is already written — it is in the action, with its parts the wrong way round.**
 Nothing here is designed from scratch, and that is what makes this the most mechanical
 procedure in the playbook once the reading is right.
 
-| In the action | What it is in the command |
+| In the action | What it is in the deed |
 |---|---|
 | `return render :forbidden unless @story.editable_by?(current_user)` | the permission the base class checks, so it disappears |
 | `return render :not_found unless @story` | `failure(:not_found)` |
 | `if record.save … else …` | `success(record)` / `failure(:invalid, ...)` |
 | `transaction do … end` | the whole of `call` |
-| `@story = Story.find_by(...)` | a query, or the command's own load |
+| `@story = Story.find_by(...)` | a question, or the deed's own load |
 | each `render` / `redirect_to` arm | one outcome the result has to be able to carry |
 
-**The last row is the load-bearing one.** An action's response arms are the command's result
-vocabulary, and counting them says what the command must be able to answer with before a line
-of it is written. Four arms means four outcomes; a command that can answer two of them has
+**The last row is the load-bearing one.** An action's response arms are the deed's result
+vocabulary, and counting them says what the deed must be able to answer with before a line
+of it is written. Four arms means four outcomes; a deed that can answer two of them has
 left the other two being decided in the controller.
 
 **The branch count does not fall, and that is not a failure.** The same conditions exist
@@ -63,7 +63,7 @@ shipshape next
 Controllers are in the default globs, so this usually already works — which is why the
 findings are visible before anything else is configured, and why this is the tempting place
 to start. **It is not the cheapest place**: an action's rules usually live on the record it
-touches, so [a god record](a-god-record.md) often has to come first or the extracted command
+touches, so [a god record](a-god-record.md) often has to come first or the extracted deed
 is just a wrapper around the same god object.
 
 ---
@@ -89,11 +89,11 @@ and the response chooses between them at the edge.
 `Shipshape/NoDecisionsInRequestHandling` names every branch on domain state. Each one is a
 decision that belongs in the operation — and the decision's *answer* is what comes back.
 
-**And if the action contains a `transaction do`, that block is the command** — its contents
+**And if the action contains a `transaction do`, that block is the deed** — its contents
 are the new `call`, and everything before it is the action's own work. Somebody already
 decided what had to be atomic; see [the index](README.md), "Start from the transaction blocks".
 
-**Check:** you can name the command or query before writing it.
+**Check:** you can name the deed or question before writing it.
 
 ---
 
@@ -106,7 +106,7 @@ return render :not_found unless @story
 return render :forbidden unless @story.editable_by?(current_user)
 ```
 
-The find is a **query**. The permission is the operation's own business — with authorisation
+The find is a **question**. The permission is the operation's own business — with authorisation
 installed, the base class asks it before the work runs, so the action never sees it.
 
 `Shipshape/CallGraph` is what holds this: request handling has no edge to a record, so the
@@ -151,7 +151,7 @@ them. The commonest way to fail this step is to move the branch rather than the 
 ## 5. The instance variables are a shape
 
 `@story`, `@comments`, `@user` set for the template are three unasserted values with no
-contract. One shape, built by the query, is what the view should be handed —
+contract. One shape, built by the question, is what the view should be handed —
 `view_component` may hold shapes and nothing else.
 
 **Check:** "Actions orchestrating several classes" falls in `shipshape report`.

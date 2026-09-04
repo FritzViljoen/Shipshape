@@ -29,7 +29,7 @@ end
 ConfirmBooking.call(actor: actor, booking_id: id)   # the rules, one act per class
 ```
 
-One table becomes a record that maps rows, a shape that travels, and one command per thing
+One table becomes a record that maps rows, a shape that travels, and one deed per thing
 the business does to it. The rename is what frees the name for the shape.
 
 ---
@@ -87,13 +87,13 @@ stop straddling concepts.
 
 `Shipshape/PersistenceHoldsNoBehaviour` names every method. Each becomes:
 
-- a **query** if it reads and derives — `#total`, `#eligible?`, `#display_name`
-- a **command** if it writes — `#settle!`, `#archive!`
+- a **question** if it reads and derives — `#total`, `#eligible?`, `#display_name`
+- a **deed** if it writes — `#settle!`, `#archive!`
 - a **method on a shape** if it only rearranges fields it was handed — that is the one thing
   a shape may carry
 
 "Rules that could move to a shape as they are" in the report names the third group:
-methods that touch no association and no query, which are the cheapest to move and the safest
+methods that touch no association and no question, which are the cheapest to move and the safest
 to start with.
 
 **Check:** the record's method count falls; `shipshape check` never rises.
@@ -121,7 +121,7 @@ that travels, and it breaks Rails' one-model-one-table assumption on purpose —
 be several shapes over one table, which is what "several things sharing a table" always
 needed.
 
-**Check:** `Shipshape/CallGraph` — nothing outside a query or command reaches the record.
+**Check:** `Shipshape/CallGraph` — nothing outside a question or deed reaches the record.
 
 ---
 
@@ -140,7 +140,7 @@ at different times, or owned by different tenants.
 
 ## What this leaves you
 
-**A question has one place to be answered.** "What is a booking's total?" is one query, not a
+**One thing asked belongs to one place.** "What is a booking's total?" is one question, not a
 method on a record reachable from every controller, view and job in the application.
 
 ## What none of this proves

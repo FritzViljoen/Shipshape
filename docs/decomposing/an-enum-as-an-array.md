@@ -143,7 +143,7 @@ validation. Run it and watch it fail — a constraint nobody has seen reject any
 constraint nobody has confirmed exists.
 
 **The same closed set, asserted where the value arrives rather than where it is stored:**
-`typed_enum(channel, %i[web phone api])` at the command's constructor, from
+`typed_enum(channel, %i[web phone api])` at the deed's constructor, from
 [`arguments-are-typed-at-construction`](../laws/arguments-are-typed-at-construction.md) —
 `typed(channel, Symbol)` would accept any Symbol, which is the same gap the `CHECK` constraint
 just closed, one layer up. Keep the Array the constraint and the guard agree on in one place

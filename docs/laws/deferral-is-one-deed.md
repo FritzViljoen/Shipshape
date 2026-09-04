@@ -1,14 +1,14 @@
-# `deferral-is-one-command` — Work is deferred one command at a time, or not at all
+# `deferral-is-one-deed` — Work is deferred one deed at a time, or not at all
 
-`SettleInvoice.call_later(actor: actor, invoice_id: 1)` puts **one command** on a queue: one
+`SettleInvoice.call_later(actor: actor, invoice_id: 1)` puts **one deed** on a queue: one
 transaction, one job. A retry therefore re-runs exactly one transaction, which is the only
 grain at which a retry is safe.
 
-## Not a workflow, and not a query
+## Not a workflow, and not a question
 
 A workflow spans several transactions. One job holding three of them retries steps that
-already committed, so deferral belongs to the steps and never to the sequence. A query
-answers shapes to a caller, and a deferred query answers nothing to nobody.
+already committed, so deferral belongs to the steps and never to the sequence. A question
+answers shapes to a caller, and a deferred question answers nothing to nobody.
 
 **And a workflow may not defer a step either, which is the other half of the same sentence.**
 A workflow's whole content is an order. `Step.call_later` inside one enqueues and returns, so
@@ -24,10 +24,10 @@ rather than catching one.
 
 ## A retry is safe because of a law, not a hope
 
-[`a-command-runs-twice`](a-command-runs-twice.md) already obliges every command to survive a
+[`a-deed-runs-twice`](a-deed-runs-twice.md) already obliges every deed to survive a
 second call: a caller may not ask whether the work has happened, because branching is asking,
-so the command owns repetition itself. Deferral is what turns that from tidy into
-load-bearing — a queue retries on a timeout, a deploy, a worker restart, and a command that
+so the deed owns repetition itself. Deferral is what turns that from tidy into
+load-bearing — a queue retries on a timeout, a deploy, a worker restart, and a deed that
 double-applies turns one retry into two charges.
 
 ## The Result describes the enqueue, never the work
@@ -72,5 +72,5 @@ Two things follow, and both are refused at enqueue rather than discovered in the
 
   `ATTEMPTS` is a count of attempts, not of retries: `ATTEMPTS = 1` runs once and does not
   retry. A `Shape` argument cannot be deferred at all — ActiveJob refuses it, and
-  `Shape#to_h` is the caller's answer. Nothing checks that a deferred command is idempotent
-  in fact; `Shipshape/CommandsProveIdempotence` checks only that somebody wrote down how.
+  `Shape#to_h` is the caller's answer. Nothing checks that a deferred deed is idempotent
+  in fact; `Shipshape/DeedsProveIdempotence` checks only that somebody wrote down how.
