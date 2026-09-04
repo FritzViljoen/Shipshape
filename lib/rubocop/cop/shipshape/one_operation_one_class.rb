@@ -50,7 +50,7 @@ module RuboCop
           # occasionally: it is a second operation, and it gets its own class
           class TotalInvoice < Question
             def call
-              success(@lines.sum(&:amount))
+              @lines.sum(&:amount)
             end
           end
         RUBY

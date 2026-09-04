@@ -80,8 +80,8 @@ being a deploy.
   caller is.
 - **Guard:** `Shipshape/NothingSchedulesWork`, over every governed tree. Fails a cadence
   declared in code — a `whenever` block, a `sidekiq-cron` or `sidekiq-scheduler` entry, a
-  `recurring` declaration, a cron expression in a constant — because each is a schedule that
-  no row records, no actor owns, and no door was opened for.
+  `recurring` declaration — because each is a schedule that no row records, no actor owns,
+  and no door was opened for.
 - **Guard's limit:** **it reads the application, and a crontab is not in the application.** A
   schedule in `/etc/cron.d`, in a Kubernetes `CronJob`, in a cloud scheduler or in a CI
   configuration is invisible here, and those are where the worst ones live — no actor, no
@@ -89,7 +89,12 @@ being a deploy.
   guard removes the in-repository ways of saying it and cannot reach the others.
 
   It matches the scheduling libraries it knows by name, so a wrapper of its own is not caught,
-  and a cron expression assembled from parts is not caught. It says nothing about whether a
-  schedule row's actor is the *right* actor, nor whether the cadence is sane, nor whether the
-  route named by a row still exists — a row naming a removed path 404s when it fires, and
-  nothing here fires it.
+  and a cron expression assembled from parts is not caught. **A cron string in a constant is
+  not caught either, and that clause was tried and removed rather than narrowed:**
+  `NIGHTLY = "0 3 * * *"` is the exact value the remediation above hands to `CreateSchedule`,
+  so following the fix earned the offence back — a guard that fails its own advice is one
+  nobody keeps. A cadence stored as data is what this law asks for; where the string sits
+  before it reaches `CreateSchedule.call` is not a question a cop can answer. It says nothing
+  about whether a schedule row's actor is the *right* actor, nor whether the cadence is sane,
+  nor whether the route named by a row still exists — a row naming a removed path 404s when
+  it fires, and nothing here fires it.

@@ -32,7 +32,7 @@ module RuboCop
           class RegisterPerson < Workflow
             def call
               found = FindPerson.call(actor: actor, email: @email)
-              return found if found.value
+              return success(found) if found
 
               CreatePerson.call(actor: actor, email: @email)
             end

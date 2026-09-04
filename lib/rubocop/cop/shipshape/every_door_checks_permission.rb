@@ -23,8 +23,8 @@ module RuboCop
           def self.call(actor: nil, **arguments)
             return Result.failure(:forbidden) unless permits?(actor)
 
-            operation = anonymous? ? new(**arguments) : new(actor: actor, **arguments)
-            # ... the work
+            operation = new(**arguments)
+            operation.__perform__(actor)
           end
 
           # A question has no envelope, so it raises instead:

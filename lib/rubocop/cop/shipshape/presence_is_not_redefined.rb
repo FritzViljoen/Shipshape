@@ -39,12 +39,13 @@ module RuboCop
         def message_for(name)
           explain(
             "`#{name}` decides what `present?` answers about this shape.",
-            because: "Request handling may test `present?` and nothing else, and it means one " \
-                     "thing: did the question find anything. A shape that answers it for itself " \
-                     "makes that question a rule — the action then takes an arm chosen by the " \
-                     "shape rather than by whether there was an answer, and the branch reads " \
-                     "the same either way. `nil` and `[]` are absent; a shape is present. That " \
-                     "is the whole of it, and it is not the shape's to redefine.",
+            because: "Request handling may test `present?` and `success?`, and nothing else. " \
+                     "`present?` means one thing: did the question find anything. A shape " \
+                     "that answers it for itself makes that question a rule — the action " \
+                     "then takes an arm chosen by the shape rather than by whether there " \
+                     "was an answer, and the branch reads the same either way. `nil` and " \
+                     "`[]` are absent; a shape is present. That is the whole of it, and it " \
+                     "is not the shape's to redefine.",
             instead: SILENT,
           )
         end
