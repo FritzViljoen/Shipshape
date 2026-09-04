@@ -26,6 +26,7 @@ module Shipshape
       "failure" => "builds the `Result` a writing operation answers with when it did not — an " \
                    "error code and, optionally, a value to redraw a form with.",
       "success?" => "`Result`'s own predicate for which one came back.",
+      "failure?" => "the negation of `success?`.",
       "shapes?" => "the check a question's answer must pass: nil, a `Shape`, or an array of them.",
       "typed" => "asserts an argument's class at construction; raises rather than coercing.",
       "typed_array" => "the same assertion over every element of an Array.",
