@@ -28,7 +28,7 @@ class PresenceIsNotRedefinedTest < Minitest::Test
   def test_the_offence_carries_the_reason_and_an_example
     message = check("class Basket < Shape\n  def present?\n    false\n  end\nend\n").first.message
 
-    assert_includes message, "WHY: Request handling may test `present?` and nothing else"
+    assert_includes message, "WHY: Request handling may test `present?` and `success?`, and nothing else"
     assert_includes message, "INSTEAD:"
     assert_includes message, "computes nothing"
   end

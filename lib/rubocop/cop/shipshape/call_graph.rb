@@ -26,7 +26,7 @@ module RuboCop
           # the caller reaches down a level, never sideways or up
           class SettleInvoice < Deed
             def call
-              invoice = FindInvoice.call(id: @id).value   # a question, one level down
+              invoice = FindInvoice.call(id: @id)          # a question, one level down
               InvoiceRecord.find(invoice.id).update!(...) # a record, the level below that
             end
           end

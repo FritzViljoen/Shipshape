@@ -30,7 +30,7 @@ module RuboCop
           # if callers really need the answer, it is a question, not a mixin
           class TotalOf < Question
             def call
-              success(@lines.sum(&:amount))
+              @lines.sum(&:amount)
             end
           end
         RUBY

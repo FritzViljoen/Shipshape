@@ -603,7 +603,8 @@ Shipshape/PersistenceHoldsNoBehaviour:
 Shipshape/PresenceIsNotRedefined:
   Description: >-
     A shape does not answer `present?`, `blank?` or `empty?` for itself. Request handling tests
-    `present?` and nothing else, and it means one thing: did the question find anything.
+    `present?` and `success?`, and nothing else, and `present?` means one thing: did the
+    question find anything.
   Enabled: true
   VersionAdded: '0.0.1'
   Include:

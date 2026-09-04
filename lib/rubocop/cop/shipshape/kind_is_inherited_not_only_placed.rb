@@ -62,7 +62,8 @@ module RuboCop
           "legacy_question" => <<~RUBY,
             class FindLegacyBooking < %<base>s
               def call
-                LegacyBookingRecord.find_by(id: @id)
+                row = LegacyBookingRecord.find_by(id: @id)
+                row && Booking.from(row)
               end
             end
           RUBY

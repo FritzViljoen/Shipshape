@@ -9,7 +9,7 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `absence-is-absence-never-a-value`.
+      # Holds `absence-is-absence-never-a-value`. A polymorphic reference's `_type` is unchecked.
       class AbsenceIsAbsenceNeverAValue < Base
         include Explains
 
@@ -26,6 +26,9 @@ module RuboCop
           binary boolean json jsonb uuid inet cidr macaddr money interval column
           references belongs_to
         ].freeze
+
+        # Each really creates `<name>_id`, never the association name — see `column_of`.
+        REFERENCE_METHODS = %i[add_reference add_belongs_to references belongs_to].freeze
 
         NOT_NULL = <<~RUBY
           # the column refuses the gap
@@ -135,8 +138,10 @@ module RuboCop
 
         def column_of(node)
           argument = TABLE_FIRST.include?(node.method_name) ? node.arguments[1] : node.arguments.first
+          name = name_of(argument)
+          return name if name.nil?
 
-          name_of(argument)
+          REFERENCE_METHODS.include?(node.method_name) ? "#{name}_id" : name
         end
 
         # A nested column has no table of its own; the enclosing block tracked it above.

@@ -116,7 +116,9 @@ class AbsenceIsAbsenceNeverAValueTest < Minitest::Test
     RUBY
 
     assert_equal 1, found.length
-    assert_includes found.first.message, "`bookings.supplier` is nullable"
+    assert_includes found.first.message, "`bookings.supplier_id` is nullable",
+      "A reference creates `<name>_id`, not the association name — the message must " \
+      "name the column that actually exists."
   end
 
   def test_a_column_that_says_nothing_is_nullable

@@ -21,7 +21,7 @@ module RuboCop
           class ShowBooking < Question
             def call
               row = BookingRecord.find(@id)
-              success(Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record)))
+              Booking.new(reference: row.reference, supplier: Supplier.from(row.supplier_record))
             end
           end
         RUBY
@@ -37,7 +37,7 @@ module RuboCop
           # the filter is named, and it is read where it is used
           class ListLiveBookings < Question
             def call
-              success(BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) })
+              BookingRecord.where.missing(:cancellation_record).map { |row| Booking.from(row) }
             end
           end
         RUBY
@@ -60,7 +60,7 @@ module RuboCop
           # and the operation is where deriving happens
           class TotalBooking < Question
             def call
-              success(@booking.lines.sum(&:amount) * (1 + @tax_rate))
+              @booking.lines.sum(&:amount) * (1 + @tax_rate)
             end
           end
         RUBY
