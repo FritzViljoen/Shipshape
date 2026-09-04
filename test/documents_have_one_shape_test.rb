@@ -8,8 +8,6 @@ require "test_helper"
 class DocumentsHaveOneShapeTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
 
-  # Neither is a law or a procedure: the index is for a person, CLAUDE.md is the compacted
-  # copy handed to an agent. Both live beside the documents this glob is meant to find.
   NON_RULE_DOCUMENTS = %w[README.md CLAUDE.md].freeze
 
   PROCEDURES = Dir[File.join(ROOT, "docs/decomposing/*.md")]
