@@ -209,6 +209,44 @@ class ReportTest < Minitest::Test
       "Timestamps are exempt; a column with a default is reported as a default rather than counted twice."
   end
 
+  # A dedicated schema, not the shared APP fixture above: WideTables ranks every table in APP
+  # by column count, so adding the three tables this needs would change what it reports too.
+  def test_it_reports_a_column_group_duplicated_across_tables
+    schema = <<~RUBY
+      ActiveRecord::Schema[8.0].define(version: 1) do
+        create_table "orders" do |t|
+          t.string "currency"
+          t.decimal "amount"
+        end
+
+        create_table "invoices" do |t|
+          t.string "currency"
+          t.decimal "amount"
+        end
+
+        create_table "refunds" do |t|
+          t.string "currency"
+          t.decimal "amount"
+        end
+      end
+    RUBY
+
+    Dir.mktmpdir("shipshape-duplicated-columns") do |root|
+      target = File.join(root, "db/schema.rb")
+      FileUtils.mkdir_p(File.dirname(target))
+      File.write(target, schema)
+
+      row = report_for(root)[:rows].find { |candidate| candidate.title == "Columns duplicated across tables" }
+
+      assert_equal "model-concerns-not-groups", row.citation
+      assert_equal ["amount, currency — on 3 tables: invoices, orders, refunds"], row.findings.map(&:label)
+
+      markdown = Shipshape::ReportAsMarkdown.new(report: report_for(root)).call
+      assert_includes markdown, "Columns duplicated across tables"
+      assert_includes markdown, "`model-concerns-not-groups`"
+    end
+  end
+
   def test_it_proposes_a_shape_named_from_their_own_code
     proposal = row("Request handling reaching straight into persistence").proposal
 

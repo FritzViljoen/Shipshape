@@ -10,6 +10,7 @@ require "shipshape/measures/lifecycle_callbacks"
 require "shipshape/measures/input_parsed_in_the_action"
 require "shipshape/measures/times_that_assume_a_zone"
 require "shipshape/measures/nullable_columns"
+require "shipshape/measures/duplicated_columns"
 require "shipshape/measures/god_classes"
 require "shipshape/measures/wide_tables"
 require "shipshape/measures/asking_then_branching"
@@ -43,6 +44,7 @@ module Shipshape
       InputParsedInTheAction,
       TimesThatAssumeAZone,
       NullableColumns,
+      DuplicatedColumns,
       WideTables,
     ].freeze
   end
