@@ -32,10 +32,15 @@ module RuboCop
         REFERENCE_METHODS = %i[add_reference add_belongs_to references belongs_to].freeze
 
         NOT_NULL = <<~RUBY
-          # the column refuses the gap
+          # first: are other nullable columns on this table one concern with this one?
+          # `shipshape tables --table <table>` names them — a cluster gets one table,
+          # not one join per column.
+
+          # alone, and backfillable: the column refuses the gap
           t.string :nickname, null: false
 
-          # nobody has said? That is the absence of a row, not a null in one.
+          # alone, and genuinely optional: nobody has said is the absence of a row,
+          # not a null in one
           create_table :person_nicknames do |t|
             t.references :person, null: false, foreign_key: true
             t.string :nickname, null: false

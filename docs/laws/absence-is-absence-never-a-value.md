@@ -8,6 +8,12 @@ A null is not "off", not "inherit", not "not applicable", not "we lost it" — i
 them at once, and no reader can tell which. Every meaning given to it is a fact nobody
 declared.
 
+**Several nullable columns on one table are often one concern wearing several names, and
+the fix is not each column's own join.** Fixing them one at a time reads as progress and
+produces a satellite per column — the same table underneath, only harder to see now.
+[Cluster them first](../decomposing/a-concern-nobody-modelled.md), then treat whatever is
+left as a column on its own.
+
 **A nullable foreign key is the common case, and it is usually two things sharing one
 table.** The way to say "nobody has said" is the absence of a row: a join, with a uniqueness
 constraint on the key. The unique index is half the fix — without it the join holds two

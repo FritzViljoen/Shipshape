@@ -535,7 +535,9 @@ Shipshape/NoUnparsedLookup:
 # kind registry has nothing to say about it.
 Shipshape/AbsenceIsAbsenceNeverAValue:
   Description: >-
-    A concern nobody modelled shows up as a nullable column. Fires only on a table some
+    A concern nobody modelled shows up as a nullable column. Check whether it has siblings
+    that move together as one concern (`shipshape tables --table <table>`) before fixing it
+    alone — a cluster gets one table, not one join per column. Fires only on a table some
     Record in this repository claims, so an adopter is not penalised for a table it has not
     reached yet.
   Enabled: true
