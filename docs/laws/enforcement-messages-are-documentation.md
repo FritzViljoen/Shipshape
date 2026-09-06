@@ -41,6 +41,14 @@ guard wants.
   assert a fact about a file, a class, or a mechanism it did not itself read at the point it
   fired.
 
+  The same judgement covers the offer-set as a whole, not one sentence at a time: **a guard
+  is wrong if the correct answer is not reachable from what it tells you, independent of
+  whether anything it says is false.** A closed set of destinations that excludes the right
+  one, or a score the wrong answer satisfies exactly as well — a per-column nullable count
+  is satisfied perfectly by shattering one table into one table per column, which models
+  nothing — is the same defect as a false sentence, just quieter. No check here reads for
+  it: reachability is sense, not sections, and sense is what this guard cannot evaluate.
+
   "The base class already opened one" held for two of the seven kinds the cop fires on and
   was wrong for the rest — a cause checked once and applied to every case. "The runtime
   guard cannot catch this one" named a second mechanism's current behaviour, and the very
