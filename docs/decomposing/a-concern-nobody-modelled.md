@@ -52,7 +52,7 @@ shipshape tables --table <name>
 ```
 
 Read the signals as `TableShapes` reports them: nullable columns, migration-blind columns,
-boolean columns, status-shaped columns, blank-sentinel-capable columns, and the four
+boolean columns, status-shaped columns, blankable columns, and the four
 neighbour shapes. **None of this is a verdict.** The tool reads the schema and proposes
 nothing; grouping the columns into a concern is the step that follows, and it is yours.
 
