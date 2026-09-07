@@ -42,6 +42,18 @@ every other column default; `Shipshape/NoSilentCoercion` already names `nil.to_s
   `_id` and `_type`, both from the one `null:` option, and both are named when both are
   still nullable — exempts the reverse direction, and holds the same-method promotion rule.
 
+- **Reported, never gated.** A nullable column is a symptom of a concern nobody modelled,
+  not the sickness — treat it as a warning, not a fault. Nulls tend to arrive in groups, and
+  a count gated per column the way every other cop's is rewards exactly the wrong fix:
+  shatter each nullable column into its own join table and the count reads zero while
+  nothing was modelled, only multiplied. So `shipshape check` reports this cop's count the
+  same way it reports a legacy door's population — visible, climbing or falling, never
+  failing a build — and its RuboCop `Severity` is `warning`, not the department default.
+  What does not change: no column may be nullable, and every offence this cop finds is
+  still real. What changes is which mechanism holds the line — the cluster-first read in
+  [`a-concern-nobody-modelled.md`](../decomposing/a-concern-nobody-modelled.md), not a
+  ratchet a table can flatten past.
+
 - **Guard's limit:** it reads **migrations, not the live schema**. A column made nullable by
   anything else — a hand-run statement, a tool, a vendored migration — is invisible, and a
   passing run therefore proves what this repo's migrations did, not what the database holds.

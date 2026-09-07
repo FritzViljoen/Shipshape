@@ -539,8 +539,13 @@ Shipshape/AbsenceIsAbsenceNeverAValue:
     that move together as one concern (`shipshape tables --table <table>`) before fixing it
     alone — a cluster gets one table, not one join per column. Fires only on a table some
     Record in this repository claims, so an adopter is not penalised for a table it has not
-    reached yet.
+    reached yet. A symptom, not the sickness — see the cop's own header — so `shipshape
+    check` reports its count and never gates on it.
   Enabled: true
+  # A per-column count gated like every other cop rewards the wrong fix - see the cop's
+  # header. `shipshape check` already reports this count without gating; the severity says
+  # the same thing to `rubocop` run on its own.
+  Severity: warning
   VersionAdded: '0.0.1'
   Kinds:
     - record

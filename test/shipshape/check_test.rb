@@ -442,6 +442,21 @@ class CheckTest < Minitest::Test
     end
   end
 
+  # A null is a symptom of a concern nobody modelled, not the sickness - see `Check`'s header
+  # and `absence-is-absence-never-a-value`'s "Reported, never gated." Watched to fail: dropping
+  # the cop from `SYMPTOM_COPS` would land its count in `risen` and redden the second assertion.
+  def test_a_nullable_column_is_reported_as_a_symptom_never_gated
+    custom_repo({ "app/records/guest_record.rb" => GUEST_RECORD }, config: ABSENCE_YML) do |root|
+      write(root, "db/migrate/20260101000000_add_nickname_to_guests.rb", NULLABLE_MIGRATION)
+
+      report = Shipshape::Check.new(root: root, trunk: "trunk").call
+
+      assert_equal({ was: 0, now: 1 }, report[:symptom]["Shipshape/AbsenceIsAbsenceNeverAValue"])
+      refute report[:risen].key?("Shipshape/AbsenceIsAbsenceNeverAValue"),
+        "reported, never gated - a rise here must never fail the build"
+    end
+  end
+
   def test_a_grown_base_test_class_is_refused
     in_growth_repo(baseline: BASE_TEST_CASE) do |root|
       write(root, "test/support/admin_test_case.rb", GROWN_BASE_TEST_CASE)
@@ -545,6 +560,36 @@ class CheckTest < Minitest::Test
         question: []
         legacy_question: []
   YAML
+
+  # A minimal owned table: `record` is the cop's own default `Kinds`, so a Record file
+  # claiming `guests` by `self.table_name` is enough for `owned?` to see the migration below.
+  ABSENCE_YML = <<~YAML
+    require:
+      - shipshape
+
+    AllCops:
+      NewCops: disable
+      SuggestExtensions: false
+
+    Shipshape/CallGraph:
+      Kinds:
+        record: ['app/records/**/*_record.rb']
+      BaseClasses:
+        record: [ApplicationRecord]
+
+    Shipshape/OneOperationOneClass:
+      Enabled: false
+  YAML
+
+  GUEST_RECORD = "class GuestRecord < ApplicationRecord\n  self.table_name = \"guests\"\nend\n"
+
+  NULLABLE_MIGRATION = <<~RUBY
+    class AddNicknameToGuests < ActiveRecord::Migration[7.0]
+      def change
+        add_column :guests, :nickname, :string, null: true
+      end
+    end
+  RUBY
 
   GROWTH_YML = <<~YAML
     require:

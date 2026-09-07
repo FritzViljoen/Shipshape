@@ -9,8 +9,8 @@ require "rubocop/cop/shipshape/explains"
 module RuboCop
   module Cop
     module Shipshape
-      # Holds `absence-is-absence-never-a-value`. `column_of` names both of a polymorphic
-      # reference's columns, so a fix cannot stop at `_id` alone.
+      # Holds `absence-is-absence-never-a-value`, a symptom now reported and never gated —
+      # see the law. `column_of` names both of a polymorphic reference's columns, so a fix cannot stop at `_id` alone.
       class AbsenceIsAbsenceNeverAValue < Base
         include Explains
 

@@ -16,13 +16,16 @@ require "shipshape/settings"
 require "shipshape/typed_arguments"
 
 module Shipshape
-  # The ratchet: each cop's offences, failing where they rose - and the population of every
-  # retiring kind, reported but never gated on, since `the-call-graph-is-declared` calls that
-  # a curve, not a ratchet. No checked-in baseline: a regenerate button on a red build erases it.
+  # The ratchet: each cop's offences, failing where they rose — except a null, a symptom
+  # never gated (`SYMPTOM_COPS`, below) — and the population of every retiring kind,
+  # reported but never gated on either, since `the-call-graph-is-declared` calls that a
+  # curve, not a ratchet. No checked-in baseline: a regenerate button on a red build erases it.
   class Check
     include TypedArguments
 
     CONFIG = ".rubocop.yml"
+
+    SYMPTOM_COPS = ["Shipshape/AbsenceIsAbsenceNeverAValue"].freeze # see the class comment
 
     # The config must sit at the REPOSITORY ROOT: RuboCop resolves globs against the config's
     # own directory, so `tools/.rubocop.yml` silences every kind-scoped cop and prints
@@ -149,21 +152,27 @@ module Shipshape
     def report(base:, head:, off:, sha:, before: {}, after: {}, lines_before: {}, lines_after: {},
                coupling: ZERO_COUPLING, skipped_cops: [])
       cops = (base.keys + head.keys).uniq.sort
+      gated = cops - SYMPTOM_COPS
 
-      risen = cops.each_with_object({}) do |cop, rows|
+      risen = gated.each_with_object({}) do |cop, rows|
         was = base.fetch(cop, 0)
         now = head.fetch(cop, 0)
         rows[cop] = { was: was, now: now } if now > was
       end
 
-      fallen = cops.each_with_object({}) do |cop, rows|
+      fallen = gated.each_with_object({}) do |cop, rows|
         was = base.fetch(cop, 0)
         now = head.fetch(cop, 0)
         rows[cop] = { was: was, now: now } if now < was
       end
 
+      symptom = (cops & SYMPTOM_COPS).each_with_object({}) do |cop, rows| # always shown, not just on change
+        rows[cop] = { was: base.fetch(cop, 0), now: head.fetch(cop, 0) }
+      end
+
       { base: base, head: head, off: off, risen: risen, fallen: fallen, sha: sha, trunk: trunk_name,
         retiring: arrived_in(before, after), growth: grown_files(lines_before, lines_after),
+        symptom: symptom,
         coupling: { was: coupling.was, now: coupling.now,
                     arrived_edges: coupling.arrived_edges, arrived_files: coupling.arrived_files,
                     left_edges: coupling.left_edges, left_files: coupling.left_files },
