@@ -380,6 +380,14 @@ def check(trunk)
   report[:retiring].each do |kind, row|
     puts "  ARRIVED  #{kind}  #{row[:was]} -> #{row[:now]} files — that kind is on its way out"
   end
+  # A null is a symptom of a concern nobody modelled, not the sickness — reported, never
+  # gated, because a per-column count is satisfied by shattering a table into one join per
+  # column, which scores perfectly and models nothing. `shipshape tables` shows whether these
+  # cluster into one concern; that read is what steers, since this line cannot fail a build.
+  report[:symptom].each do |cop, row|
+    puts "  SYMPTOM  #{cop}  #{row[:was]} -> #{row[:now]} — a warning, not gated; run " \
+         "`shipshape tables` to see whether these cluster into one concern nobody modelled"
+  end
   report[:growth].each do |file, row|
     puts "  GREW     #{file}  #{row[:was]} -> #{row[:now]} lines"
   end

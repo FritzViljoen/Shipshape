@@ -202,10 +202,15 @@ One column per change. The temptation is a single migration that fixes forty col
 is wrong for a reason specific to this work: **each column is a different one of the four
 shapes above**, and a batch hides which judgement was made about which.
 
-`shipshape check` is a ratchet, so a partial state is legal. Forty small changes each land
-green; one big one lands or does not.
+`shipshape check` ratchets every other guard here, so a partial state is legal for them: forty
+small changes each land green; one big one lands or does not. `AbsenceIsAbsenceNeverAValue`
+itself is reported, not gated — a warning about a symptom, not a fault a build can fail on
+(`absence-is-absence-never-a-value`'s "Reported, never gated") — so batching cannot be caught
+by a red build here. The reason to keep it to one column stands regardless: a batch hides
+which of the four shapes was chosen for which column, and that judgement is the whole point.
 
-**Check:** `shipshape check` — the count falls and never rises.
+**Check:** the SYMPTOM line in `shipshape check` names one fewer column, and
+`shipshape tables --table <name>` no longer lists it under `nullable columns`.
 
 ---
 
