@@ -5,7 +5,7 @@ require "shipshape/table_shapes"
 
 # Watched to fail: dropping the single-column guard in `add_unique`/`add_top_level_unique`
 # makes the composite-index test's key read as unique; skipping the `column:` fallback reddens
-# the default-inference test; treating `nullable` columns as blank-sentinel-capable reddens
+# the default-inference test; treating `nullable` columns as blankable reddens
 # that test too; blurring any of the four `shape_of` counts collapses two of its tests together.
 class TableShapesTest < Minitest::Test
   def test_no_schema_reports_no_tables
@@ -52,7 +52,7 @@ class TableShapesTest < Minitest::Test
     assert_equal %w[state fulfillment_status], orders.status_shaped
   end
 
-  def test_a_not_null_string_can_still_carry_a_blank_sentinel
+  def test_a_not_null_string_can_still_be_blank
     orders = table(<<~RUBY).fetch("orders")
       create_table "orders", force: :cascade do |t|
         t.string "discount_code", null: false, default: ""
@@ -62,18 +62,18 @@ class TableShapesTest < Minitest::Test
       end
     RUBY
 
-    assert_equal %w[discount_code state], orders.blank_sentinel_capable.map(&:name)
-    assert_equal "\"\"", orders.blank_sentinel_capable.first.default
+    assert_equal %w[discount_code state], orders.blankable.map(&:name)
+    assert_equal "\"\"", orders.blankable.first.default
   end
 
-  def test_a_nullable_column_is_not_also_named_as_blank_sentinel_capable
+  def test_a_nullable_column_is_not_also_named_as_blankable
     orders = table(<<~RUBY).fetch("orders")
       create_table "orders", force: :cascade do |t|
         t.string "note"
       end
     RUBY
 
-    assert_empty orders.blank_sentinel_capable
+    assert_empty orders.blankable
   end
 
   def test_an_ordinary_foreign_key_unlocks_cardinality

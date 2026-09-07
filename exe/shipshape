@@ -305,10 +305,13 @@ def tables
   puts "#{ordered.length} of #{all.length} table(s) in db/schema.rb, ordered by nullable-column" \
        " count, most first — an ordering aid, not a severity ranking."
   puts
-  puts "Zero nulls does not mean zero gaps: the gap can be spelled \"\", 0, or a default instead" \
-       " of NULL — `NoColumnDefaults` reads a migration too, so a default already in the schema" \
-       " is invisible to it the same way. And a table naming none of these signals can still be" \
-       " two concepts that both happen to be fully populated — this finds a symptom, never the disease."
+  puts "Zero nulls does not mean zero gaps: a gap can still be spelled 0, a zero-date, or a" \
+       " default instead of NULL — `NoColumnDefaults` reads a migration too, so a default" \
+       " already in the schema is invisible to it the same way. \"\" is not on that list: it" \
+       " can be a gap wearing a costume, or it can be a fact the domain wrote — \"blankable\"" \
+       " below names the column, not which. And a table naming none of these signals can" \
+       " still be two concepts that both happen to be fully populated — this finds a symptom," \
+       " never the disease."
   puts
   puts "#{finder.migrations_scanned} file(s) under db/migrate/ scanned. `AbsenceIsAbsenceNeverAValue` reads" \
        " only those, so a nullable column none of them declares — predating adoption, or left" \
@@ -326,12 +329,12 @@ def print_table(table)
   puts "  migration-blind:            #{named(table.migration_blind)}"
   puts "  boolean columns:            #{named(table.booleans)}"
   puts "  status-shaped columns:      #{named(table.status_shaped)}"
-  puts "  blank-sentinel-capable:     #{named(table.blank_sentinel_capable.map { |column| sentinel_label(column) })}"
+  puts "  blankable:                  #{named(table.blankable.map { |column| blank_label(column) })}"
   puts "  foreign key neighbours:     #{named(table.neighbours.map { |neighbour| neighbour_label(neighbour) })}"
   puts
 end
 
-def sentinel_label(column)
+def blank_label(column)
   column.default ? "#{column.name} (default: #{column.default})" : column.name
 end
 

@@ -43,9 +43,9 @@ module Shipshape
                .map(&:name)
       end
 
-      # NOT NULL closes the null escape route; "" or a default reopens it under a different
-      # name. Named here because it is otherwise invisible: the column reads as fixed.
-      def blank_sentinel_capable
+      # "" here is not automatically the null escape route reopened — a fact the domain
+      # asserted, or a gap in costume; the write path decides, never the type. Named regardless.
+      def blankable
         columns.reject { |column| column.nullable || TIMESTAMPS.include?(column.name) }
                .select { |column| BLANKABLE_TYPES.include?(column.type) }
       end

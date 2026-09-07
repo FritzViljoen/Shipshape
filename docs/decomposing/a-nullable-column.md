@@ -103,6 +103,14 @@ shape — `## Nullable columns and database defaults — 0` followed by `Nothing
 is not a gap; it is a second table that has not been written. `bookings.cancelled_reason`
 being NULL for every non-cancelled booking says there is a `Cancellation`.
 
+**A NOT NULL string or text column is not required to hold non-blank rows.** `""` written
+because the domain asserted it — a blank middle name, submitted on a form — is a value, not
+the null moved house. The test is provenance: was it answered, or manufactured because
+nothing was provided? A `""` a column default supplies, or an application computes with
+`value.presence || ""` when nothing arrived, is the gap wearing the new column's clothes —
+[`absence-is-absence-never-a-value`](../laws/absence-is-absence-never-a-value.md) names both
+guards that already catch part of this and the part neither does.
+
 **Check:** for each nullable column you can say which of the four it is, in words, before
 writing a migration.
 

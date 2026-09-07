@@ -100,6 +100,24 @@ So a column is NOT NULL, and the way to say "nobody has said" is the absence of 
 A nullable foreign key is usually two things sharing one table; a join with a uniqueness
 constraint says the same thing and can be read.
 
+**Blank is a value, not a gap — when it was answered.** A first/middle/last name form that
+submits `""` for middle name is not withholding data — it is the fact that this person has
+none, stated by the person who would know. NULL would have meant the field was never
+answered. The two look alike as "nothing there", but only one is a fact the domain asserted.
+
+**The test is provenance, not the value.** The blank came from the form; it was not
+defaulted. A `""` manufactured because nothing was provided — a column default, a
+`value.presence || ""`, a bare `to_s` turning a missing value into an empty one — fabricates
+an answer nobody gave. That is the same defect as a null carrying a meaning, wearing a
+value's clothes, and worse: it is now indistinguishable from a real answer, where the null at
+least looked like a gap. No schema scan can tell a stated blank from a manufactured one —
+the difference lives in the write path, never the column's type. `""` stays a value the
+application writes because the domain asserted it, never a default the database falls back
+to; `no-database-defaults` already bans `default: ""` in a migration alongside every other
+column default, and `no-silent-coercion`'s cast guard already names `nil.to_s` turning
+absence into "a value that cannot fail" — both hold this today, without a third guard saying
+it a second way.
+
 **The mirror defect is a fact stated twice.** A gap given a meaning is a fact nobody
 declared; a column default beside a model default is one fact declared twice, and the two
 drift. Both leave a reader unable to say what the system holds — one because nothing

@@ -18,6 +18,17 @@ column cannot be added to a populated table in one statement, so it is added nul
 filled, and promoted — and the promotion comes later in the same method. A nullable column
 that outlives its migration is what this law forbids.
 
+**This law forbids the null, not the blank.** `""` on a NOT NULL string or text column is a
+value the domain can assert as a fact — a middle name submitted blank on a form is "this
+person has none," not "nobody has said." The blank came from the form; it was not defaulted.
+The test is provenance, not the value: a blank that was answered is a fact; a blank
+manufactured because nothing was provided — a column default, `value.presence || ""`, a bare
+`to_s` turning a missing value into an empty one — is a null wearing a value's clothes, and
+worse than a null, because it can no longer be told apart from a real answer.
+`Shipshape/NoColumnDefaults` already forbids `default: ""` at the schema layer, alongside
+every other column default; `Shipshape/NoSilentCoercion` already names `nil.to_s` producing
+"a value that cannot fail" at the application layer. Neither needed a new clause for this.
+
 - **Principle:** `absence-is-absence`
 - **Guard:** `Shipshape/AbsenceIsAbsenceNeverAValue`, over migrations, and only for a table
   some Record in this repository claims. Covers creation and alteration, resolves a
@@ -62,3 +73,9 @@ that outlives its migration is what this law forbids.
   static way to say which one the prefix belongs to; a subclass of another record rather
   than of the listed base classes, which claims nothing of its own even when Rails would
   derive one from it; or a record living outside the configured `record` kind's paths.
+
+  **Neither guard named above for the blank-versus-manufactured distinction reaches an
+  application-layer fallback that is not a cast.** `value.presence || ""` and `field || ""`
+  manufacture a blank exactly the way `nil.to_s` does, but name no cast `NoSilentCoercion`
+  matches and no column `NoColumnDefaults` reads. This is a disclosed gap, not a guard to
+  write tonight.
